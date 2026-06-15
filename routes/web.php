@@ -1,0 +1,61 @@
+<?php
+
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\NoticeController;
+use App\Http\Controllers\Admin\OpportunityController;
+use App\Http\Controllers\Admin\PortalLinkController;
+use App\Http\Controllers\Admin\RecommendationController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Integrations\SuperOpsLaunchController;
+use App\Http\Controllers\SupportController;
+use App\Enums\UserRole;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', fn () => redirect()->route('login'));
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [MicrosoftAuthController::class, 'showLogin'])->name('login');
+    Route::get('/auth/microsoft', [MicrosoftAuthController::class, 'redirect'])->name('auth.microsoft');
+    Route::get('/auth/microsoft/callback', [MicrosoftAuthController::class, 'callback'])
+        ->middleware('throttle:auth-callback')
+        ->name('auth.microsoft.callback');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [MicrosoftAuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::prefix('support')->name('support.')->group(function () {
+        Route::get('/', [SupportController::class, 'index'])->name('index');
+        Route::get('/create', [SupportController::class, 'create'])->name('create');
+        Route::post('/', [SupportController::class, 'store'])->name('store');
+        Route::get('/{ticketId}', [SupportController::class, 'show'])->name('show');
+    });
+
+    Route::get('/integrations/superops/launch', SuperOpsLaunchController::class)
+        ->name('integrations.superops.launch');
+
+    Route::prefix('admin')
+        ->name('admin.')
+        ->middleware('role:'.implode(',', UserRole::adminRoles()))
+        ->group(function () {
+            Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+            Route::resource('clients', ClientController::class)->except(['show']);
+            Route::resource('users', UserController::class)->except(['show']);
+            Route::resource('portal-links', PortalLinkController::class)->except(['show']);
+            Route::resource('notices', NoticeController::class)->except(['show']);
+            Route::resource('recommendations', RecommendationController::class)->except(['show']);
+            Route::resource('opportunities', OpportunityController::class)->except(['show']);
+
+            Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
+            Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+
+            Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        });
+});
