@@ -111,10 +111,16 @@ Users must be pre-provisioned by an administrator before they can log in.
 
 ## Default Seeded Data
 
-- 3 demo clients (Acme, Globex, Initech)
+- On IT internal client: `On IT Technology Partners`
+- Portal SSO test user: `portal.test@onit.ltd`
 - Super admin: email from `SUPER_ADMIN_EMAIL` env var
 - Portal links from environment variables
-- Sample notices, recommendations, and opportunities
+
+To remove legacy demo records from older environments:
+
+```bash
+php artisan portal:purge-demo-data --force
+```
 
 ## Project Documentation
 

@@ -13,9 +13,6 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             OnItTechnologyPartnersSeeder::class,
             PortalLinkSeeder::class,
-            NoticeSeeder::class,
-            RecommendationSeeder::class,
-            OpportunitySeeder::class,
             SettingSeeder::class,
         ]);
     }

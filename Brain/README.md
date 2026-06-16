@@ -52,6 +52,8 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-16 | Removed Acme/Globex/Initech demo seed defaults; added `portal:purge-demo-data` cleanup command |
+| 2026-06-16 | Added production security hardening: HTTPS forced in app + default security headers middleware |
 | 2026-06-15 | Production Laravel URL set to `app.onit.ltd` (`portal.onit.ltd` = SuperOps only) |
 | 2026-06-15 | SuperOps launch: direct redirect to `/#/requester/login` (removed interim instructions page) |
 | 2026-06-15 | Documented IDP Login URL source (Entra Section 4), URL placement table, Step 2 Save requirement |
@@ -89,7 +91,7 @@ You are the senior engineer on the On IT Portal project.
 **Key routes:** /login, /auth/microsoft/callback, /dashboard, /support, /integrations/superops/launch, /admin/*
 **Key code:** app/Http/Controllers/Auth/MicrosoftAuthController.php, app/Services/SuperOps/*
 
-**Current state:** MVP built. Microsoft OAuth login works. SuperOps requester SSO **validated** (portal → `/#/requester/login` → Microsoft → client-home). Phase A complete locally. **Next:** Plesk deploy at **`https://app.onit.ltd`** (see Brain/Deployment.md). `portal.onit.ltd` = SuperOps only.
+**Current state:** MVP built. Microsoft OAuth login works. SuperOps requester SSO is live in production at **`https://app.onit.ltd`**. `portal.onit.ltd` remains the SuperOps requester portal.
 
 **SuperOps launch:** `SuperOpsSsoService` — client users only, `login_hint`, path `/#/requester/login`. Tests: `tests/Unit/SuperOpsSsoServiceTest.php`.
 

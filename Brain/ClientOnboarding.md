@@ -321,7 +321,7 @@ On IT validated Global SSO with **`portal.test@onit.ltd`** (`client_user` on On 
 
 **Do not test requester SSO as `tom.ashby@onit.ltd`** — MSP technician in SuperOps. Portal blocks `super_admin` from SuperOps launch.
 
-**Next:** Deploy Laravel app to Plesk at **`app.onit.ltd`** — `portal.onit.ltd` remains SuperOps only. See [Deployment.md](Deployment.md).
+**Next:** Onboard first real client users (Path B in most cases). `portal.onit.ltd` remains SuperOps only.
 
 See [OperatorRunbook.md](OperatorRunbook.md) Phase A for click-by-click.
 

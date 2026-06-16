@@ -214,8 +214,8 @@ Full steps: [Deployment.md](Deployment.md)
 ## Order of work (summary)
 
 ```
-NOW     → Phase A complete (SSO validated locally)
-NEXT    → Plesk deploy Laravel app (app.onit.ltd) — see Deployment.md
+NOW     → Production live at app.onit.ltd; finish post-deploy hardening/tasks
+NEXT    → Phase B onboarding flow for real client users
 ONGOING → Phase B (each new portal user)
 LATER   → Phase C (Client SSO per real client tenant)
 OPTION  → Phase D (API, groups)

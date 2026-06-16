@@ -31,7 +31,7 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 
 1. Log in to Plesk
 2. Add Subdomain **`app.onit.ltd`**
-3. Set document root to the Laravel `public` folder, e.g. `/httpdocs/public`
+3. Set document root to the Laravel `public` folder, e.g. `/app.onit.ltd/public`
 
 ### 2. Configure PHP
 
@@ -53,18 +53,18 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 **Option A: Git (recommended)**
 
 1. Enable Git extension in Plesk
-2. Clone repository to `/httpdocs`
+2. Clone repository to `/app.onit.ltd`
 3. Set deployment branch to `main`
 
 **Option B: SFTP**
 
-1. Upload all files to `/httpdocs` via SFTP
+1. Upload all files to `/app.onit.ltd` via SFTP
 2. Ensure `.env` is configured on server (never commit `.env`)
 
 ### 5. Install Dependencies
 
 ```bash
-cd /var/www/vhosts/app.onit.ltd/httpdocs
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
 composer install --no-dev --optimize-autoloader
 ```
 
@@ -104,7 +104,7 @@ SUPEROPS_SUBDOMAIN=onitltd
 SUPEROPS_REGION=us
 SUPEROPS_PORTAL_URL=https://app.superops.ai
 SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
-SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login
+SUPEROPS_REQUESTER_LOGIN_PATH="/#/requester/login"
 SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 SUPEROPS_AUTO_OPEN_AFTER_LOGIN=false
@@ -120,6 +120,7 @@ BILLING_PORTAL_URL=https://your-billing-url
 ```bash
 php artisan migrate --force
 php artisan db:seed --force
+php artisan portal:purge-demo-data --force   # one-time cleanup for older installs
 ```
 
 ### 8. Set File Permissions
@@ -144,7 +145,7 @@ php artisan optimize
 In Plesk → Scheduled Tasks, add:
 
 ```
-* * * * * cd /var/www/vhosts/app.onit.ltd/httpdocs && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ### 11. SSL Certificate
@@ -178,10 +179,11 @@ In Plesk → Scheduled Tasks, add:
 ## Updating the Application
 
 ```bash
-cd /var/www/vhosts/app.onit.ltd/httpdocs
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
 git pull origin main
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
+php artisan portal:purge-demo-data --force   # safe to re-run; no-op if already clean
 php artisan optimize
 ```
 
@@ -191,7 +193,7 @@ php artisan optimize
 |---|---|
 | 500 error | Check `storage/logs/laravel.log`, verify permissions |
 | Login redirect fails | Verify `MICROSOFT_REDIRECT_URI` matches Entra app registration exactly |
-| Session not persisting | Verify `sessions` table exists, `SESSION_DRIVER=database` |
+| Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists, `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset) |
 | CSS not loading | Run `npm run build` if assets changed, verify `public/build` exists |
 | Permission denied | `chmod -R 775 storage bootstrap/cache` |
 | cURL SSL error on **local Windows only** | Not a production issue — see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |

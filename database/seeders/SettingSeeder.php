@@ -11,12 +11,12 @@ class SettingSeeder extends Seeder
     {
         $settings = [
             'portal_name' => 'On IT Portal',
-            'support_email' => 'support@onit.example',
+            'support_email' => 'support@onit.ltd',
             'company_name' => 'On IT Technology Partners',
         ];
 
         foreach ($settings as $key => $value) {
-            Setting::create(['key' => $key, 'value' => $value]);
+            Setting::updateOrCreate(['key' => $key], ['value' => $value]);
         }
     }
 }

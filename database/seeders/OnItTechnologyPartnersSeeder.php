@@ -10,19 +10,15 @@ use Illuminate\Database\Seeder;
 class OnItTechnologyPartnersSeeder extends Seeder
 {
     /**
-     * On IT's own organisation — used for internal SSO testing and demo.
-     * Safe to re-run (updateOrCreate).
+     * On IT internal SSO test user. Safe to re-run (updateOrCreate).
      */
     public function run(): void
     {
-        $client = Client::updateOrCreate(
-            ['slug' => 'on-it-technology-partners'],
-            [
-                'name' => 'On IT Technology Partners',
-                'is_active' => true,
-                'superops_sso_enabled' => true,
-            ],
-        );
+        $client = Client::where('slug', 'on-it-technology-partners')->first();
+
+        if (! $client) {
+            return;
+        }
 
         User::updateOrCreate(
             ['email' => 'portal.test@onit.ltd'],
