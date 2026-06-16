@@ -6,27 +6,21 @@
     <meta name="theme-color" content="#011926">
     <title>Sign In - {{ config('app.name') }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased">
+<body>
     <div class="login-panel safe-top safe-bottom">
-        <div class="absolute inset-0 opacity-30 pointer-events-none" style="background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 24px 24px;"></div>
-
-        <div class="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center px-4 py-8 sm:py-12 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
-            {{-- Sign-in first on mobile --}}
+        <div class="mx-auto flex min-h-[100dvh] max-w-5xl flex-col justify-center px-4 py-8 lg:flex-row lg:items-center lg:gap-20 lg:px-8">
             <div class="order-1 w-full max-w-md mx-auto lg:order-2 lg:mx-0">
                 <div class="login-card">
                     <div class="flex items-center gap-3 mb-6 lg:hidden">
                         <x-portal-logo size="sm" />
-                        <div>
-                            <p class="font-semibold text-onit-ink">On IT Portal</p>
-                            <p class="text-xs text-slate-500">Secure client access</p>
-                        </div>
+                        <p class="font-semibold text-onit-ink">On IT Portal</p>
                     </div>
 
-                    <h2 class="text-xl font-semibold text-onit-ink">Sign in</h2>
-                    <p class="mt-1 text-sm text-slate-500">Use your work Microsoft account to continue.</p>
+                    <h2 class="text-lg font-semibold text-onit-ink">Sign in</h2>
+                    <p class="mt-1 text-sm text-slate-500">Use your work Microsoft account.</p>
 
                     @if(session('error'))
                         <x-alert type="danger" class="mt-6">{{ session('error') }}</x-alert>
@@ -38,8 +32,8 @@
                         </x-alert>
                     @endif
 
-                    <a href="{{ route('auth.microsoft') }}" class="portal-btn-primary mt-6 sm:mt-8 w-full min-h-[3rem]">
-                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+                    <a href="{{ route('auth.microsoft') }}" class="portal-btn-secondary mt-6 sm:mt-8 w-full border-onit-ink hover:bg-onit-ink hover:text-white">
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 21 21" fill="none" aria-hidden="true">
                             <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
                             <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
                             <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
@@ -47,32 +41,15 @@
                         </svg>
                         Sign in with Microsoft
                     </a>
-
-                    <p class="mt-6 text-center text-xs text-slate-400">
-                        Managed by On IT &middot; Secure single sign-on
-                    </p>
                 </div>
             </div>
 
-            <div class="order-2 mt-10 max-w-xl lg:order-1 lg:mt-0">
-                <div class="hidden lg:block">
-                    <x-portal-logo size="lg" class="mb-6" />
-                </div>
-                <p class="portal-section-title text-onit">On IT Technology Partners</p>
-                <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">Your IT hub.<br class="hidden sm:inline"> One sign-in.</h1>
-                <p class="mt-4 sm:mt-5 text-base sm:text-lg leading-relaxed text-slate-300">
-                    Access support, licensing, and the tools your organisation relies on — securely, from one place.
+            <div class="order-2 mt-10 max-w-lg lg:order-1 lg:mt-0">
+                <x-portal-logo size="lg" class="mb-6 hidden lg:inline-flex" />
+                <h1 class="text-2xl font-semibold sm:text-3xl lg:text-4xl text-white">On IT Portal</h1>
+                <p class="mt-4 text-sm sm:text-base text-slate-400">
+                    Sign in with your organisation Microsoft account.
                 </p>
-                <div class="mt-6 sm:mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-                        <p class="text-xs uppercase tracking-wider text-onit">Support</p>
-                        <p class="mt-1 text-sm text-slate-200">SuperOps requester portal</p>
-                    </div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-                        <p class="text-xs uppercase tracking-wider text-onit">Licensing</p>
-                        <p class="mt-1 text-sm text-slate-200">Pax8 &amp; Microsoft 365</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

@@ -16,8 +16,8 @@
                 @forelse($logs as $log)
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ $log->action }}</td>
-                        <td class="px-6 py-4 text-sm">{{ $log->user?->name ?? '—' }}</td>
-                        <td class="px-6 py-4 text-sm">{{ $log->client?->name ?? '—' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $log->user?->name ?? '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $log->client?->name ?? '-' }}</td>
                         <td class="px-6 py-4 text-sm text-slate-500">{{ $log->ip_address }}</td>
                         <td class="px-6 py-4 text-sm text-slate-500">{{ $log->created_at->format('d M Y H:i') }}</td>
                     </tr>

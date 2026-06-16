@@ -2,12 +2,12 @@
 
 @php
 $box = match($size) {
-    'lg' => 'h-16 w-16 rounded-2xl text-xl',
-    'sm' => 'h-8 w-8 rounded-lg text-sm',
-    default => 'h-10 w-10 rounded-xl text-base',
+    'lg' => 'h-14 w-14 text-lg',
+    'sm' => 'h-8 w-8 text-xs',
+    default => 'h-10 w-10 text-sm',
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => "inline-flex items-center justify-center bg-gradient-to-br from-onit to-onit-hover font-bold text-white shadow-lg shadow-onit/30 {$box}"]) }}>
-  <span>IT</span>
+<div {{ $attributes->merge(['class' => "inline-flex items-center justify-center bg-onit font-bold text-white {$box}"]) }}>
+    <span>IT</span>
 </div>

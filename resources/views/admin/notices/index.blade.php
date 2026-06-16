@@ -19,7 +19,7 @@
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ $notice->title }}</td>
                         <td class="px-6 py-4 text-sm">{{ $notice->client->name }}</td>
-                        <td class="px-6 py-4 text-sm">{{ $notice->published_at?->format('d M Y') ?? '—' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $notice->published_at?->format('d M Y') ?? '-' }}</td>
                         <td class="px-6 py-4"><x-badge :variant="$notice->is_active ? 'success' : 'danger'">{{ $notice->is_active ? 'Active' : 'Inactive' }}</x-badge></td>
                         <td class="px-6 py-4 text-right">
                             @include('admin.partials.table-actions', [

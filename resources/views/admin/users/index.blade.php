@@ -21,7 +21,7 @@
                         <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ $user->name }}</td>
                         <td class="px-6 py-4 text-sm">{{ $user->email }}</td>
                         <td class="px-6 py-4 text-sm">{{ $user->role->label() }}</td>
-                        <td class="px-6 py-4 text-sm">{{ $user->client?->name ?? '—' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $user->client?->name ?? '-' }}</td>
                         <td class="px-6 py-4 text-right">
                             @include('admin.partials.table-actions', [
                                 'editRoute' => route('admin.users.edit', $user),

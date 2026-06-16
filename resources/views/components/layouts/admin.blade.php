@@ -8,7 +8,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Admin' }} - {{ config('app.name') }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak] { display: none !important; }</style>
 </head>
@@ -17,7 +17,7 @@
         <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-onit-ink text-white">
             <div class="p-6">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center shadow-sm shadow-onit/30">
+                    <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center">
                         <span class="text-white font-bold text-sm">IT</span>
                     </div>
                     <span class="font-semibold">Admin</span>

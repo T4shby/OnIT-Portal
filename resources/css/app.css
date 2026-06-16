@@ -8,7 +8,7 @@
     }
 
     body {
-        @apply antialiased;
+        @apply antialiased font-sans;
     }
 }
 
@@ -28,82 +28,64 @@
     }
 
     .portal-shell {
-        @apply min-h-screen flex flex-col bg-[#f4f7f9];
+        @apply min-h-screen flex flex-col bg-slate-100;
         min-height: 100dvh;
-        background-image:
-            radial-gradient(ellipse 80% 50% at 0% -10%, rgba(255, 112, 0, 0.12), transparent 55%),
-            radial-gradient(ellipse 60% 40% at 100% 0%, rgba(1, 25, 38, 0.08), transparent 50%);
     }
 
     .portal-header {
-        @apply bg-onit-ink text-white border-b-4 border-onit shadow-lg shadow-onit-ink/20;
+        @apply bg-onit-ink text-white border-b-2 border-onit;
+    }
+
+    .portal-nav-link {
+        @apply text-sm text-slate-300 transition-colors duration-150 hover:text-onit;
+    }
+
+    .portal-nav-link-active {
+        @apply text-onit;
     }
 
     .portal-hero {
-        @apply relative overflow-hidden rounded-xl sm:rounded-2xl bg-onit-ink text-white px-4 py-6 sm:px-10 sm:py-10 shadow-xl shadow-onit-ink/25;
-    }
-
-    .portal-hero::before {
-        content: '';
-        @apply absolute inset-0 opacity-40 pointer-events-none;
-        background:
-            radial-gradient(circle at 100% 0%, rgba(255, 112, 0, 0.45), transparent 42%),
-            radial-gradient(circle at 0% 100%, rgba(24, 49, 61, 0.8), transparent 50%);
-    }
-
-    .portal-hero-accent {
-        @apply absolute -right-8 -top-8 h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-onit/20 blur-2xl pointer-events-none;
-    }
-
-    .portal-section-title {
-        @apply text-[11px] sm:text-xs font-semibold uppercase tracking-[0.16em] sm:tracking-[0.2em] text-onit;
+        @apply bg-onit-ink text-white px-4 py-6 sm:px-8 sm:py-8 border-l-4 border-onit;
     }
 
     .portal-tile {
-        @apply relative flex h-full flex-col overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm transition-all duration-200 touch-manipulation;
-        @apply active:scale-[0.99] active:border-onit/40;
-    }
-
-    .portal-tile::before {
-        content: '';
-        @apply absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-onit via-orange-400 to-onit-ink opacity-90;
+        @apply relative flex h-full flex-col border border-slate-200 bg-white p-5 sm:p-6 transition-colors duration-150 touch-manipulation;
+        @apply hover:border-onit active:border-onit;
     }
 
     .portal-tile-icon {
-        @apply flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-onit-light to-white text-onit ring-1 ring-onit/15 transition-all duration-200;
+        @apply flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center border border-slate-200 bg-slate-50 text-onit transition-colors duration-150;
     }
 
     @media (hover: hover) {
-        .portal-tile:hover {
-            @apply -translate-y-1 border-onit/50 shadow-xl shadow-onit/10;
-        }
-
         .portal-tile:hover .portal-tile-icon {
-            @apply from-onit to-onit-hover text-white ring-onit/30 shadow-lg shadow-onit/25;
+            @apply border-onit bg-onit-light;
         }
+    }
+
+    .portal-btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-full border-2 px-6 py-2.5 text-sm font-medium transition-colors duration-150 touch-manipulation;
+        min-height: 2.75rem;
     }
 
     .portal-btn-primary {
-        @apply inline-flex items-center justify-center gap-2 rounded-xl bg-onit px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-onit/30 transition-all touch-manipulation;
-        @apply hover:bg-onit-hover hover:shadow-onit/40 active:scale-[0.98];
-        min-height: 3rem;
+        @apply portal-btn border-onit bg-onit text-white hover:bg-onit-hover hover:border-onit-hover;
     }
 
     .portal-btn-secondary {
-        @apply inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-onit-ink transition-colors touch-manipulation;
-        @apply hover:border-onit/40 hover:bg-onit-light/50 active:scale-[0.98];
-        min-height: 3rem;
+        @apply portal-btn border-slate-300 bg-white text-onit-ink hover:border-onit hover:text-onit;
+    }
+
+    .portal-btn-dark {
+        @apply portal-btn border-white/50 bg-transparent text-white hover:border-onit hover:text-onit;
     }
 
     .login-panel {
-        @apply relative min-h-screen overflow-hidden bg-onit-ink text-white;
+        @apply bg-onit-ink text-white;
         min-height: 100dvh;
-        background-image:
-            radial-gradient(circle at 15% 15%, rgba(255, 112, 0, 0.28), transparent 35%),
-            linear-gradient(145deg, #011926 0%, #18313D 48%, #011926 100%);
     }
 
     .login-card {
-        @apply rounded-xl sm:rounded-2xl border border-white/10 bg-white/95 p-5 sm:p-8 shadow-2xl shadow-black/30 backdrop-blur-sm;
+        @apply border border-slate-200 bg-white p-5 sm:p-8;
     }
 }

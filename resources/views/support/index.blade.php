@@ -2,7 +2,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
       <h1 class="text-2xl font-bold text-slate-900">Support</h1>
-      <p class="text-slate-500 mt-1">Your tickets — powered by SuperOps.</p>
+      <p class="text-slate-500 mt-1">Your tickets. Powered by SuperOps.</p>
     </div>
     @if($user->client_id && $apiConfigured)
       <a href="{{ route('support.create') }}" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">New request</a>
@@ -32,9 +32,9 @@
               <td class="px-6 py-4 text-sm font-medium text-onit">
                 <a href="{{ route('support.show', $ticket['ticketId']) }}">#{{ $ticket['displayId'] ?? $ticket['ticketId'] }}</a>
               </td>
-              <td class="px-6 py-4 text-sm">{{ $ticket['subject'] ?? '—' }}</td>
+              <td class="px-6 py-4 text-sm">{{ $ticket['subject'] ?? '-' }}</td>
               <td class="px-6 py-4 text-sm"><x-badge variant="info">{{ is_array($ticket['status'] ?? null) ? ($ticket['status']['name'] ?? 'Open') : ($ticket['status'] ?? 'Open') }}</x-badge></td>
-              <td class="px-6 py-4 text-sm text-slate-500">{{ isset($ticket['updatedTime']) ? \Carbon\Carbon::parse($ticket['updatedTime'])->format('d M Y') : '—' }}</td>
+              <td class="px-6 py-4 text-sm text-slate-500">{{ isset($ticket['updatedTime']) ? \Carbon\Carbon::parse($ticket['updatedTime'])->format('d M Y') : '-' }}</td>
             </tr>
           @endforeach
         </tbody>
