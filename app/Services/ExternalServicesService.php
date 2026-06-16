@@ -50,19 +50,19 @@ class ExternalServicesService
         return [
             [
                 'name' => 'SuperOps',
-                'description' => 'Open the SuperOps client portal (requester login).',
+                'description' => 'Support portal.',
                 'url' => route('integrations.superops.launch'),
                 'link_type' => PortalLinkType::SuperOpsSso,
-                'icon' => 'lifebuoy',
+                'icon' => 'superops',
                 'display_order' => 1,
                 'open_in_new_tab' => false,
             ],
             [
                 'name' => 'Pax8',
-                'description' => 'Sign in to the Pax8 licensing portal.',
+                'description' => 'Licensing portal.',
                 'url' => config('services.portal.pax8_url'),
                 'link_type' => PortalLinkType::External,
-                'icon' => 'key',
+                'icon' => 'pax8',
                 'display_order' => 2,
                 'open_in_new_tab' => true,
             ],

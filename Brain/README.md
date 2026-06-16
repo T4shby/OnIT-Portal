@@ -22,6 +22,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters (no technician SSO)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
+| [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
 | [PortalLinks.md](PortalLinks.md) | Link types and resolution |
 | [DatabaseSchema.md](DatabaseSchema.md) | Tables, columns, tenant rules |
 | [CustomerJourney.md](CustomerJourney.md) | End-to-end user flows |

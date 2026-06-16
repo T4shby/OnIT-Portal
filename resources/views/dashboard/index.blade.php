@@ -1,18 +1,30 @@
 <x-app-layout>
 
     <section class="portal-hero mb-10 sm:mb-12">
-        <p class="text-sm text-slate-400">Signed in as</p>
-        <h1 class="mt-1 text-2xl font-semibold text-white sm:text-3xl break-words">{{ $user->name }}</h1>
-        @if($user->client)
-            <p class="mt-3 text-sm text-slate-300">{{ $user->client->name }}</p>
-        @endif
+        <div class="mx-auto max-w-lg">
+            <p class="portal-hero-label">Logged in as</p>
+            <h1 class="portal-hero-value">{{ $user->name }}</h1>
+            <p class="portal-hero-meta">{{ $user->email }}</p>
+
+            @if($user->client)
+                <div class="portal-hero-divider">
+                    <p class="portal-hero-label">Organisation</p>
+                    <p class="mt-2 text-lg font-semibold text-white sm:text-xl">{{ $user->client->name }}</p>
+                </div>
+            @else
+                <div class="portal-hero-divider">
+                    <p class="portal-hero-label">Access level</p>
+                    <p class="mt-2 text-lg font-semibold text-white sm:text-xl">On IT administrator</p>
+                </div>
+            @endif
+        </div>
     </section>
 
     @if($portalLinks->isNotEmpty())
         <section class="mb-10 sm:mb-12">
             <h2 class="mb-5 text-xl font-semibold text-onit-ink sm:mb-6">Your portals</h2>
 
-            <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div class="space-y-3">
                 @foreach($portalLinks as $link)
                     <x-service-card :link="$link" />
                 @endforeach
