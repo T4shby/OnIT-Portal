@@ -14,17 +14,17 @@
 </head>
 <body class="font-sans antialiased bg-slate-50 text-slate-600">
     <div class="min-h-screen flex" x-data="{ sidebarOpen: false }">
-        <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-slate-900 text-white">
+        <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-onit-ink text-white">
             <div class="p-6">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center">
+                    <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center shadow-sm shadow-onit/30">
                         <span class="text-white font-bold text-sm">IT</span>
                     </div>
                     <span class="font-semibold">Admin</span>
                 </a>
             </div>
             <nav class="flex-1 px-4 space-y-1">@include('admin.partials.nav')</nav>
-            <div class="p-4 border-t border-slate-700">
+            <div class="p-4 border-t border-onit/20">
                 <a href="{{ route('dashboard') }}" class="text-sm text-slate-400 hover:text-white">← Back to Portal</a>
             </div>
         </aside>
@@ -39,7 +39,7 @@
             </header>
             <div x-show="sidebarOpen" x-cloak class="lg:hidden fixed inset-0 z-50">
                 <div class="fixed inset-0 bg-black/50" @click="sidebarOpen = false"></div>
-                <aside class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white p-4">
+                <aside class="fixed inset-y-0 left-0 w-64 bg-onit-ink text-white p-4">
                     <nav class="space-y-1 mt-8">@include('admin.partials.nav')</nav>
                 </aside>
             </div>

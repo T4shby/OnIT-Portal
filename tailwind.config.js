@@ -15,9 +15,11 @@ export default {
             },
             colors: {
                 onit: {
-                    DEFAULT: '#0066CC',
-                    hover: '#0052A3',
-                    light: '#E6F0FA',
+                    DEFAULT: '#FF7000',
+                    hover: '#E86200',
+                    light: '#FFF2E8',
+                    ink: '#011926',
+                    muted: '#18313D',
                 },
             },
         },

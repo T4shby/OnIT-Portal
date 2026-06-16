@@ -8,13 +8,14 @@
 - **Fast**: Lightweight rendering, no heavy JS frameworks
 - **Accessible**: Semantic HTML, sufficient colour contrast, keyboard navigable
 
-## Brand Placeholders
+## Brand Palette
 
 | Element | Value |
 |---|---|
-| Primary colour | `#0066CC` (On IT Blue) |
-| Primary hover | `#0052A3` |
-| Secondary colour | `#1E293B` (Slate 800) |
+| Primary accent | `#FF7000` (On IT orange) |
+| Primary hover | `#E86200` |
+| Dark brand base | `#011926` (grey / blue / black) |
+| Dark muted | `#18313D` |
 | Background | `#F8FAFC` (Slate 50) |
 | Card background | `#FFFFFF` |
 | Success | `#16A34A` |
@@ -117,12 +118,12 @@ Icon, title, description for when no data exists.
 
 ## Login Page
 
-Centred card on slate-50 background. On IT logo at top. "Sign in with Microsoft" button (Microsoft blue #2F2F2F with Microsoft logo). Brief description text below.
+Centred card on dark On IT gradient background. Orange On IT mark at top. "Sign in with Microsoft" button uses the dark brand base with Microsoft logo. Brief description text below.
 
 ## Admin Tables
 
 - Striped rows with hover highlight
-- Action buttons: Edit (blue), Delete (red with confirmation)
+- Action buttons: Edit (orange), Delete (red with confirmation)
 - Status badges for active/inactive
 - Pagination at bottom (15 per page)
 

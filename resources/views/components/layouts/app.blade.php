@@ -14,29 +14,29 @@
 </head>
 <body class="font-sans antialiased bg-slate-50 text-slate-600">
     <div class="min-h-screen flex flex-col">
-        <header class="bg-white border-b border-slate-200">
+        <header class="bg-onit-ink border-b border-onit/30 text-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center gap-8">
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center">
+                            <div class="w-8 h-8 bg-onit rounded-lg flex items-center justify-center shadow-sm shadow-onit/30">
                                 <span class="text-white font-bold text-sm">IT</span>
                             </div>
-                            <span class="font-semibold text-slate-900">On IT Portal</span>
+                            <span class="font-semibold text-white">On IT Portal</span>
                         </a>
                         <nav class="hidden sm:flex gap-6">
-                            <a href="{{ route('dashboard') }}" class="text-sm font-medium {{ request()->routeIs('dashboard') ? 'text-onit' : 'text-slate-600 hover:text-slate-900' }}">Dashboard</a>
+                            <a href="{{ route('dashboard') }}" class="text-sm font-medium {{ request()->routeIs('dashboard') ? 'text-onit' : 'text-slate-300 hover:text-white' }}">Dashboard</a>
                             @can('access-admin')
-                                <a href="{{ route('admin.dashboard') }}" class="text-sm font-medium {{ request()->routeIs('admin.*') ? 'text-onit' : 'text-slate-600 hover:text-slate-900' }}">Admin</a>
+                                <a href="{{ route('admin.dashboard') }}" class="text-sm font-medium {{ request()->routeIs('admin.*') ? 'text-onit' : 'text-slate-300 hover:text-white' }}">Admin</a>
                             @endcan
                         </nav>
                     </div>
                     <div class="flex items-center gap-4" x-data="{ open: false }">
-                        <span class="text-sm text-slate-600 hidden sm:block">{{ auth()->user()->name }}</span>
+                        <span class="text-sm text-slate-300 hidden sm:block">{{ auth()->user()->name }}</span>
                         <div class="relative">
-                            <button @click="open = !open" class="flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900">
-                                <div class="w-8 h-8 bg-onit-light rounded-full flex items-center justify-center">
-                                    <span class="text-onit font-medium text-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                            <button @click="open = !open" class="flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+                                <div class="w-8 h-8 bg-onit rounded-full flex items-center justify-center">
+                                    <span class="text-white font-medium text-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                                 </div>
                             </button>
                             <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
@@ -57,8 +57,8 @@
                 {{ $slot }}
             </div>
         </main>
-        <footer class="bg-white border-t border-slate-200 py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+        <footer class="bg-onit-ink border-t border-onit/20 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-300">
                 &copy; {{ date('Y') }} On IT Technology Partners. All rights reserved.
             </div>
         </footer>
