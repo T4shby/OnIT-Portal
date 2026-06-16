@@ -10,6 +10,7 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Users</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Entra sync</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                 </tr>
@@ -19,6 +20,13 @@
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ $client->name }}</td>
                         <td class="px-6 py-4 text-sm">{{ $client->users_count }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            @if($client->hasEntraSyncConfigured())
+                                <x-badge variant="success">On</x-badge>
+                            @else
+                                <span class="text-slate-400">Off</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4"><x-badge :variant="$client->is_active ? 'success' : 'danger'">{{ $client->is_active ? 'Active' : 'Inactive' }}</x-badge></td>
                         <td class="px-6 py-4 text-right">
                             @include('admin.partials.table-actions', [
@@ -28,7 +36,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
+                    <tr><td colspan="5" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
                 @endforelse
             </tbody>
         </table>

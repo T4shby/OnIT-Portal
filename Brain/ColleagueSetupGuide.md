@@ -1,6 +1,10 @@
 # Colleague Setup Guide (simple version)
 
-Give this document to someone who will **add customers and users** but does not need to understand Laravel, code, or Microsoft SAML.
+> **Status:** Use only for **pilot clients** (1 to 3) while portal sync is being built.  
+> **Do not use at scale (60 tenants)** until [AccessAndSync.md](AccessAndSync.md) Phase 2 sync is live.  
+> After sync: staff create **companies** only; users come from the Entra security group automatically.
+
+Give this document to someone who will **add customers** but does not need to understand Laravel, code, or Microsoft SAML.
 
 **They can do:** SuperOps users, portal admin (clients and users), basic testing.  
 **Tom (M365 admin) must do:** Microsoft SSO setup per customer tenant, disabling access when someone leaves.

@@ -25,6 +25,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Simple guide for non-technical staff (60-client scale)** |
 | [AccessAndSync.md](AccessAndSync.md) | **M365 sync, offboarding, what is automatic today vs planned** |
+| [EntraGroupSync.md](EntraGroupSync.md) | **Phase 2: configure and run Entra group sync** |
 | [PortalLinks.md](PortalLinks.md) | Link types and resolution |
 | [DatabaseSchema.md](DatabaseSchema.md) | Tables, columns, tenant rules |
 | [CustomerJourney.md](CustomerJourney.md) | End-to-end user flows |

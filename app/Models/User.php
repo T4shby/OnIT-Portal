@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserProvisionSource;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,7 +22,9 @@ class User extends Authenticatable
         'name',
         'role',
         'is_active',
+        'provisioned_by',
         'last_login_at',
+        'entra_synced_at',
         'superops_synced_at',
     ];
 
@@ -29,8 +32,10 @@ class User extends Authenticatable
     {
         return [
             'role' => UserRole::class,
+            'provisioned_by' => UserProvisionSource::class,
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'entra_synced_at' => 'datetime',
             'superops_synced_at' => 'datetime',
             'microsoft_tokens' => 'encrypted:array',
         ];

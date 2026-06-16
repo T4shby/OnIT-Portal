@@ -11,7 +11,7 @@
 ## Phase 2 — Enhanced Profiles
 
 - Microsoft Graph enrichment
-- **Entra group ↔ portal user sync** (provision on join, deactivate on leave — see [ClientOnboarding.md](ClientOnboarding.md#future-m365--entra-user-sync))
+- **Entra group ↔ portal user sync** ✅ on branch `feature/entra-group-sync` — `portal:sync-entra-users`, group per client
 - Email notifications
 - Redis cache/sessions
 - Admin reporting

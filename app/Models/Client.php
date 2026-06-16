@@ -16,6 +16,10 @@ class Client extends Model
         'slug',
         'superops_account_id',
         'superops_sso_enabled',
+        'entra_tenant_id',
+        'entra_group_id',
+        'entra_sync_enabled',
+        'entra_synced_at',
         'is_active',
     ];
 
@@ -24,7 +28,16 @@ class Client extends Model
         return [
             'is_active' => 'boolean',
             'superops_sso_enabled' => 'boolean',
+            'entra_sync_enabled' => 'boolean',
+            'entra_synced_at' => 'datetime',
         ];
+    }
+
+    public function hasEntraSyncConfigured(): bool
+    {
+        return $this->entra_sync_enabled
+            && filled($this->entra_tenant_id)
+            && filled($this->entra_group_id);
     }
 
     public function users(): HasMany
