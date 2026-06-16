@@ -8,42 +8,59 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-onit-ink">
-    <div class="min-h-screen flex items-center justify-center px-4 bg-[radial-gradient(circle_at_top_right,rgba(255,112,0,0.22),transparent_34%),linear-gradient(135deg,#011926_0%,#18313D_52%,#011926_100%)]">
-        <div class="w-full max-w-md">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-onit rounded-xl mb-4 shadow-lg shadow-onit/25">
-                    <span class="text-white font-bold text-xl">IT</span>
+<body class="font-sans antialiased">
+    <div class="login-panel">
+        <div class="absolute inset-0 opacity-30 pointer-events-none" style="background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+        <div class="relative mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 py-12 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
+            <div class="mb-10 max-w-xl lg:mb-0">
+                <x-portal-logo size="lg" class="mb-6" />
+                <p class="portal-section-title text-onit">On IT Technology Partners</p>
+                <h1 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Your IT hub.<br>One sign-in.</h1>
+                <p class="mt-5 text-lg leading-relaxed text-slate-300">
+                    Access support, licensing, and the tools your organisation relies on — securely, from one place.
+                </p>
+                <div class="mt-8 hidden gap-4 sm:flex">
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                        <p class="text-xs uppercase tracking-wider text-onit">Support</p>
+                        <p class="mt-1 text-sm text-slate-200">SuperOps requester portal</p>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                        <p class="text-xs uppercase tracking-wider text-onit">Licensing</p>
+                        <p class="mt-1 text-sm text-slate-200">Pax8 &amp; Microsoft 365</p>
+                    </div>
                 </div>
-                <h1 class="text-2xl font-bold text-white">On IT Portal</h1>
-                <p class="mt-2 text-sm text-slate-300">Your single hub for all IT services</p>
             </div>
 
-            <div class="bg-white rounded-xl shadow-2xl shadow-black/30 border border-white/10 p-8">
-                @if(session('error'))
-                    <x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>
-                @endif
+            <div class="w-full max-w-md">
+                <div class="login-card">
+                    <h2 class="text-xl font-semibold text-onit-ink">Sign in</h2>
+                    <p class="mt-1 text-sm text-slate-500">Use your work Microsoft account to continue.</p>
 
-                @if(!config('services.azure.client_id'))
-                    <x-alert type="warning" class="mb-6">
-                        Microsoft Entra ID is not configured yet. Add your app registration credentials to <code class="text-xs">.env</code> before signing in.
-                    </x-alert>
-                @endif
+                    @if(session('error'))
+                        <x-alert type="danger" class="mt-6">{{ session('error') }}</x-alert>
+                    @endif
 
-                <a href="{{ route('auth.microsoft') }}"
-                   class="flex items-center justify-center gap-3 w-full px-4 py-3 bg-onit-ink text-white rounded-lg hover:bg-onit-muted transition-colors font-medium">
-                    <svg class="w-5 h-5" viewBox="0 0 21 21" fill="none">
-                        <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-                        <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-                        <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-                        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
-                    </svg>
-                    Sign in with Microsoft
-                </a>
+                    @if(!config('services.azure.client_id'))
+                        <x-alert type="warning" class="mt-6">
+                            Microsoft Entra ID is not configured yet. Add your app registration credentials to <code class="text-xs">.env</code> before signing in.
+                        </x-alert>
+                    @endif
 
-                <p class="mt-6 text-center text-xs text-slate-400">
-                    Use your work or school Microsoft account to sign in.
-                </p>
+                    <a href="{{ route('auth.microsoft') }}" class="portal-btn-primary mt-8 w-full">
+                        <svg class="h-5 w-5" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+                            <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                            <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                            <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                            <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                        </svg>
+                        Sign in with Microsoft
+                    </a>
+
+                    <p class="mt-6 text-center text-xs text-slate-400">
+                        Managed by On IT &middot; Secure single sign-on
+                    </p>
+                </div>
             </div>
         </div>
     </div>

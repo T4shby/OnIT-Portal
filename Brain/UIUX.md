@@ -2,8 +2,8 @@
 
 ## Design Principles
 
-- **Modern**: Clean lines, ample whitespace, contemporary card-based layout
-- **Professional**: MSP-grade quality reflecting On IT's brand standards
+- **Modern**: Gradient hero, mesh backgrounds, elevated service tiles — not generic boxed cards
+- **Professional**: MSP-grade quality reflecting On IT's brand standards (orange + dark navy)
 - **Responsive**: Mobile-first, works on phone, tablet, and desktop
 - **Fast**: Lightweight rendering, no heavy JS frameworks
 - **Accessible**: Semantic HTML, sufficient colour contrast, keyboard navigable
