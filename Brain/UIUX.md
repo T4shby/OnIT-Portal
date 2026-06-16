@@ -58,7 +58,7 @@ These read as generic AI / SaaS template output. **Do not add them.**
 
 ## Typography
 
-- **Font:** JetBrains Mono (Bunny Fonts CDN). Tech / monospace feel site-wide.
+- **Font:** DM Sans (Bunny Fonts CDN). Clean sans-serif for client-facing UI.
 - **Headings:** `font-semibold`, no uppercase tracking unless it is a table column header.
 - **Body:** `text-sm` to `text-base`, `text-slate-500` or `text-slate-600`.
 - **Nav:** `text-sm`, muted grey default, `text-onit` on hover and active.
@@ -194,4 +194,4 @@ Touch targets: minimum 2.75rem (`.touch-target`).
 
 - Brand colours confirmed with On IT (`#FF7000`, `#011926`).
 - Button shape inspired by Pax8 (pill + border), not their colour scheme.
-- Font: JetBrains Mono for a technical, non-generic feel.
+- Font: DM Sans. Readable sans-serif, not monospace.

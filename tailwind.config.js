@@ -11,8 +11,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"JetBrains Mono"', ...defaultTheme.fontFamily.mono],
-                mono: ['"JetBrains Mono"', ...defaultTheme.fontFamily.mono],
+                sans: ['"DM Sans"', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 onit: {

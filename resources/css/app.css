@@ -49,17 +49,17 @@
     }
 
     .portal-tile {
-        @apply relative flex h-full flex-col border border-slate-200 bg-white p-5 sm:p-6 transition-colors duration-150 touch-manipulation;
-        @apply hover:border-onit active:border-onit;
+        @apply relative flex h-full flex-col border border-slate-200 bg-white p-5 sm:p-6 transition-[border-color,box-shadow] duration-150 touch-manipulation;
+        @apply hover:border-onit hover:shadow-sm active:border-onit;
     }
 
     .portal-tile-icon {
-        @apply flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center border border-slate-200 bg-slate-50 text-onit transition-colors duration-150;
+        @apply flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center border border-slate-200 bg-slate-50 text-onit;
     }
 
     @media (hover: hover) {
         .portal-tile:hover .portal-tile-icon {
-            @apply border-onit bg-onit-light;
+            @apply border-onit bg-white text-onit;
         }
     }
 
