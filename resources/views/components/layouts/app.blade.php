@@ -16,8 +16,8 @@
 <body class="text-slate-600">
     <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false">
         <header class="portal-header safe-top">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between min-h-[3.5rem] py-3 gap-4">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between min-h-[4rem] py-4 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 shrink">
                         <x-portal-logo size="sm" />
                         <span class="font-semibold text-white truncate hidden sm:inline">On IT Portal</span>
@@ -56,7 +56,7 @@
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </button>
                             <div x-show="userOpen" @click.away="userOpen = false" x-cloak
-                                 class="absolute right-0 mt-2 w-52 border border-slate-200 bg-white py-1 z-50">
+                                 class="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg z-50">
                                 <div class="border-b border-slate-100 px-4 py-3 md:hidden">
                                     <p class="text-sm text-onit-ink truncate">{{ auth()->user()->name }}</p>
                                     @if(auth()->user()->client)
@@ -93,15 +93,15 @@
         </header>
 
         <main class="flex-1">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 safe-bottom">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}
             </div>
         </main>
 
-        <footer class="mt-auto border-t border-slate-200 bg-white py-6 safe-bottom">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 text-center sm:text-left">
+        <footer class="mt-auto py-8 safe-bottom">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400 text-center sm:text-left">
                 <p>&copy; {{ date('Y') }} On IT Technology Partners</p>
                 <p class="text-onit">Simplicity &amp; Value</p>
             </div>

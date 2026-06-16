@@ -7,10 +7,11 @@
         @include('components.icons.' . ($link->icon ?? 'link'))
     </div>
 
-    <h3 class="mt-4 text-base font-semibold text-onit-ink group-hover:text-onit">{{ $link->name }}</h3>
+    <div class="min-w-0 flex-1 pt-0.5">
+        <h3 class="text-base font-semibold text-onit-ink group-hover:text-onit sm:text-lg">{{ $link->name }}</h3>
 
-    @if($link->description)
-        <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ $link->description }}</p>
-    @endif
+        @if($link->description)
+            <p class="mt-1.5 text-sm leading-relaxed text-slate-500">{{ $link->description }}</p>
+        @endif
+    </div>
 </a>
-

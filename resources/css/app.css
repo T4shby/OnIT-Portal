@@ -8,7 +8,7 @@
     }
 
     body {
-        @apply antialiased font-sans;
+        @apply antialiased font-sans text-slate-600;
     }
 }
 
@@ -28,39 +28,52 @@
     }
 
     .portal-shell {
-        @apply min-h-screen flex flex-col bg-slate-100;
+        @apply min-h-screen flex flex-col bg-slate-50;
         min-height: 100dvh;
     }
 
     .portal-header {
-        @apply bg-onit-ink text-white border-b-2 border-onit;
+        @apply bg-onit-ink text-white;
     }
 
     .portal-nav-link {
-        @apply text-sm text-slate-300 transition-colors duration-150 hover:text-onit;
+        @apply text-sm text-white transition-colors duration-150 hover:text-onit;
     }
 
     .portal-nav-link-active {
         @apply text-onit;
     }
 
+    .portal-surface {
+        @apply rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70;
+    }
+
     .portal-hero {
-        @apply bg-onit-ink text-white px-4 py-6 sm:px-8 sm:py-8 border-l-4 border-onit;
+        @apply rounded-2xl bg-onit-ink text-white px-6 py-8 sm:px-10 sm:py-10;
     }
 
     .portal-tile {
-        @apply relative flex h-full flex-col border border-slate-200 bg-white p-5 sm:p-6 transition-[border-color,box-shadow] duration-150 touch-manipulation;
-        @apply hover:border-onit hover:shadow-sm active:border-onit;
-    }
-
-    .portal-tile-icon {
-        @apply flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center border border-slate-200 bg-slate-50 text-onit;
+        @apply portal-surface flex h-full flex-row items-start gap-4 p-5 sm:gap-5 sm:p-6;
+        @apply transition-[box-shadow,transform,ring-color] duration-200 touch-manipulation;
+        @apply hover:shadow-md hover:ring-onit/30 active:scale-[0.99];
     }
 
     @media (hover: hover) {
-        .portal-tile:hover .portal-tile-icon {
-            @apply border-onit bg-white text-onit;
+        .portal-tile:hover {
+            transform: translateY(-2px);
         }
+
+        .portal-tile:active {
+            transform: translateY(0);
+        }
+    }
+
+    .portal-tile-icon {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-onit-light text-onit sm:h-14 sm:w-14;
+    }
+
+    .portal-panel {
+        @apply portal-surface p-6 sm:p-8;
     }
 
     .portal-btn {
@@ -73,11 +86,11 @@
     }
 
     .portal-btn-secondary {
-        @apply portal-btn border-slate-300 bg-white text-onit-ink hover:border-onit hover:text-onit;
+        @apply portal-btn border-slate-200 bg-white text-onit-ink shadow-sm hover:border-onit hover:text-onit;
     }
 
     .portal-btn-dark {
-        @apply portal-btn border-white/50 bg-transparent text-white hover:border-onit hover:text-onit;
+        @apply portal-btn border-white/40 bg-transparent text-white hover:border-onit hover:text-onit;
     }
 
     .login-panel {
@@ -86,6 +99,6 @@
     }
 
     .login-card {
-        @apply border border-slate-200 bg-white p-5 sm:p-8;
+        @apply rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/60 sm:p-10;
     }
 }

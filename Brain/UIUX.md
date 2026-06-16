@@ -81,9 +81,11 @@ These read as generic AI / SaaS template output. **Do not add them.**
 └─────────────────────────────────────────────────────┘
 ```
 
-- Max width: `max-w-6xl`
-- Header: `bg-onit-ink`, `border-b-2 border-onit`
-- Main: `bg-slate-100` via `.portal-shell`
+- Max width: `max-w-5xl`
+- Header: `bg-onit-ink`, no heavy bottom stripe
+- Main: `bg-slate-50` via `.portal-shell`
+- Surfaces: `rounded-2xl`, soft shadow + ring (`.portal-surface`), not hard square borders
+- Portal tiles: horizontal layout (icon left, text right), lift slightly on hover
 
 ### Admin (`components/layouts/admin.blade.php`)
 
@@ -98,12 +100,14 @@ These read as generic AI / SaaS template output. **Do not add them.**
 | Class | Purpose |
 |---|---|
 | `.portal-shell` | Page wrapper, min-height, slate background |
-| `.portal-header` | Dark header with orange bottom border |
+| `.portal-surface` | Rounded card base: `rounded-2xl`, shadow, soft ring |
+| `.portal-header` | Dark header |
 | `.portal-nav-link` | Text nav, grey default, orange on hover |
-| `.portal-nav-link-active` | Orange text for current page |
-| `.portal-hero` | Flat navy block, orange left border, user name |
-| `.portal-tile` | Clickable service card, border hover to orange |
-| `.portal-tile-icon` | Icon box in tile |
+| `.portal-nav-link-active` | Orange text with underline |
+| `.portal-hero` | Rounded navy welcome block |
+| `.portal-tile` | Horizontal portal link card, lifts on hover |
+| `.portal-tile-icon` | Rounded orange-tint icon box |
+| `.portal-panel` | Rounded white panel for help / secondary content |
 | `.portal-btn` | Pax8-style pill, `rounded-full border-2` |
 | `.portal-btn-primary` | Orange fill |
 | `.portal-btn-secondary` | White fill, grey border |

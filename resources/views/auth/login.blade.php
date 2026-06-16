@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="login-panel safe-top safe-bottom">
-        <div class="mx-auto flex min-h-[100dvh] max-w-5xl flex-col justify-center px-4 py-8 lg:flex-row lg:items-center lg:gap-20 lg:px-8">
+        <div class="mx-auto flex min-h-[100dvh] max-w-5xl flex-col justify-center px-4 py-10 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
             <div class="order-1 w-full max-w-md mx-auto lg:order-2 lg:mx-0">
                 <div class="login-card">
                     <div class="flex items-center gap-3 mb-6 lg:hidden">
