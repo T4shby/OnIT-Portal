@@ -1,5 +1,5 @@
-<p class="mt-6 mb-2 text-sm font-semibold text-onit-ink">Microsoft Entra sync</p>
-<p class="mb-4 text-xs text-slate-500">Users in the security group are created and deactivated in the portal automatically.</p>
+<p class="mt-6 mb-2 portal-label">Microsoft Entra sync</p>
+<p class="mb-4 portal-body-muted text-xs">Users in the security group are created and deactivated in the portal automatically.</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra tenant ID',
@@ -21,5 +21,5 @@
 ])
 
 @if(isset($client) && $client->entra_synced_at)
-    <p class="text-xs text-slate-500">Last synced: {{ $client->entra_synced_at->timezone('UTC')->format('d M Y H:i') }} UTC</p>
+    <p class="portal-body-muted text-xs">Last synced: {{ $client->entra_synced_at->timezone('UTC')->format('d M Y H:i') }} UTC</p>
 @endif

@@ -8,19 +8,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#011926">
     <title>{{ $title ?? 'Dashboard' }} - {{ config('app.name') }}</title>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak] { display: none !important; }</style>
 </head>
-<body class="text-slate-600">
+<body>
     <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false">
+        <div class="grid-overlay" aria-hidden="true"></div>
+
         <header class="portal-header safe-top">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between min-h-[4rem] py-4 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 shrink">
                         <x-portal-logo size="sm" />
-                        <span class="font-semibold text-white truncate hidden sm:inline">On IT Portal</span>
+                        <span class="font-condensed font-bold uppercase tracking-wide text-white truncate hidden sm:inline">On IT Portal</span>
                     </a>
 
                     <nav class="hidden sm:flex items-center gap-8">
@@ -45,27 +48,26 @@
                             <span x-text="menuOpen ? 'Close' : 'Menu'"></span>
                         </button>
 
-                        <span class="hidden md:inline text-xs text-slate-400 truncate max-w-[10rem]">{{ auth()->user()->name }}</span>
+                        <span class="hidden md:inline portal-body-muted text-xs truncate max-w-[10rem]">{{ auth()->user()->name }}</span>
 
                         <div class="relative">
                             <button type="button"
                                     @click="userOpen = !userOpen; menuOpen = false"
-                                    class="flex h-9 w-9 items-center justify-center rounded-full bg-onit text-xs font-semibold text-white touch-target"
+                                    class="portal-avatar"
                                     aria-label="Account menu"
                                     :aria-expanded="userOpen">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </button>
-                            <div x-show="userOpen" @click.away="userOpen = false" x-cloak
-                                 class="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg z-50">
-                                <div class="border-b border-slate-100 px-4 py-3 md:hidden">
-                                    <p class="text-sm text-onit-ink truncate">{{ auth()->user()->name }}</p>
+                            <div x-show="userOpen" @click.away="userOpen = false" x-cloak class="portal-user-menu">
+                                <div class="border-b border-white/10 px-4 py-3 md:hidden">
+                                    <p class="portal-card-title text-sm truncate">{{ auth()->user()->name }}</p>
                                     @if(auth()->user()->client)
-                                        <p class="text-xs text-slate-500 truncate">{{ auth()->user()->client->name }}</p>
+                                        <p class="portal-body-muted text-xs truncate mt-1">{{ auth()->user()->client->name }}</p>
                                     @endif
                                 </div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="block w-full px-4 py-3 text-left text-sm text-slate-700 hover:text-onit touch-target">Sign out</button>
+                                    <button type="submit" class="block w-full px-4 py-3 text-left text-sm font-light text-white/80 hover:text-onit touch-target">Sign out</button>
                                 </form>
                             </div>
                         </div>
@@ -92,18 +94,18 @@
             </div>
         </header>
 
-        <main class="flex-1">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
+        <main class="flex-1 relative z-[1]">
+            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}
             </div>
         </main>
 
-        <footer class="mt-auto py-8 safe-bottom">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400 text-center sm:text-left">
+        <footer class="relative z-[1] mt-auto border-t border-onit-border py-8 safe-bottom">
+            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 portal-body-muted text-xs text-center sm:text-left">
                 <p>&copy; {{ date('Y') }} On IT Technology Partners</p>
-                <p class="text-onit">Simplicity &amp; Value</p>
+                <p class="text-onit font-condensed font-bold uppercase tracking-wide">Simplicity &amp; Value</p>
             </div>
         </footer>
     </div>

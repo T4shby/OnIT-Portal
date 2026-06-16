@@ -11,16 +11,22 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"DM Sans"', ...defaultTheme.fontFamily.sans],
+                sans: ['Barlow', ...defaultTheme.fontFamily.sans],
+                condensed: ['"Barlow Condensed"', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 onit: {
                     DEFAULT: '#FF7000',
-                    hover: '#E86200',
-                    light: '#FFF2E8',
+                    hover: '#e56300',
                     ink: '#011926',
-                    muted: '#18313D',
+                    surface: '#071f2e',
+                    'surface-hover': '#0a2a3f',
+                    border: '#0f3048',
+                    muted: '#0a2536',
                 },
+            },
+            maxWidth: {
+                portal: '64rem',
             },
         },
     },

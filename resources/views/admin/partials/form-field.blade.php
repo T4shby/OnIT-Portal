@@ -2,16 +2,16 @@
 
 <div class="mb-4">
     @if($type !== 'checkbox')
-        <label for="{{ $name }}" class="block text-sm font-medium text-slate-700 mb-1">
-            {{ $label }} @if($required)<span class="text-red-500">*</span>@endif
+        <label for="{{ $name }}" class="portal-label mb-2 block">
+            {{ $label }} @if($required)<span class="text-onit">*</span>@endif
         </label>
     @endif
     @if($type === 'textarea')
         <textarea name="{{ $name }}" id="{{ $name }}" rows="4"
-            {{ $attributes->merge(['class' => 'w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit']) }}>{{ old($name, $value) }}</textarea>
+            {{ $attributes->merge(['class' => 'admin-input']) }}>{{ old($name, $value) }}</textarea>
     @elseif($type === 'select')
         <select name="{{ $name }}" id="{{ $name }}"
-            {{ $attributes->merge(['class' => 'w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit']) }}>
+            {{ $attributes->merge(['class' => 'admin-input']) }}>
             {{ $slot }}
         </select>
     @elseif($type === 'checkbox')
@@ -19,14 +19,14 @@
             <input type="hidden" name="{{ $name }}" value="0">
             <input type="checkbox" name="{{ $name }}" id="{{ $name }}" value="1"
                 {{ old($name, $value) ? 'checked' : '' }}
-                {{ $attributes->merge(['class' => 'rounded border-slate-300 text-onit focus:ring-onit']) }}>
-            <span class="text-sm text-slate-600">{{ $label }}</span>
+                {{ $attributes->merge(['class' => 'border-onit-border bg-onit-surface text-onit focus:ring-onit']) }}>
+            <span class="portal-body text-sm">{{ $label }}</span>
         </label>
     @else
         <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}" value="{{ old($name, $value) }}"
-            {{ $attributes->merge(['class' => 'w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit']) }}>
+            {{ $attributes->merge(['class' => 'admin-input']) }}>
     @endif
     @error($name)
-        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
     @enderror
 </div>

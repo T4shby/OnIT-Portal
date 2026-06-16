@@ -10,8 +10,8 @@
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
             @include('admin.clients._entra-sync-fields', ['client' => $client])
             <div class="flex gap-3 mt-6">
-                <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Update</button>
-                <a href="{{ route('admin.clients.index') }}" class="px-4 py-2 text-slate-600 hover:text-slate-900 text-sm">Cancel</a>
+                <button type="submit" class="cta-btn text-sm px-6 py-3">Update</button>
+                <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
             </div>
         </form>
     </x-card>

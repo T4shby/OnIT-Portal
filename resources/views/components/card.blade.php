@@ -1,3 +1,3 @@
-<div {{ $attributes->merge(['class' => 'portal-surface p-6']) }}>
+<div {{ $attributes->merge(['class' => 'benefit-card']) }}>
     {{ $slot }}
 </div>

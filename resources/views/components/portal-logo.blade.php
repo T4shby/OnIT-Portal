@@ -8,6 +8,6 @@ $box = match($size) {
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => "inline-flex items-center justify-center rounded-xl bg-onit font-bold text-white {$box}"]) }}>
+<div {{ $attributes->merge(['class' => "inline-flex items-center justify-center bg-onit font-condensed font-bold uppercase text-white {$box}"]) }}>
     <span>IT</span>
 </div>

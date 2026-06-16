@@ -8,7 +8,7 @@
     }
 
     body {
-        @apply antialiased font-sans text-slate-600;
+        @apply antialiased font-sans font-light text-white/80;
     }
 }
 
@@ -27,80 +27,180 @@
         min-width: 2.75rem;
     }
 
+    /* On IT global background (matches onit.ltd) */
+    .onit-bg {
+        background:
+            radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255, 112, 0, 0.07) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255, 112, 0, 0.04) 0%, transparent 60%),
+            #011926;
+    }
+
+    .grid-overlay {
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+        background-size: 60px 60px;
+        @apply pointer-events-none fixed inset-0 z-0;
+    }
+
     .portal-shell {
-        @apply min-h-screen flex flex-col bg-slate-50;
+        @apply onit-bg relative z-[1] flex min-h-screen flex-col;
         min-height: 100dvh;
     }
 
     .portal-header {
-        @apply bg-onit-ink text-white;
+        @apply relative z-[2] border-b border-onit-border bg-onit-ink;
     }
 
     .portal-nav-link {
-        @apply text-sm text-white transition-colors duration-150 hover:text-onit;
+        @apply font-condensed text-sm font-semibold uppercase tracking-wide text-white transition-colors duration-150 hover:text-onit;
     }
 
     .portal-nav-link-active {
         @apply text-onit;
     }
 
-    .portal-surface {
-        @apply rounded-lg border border-slate-200 bg-white;
+    .orange-rule {
+        @apply mb-6 h-[3px] w-10 bg-onit;
     }
 
-    .portal-hero {
-        @apply rounded-lg bg-onit-ink text-white px-6 py-10 text-center sm:px-10 sm:py-12;
-        @apply border-t-4 border-onit;
+    .heading-stack {
+        @apply inline-flex flex-col items-start gap-0 leading-none;
     }
 
-    .portal-hero-label {
-        @apply text-sm font-medium text-onit;
+    .section-heading {
+        @apply m-0 inline-block font-condensed text-[1.75rem] font-extrabold uppercase leading-none tracking-tight sm:text-[2.1rem];
     }
 
-    .portal-hero-value {
-        @apply mt-2 text-2xl font-semibold text-white sm:text-3xl break-words;
+    .section-heading-white {
+        @apply section-heading bg-white px-3.5 py-1.5 text-onit-ink sm:px-3.5;
     }
 
-    .portal-hero-meta {
-        @apply mt-1 text-sm text-slate-400;
+    .section-heading-orange {
+        @apply section-heading bg-onit px-3.5 py-1.5 text-onit-ink sm:px-3.5;
     }
 
-    .portal-hero-divider {
-        @apply mx-auto mt-8 max-w-xs border-t border-onit/40 pt-8;
+    .portal-label {
+        @apply font-condensed text-xs font-bold uppercase tracking-widest text-onit;
+    }
+
+    .portal-body {
+        @apply text-sm font-light leading-relaxed text-white/80;
+    }
+
+    .portal-body-muted {
+        @apply text-sm font-light leading-relaxed text-white/60;
+    }
+
+    .portal-card-title {
+        @apply font-condensed text-base font-bold uppercase tracking-wide text-white;
+    }
+
+    .benefit-card {
+        @apply relative overflow-hidden border border-onit-border bg-onit-surface p-5 transition-all duration-300 sm:p-7;
+    }
+
+    .benefit-card::before {
+        content: '';
+        @apply absolute left-0 right-0 top-0 h-0.5 origin-left scale-x-0 bg-onit transition-transform duration-300;
+    }
+
+    .benefit-card:hover {
+        @apply bg-onit-surface-hover;
+        transform: translateY(-4px);
+    }
+
+    .benefit-card:hover::before {
+        @apply scale-x-100;
     }
 
     .portal-link {
-        @apply block rounded-lg border border-slate-200 bg-white p-4 sm:p-5;
-        @apply transition-colors duration-150 touch-manipulation hover:border-onit;
+        @apply benefit-card block touch-manipulation;
     }
 
     .portal-panel {
-        @apply rounded-lg border border-slate-200 bg-white p-5 sm:p-6;
+        @apply benefit-card;
     }
 
-    .portal-btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-full border-2 px-6 py-2.5 text-sm font-medium transition-colors duration-150 touch-manipulation;
+    .cta-btn {
+        @apply inline-flex items-center justify-center gap-2 border-0 bg-onit px-8 py-3.5 font-condensed text-sm font-bold uppercase tracking-wide text-white no-underline transition-all duration-200 touch-manipulation;
         min-height: 2.75rem;
     }
 
-    .portal-btn-primary {
-        @apply portal-btn border-onit bg-onit text-white hover:bg-onit-hover hover:border-onit-hover;
+    .cta-btn:hover {
+        @apply bg-onit-hover;
+        box-shadow: 0 0 28px 4px rgba(255, 112, 0, 0.28);
+        transform: translateY(-2px);
     }
 
-    .portal-btn-secondary {
-        @apply portal-btn border-slate-200 bg-white text-onit-ink shadow-sm hover:border-onit hover:text-onit;
+    .cta-btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 border border-onit/40 bg-transparent px-8 py-3.5 font-condensed text-sm font-bold uppercase tracking-wide text-onit no-underline transition-all duration-200 touch-manipulation;
+        min-height: 2.75rem;
     }
 
-    .portal-btn-dark {
-        @apply portal-btn border-white/40 bg-transparent text-white hover:border-onit hover:text-onit;
+    .cta-btn-ghost:hover {
+        @apply border-onit bg-onit/10;
+        transform: translateY(-2px);
     }
 
     .login-panel {
-        @apply bg-onit-ink text-white;
-        min-height: 100dvh;
+        @apply onit-bg relative min-h-[100dvh];
     }
 
-    .login-card {
-        @apply rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/60 sm:p-10;
+    .login-panel .grid-overlay {
+        @apply z-0;
+    }
+
+    .form-card {
+        @apply relative z-[1] border border-onit-border bg-onit-surface p-6 sm:p-8;
+    }
+
+    .portal-user-menu {
+        @apply absolute right-0 z-50 mt-2 w-52 border border-onit-border bg-onit-surface py-1;
+    }
+
+    .portal-avatar {
+        @apply flex h-9 w-9 items-center justify-center bg-onit font-condensed text-xs font-bold uppercase text-white touch-target;
+    }
+
+    /* Admin area on dark shell */
+    .admin-shell {
+        @apply onit-bg relative min-h-screen;
+    }
+
+    .admin-main {
+        @apply relative z-[1] flex-1 p-6 text-white/80 lg:p-8;
+    }
+
+    .admin-card {
+        @apply benefit-card;
+    }
+
+    .admin-table-wrap {
+        @apply overflow-hidden border border-onit-border bg-onit-surface;
+    }
+
+    .admin-table-wrap table thead {
+        @apply bg-onit-surface;
+    }
+
+    .admin-table-wrap th {
+        @apply px-6 py-3 text-left font-condensed text-xs font-bold uppercase tracking-wider text-onit;
+    }
+
+    .admin-table-wrap td {
+        @apply px-6 py-4 text-sm font-light text-white/60;
+    }
+
+    .admin-table-wrap tbody tr {
+        @apply border-t border-white/5 transition-colors hover:bg-white/[0.02];
+    }
+
+    .admin-table-wrap tbody td:first-child {
+        @apply font-normal text-white;
+    }
+
+    .admin-input {
+        @apply w-full border border-onit-border bg-onit-surface px-3 py-2 text-sm font-light text-white placeholder:text-white/40 focus:border-onit focus:ring-onit;
     }
 }

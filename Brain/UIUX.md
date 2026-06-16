@@ -1,201 +1,87 @@
 # On IT Portal Design System
 
-Single source of truth for UI decisions. When in doubt, choose the simpler, flatter option.
+Aligned with the **On IT website design system** (`onit.ltd` marketing skill). Source of truth for portal UI.
+
+**External references (marketing site):**
+- `SKILL.md` - brand rules, non-negotiables
+- `design-system.md` - colours, typography, spacing
+- `components.md` - cards, CTAs, heading stack, orange rule
 
 ---
 
-## Design principles
+## Brand rules (portal)
 
-1. **Plain over polished** - Looks like a real MSP built it, not a template.
-2. **Flat over flashy** - Solid colours and borders. No glows, meshes, or gradients.
-3. **Text over decoration** - Say things with words, not badges, dots, or arrow CTAs.
-4. **Functional over ornamental** - Every element should do a job.
-5. **Responsive** - Mobile-first, 44px touch targets, safe-area insets.
-6. **Accessible** - Semantic HTML, contrast, keyboard navigation.
-7. **No em dashes** - Never use em dashes in user-facing copy. Use a full stop, comma, colon, or hyphen (`-`) instead.
-
----
-
-## Never use (anti-patterns)
-
-These read as generic AI / SaaS template output. **Do not add them.**
-
-| Pattern | Example | Use instead |
-|---|---|---|
-| Radial / mesh / ombre glows | Orange blob in hero corner | Flat `bg-onit-ink` with optional `border-l-4 border-onit` |
-| Gradient backgrounds | `bg-gradient-to-*` on hero or cards | Solid brand colours |
-| Gradient top borders on cards | Orange-to-navy stripe on tile | `border border-slate-200`, `hover:border-onit` |
-| Pill badges with status dots | `● On IT Technology Partners` in hero | Plain text line under the name |
-| Uppercase micro-labels | `WELCOME BACK`, `SERVICES`, `CLIENT HUB` | Sentence-case headings or no label at all |
-| Corner link CTAs with arrows | `Open portal →` on service cards | Whole card is the link; title turns orange on hover |
-| Filled nav pill buttons | Orange `Dashboard` button in header | Text nav links, orange on hover/active |
-| Marketing taglines | "Your IT hub. One sign-in." | Factual copy only |
-| Decorative shadows on brand marks | `shadow-onit/25` on logo boxes | Flat `bg-onit` square |
-| Comment-prefix styling | `// Acme Corp` | Plain secondary text |
-| Em dashes in copy | Long dash between clauses in a sentence | Full stop, comma, colon, or hyphen (`-`) |
-
-**Admin exception:** Small status labels in data tables (Active / Inactive, priority) are fine. They are data, not decoration. Keep them minimal (`text-xs`, no dots or glows).
-
-**Empty table cells:** Use `-`, not an em dash.
+1. **Background** `#011926` with grid overlay and subtle orange radial glow (`.onit-bg` + `.grid-overlay`)
+2. **Accent** `#FF7000` for CTAs, rules, hover, labels. Not body paragraph text.
+3. **Fonts** Barlow Condensed (headings, buttons, labels) + Barlow (body)
+4. **Heading stack** white block then orange block, left-aligned, preceded by orange rule
+5. **Cards** solid `#071f2e`, border `#0f3048`, square corners, orange top line on hover
+6. **Buttons** square corners only. `.cta-btn` (primary) and `.cta-btn-ghost` (secondary)
+7. **No** rounded cards, pill buttons, glass surfaces, em dashes, or light grey SaaS backgrounds
+8. **Body text** `text-white/80` and `text-white/60` on dark surfaces
 
 ---
 
-## Brand palette
+## Colour tokens
 
 | Token | Hex | Usage |
 |---|---|---|
-| `onit` | `#FF7000` | Accent, hover states, active nav, left borders |
-| `onit-hover` | `#E86200` | Button / link hover |
-| `onit-light` | `#FFF2E8` | Icon background on tile hover |
-| `onit-ink` | `#011926` | Header, hero, login panel |
-| `onit-muted` | `#18313D` | Secondary dark surfaces (admin) |
-| Background | `#F1F5F9` (`slate-100`) | Page shell |
-| Card | `#FFFFFF` | Tiles, cards, help block |
-| Body text | `slate-500` / `slate-600` | Descriptions, footer |
-| Headings | `onit-ink` | Section titles on light backgrounds |
+| `onit` | `#FF7000` | Accent, CTAs, rules |
+| `onit-hover` | `#e56300` | Button hover |
+| `onit-ink` | `#011926` | Shell, header |
+| `onit-surface` | `#071f2e` | Cards |
+| `onit-surface-hover` | `#0a2a3f` | Card hover |
+| `onit-border` | `#0f3048` | Card and panel borders |
 
 ---
 
 ## Typography
 
-- **Font:** DM Sans (Bunny Fonts CDN). Clean sans-serif for client-facing UI.
-- **Headings:** `font-semibold`, no uppercase tracking unless it is a table column header.
-- **Body:** `text-sm` to `text-base`, `text-slate-500` or `text-slate-600`.
-- **Nav:** `text-sm`, muted grey default, `text-onit` on hover and active.
+| Element | Font | Style |
+|---|---|---|
+| Section headings | Barlow Condensed 800 | Uppercase, heading stack |
+| Card titles / labels | Barlow Condensed 700 | Uppercase |
+| Body | Barlow 300 | `text-white/80` |
+| Muted | Barlow 300 | `text-white/60` |
+| Nav links | Barlow Condensed 600 | Uppercase |
+
+---
+
+## CSS classes (`resources/css/app.css`)
+
+| Class | Purpose |
+|---|---|
+| `.onit-bg` / `.grid-overlay` | Global dark background |
+| `.orange-rule` | 40x3px rule above headings |
+| `.heading-stack` | White + orange heading blocks |
+| `.section-heading-white` / `.section-heading-orange` | Heading stack lines |
+| `.benefit-card` | Portal link cards, panels, admin cards |
+| `.portal-link` | Clickable portal tile |
+| `.cta-btn` / `.cta-btn-ghost` | Primary and secondary actions |
+| `.portal-body` / `.portal-body-muted` | Body copy on dark |
+| `.portal-label` | Orange uppercase label |
+| `.admin-table-wrap` | Admin data tables |
 
 ---
 
 ## Layout
 
-### Client (`components/layouts/app.blade.php`)
-
-```
-┌─────────────────────────────────────────────────────┐
-│  [IT] On IT Portal     Dashboard  Admin     [P]     │  dark header, orange bottom border
-├─────────────────────────────────────────────────────┤
-│  Hero: name + client (flat navy, orange left bar)   │
-│  Portal tiles (white, bordered)                     │
-│  Help block (white, bordered)                       │
-├─────────────────────────────────────────────────────┤
-│  © On IT …                    Simplicity & Value    │  white footer
-└─────────────────────────────────────────────────────┘
-```
-
-- Max width: `max-w-5xl`
-- Header: `bg-onit-ink`, no heavy bottom stripe
-- Main: `bg-slate-50` via `.portal-shell`
-- Surfaces: `rounded-2xl`, soft shadow + ring (`.portal-surface`), not hard square borders
-- Portal tiles: horizontal layout (icon left, text right), lift slightly on hover
-
-### Admin (`components/layouts/admin.blade.php`)
-
-- Same font and colours.
-- Sidebar: text links, orange on hover/active (no filled orange pills).
-- Content: white cards on slate background.
+- Max width: `max-w-portal` (64rem / 1024px)
+- Client shell: dark header, dark main, grid background
+- Admin: same dark shell, sidebar `bg-onit-ink`
 
 ---
 
-## CSS component classes (`resources/css/app.css`)
+## Anti-patterns (still apply)
 
-| Class | Purpose |
+No pill badges with dots, arrow CTAs, em dashes, generic Inter/DM Sans, light mode dashboard, rounded-xl cards, or transparent glass cards.
+
+Admin table status badges (`<x-badge>`) are allowed for data only.
+
+---
+
+## Change log
+
+| Date | Change |
 |---|---|
-| `.portal-shell` | Page wrapper, min-height, slate background |
-| `.portal-surface` | Rounded card base: `rounded-2xl`, shadow, soft ring |
-| `.portal-header` | Dark header |
-| `.portal-nav-link` | Text nav, grey default, orange on hover |
-| `.portal-nav-link-active` | Orange text with underline |
-| `.portal-hero` | Rounded navy welcome block |
-| `.portal-tile` | Horizontal portal link card, lifts on hover |
-| `.portal-tile-icon` | Rounded orange-tint icon box |
-| `.portal-panel` | Rounded white panel for help / secondary content |
-| `.portal-btn` | Pax8-style pill, `rounded-full border-2` |
-| `.portal-btn-primary` | Orange fill |
-| `.portal-btn-secondary` | White fill, grey border |
-| `.portal-btn-dark` | Transparent on dark backgrounds |
-| `.login-panel` / `.login-card` | Sign-in split layout |
-
----
-
-## Components
-
-### Service card (`<x-service-card>`)
-
-- Entire card is an `<a>`. No separate "Open portal →" link.
-- Icon + title + optional description.
-- Title turns orange on hover; border turns orange on hover.
-
-### Card (`<x-card>`)
-
-- White, `border border-slate-200`, padding. No shadow unless needed for elevation in admin tables.
-
-### Portal logo (`<x-portal-logo>`)
-
-- Flat orange square with "IT" text. No gradient, no shadow.
-
-### Buttons
-
-- **Pill shape** (`rounded-full`, `border-2`) for explicit actions only: sign in, external links.
-- **Not** for navigation. Nav is always text links.
-
-### Badge (`<x-badge>`)
-
-- **Admin tables only:** Active/Inactive, priority, status.
-- Never on the client dashboard or hero.
-
----
-
-## Pages
-
-### Dashboard
-
-```
-┌─ portal-hero ─────────────────────┐
-│  John Smith                       │
-│  Acme Corporation                 │  plain text, no badges
-└───────────────────────────────────┘
-
-Your portals                    2 available
-┌──────────────┐  ┌──────────────┐
-│ [icon]       │  │ [icon]       │
-│ SuperOps     │  │ Pax8         │  whole card links out
-│ description  │  │ description  │
-└──────────────┘  └──────────────┘
-
-┌─ Need help? ────────── [Visit onit.ltd] ─┐
-└──────────────────────────────────────────┘
-```
-
-### Login
-
-- Mobile: sign-in card first.
-- Desktop: marketing column (logo + title + one line) | sign-in card.
-- Microsoft button uses `.portal-btn-secondary` with MS logo.
-- No gradients on the dark panel.
-
----
-
-## Responsive
-
-| Breakpoint | Layout |
-|---|---|
-| `< 640px` | Single column, hamburger nav, stacked tiles |
-| `640px to 1024px` | 2-column portal tiles |
-| `> 1024px` | 2-column tiles, horizontal nav |
-
-Touch targets: minimum 2.75rem (`.touch-target`).
-
----
-
-## Interaction
-
-- Alpine.js: mobile menu, user dropdown, alert dismiss, admin modals.
-- Flash messages: dismissible alerts at top of main content.
-- Form errors: inline below fields in red.
-
----
-
-## Reference
-
-- Brand colours confirmed with On IT (`#FF7000`, `#011926`).
-- Button shape inspired by Pax8 (pill + border), not their colour scheme.
-- Font: DM Sans. Readable sans-serif, not monospace.
+| 2026-06-16 | Align portal with onit.ltd marketing design system (Barlow, dark shell, benefit cards) |

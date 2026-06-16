@@ -3,6 +3,6 @@
     <form method="POST" action="{{ $deleteRoute }}" class="inline" onsubmit="return confirm('Are you sure?')">
         @csrf
         @method('DELETE')
-        <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Delete</button>
+        <button type="submit" class="text-sm font-medium text-red-400 hover:text-red-300">Delete</button>
     </form>
 </div>
