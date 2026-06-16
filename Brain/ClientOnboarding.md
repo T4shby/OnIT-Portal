@@ -6,6 +6,8 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 | Doc | When |
 |---|---|
+| [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Give this to staff adding clients/users (simple)** |
+| [AccessAndSync.md](AccessAndSync.md) | **Auto-sync, offboarding, 60-tenant scale** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | One-time Entra SAML + SuperOps Global SSO |
 | [OperatorRunbook.md](OperatorRunbook.md) | Phase A test, day-to-day ops |
 | [Authentication.md](Authentication.md) | Portal OAuth (app #1) |
