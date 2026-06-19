@@ -65,6 +65,7 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
+export PATH="/opt/plesk/php/8.3/bin:$PATH"
 composer install --no-dev --optimize-autoloader
 ```
 
@@ -203,22 +204,27 @@ $PHP -v
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
-PHP=/opt/plesk/php/8.3/bin/php    # use 8.2 or 8.3 — match Plesk PHP Settings for app.onit.ltd
+
+# php is NOT on root PATH — composer and artisan both need Plesk's PHP
+export PATH="/opt/plesk/php/8.3/bin:$PATH"    # match Plesk PHP Settings for app.onit.ltd
+php -v
 
 rm -f public/hot
 
 composer install --no-dev --optimize-autoloader
 
-$PHP artisan migrate --force
+php artisan migrate --force
 
-$PHP artisan route:clear
-$PHP artisan config:clear
-$PHP artisan view:clear
+php artisan route:clear
+php artisan config:clear
+php artisan view:clear
 
-$PHP artisan db:seed --class=PortalLinkSeeder --force
+php artisan db:seed --class=PortalLinkSeeder --force
 
-$PHP artisan optimize
+php artisan optimize
 ```
+
+> **`/usr/bin/env: 'php': No such file or directory`** — caused by plain `composer install` without Plesk PHP on `PATH`. Use `export PATH=...` above, or `$PHP $(command -v composer) install ...`.
 
 > **Why `route:clear` before `optimize`?** New routes (e.g. Team, Pax8 launch) are referenced in views. Stale route cache causes **500 on `/admin`** with `Route [...] not defined` in `storage/logs/laravel.log`.
 
