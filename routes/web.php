@@ -47,6 +47,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
             Route::resource('clients', ClientController::class)->except(['show']);
+            Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
+                ->name('clients.sync-entra');
             Route::resource('users', UserController::class)->except(['show']);
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
             Route::resource('notices', NoticeController::class)->except(['show']);

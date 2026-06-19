@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\Client;
 use App\Services\ActivityLogService;
+use App\Services\EntraSync\EntraGroupSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -87,6 +88,43 @@ class ClientController extends Controller
 
         return redirect()->route('admin.clients.index')
             ->with('success', 'Client updated successfully.');
+    }
+
+    public function syncEntra(Client $client, EntraGroupSyncService $sync): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        $dryRun = request()->boolean('dry_run');
+        $result = $sync->syncClient($client, $dryRun);
+
+        if ($result->failed()) {
+            return back()->with('error', $result->errors[0] ?? 'Entra sync failed.');
+        }
+
+        $message = $result->summary($dryRun);
+
+        if ($result->hasErrors()) {
+            $warnings = array_slice($result->errors, 0, 3);
+            $message .= ' Warnings: '.implode(' ', $warnings);
+
+            if (count($result->errors) > 3) {
+                $message .= ' ('.count($result->errors).' warnings total)';
+            }
+        }
+
+        $this->activityLog->log(
+            $dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
+            $client,
+            properties: [
+                'created' => $result->created,
+                'updated' => $result->updated,
+                'deactivated' => $result->deactivated,
+                'skipped' => $result->skipped,
+            ],
+            clientId: $client->id,
+        );
+
+        return back()->with('success', ucfirst($message));
     }
 
     public function destroy(Client $client): RedirectResponse

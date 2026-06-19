@@ -102,7 +102,7 @@ Repeat for every person who needs portal access.
 | ☐ | Each user linked to the correct client |
 | ☐ | Emails match SuperOps requesters exactly |
 
-There is **no automatic sync** from Microsoft yet. If you add someone in M365 only, they still will not get portal access until you complete this step.
+There is **no automatic portal sync** until Entra sync is configured on the client (`entra_tenant_id`, `entra_group_id`, `entra_sync_enabled`). When enabled, users are created from the M365 security group — see [EntraGroupSync.md](EntraGroupSync.md). SuperOps requesters use SCIM — see [SuperOpsEntraSync.md](SuperOpsEntraSync.md).
 
 ---
 

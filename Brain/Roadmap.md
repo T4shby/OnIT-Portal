@@ -11,7 +11,8 @@
 ## Phase 2 — Enhanced Profiles
 
 - Microsoft Graph enrichment
-- **Entra group ↔ portal user sync** ✅ on branch `feature/entra-group-sync` — `portal:sync-entra-users`, group per client
+- **Entra group ↔ portal user sync** ✅ — `portal:sync-entra-users` (Sync 2)
+- **SuperOps Entra SCIM** — per client in SuperOps Integrations (Sync 1) — see [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
 - Email notifications
 - Redis cache/sessions
 - Admin reporting

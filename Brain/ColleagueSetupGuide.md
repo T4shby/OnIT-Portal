@@ -1,8 +1,7 @@
 # Colleague Setup Guide (simple version)
 
-> **Status:** Use only for **pilot clients** (1 to 3) while portal sync is being built.  
-> **Do not use at scale (60 tenants)** until [AccessAndSync.md](AccessAndSync.md) Phase 2 sync is live.  
-> After sync: staff create **companies** only; users come from the Entra security group automatically.
+> **Status:** Entra group sync is **built** — see [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) and [EntraGroupSync.md](EntraGroupSync.md).  
+> **At scale (60 tenants):** technicians create **companies**; users come from the Entra security group automatically (portal sync + SuperOps SCIM).
 
 Give this document to someone who will **add customers** but does not need to understand Laravel, code, or Microsoft SAML.
 
@@ -169,7 +168,7 @@ If you only disable Microsoft but leave the portal user **Active**, they may sti
 | Each new employee | You (+ Tom for M365 if needed) | Per person |
 | Each leaver | You + Tom | Per person |
 
-**Automatic sync from Microsoft is not live yet.** See [AccessAndSync.md](AccessAndSync.md) for what we plan to build.
+**Automatic sync from Microsoft is live** when `ENTRA_SYNC_ENABLED=true` and the client has Entra sync configured. See [AccessAndSync.md](AccessAndSync.md) and [EntraGroupSync.md](EntraGroupSync.md).
 
 ---
 

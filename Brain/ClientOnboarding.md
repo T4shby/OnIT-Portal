@@ -130,21 +130,18 @@ Matches SuperOps client **On IT Technology Partners** for Phase A testing.
 
 ---
 
-## Future — M365 / Entra user sync
+## M365 / Entra user sync (built)
 
-**Not built in MVP.** Users are created manually in the portal (and SuperOps). Deleting someone in M365 does **not** remove them from the portal.
+**Two independent syncs** from one M365 security group per customer. See [AccessAndSync.md](AccessAndSync.md).
 
-| Approach | Phase | Notes |
+| Sync | System | How |
 |---|---|---|
-| Manual Admin → Users | MVP (now) | [Part 2](ClientOnboarding.md#part-2--new-user-on-an-existing-client) |
-| Entra **group** drives access to SuperOps SAML | Now | Add/remove group member — portal still manual |
-| **SCIM** provisioning (Entra → portal) | Phase 2+ | Auto create/update/deactivate `users` from group membership |
-| **Microsoft Graph** delta sync job | Phase 2+ | Nightly sync members of per-client Entra groups |
-| SuperOps API auto-create requester | Phase 3+ | On first portal login when API configured |
+| **1** | SuperOps requesters | SuperOps Entra SCIM per client — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| **2** | Portal users | `portal:sync-entra-users` — [EntraGroupSync.md](EntraGroupSync.md) |
 
-**Recommended future design:** one Entra security group per client (`Client - {Name} - Portal`). A scheduled job or SCIM endpoint syncs group members → `users` table (`is_active=false` when removed from group). SuperOps requester rows remain manual or API-driven until Phase 3.
+Manual **Admin → Users** remains available for pilots or exceptions (`provisioned_by = manual` users are not touched by sync).
 
-See [Roadmap.md](Roadmap.md) Phase 2.
+**Offboarding:** remove from the security group (or disable M365). SCIM deprovisions SuperOps; portal sync sets `is_active=false`.
 
 ---
 

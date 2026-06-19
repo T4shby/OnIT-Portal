@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\ExternalServicesService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -88,6 +89,13 @@ class EntraGroupSyncService
                 continue;
             }
 
+            if ($existing && $existing->provisioned_by === UserProvisionSource::Manual) {
+                $skipped++;
+                $errors[] = "Skipped manual user {$email}.";
+
+                continue;
+            }
+
             if ($dryRun) {
                 if ($existing) {
                     $updated++;
@@ -122,8 +130,16 @@ class EntraGroupSyncService
             }
         }
 
+        $toDeactivate = $this->usersRemovedFromGroup($client, $activeObjectIds, $activeEmails);
+        $deactivated = $toDeactivate->count();
+
         if (! $dryRun) {
-            $deactivated = $this->deactivateRemovedUsers($client, $activeObjectIds, $activeEmails);
+            foreach ($toDeactivate as $user) {
+                $user->update([
+                    'is_active' => false,
+                    'entra_synced_at' => now(),
+                ]);
+            }
 
             $client->update(['entra_synced_at' => now()]);
             $this->portalLinks->clearCache($client->id);
@@ -135,31 +151,19 @@ class EntraGroupSyncService
     /**
      * @param  list<string>  $activeObjectIds
      * @param  list<string>  $activeEmails
+     * @return Collection<int, User>
      */
-    private function deactivateRemovedUsers(Client $client, array $activeObjectIds, array $activeEmails): int
+    private function usersRemovedFromGroup(Client $client, array $activeObjectIds, array $activeEmails): Collection
     {
-        $users = User::query()
+        return User::query()
             ->where('client_id', $client->id)
             ->where('provisioned_by', UserProvisionSource::EntraSync)
             ->where('is_active', true)
-            ->get();
-
-        $count = 0;
-
-        foreach ($users as $user) {
-            $stillInGroup = in_array($user->entra_object_id, $activeObjectIds, true)
-                || in_array(strtolower($user->email), $activeEmails, true);
-
-            if (! $stillInGroup) {
-                $user->update([
-                    'is_active' => false,
-                    'entra_synced_at' => now(),
-                ]);
-                $count++;
-            }
-        }
-
-        return $count;
+            ->get()
+            ->filter(function (User $user) use ($activeObjectIds, $activeEmails) {
+                return ! in_array($user->entra_object_id, $activeObjectIds, true)
+                    && ! in_array(strtolower($user->email), $activeEmails, true);
+            });
     }
 
     /**

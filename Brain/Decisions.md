@@ -213,3 +213,18 @@ We initially used `/#/login/requester`, which is not a registered SuperOps route
 
 Consequences:
 Portal default `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login`. Users should go straight to requester SSO without clicking the chooser.
+
+---
+
+## ADR-016
+
+Date: 2026-06-19
+
+Decision:
+Implement **two independent syncs** from one M365 security group per customer: (1) SuperOps native Entra SCIM per client for requesters; (2) portal `portal:sync-entra-users` via Microsoft Graph Application permissions. Do **not** provision SuperOps requesters from portal code.
+
+Reason:
+SuperOps already provides per-client SCIM endpoints (Integrations → Entra ID). A custom portal SuperOps API provisioner duplicated that leg and added failure modes. M365 remains the single source of truth; each system syncs its own users.
+
+Consequences:
+Supersedes the deferred-sync intent in ADR-014 for portal users. SuperOps requesters are SCIM-managed, not manual (when SCIM is configured). Manual portal users (`provisioned_by = manual`) are skipped by sync. See [AccessAndSync.md](AccessAndSync.md), [EntraGroupSync.md](EntraGroupSync.md), [SuperOpsEntraSync.md](SuperOpsEntraSync.md).

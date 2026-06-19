@@ -21,4 +21,23 @@ class EntraSyncResult
     {
         return $this->created + $this->updated + $this->deactivated;
     }
+
+    public function summary(bool $dryRun = false): string
+    {
+        $prefix = $dryRun ? 'Dry run: ' : '';
+
+        return sprintf(
+            '%screated %d, updated %d, deactivated %d, skipped %d.',
+            $prefix,
+            $this->created,
+            $this->updated,
+            $this->deactivated,
+            $this->skipped,
+        );
+    }
+
+    public function failed(): bool
+    {
+        return $this->hasErrors() && $this->totalChanged() === 0 && $this->skipped === 0;
+    }
 }

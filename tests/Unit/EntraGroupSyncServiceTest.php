@@ -158,6 +158,77 @@ class EntraGroupSyncServiceTest extends TestCase
         ]);
     }
 
+    public function test_manual_users_in_group_are_not_converted_by_sync(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'manual@acme.com',
+            'role' => UserRole::ClientUser,
+            'provisioned_by' => UserProvisionSource::Manual,
+            'is_active' => true,
+        ]);
+
+        $this->fakeGraphResponses($tenantId, $groupId, [
+            [
+                'id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                'mail' => 'manual@acme.com',
+                'userPrincipalName' => 'manual@acme.com',
+                'displayName' => 'Manual User',
+                'accountEnabled' => true,
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->created);
+        $this->assertSame(0, $result->updated);
+        $this->assertSame(1, $result->skipped);
+        $this->assertDatabaseHas('users', [
+            'email' => 'manual@acme.com',
+            'provisioned_by' => UserProvisionSource::Manual->value,
+        ]);
+    }
+
+    public function test_dry_run_reports_deactivations_without_changing_database(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'gone@acme.com',
+            'role' => UserRole::ClientUser,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            'is_active' => true,
+        ]);
+
+        $this->fakeGraphResponses($tenantId, $groupId, []);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client, dryRun: true);
+
+        $this->assertSame(1, $result->deactivated);
+        $this->assertDatabaseHas('users', [
+            'email' => 'gone@acme.com',
+            'is_active' => true,
+        ]);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $users
      */

@@ -24,12 +24,15 @@ Read these documents before changing application code. **Update Brain in the sam
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
 | [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Simple guide for non-technical staff (60-client scale)** |
-| [AccessAndSync.md](AccessAndSync.md) | **M365 sync, offboarding, what is automatic today vs planned** |
-| [EntraGroupSync.md](EntraGroupSync.md) | **Phase 2: configure and run Entra group sync** |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Share with technicians — timeline and steps per customer tenant** |
+| [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
+| [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps Entra SCIM per client** |
+| [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
 | [PortalLinks.md](PortalLinks.md) | Link types and resolution |
 | [DatabaseSchema.md](DatabaseSchema.md) | Tables, columns, tenant rules |
 | [CustomerJourney.md](CustomerJourney.md) | End-to-end user flows |
-| [UIUX.md](UIUX.md) | Layout, components, wireframes |
+| [UIUX.md](UIUX.md) | **Portal design system** (maps to marketing skill) |
+| [design/README.md](design/README.md) | Canonical copy of onit.ltd SKILL, design-system, components |
 | [Deployment.md](Deployment.md) | Plesk production, `.env`, Entra + SuperOps setup |
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
@@ -39,6 +42,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | Brain topic | Code |
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
+| Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
@@ -56,6 +60,9 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | Two-sync model: Entra group sync (portal) + SuperOps SCIM; ADR-016; docs aligned |
+| 2026-06-16 | Added [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) — shareable tenant onboarding timeline |
+| 2026-06-16 | Added `Brain/design/` - synced marketing design system (SKILL, design-system, components) |
 | 2026-06-16 | Removed Acme/Globex/Initech demo seed defaults; added `portal:purge-demo-data` cleanup command |
 | 2026-06-16 | Added production security hardening: HTTPS forced in app + default security headers middleware |
 | 2026-06-15 | Production Laravel URL set to `app.onit.ltd` (`portal.onit.ltd` = SuperOps only) |

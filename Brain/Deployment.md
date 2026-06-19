@@ -113,6 +113,8 @@ PAX8_PORTAL_URL=https://your-pax8-url
 MICROSOFT_365_PORTAL_URL=https://admin.microsoft.com
 KNOWLEDGE_BASE_URL=https://your-kb-url
 BILLING_PORTAL_URL=https://your-billing-url
+
+ENTRA_SYNC_ENABLED=true
 ```
 
 ### 7. Run Migrations and Seeders
@@ -163,8 +165,11 @@ In Plesk → Scheduled Tasks, add:
    - Redirect URI: Web → `https://app.onit.ltd/auth/microsoft/callback` (your Laravel subdomain — **not** `portal.onit.ltd`)
 3. Note the Application (client) ID
 4. Certificates & secrets → New client secret → note the value
-5. API permissions → Add: `Microsoft Graph` → Delegated → `openid`, `profile`, `email`, `User.Read`
-6. Grant admin consent if required
+5. API permissions → Add:
+   - **Delegated:** `Microsoft Graph` → `openid`, `profile`, `email`, `User.Read` (login — unchanged)
+   - **Application:** `Microsoft Graph` → `GroupMember.Read.All`, `User.Read.All` (Entra group sync — [EntraGroupSync.md](EntraGroupSync.md))
+6. Grant admin consent in the On IT home tenant
+7. Grant admin consent in **each customer tenant** where you sync (consent URL in [EntraGroupSync.md](EntraGroupSync.md))
 
 ## Post-Deployment Verification
 

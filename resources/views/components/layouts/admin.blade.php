@@ -50,6 +50,7 @@
 
             <main class="admin-main">
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
+                @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}
             </main>
         </div>

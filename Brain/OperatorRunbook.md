@@ -114,7 +114,7 @@ Use this every time someone new needs the portal.
 1. They go to portal URL → **Sign in with Microsoft**
 2. Dashboard → **SuperOps** or **Pax8**
 
-**No step creates all three automatically in MVP** — portal, SuperOps, and Entra are separate until automation is built.
+**With Entra sync enabled:** add the user to the M365 security group — portal and SuperOps update automatically (see [AccessAndSync.md](AccessAndSync.md)). Without sync, portal users are added manually in Admin → Users.
 
 ---
 
