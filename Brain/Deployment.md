@@ -213,9 +213,56 @@ php artisan optimize
 | 500 error (general) | Check `storage/logs/laravel.log`, verify permissions |
 | Login redirect fails | Verify `MICROSOFT_REDIRECT_URI` matches Entra app registration exactly |
 | Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists, `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset) |
-| CSS not loading | Run `npm run build` if assets changed, verify `public/build` exists |
+| CSS not loading / unstyled page | See **CSS not loading** below |
 | Permission denied | `chmod -R 775 storage bootstrap/cache` |
 | cURL SSL error on **local Windows only** | Not a production issue — see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |
+
+### CSS not loading (unstyled HTML)
+
+The portal loads CSS via Laravel Vite from `public/build/` (committed in git). A plain white page with blue links means those assets did not load.
+
+**Browser asked to “allow” local network / localhost?** Almost always a stray **`public/hot`** file on the server — left over if someone ran `npm run dev` on production. That file tells Laravel to load CSS from `http://127.0.0.1:5173` instead of `public/build`. Remove it:
+
+```bash
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
+rm -f public/hot
+php artisan view:clear
+```
+
+**Checklist (SSH):**
+
+```bash
+# 1. hot file must NOT exist
+ls -la public/hot          # should say "No such file"
+
+# 2. built assets must exist
+ls -la public/build/manifest.json
+ls -la public/build/assets/
+
+# 3. APP_URL must be https (in .env)
+grep APP_URL .env          # expect APP_URL=https://app.onit.ltd
+
+php artisan config:clear
+php artisan view:clear
+php artisan optimize
+```
+
+If `public/build` is missing or empty, build on the server (Node 18+ required):
+
+```bash
+npm ci && npm run build
+php artisan optimize
+```
+
+**Quick browser check:** View page source on the dashboard. You should see:
+
+```html
+<link rel="stylesheet" href="/build/assets/app-....css" />
+```
+
+If you see `localhost:5173` or `127.0.0.1:5173`, delete `public/hot` and refresh.
+
+**Never run `npm run dev` on production** — local dev only ([LocalDevelopment.md](LocalDevelopment.md)).
 
 ## Local vs Production
 
