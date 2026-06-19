@@ -1,7 +1,7 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Edit Client'])
 
-    <div class="grid gap-8 xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] max-w-6xl">
+    <div class="grid gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] max-w-7xl">
         <x-card>
             <form method="POST" action="{{ route('admin.clients.update', $client) }}">
                 @csrf @method('PUT')

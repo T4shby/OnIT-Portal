@@ -106,6 +106,9 @@ Rules: white line first, orange last, left-aligned, orange rule above.
 | `.admin-table-wrap` | `.sla-table` wrapper | Admin data tables |
 | `.admin-input` | - | Form fields on dark |
 | `.form-card` | Same | Login panel |
+| `.onboarding-guide` | FAQ accordion + agenda list | Client setup guide ([design/components.md](design/components.md)) |
+| `.support-list` | Same | Bulleted instructions in cards and onboarding |
+| `.agenda-title` | Same | Step titles in onboarding guide |
 
 ---
 

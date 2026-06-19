@@ -297,132 +297,143 @@
     }
 
     .onboarding-panel {
-        @apply benefit-card p-0;
+        @apply benefit-card;
     }
 
     .onboarding-panel__header {
-        @apply border-b border-white/10 p-5 sm:p-6;
+        @apply border-b border-white/10 p-6 sm:p-8;
     }
 
     .onboarding-panel__progress {
-        @apply mt-5;
+        @apply mt-8 border border-onit-border bg-onit-ink/50 p-5;
     }
 
     .onboarding-panel__progress-bar {
-        @apply mt-2 h-1.5 w-full bg-white/10;
+        @apply mt-4 h-1 w-full bg-white/10;
     }
 
     .onboarding-panel__progress-fill {
         @apply h-full bg-onit transition-all duration-300;
     }
 
-    .onboarding-panel__form {
-        @apply p-5 sm:p-6;
+    .onboarding-panel__body {
+        @apply p-6 sm:p-8;
     }
 
-    .onboarding-steps {
-        @apply list-none space-y-2 p-0 m-0;
+    .onboarding-panel__actions {
+        @apply mt-8 border-t border-white/10 pt-6;
     }
 
-    .onboarding-panel:not(:has(.onboarding-panel__form)) .onboarding-steps {
-        @apply p-5 sm:p-6;
+    /* Brain/design/components.md — agenda + FAQ patterns */
+    .agenda-title {
+        @apply font-condensed text-base font-semibold uppercase tracking-wide text-white sm:text-[1.05rem];
     }
 
-    .onboarding-step {
-        @apply list-none overflow-hidden border border-onit-border bg-onit-ink/50 transition-colors;
+    .support-list {
+        @apply m-0 list-none p-0;
     }
 
-    .onboarding-step--complete {
-        @apply border-onit/35 bg-onit/[0.07];
+    .support-list li {
+        @apply flex items-start gap-3 border-b border-white/[0.04] py-3 text-sm font-light leading-relaxed text-white/75;
     }
 
-    .onboarding-step--blocked {
-        @apply opacity-55;
+    .support-list li:last-child {
+        @apply border-b-0 pb-0;
     }
 
-    .onboarding-step__details[open] {
-        @apply border-onit/25 bg-onit-surface/40;
-    }
-
-    .onboarding-step__summary {
-        @apply flex cursor-pointer list-none items-center gap-3 p-4 text-left select-none;
-    }
-
-    .onboarding-step__summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .onboarding-step__number {
-        @apply flex h-8 w-8 shrink-0 items-center justify-center bg-onit/15 font-condensed text-xs font-bold text-onit ring-1 ring-onit/25;
-    }
-
-    .onboarding-step--complete .onboarding-step__number {
-        @apply bg-onit text-white ring-onit;
-    }
-
-    .onboarding-step__head {
-        @apply min-w-0 flex-1;
-    }
-
-    .onboarding-step__title {
-        @apply block font-condensed text-sm font-bold uppercase leading-snug tracking-wide text-white;
-    }
-
-    .onboarding-step__who {
-        @apply mt-0.5 block font-condensed text-[10px] font-bold uppercase tracking-widest text-white/35;
-    }
-
-    .onboarding-step__badge {
-        @apply hidden shrink-0 rounded border border-white/10 px-2 py-0.5 font-condensed text-[10px] font-bold uppercase tracking-wider sm:inline-block;
-    }
-
-    .onboarding-step__badge--pending {
-        @apply border-white/15 text-white/45;
-    }
-
-    .onboarding-step__badge--done {
-        @apply border-onit/40 bg-onit/10 text-onit;
-    }
-
-    .onboarding-step__badge--blocked {
-        @apply border-white/10 text-white/30;
-    }
-
-    .onboarding-step__chevron {
-        @apply h-4 w-4 shrink-0 text-white/35 transition-transform duration-200;
-    }
-
-    .onboarding-step__details[open] .onboarding-step__chevron {
-        @apply rotate-180 text-onit;
-    }
-
-    .onboarding-step__body {
-        @apply border-t border-white/10 px-4 pb-4 pt-4;
-    }
-
-    .onboarding-step__instructions {
-        @apply m-0 list-none space-y-2 rounded border border-white/5 bg-onit-ink/60 p-4;
-    }
-
-    .onboarding-step__instructions li {
-        @apply relative pl-6 text-sm font-light leading-relaxed text-white/75;
-    }
-
-    .onboarding-step__instructions li::before {
+    .support-list li::before {
         content: '';
-        @apply absolute left-0 top-2 h-1.5 w-1.5 rounded-full bg-onit/80;
+        @apply mt-2 h-1.5 w-1.5 shrink-0 bg-onit;
     }
 
-    .onboarding-step__consent {
-        @apply mt-4 rounded border border-onit/20 bg-onit/5 p-4;
+    .onboarding-guide {
+        @apply space-y-0;
     }
 
-    .onboarding-step__hint {
-        @apply mt-4 text-xs font-light leading-relaxed text-white/50;
+    .onboarding-guide__item {
+        border-left: 3px solid rgb(255 255 255 / 0.08);
+        @apply border-b border-white/[0.05] transition-[border-color] duration-300;
     }
 
-    .onboarding-step__check {
-        @apply mt-4 flex cursor-pointer items-center gap-2 rounded border border-white/10 bg-onit-ink/40 px-3 py-2.5 text-sm text-white/85;
+    .onboarding-guide__item:last-child {
+        @apply border-b-0;
+    }
+
+    .onboarding-guide__item.is-open,
+    .onboarding-guide__item:hover:not(.is-blocked) {
+        border-left-color: #ff7000;
+    }
+
+    .onboarding-guide__item.is-done {
+        border-left-color: rgb(255 112 0 / 0.35);
+    }
+
+    .onboarding-guide__item.is-blocked {
+        @apply opacity-50;
+    }
+
+    .onboarding-guide__trigger {
+        @apply flex w-full items-start gap-5 py-6 pl-6 pr-4 text-left;
+    }
+
+    .onboarding-guide__num {
+        @apply shrink-0 font-condensed text-[2rem] font-extrabold leading-none text-onit;
+    }
+
+    .onboarding-guide__copy {
+        @apply min-w-0 flex-1 pt-0.5;
+    }
+
+    .onboarding-guide__meta {
+        @apply mt-2 block text-sm font-light text-white/60;
+    }
+
+    .onboarding-status {
+        @apply mt-1 hidden shrink-0 font-condensed text-[0.7rem] font-bold uppercase tracking-wider sm:inline-block;
+        padding: 2px 8px;
+    }
+
+    .onboarding-status--done {
+        @apply border border-onit/30 bg-onit/15 text-onit;
+    }
+
+    .onboarding-status--pending {
+        @apply border border-white/10 bg-white/[0.06] text-white/50;
+    }
+
+    .onboarding-status--blocked {
+        @apply border border-white/[0.06] bg-white/[0.03] text-white/35;
+    }
+
+    .onboarding-guide__chevron {
+        @apply mt-1 h-[18px] w-[18px] shrink-0 text-onit transition-transform duration-200;
+    }
+
+    .onboarding-guide__chevron.is-open {
+        transform: rotate(180deg);
+    }
+
+    .onboarding-guide__panel {
+        @apply border-t border-white/[0.05] pb-8 pl-6 pr-4 pt-2;
+        margin-left: 3.75rem;
+    }
+
+    @media (min-width: 640px) {
+        .onboarding-guide__panel {
+            margin-left: 4.75rem;
+        }
+    }
+
+    .onboarding-guide__extra {
+        @apply mt-6 border border-onit/25 bg-onit/5 p-5;
+    }
+
+    .onboarding-guide__note {
+        @apply mt-6;
+    }
+
+    .onboarding-guide__check {
+        @apply mt-6 flex cursor-pointer items-center gap-3 border border-onit-border bg-onit-ink/50 px-4 py-3 text-sm text-white/85;
     }
 
     .field-help {
