@@ -57,7 +57,9 @@ Route::middleware('auth')->group(function () {
             Route::get('users', [UserController::class, 'index'])->name('users.index');
             Route::resource('users', UserController::class)->except(['show', 'index']);
             Route::middleware('role:'.UserRole::SuperAdmin->value)->group(function () {
-                Route::resource('team', TeamController::class)->except(['show']);
+                Route::resource('team', TeamController::class)
+                    ->except(['show'])
+                    ->parameters(['team' => 'user']);
             });
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
             Route::resource('notices', NoticeController::class)->except(['show']);

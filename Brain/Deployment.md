@@ -183,20 +183,34 @@ In Plesk → Scheduled Tasks, add:
 
 ## Updating the Application
 
+After **every** deploy (Plesk Git pull or manual), run **all** of these over SSH — not just `git pull`:
+
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
+
 git pull origin main
+
 composer install --no-dev --optimize-autoloader
+
+php artisan route:clear
+php artisan config:clear
+php artisan view:clear
+
 php artisan migrate --force
-php artisan portal:purge-demo-data --force   # safe to re-run; no-op if already clean
+
 php artisan optimize
 ```
+
+> **Why `route:clear` before `optimize`?** New admin routes (e.g. Team) are referenced in the sidebar. If an old route cache is left in place, Super Admins get **500 on every `/admin` page** with `Route [admin.team.index] not defined` in `storage/logs/laravel.log`.
+
+`php artisan portal:purge-demo-data --force` is safe to re-run on older installs; skip if you have already cleaned demo data.
 
 ## Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| 500 error | Check `storage/logs/laravel.log`, verify permissions |
+| **500 on `/admin` after deploy** | Run the full update block above. Then: `tail -50 storage/logs/laravel.log` — look for `Route [...] not defined`, missing class, or SQL "column not found" (run `php artisan migrate --force`) |
+| 500 error (general) | Check `storage/logs/laravel.log`, verify permissions |
 | Login redirect fails | Verify `MICROSOFT_REDIRECT_URI` matches Entra app registration exactly |
 | Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists, `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset) |
 | CSS not loading | Run `npm run build` if assets changed, verify `public/build` exists |
