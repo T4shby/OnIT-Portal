@@ -227,16 +227,41 @@
     }
 
     .admin-client-tiles {
-        @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3;
+        @apply grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5;
     }
 
     .admin-client-tile {
-        @apply benefit-card flex min-h-[10rem] flex-col no-underline transition-all duration-200;
+        @apply relative flex aspect-[5/4] flex-col justify-between overflow-hidden border border-onit-border bg-onit-surface p-5 no-underline transition-all duration-200 sm:aspect-square;
+    }
+
+    .admin-client-tile::before {
+        content: '';
+        @apply absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-onit transition-transform duration-300;
     }
 
     .admin-client-tile:hover {
-        @apply border-onit/50;
+        @apply border-onit/50 bg-onit-surface-hover;
         transform: translateY(-4px);
+    }
+
+    .admin-client-tile:hover::before {
+        @apply scale-x-100;
+    }
+
+    .admin-client-tile__avatar {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center bg-onit/15 font-condensed text-sm font-bold uppercase tracking-wide text-onit ring-1 ring-onit/25;
+    }
+
+    .admin-client-tile__count {
+        @apply font-condensed text-xs font-bold uppercase tracking-wider text-white/40;
+    }
+
+    .admin-client-tile__name {
+        @apply font-condensed text-sm font-bold uppercase leading-snug tracking-wide text-white transition-colors group-hover:text-onit sm:text-base;
+    }
+
+    .admin-client-tile__action {
+        @apply font-condensed text-xs font-bold uppercase tracking-wide text-onit;
     }
 
     .admin-card {
