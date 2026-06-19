@@ -13,6 +13,12 @@
                     'help' => $fieldHelps['superops_account_id'],
                 ])
                 @include('admin.partials.form-field', ['label' => 'SuperOps SSO enabled', 'name' => 'superops_sso_enabled', 'type' => 'checkbox', 'value' => $client->superops_sso_enabled])
+                @include('admin.partials.form-field', [
+                    'label' => 'Pax8 Company ID',
+                    'name' => 'pax8_company_id',
+                    'value' => $client->pax8_company_id,
+                    'help' => $fieldHelps['pax8_company_id'],
+                ])
                 @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                 @include('admin.clients._entra-sync-fields', ['client' => $client])
                 <div class="flex gap-3 mt-6">

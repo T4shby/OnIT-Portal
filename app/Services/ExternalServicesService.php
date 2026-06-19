@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PortalLinkType;
 use App\Models\PortalLink;
 use App\Models\User;
+use App\Services\Pax8\Pax8SsoService;
 use App\Services\SuperOps\SuperOpsSsoService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -34,11 +35,15 @@ class ExternalServicesService
                 ->get()
                 ->filter(fn (PortalLink $link) => $user->meetsRoleRequirement($link->required_role))
                 ->filter(function (PortalLink $link) use ($user) {
-                    if ($link->link_type !== PortalLinkType::SuperOpsSso) {
-                        return true;
+                    if ($link->link_type === PortalLinkType::SuperOpsSso) {
+                        return app(SuperOpsSsoService::class)->isEnabledForUser($user);
                     }
 
-                    return app(SuperOpsSsoService::class)->isEnabledForUser($user);
+                    if ($link->link_type === PortalLinkType::Pax8Sso) {
+                        return app(Pax8SsoService::class)->isEnabledForUser($user);
+                    }
+
+                    return true;
                 })
                 ->unique(fn (PortalLink $link) => $link->link_type->value)
                 ->values();
@@ -60,11 +65,11 @@ class ExternalServicesService
             [
                 'name' => 'Pax8',
                 'description' => 'Licensing portal.',
-                'url' => config('services.portal.pax8_url'),
-                'link_type' => PortalLinkType::External,
+                'url' => route('integrations.pax8.launch'),
+                'link_type' => PortalLinkType::Pax8Sso,
                 'icon' => 'pax8',
                 'display_order' => 2,
-                'open_in_new_tab' => true,
+                'open_in_new_tab' => false,
             ],
         ];
     }

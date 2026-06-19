@@ -40,6 +40,7 @@ class PortalLink extends Model
         return Attribute::get(fn () => match ($this->link_type) {
             PortalLinkType::SuperOpsEmbedded => route('support.index'),
             PortalLinkType::SuperOpsSso => route('integrations.superops.launch'),
+            PortalLinkType::Pax8Sso => route('integrations.pax8.launch'),
             default => $this->url,
         });
     }
@@ -49,6 +50,7 @@ class PortalLink extends Model
         return match ($type) {
             PortalLinkType::SuperOpsEmbedded => route('support.index'),
             PortalLinkType::SuperOpsSso => route('integrations.superops.launch'),
+            PortalLinkType::Pax8Sso => route('integrations.pax8.launch'),
             PortalLinkType::External => '',
         };
     }
@@ -58,6 +60,7 @@ class PortalLink extends Model
         return in_array($this->link_type, [
             PortalLinkType::SuperOpsEmbedded,
             PortalLinkType::SuperOpsSso,
+            PortalLinkType::Pax8Sso,
         ], true);
     }
 

@@ -16,6 +16,7 @@ class Client extends Model
         'slug',
         'superops_account_id',
         'superops_sso_enabled',
+        'pax8_company_id',
         'entra_tenant_id',
         'entra_group_id',
         'entra_sync_enabled',

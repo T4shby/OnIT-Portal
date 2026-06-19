@@ -17,6 +17,7 @@ class StoreClientRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'superops_account_id' => ['nullable', 'string', 'max:255'],
             'superops_sso_enabled' => ['boolean'],
+            'pax8_company_id' => ['nullable', 'string', 'max:255'],
             'entra_tenant_id' => ['nullable', 'uuid'],
             'entra_group_id' => ['nullable', 'uuid'],
             'entra_sync_enabled' => ['boolean'],

@@ -3,6 +3,7 @@
 @php
 $logo = match (true) {
     in_array($link->link_type?->value, ['superops_sso', 'superops_embedded'], true) => 'superops',
+    ($link->link_type?->value ?? '') === 'pax8_sso' => 'pax8',
     str_contains(strtolower($link->name ?? ''), 'superops') => 'superops',
     str_contains(strtolower($link->name ?? ''), 'pax8') => 'pax8',
     ($link->icon ?? '') === 'lifebuoy' => 'superops',

@@ -29,6 +29,9 @@
                     <h2 class="section-heading-white">Your</h2>
                     <h2 class="section-heading-orange">Portals</h2>
                 </div>
+                @if($portalLinks->contains(fn ($link) => $link->link_type?->value === 'pax8_sso'))
+                    <p class="portal-body-muted mt-4 text-sm">Pax8 opens the partner portal for On IT staff and your company subscriptions for customer users.</p>
+                @endif
             </div>
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">

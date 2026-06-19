@@ -9,6 +9,9 @@ See [SuperOpsIntegration.md](SuperOpsIntegration.md) for SuperOps detail.
 | `external` | Opens URL (new tab optional) |
 | `superops_embedded` | `/support` — embedded tickets |
 | `superops_sso` | SSO launch to full SuperOps portal |
+| `pax8_sso` | SSO launch to Pax8 (partner or company view) |
+
+See [Pax8Integration.md](Pax8Integration.md) for Pax8 detail.
 
 ## Resolution
 
@@ -28,7 +31,7 @@ The seeded global links are intentionally minimal — two portals only:
 | Name | Type | Target |
 |---|---|---|
 | SuperOps | `superops_sso` | `/integrations/superops/launch` → SuperOps requester portal |
-| Pax8 | `external` | `PAX8_PORTAL_URL` (default `https://app.pax8.com`) |
+| Pax8 | `pax8_sso` | `/integrations/pax8/launch` → partner portal (team) or company view (clients) |
 
 `ExternalServicesService::syncDefaultLinks()` upserts these and removes stale global links. Re-run with:
 

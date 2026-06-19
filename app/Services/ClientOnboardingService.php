@@ -234,6 +234,12 @@ class ClientOnboardingService
                 'Copy the Account ID from the client profile or URL.',
                 'Paste it here — must match the SuperOps client exactly.',
             ],
+            'pax8_company_id' => [
+                'Sign in to the Pax8 partner portal (app.pax8.com).',
+                'Go to Companies → open the customer.',
+                'Copy the company UUID from the URL or company profile.',
+                'Paste it here so client approvers launch into their Pax8 company view.',
+            ],
             'entra_tenant_id' => [
                 'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker).',
                 'Go to Microsoft Entra ID → Overview.',

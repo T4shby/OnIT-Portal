@@ -49,7 +49,9 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertArrayHasKey('entra_tenant_id', $helps);
         $this->assertArrayHasKey('entra_group_id', $helps);
+        $this->assertArrayHasKey('pax8_company_id', $helps);
         $this->assertNotEmpty($helps['entra_tenant_id']);
+        $this->assertNotEmpty($helps['pax8_company_id']);
     }
 
     public function test_update_checklist_persists_manual_checkpoints(): void

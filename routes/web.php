@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Integrations\Pax8LaunchController;
 use App\Http\Controllers\Integrations\SuperOpsLaunchController;
 use App\Http\Controllers\SupportController;
 use App\Enums\UserRole;
@@ -40,6 +41,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/integrations/superops/launch', SuperOpsLaunchController::class)
         ->name('integrations.superops.launch');
+
+    Route::get('/integrations/pax8/launch', Pax8LaunchController::class)
+        ->name('integrations.pax8.launch');
 
     Route::prefix('admin')
         ->name('admin.')
