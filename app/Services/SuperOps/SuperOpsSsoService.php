@@ -29,8 +29,8 @@ class SuperOpsSsoService
 
     public function configurationHint(): string
     {
-        return 'Set SUPEROPS_PORTAL_URL for technicians and SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL for clients. '
-            .'Client requester SSO: configure Entra SAML in SuperOps Global SSO. Technicians use the same M365 login — no separate SAML app.';
+        return 'Set SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL for clients. Technicians use the same SuperOps host with /#/technician/login. '
+            .'Client requester SSO: Entra SAML in SuperOps Global SSO only.';
     }
 
     public function accessDeniedHint(User $user): string
@@ -41,7 +41,7 @@ class SuperOpsSsoService
 
         if ($user->role->isAdmin()) {
             if (! $this->hasTechnicianLaunchTarget()) {
-                return 'SuperOps technician portal is not configured. Set SUPEROPS_PORTAL_URL in .env.';
+                return 'SuperOps technician portal is not configured. Set SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL in .env.';
             }
         }
 
@@ -65,7 +65,7 @@ class SuperOpsSsoService
     public function launchUrlFor(User $user): string
     {
         if ($user->role->isAdmin()) {
-            $base = rtrim((string) config('services.superops.portal_url'), '/');
+            $base = rtrim((string) config('services.superops.technician_portal_url'), '/');
             $path = config('services.superops.technician_login_path', '/#/technician/login');
 
             return $this->appendLoginHint($base.$path, $user->email);
@@ -85,7 +85,7 @@ class SuperOpsSsoService
 
     private function hasTechnicianLaunchTarget(): bool
     {
-        return filled(config('services.superops.portal_url'));
+        return filled(config('services.superops.technician_portal_url'));
     }
 
     private function hasRequesterLaunchTarget(): bool

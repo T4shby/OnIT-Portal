@@ -42,7 +42,7 @@ class SuperOpsSsoServiceTest extends TestCase
     {
         config([
             'services.superops.sso_enabled' => true,
-            'services.superops.portal_url' => 'https://app.superops.ai',
+            'services.superops.technician_portal_url' => 'https://portal.onit.ltd',
             'services.superops.technician_login_path' => '/#/technician/login',
             'services.superops.login_hint_enabled' => true,
         ]);
@@ -57,7 +57,7 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $this->assertTrue($service->isEnabledForUser($user));
         $this->assertSame(
-            'https://app.superops.ai/?login_hint=tom.ashby%40onit.ltd#/technician/login',
+            'https://portal.onit.ltd/?login_hint=tom.ashby%40onit.ltd#/technician/login',
             $service->launchUrlFor($user),
         );
     }

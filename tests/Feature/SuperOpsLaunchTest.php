@@ -18,7 +18,7 @@ class SuperOpsLaunchTest extends TestCase
 
         config([
             'services.superops.sso_enabled' => true,
-            'services.superops.portal_url' => 'https://app.superops.ai',
+            'services.superops.technician_portal_url' => 'https://portal.onit.ltd',
             'services.superops.technician_login_path' => '/#/technician/login',
             'services.superops.requester_portal_url' => 'https://portal.onit.ltd',
             'services.superops.requester_login_path' => '/#/requester/login',
@@ -42,7 +42,7 @@ class SuperOpsLaunchTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('integrations.superops.launch'));
 
-        $response->assertRedirect('https://app.superops.ai/?login_hint=tom.ashby%40onit.ltd#/technician/login');
+        $response->assertRedirect('https://portal.onit.ltd/?login_hint=tom.ashby%40onit.ltd#/technician/login');
     }
 
     public function test_client_with_sso_enabled_can_launch_requester_portal(): void

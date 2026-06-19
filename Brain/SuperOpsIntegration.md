@@ -89,7 +89,7 @@ Configure via `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login` (default).
 
 **Testing requester SSO:** Use `portal.test@onit.ltd` (`client_user` on On IT Technology Partners). Do **not** use `tom.ashby@onit.ltd` for requester validation — Tom is an MSP technician in SuperOps.
 
-**Testing technician launch:** Use `tom.ashby@onit.ltd` (`super_admin`) — portal redirects to `/#/technician/login` on `app.superops.ai`.
+**Testing technician launch:** Use `tom.ashby@onit.ltd` (`super_admin`) — portal redirects to `portal.onit.ltd/#/technician/login` (same host as requester, different path).
 
 ### Minimum to open SuperOps (manual login on their page)
 
@@ -150,7 +150,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 
 | Role | Tile visible when | Launch destination |
 |---|---|---|
-| `super_admin`, `account_manager` | `SUPEROPS_PORTAL_URL` set | `app.superops.ai/#/technician/login` |
+| `super_admin`, `account_manager` | `SUPEROPS_SUBDOMAIN` or requester URL set | Same SuperOps host as requester (`portal.onit.ltd`) + `/#/technician/login` |
 | `client_user`, `client_admin` | `superops_sso_enabled` on client | Requester portal `/#/requester/login` |
 
 **The portal cannot pass its Laravel session to SuperOps.** Seamless login uses the **same Microsoft account** already signed into the portal:

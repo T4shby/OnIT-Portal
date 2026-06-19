@@ -20,7 +20,7 @@ class ExternalServicesService
             return collect();
         }
 
-        $cacheKey = 'portal_links.client.'.($clientId ?? 'admin');
+        $cacheKey = 'portal_links.'.($clientId ?? 'admin').'.'.$user->role->value;
 
         return Cache::remember($cacheKey, 300, function () use ($user, $clientId) {
             return PortalLink::query()
@@ -112,8 +112,12 @@ class ExternalServicesService
     public function clearCache(?int $clientId = null): void
     {
         if ($clientId) {
-            Cache::forget("portal_links.client.{$clientId}");
+            foreach (['super_admin', 'account_manager', 'client_admin', 'client_user'] as $role) {
+                Cache::forget("portal_links.{$clientId}.{$role}");
+            }
         }
-        Cache::forget('portal_links.client.admin');
+        foreach (['super_admin', 'account_manager'] as $role) {
+            Cache::forget("portal_links.admin.{$role}");
+        }
     }
 }
