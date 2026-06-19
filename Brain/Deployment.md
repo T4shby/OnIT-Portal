@@ -207,6 +207,7 @@ cd /var/www/vhosts/onit.ltd/app.onit.ltd
 
 # php is NOT on root PATH — composer and artisan both need Plesk's PHP
 export PATH="/opt/plesk/php/8.3/bin:$PATH"    # match Plesk PHP Settings for app.onit.ltd
+export COMPOSER_ALLOW_SUPERUSER=1              # skip "Continue as root?" prompt on Plesk SSH
 php -v
 
 rm -f public/hot
