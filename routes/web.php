@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\PortalLinkController;
 use App\Http\Controllers\Admin\RecommendationController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\DashboardController;
@@ -53,9 +54,11 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.onboarding.update');
             Route::get('clients/{client}/users', [UserController::class, 'forClient'])
                 ->name('clients.users.index');
-            Route::get('users/internal', [UserController::class, 'internal'])
-                ->name('users.internal');
-            Route::resource('users', UserController::class)->except(['show']);
+            Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::resource('users', UserController::class)->except(['show', 'index']);
+            Route::middleware('role:'.UserRole::SuperAdmin->value)->group(function () {
+                Route::resource('team', TeamController::class)->except(['show']);
+            });
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
             Route::resource('notices', NoticeController::class)->except(['show']);
             Route::resource('recommendations', RecommendationController::class)->except(['show']);

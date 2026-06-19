@@ -1,0 +1,59 @@
+<x-admin-layout>
+    <div class="mb-6">
+        <a href="{{ route('admin.team.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Team</a>
+    </div>
+
+    @include('admin.partials.header', ['title' => 'Add team member'])
+
+    <x-card class="max-w-xl">
+        <p class="portal-body-muted mb-6 text-sm">
+            Add an On IT {{ strtolower($organisationName) }} colleague who will use the admin portal.
+            This is separate from customer users at each client company.
+        </p>
+
+        <form method="POST" action="{{ route('admin.team.store') }}">
+            @csrf
+            @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true])
+            @include('admin.partials.form-field', ['label' => 'Email', 'name' => 'email', 'type' => 'email', 'required' => true])
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Role <span class="text-red-500">*</span></label>
+                <select name="role" id="team-role" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit">
+                    @foreach($roles as $role)
+                        <option value="{{ $role->value }}" @selected(old('role', \App\Enums\UserRole::AccountManager->value) === $role->value)>{{ $role->label() }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500">Super Admin has full access. Account Manager can manage assigned client companies.</p>
+            </div>
+            <div class="mb-4" id="assigned-clients-field">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Assigned clients</label>
+                <p class="mb-2 text-xs text-slate-500">Select which client companies this account manager can manage.</p>
+                @foreach($clients as $client)
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" name="assigned_clients[]" value="{{ $client->id }}"
+                            @checked(in_array($client->id, old('assigned_clients', [])))
+                            class="rounded border-slate-300 text-onit">
+                        <span class="text-sm">{{ $client->name }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Add team member</button>
+                <a href="{{ route('admin.team.index') }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
+            </div>
+        </form>
+    </x-card>
+
+    <script>
+        const roleSelect = document.getElementById('team-role');
+        const assignedField = document.getElementById('assigned-clients-field');
+        const accountManagerRole = @json(\App\Enums\UserRole::AccountManager->value);
+
+        function toggleAssignedClients() {
+            assignedField.style.display = roleSelect.value === accountManagerRole ? 'block' : 'none';
+        }
+
+        roleSelect.addEventListener('change', toggleAssignedClients);
+        toggleAssignedClients();
+    </script>
+</x-admin-layout>

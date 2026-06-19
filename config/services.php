@@ -38,6 +38,7 @@ return [
     ],
 
     'portal' => [
+        'organisation_name' => env('PORTAL_ORGANISATION_NAME', 'On IT Technology Partners'),
         'superops_url' => env('SUPEROPS_PORTAL_URL'),
         'pax8_url' => env('PAX8_PORTAL_URL'),
         'microsoft_365_url' => env('MICROSOFT_365_PORTAL_URL'),

@@ -32,8 +32,17 @@ class UserPolicy
         return $user->role->isAdmin();
     }
 
+    public function manageTeam(User $user): bool
+    {
+        return $user->role === UserRole::SuperAdmin;
+    }
+
     public function update(User $actor, User $target): bool
     {
+        if ($target->isTeamMember()) {
+            return $actor->role === UserRole::SuperAdmin;
+        }
+
         if ($actor->role === UserRole::SuperAdmin) {
             return true;
         }

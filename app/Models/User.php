@@ -73,6 +73,11 @@ class User extends Authenticatable
         };
     }
 
+    public function isTeamMember(): bool
+    {
+        return $this->role->isAdmin();
+    }
+
     public function meetsRoleRequirement(?string $requiredRole): bool
     {
         if ($requiredRole === null) {

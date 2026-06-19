@@ -3,12 +3,9 @@
 @endphp
 
 <x-admin-layout>
-    @include('admin.partials.header', [
-        'title' => 'Users',
-        'action' => '<a href="'.route('admin.users.create').'" class="cta-btn text-sm px-6 py-3">Add User</a>'
-    ])
+    @include('admin.partials.header', ['title' => 'Users'])
 
-    <p class="portal-body-muted mb-6 text-sm">Select a company to view and manage its users.</p>
+    <p class="portal-body-muted mb-6 text-sm">Select a company to view and manage its portal users.</p>
 
     <div class="admin-client-tiles">
         @foreach($clients as $client)
@@ -45,33 +42,11 @@
                 @endif
             </a>
         @endforeach
-
-        @if($internalUsers->isNotEmpty())
-            <a href="{{ route('admin.users.internal') }}" class="admin-client-tile group">
-                <div class="flex items-start justify-between gap-3">
-                    <h2 class="portal-card-title text-base leading-tight group-hover:text-onit">On IT staff</h2>
-                    <span class="shrink-0 font-condensed text-xs font-bold uppercase tracking-wider text-white/40">
-                        {{ $internalUsers->count() }} {{ str('user')->plural($internalUsers->count()) }}
-                    </span>
-                </div>
-                <p class="portal-body-muted mt-1 text-xs">No client assigned</p>
-                <ul class="mt-4 space-y-1 border-t border-white/10 pt-4">
-                    @foreach($internalPreview as $user)
-                        <li class="truncate text-xs text-white/60">{{ $user->name }}</li>
-                    @endforeach
-                </ul>
-                @if($internalUsers->count() > $previewLimit)
-                    <p class="mt-3 font-condensed text-xs font-bold uppercase tracking-wide text-onit">
-                        View all {{ $internalUsers->count() }} users →
-                    </p>
-                @endif
-            </a>
-        @endif
     </div>
 
-    @if($clients->isEmpty() && $internalUsers->isEmpty())
+    @if($clients->isEmpty())
         <div class="admin-table-wrap">
-            <div class="px-6 py-12"><x-empty-state title="No users" /></div>
+            <div class="px-6 py-12"><x-empty-state title="No clients yet" /></div>
         </div>
     @endif
 </x-admin-layout>
