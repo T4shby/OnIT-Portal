@@ -297,23 +297,55 @@
     }
 
     .onboarding-panel {
-        @apply benefit-card;
+        @apply benefit-card p-0;
+    }
+
+    .onboarding-panel__header {
+        @apply border-b border-white/10 p-5 sm:p-6;
+    }
+
+    .onboarding-panel__progress {
+        @apply mt-5;
+    }
+
+    .onboarding-panel__progress-bar {
+        @apply mt-2 h-1.5 w-full bg-white/10;
+    }
+
+    .onboarding-panel__progress-fill {
+        @apply h-full bg-onit transition-all duration-300;
+    }
+
+    .onboarding-panel__form {
+        @apply p-5 sm:p-6;
+    }
+
+    .onboarding-steps {
+        @apply list-none space-y-2 p-0 m-0;
+    }
+
+    .onboarding-panel:not(:has(.onboarding-panel__form)) .onboarding-steps {
+        @apply p-5 sm:p-6;
     }
 
     .onboarding-step {
-        @apply border border-onit-border bg-onit-ink/40;
+        @apply list-none overflow-hidden border border-onit-border bg-onit-ink/50 transition-colors;
     }
 
     .onboarding-step--complete {
-        @apply border-onit/30 bg-onit/5;
+        @apply border-onit/35 bg-onit/[0.07];
     }
 
     .onboarding-step--blocked {
-        @apply opacity-60;
+        @apply opacity-55;
+    }
+
+    .onboarding-step__details[open] {
+        @apply border-onit/25 bg-onit-surface/40;
     }
 
     .onboarding-step__summary {
-        @apply flex cursor-pointer list-none items-center gap-3 p-4 text-left;
+        @apply flex cursor-pointer list-none items-center gap-3 p-4 text-left select-none;
     }
 
     .onboarding-step__summary::-webkit-details-marker {
@@ -321,43 +353,76 @@
     }
 
     .onboarding-step__number {
-        @apply flex h-7 w-7 shrink-0 items-center justify-center bg-onit/20 font-condensed text-xs font-bold text-onit;
+        @apply flex h-8 w-8 shrink-0 items-center justify-center bg-onit/15 font-condensed text-xs font-bold text-onit ring-1 ring-onit/25;
     }
 
     .onboarding-step--complete .onboarding-step__number {
-        @apply bg-onit text-white;
+        @apply bg-onit text-white ring-onit;
+    }
+
+    .onboarding-step__head {
+        @apply min-w-0 flex-1;
     }
 
     .onboarding-step__title {
-        @apply block font-condensed text-sm font-bold uppercase tracking-wide text-white;
+        @apply block font-condensed text-sm font-bold uppercase leading-snug tracking-wide text-white;
     }
 
     .onboarding-step__who {
-        @apply block text-xs text-white/40;
+        @apply mt-0.5 block font-condensed text-[10px] font-bold uppercase tracking-widest text-white/35;
     }
 
     .onboarding-step__badge {
-        @apply shrink-0 font-condensed text-[10px] font-bold uppercase tracking-wider text-white/40;
+        @apply hidden shrink-0 rounded border border-white/10 px-2 py-0.5 font-condensed text-[10px] font-bold uppercase tracking-wider sm:inline-block;
+    }
+
+    .onboarding-step__badge--pending {
+        @apply border-white/15 text-white/45;
     }
 
     .onboarding-step__badge--done {
-        @apply text-onit;
+        @apply border-onit/40 bg-onit/10 text-onit;
     }
 
     .onboarding-step__badge--blocked {
-        @apply text-white/30;
+        @apply border-white/10 text-white/30;
+    }
+
+    .onboarding-step__chevron {
+        @apply h-4 w-4 shrink-0 text-white/35 transition-transform duration-200;
+    }
+
+    .onboarding-step__details[open] .onboarding-step__chevron {
+        @apply rotate-180 text-onit;
     }
 
     .onboarding-step__body {
-        @apply border-t border-white/5 px-4 pb-4 pt-3;
+        @apply border-t border-white/10 px-4 pb-4 pt-4;
     }
 
     .onboarding-step__instructions {
-        @apply list-decimal space-y-1.5 pl-4 text-xs font-light leading-relaxed text-white/60;
+        @apply m-0 list-none space-y-2 rounded border border-white/5 bg-onit-ink/60 p-4;
+    }
+
+    .onboarding-step__instructions li {
+        @apply relative pl-6 text-sm font-light leading-relaxed text-white/75;
+    }
+
+    .onboarding-step__instructions li::before {
+        content: '';
+        @apply absolute left-0 top-2 h-1.5 w-1.5 rounded-full bg-onit/80;
+    }
+
+    .onboarding-step__consent {
+        @apply mt-4 rounded border border-onit/20 bg-onit/5 p-4;
+    }
+
+    .onboarding-step__hint {
+        @apply mt-4 text-xs font-light leading-relaxed text-white/50;
     }
 
     .onboarding-step__check {
-        @apply flex cursor-pointer items-center gap-2 text-xs text-white/80;
+        @apply mt-4 flex cursor-pointer items-center gap-2 rounded border border-white/10 bg-onit-ink/40 px-3 py-2.5 text-sm text-white/85;
     }
 
     .field-help {
