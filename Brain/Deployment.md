@@ -183,7 +183,13 @@ In Plesk → Scheduled Tasks, add:
 
 ## Updating the Application
 
-After **every** deploy (Plesk Git pull or manual), run **all** of these over SSH — not just `git pull`:
+After **every** deploy (Plesk Git pull or manual), run **all** of these over SSH — not just `git pull`.
+
+**Plesk PHP:** `php` is not on the root shell `PATH`. Use the Plesk binary (adjust version to match the domain — check Plesk → Domains → app.onit.ltd → PHP Settings):
+
+```bash
+PHP=/opt/plesk/php/8.2/bin/php   # or 8.3 — use whatever the domain runs
+```
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
@@ -192,13 +198,13 @@ git pull origin main
 
 composer install --no-dev --optimize-autoloader
 
-php artisan route:clear
-php artisan config:clear
-php artisan view:clear
+$PHP artisan route:clear
+$PHP artisan config:clear
+$PHP artisan view:clear
 
-php artisan migrate --force
+$PHP artisan migrate --force
 
-php artisan optimize
+$PHP artisan optimize
 ```
 
 > **Why `route:clear` before `optimize`?** New admin routes (e.g. Team) are referenced in the sidebar. If an old route cache is left in place, Super Admins get **500 on every `/admin` page** with `Route [admin.team.index] not defined` in `storage/logs/laravel.log`.
@@ -260,7 +266,16 @@ php artisan optimize
 <link rel="stylesheet" href="/build/assets/app-....css" />
 ```
 
-If you see `localhost:5173` or `127.0.0.1:5173`, delete `public/hot` and refresh.
+If you see `app-XXXX.css` in `public/build/assets/` but page source references a **different** hash, `manifest.json` and the CSS file are out of sync (common if `npm run build` was run on the server and then `git pull` overwrote only `manifest.json`). Fix by restoring the whole build folder from git:
+
+```bash
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
+git checkout HEAD -- public/build/
+$PHP artisan view:clear
+$PHP artisan optimize
+```
+
+Repo expects e.g. `app-BPNDoNek.css` — run `cat public/build/manifest.json` and confirm the `"file"` entry matches a file in `public/build/assets/`.
 
 **Never run `npm run dev` on production** — local dev only ([LocalDevelopment.md](LocalDevelopment.md)).
 
