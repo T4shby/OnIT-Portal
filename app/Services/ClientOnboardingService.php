@@ -221,4 +221,38 @@ class ClientOnboardingService
 
         $client->update(['onboarding_checklist' => $current]);
     }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public function fieldHelps(): array
+    {
+        return [
+            'superops_account_id' => [
+                'Sign in to the SuperOps MSP console (technician login).',
+                'Go to Clients → open the customer.',
+                'Copy the Account ID from the client profile or URL.',
+                'Paste it here — must match the SuperOps client exactly.',
+            ],
+            'entra_tenant_id' => [
+                'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker).',
+                'Go to Microsoft Entra ID → Overview.',
+                'Copy Tenant ID (a GUID like 11111111-1111-1111-1111-111111111111).',
+                'This is the customer\'s M365 directory — not On IT\'s tenant.',
+            ],
+            'entra_group_id' => [
+                'In the same customer tenant: Entra ID → Groups.',
+                'Create or open the group: On IT Portal - {Company name}.',
+                'Open the group → copy Object ID from the overview blade.',
+                'Add all users who need portal + SuperOps access to this group.',
+                'The same group is used for SuperOps SCIM and portal sync.',
+            ],
+            'entra_sync_enabled' => [
+                'Turn on after Entra tenant ID and group ID are saved.',
+                'When enabled, the portal reads group members and creates/deactivates users automatically.',
+                'SuperOps requesters are still managed by SuperOps SCIM (separate setup in the checklist).',
+                'Use Dry run sync first, then Sync now, after admin consent is granted in the customer tenant.',
+            ],
+        ];
+    }
 }

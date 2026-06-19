@@ -1,10 +1,15 @@
-@props(['label', 'name', 'type' => 'text', 'required' => false, 'value' => ''])
+@props(['label', 'name', 'type' => 'text', 'required' => false, 'value' => '', 'help' => null])
 
 <div class="mb-4">
     @if($type !== 'checkbox')
-        <label for="{{ $name }}" class="portal-label mb-2 block">
-            {{ $label }} @if($required)<span class="text-onit">*</span>@endif
-        </label>
+        <div class="mb-2 flex items-center justify-between gap-2">
+            <label for="{{ $name }}" class="portal-label">
+                {{ $label }} @if($required)<span class="text-onit">*</span>@endif
+            </label>
+            @if($help)
+                <x-field-help :title="$label" :steps="$help" />
+            @endif
+        </div>
     @endif
     @if($type === 'textarea')
         <textarea name="{{ $name }}" id="{{ $name }}" rows="4"
@@ -15,13 +20,18 @@
             {{ $slot }}
         </select>
     @elseif($type === 'checkbox')
-        <label class="flex items-center gap-2">
-            <input type="hidden" name="{{ $name }}" value="0">
-            <input type="checkbox" name="{{ $name }}" id="{{ $name }}" value="1"
-                {{ old($name, $value) ? 'checked' : '' }}
-                {{ $attributes->merge(['class' => 'border-onit-border bg-onit-surface text-onit focus:ring-onit']) }}>
-            <span class="portal-body text-sm">{{ $label }}</span>
-        </label>
+        <div class="flex items-start justify-between gap-2">
+            <label class="flex flex-1 items-center gap-2">
+                <input type="hidden" name="{{ $name }}" value="0">
+                <input type="checkbox" name="{{ $name }}" id="{{ $name }}" value="1"
+                    {{ old($name, $value) ? 'checked' : '' }}
+                    {{ $attributes->merge(['class' => 'border-onit-border bg-onit-surface text-onit focus:ring-onit']) }}>
+                <span class="portal-body text-sm">{{ $label }}</span>
+            </label>
+            @if($help)
+                <x-field-help :title="$label" :steps="$help" />
+            @endif
+        </div>
     @else
         <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}" value="{{ old($name, $value) }}"
             {{ $attributes->merge(['class' => 'admin-input']) }}>

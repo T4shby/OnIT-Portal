@@ -1,16 +1,22 @@
+@php
+    $fieldHelps = app(\App\Services\ClientOnboardingService::class)->fieldHelps();
+@endphp
+
 <p class="mt-6 mb-2 portal-label">Microsoft Entra sync</p>
-<p class="mb-4 portal-body-muted text-xs">Users in the security group are created and deactivated in the portal automatically.</p>
+<p class="mb-4 portal-body-muted text-xs">Users in the security group are created and deactivated in the portal automatically. Click <strong class="text-white/70">Help</strong> next to any field for step-by-step instructions.</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra tenant ID',
     'name' => 'entra_tenant_id',
     'value' => $client->entra_tenant_id ?? '',
+    'help' => $fieldHelps['entra_tenant_id'],
 ])
 
 @include('admin.partials.form-field', [
     'label' => 'Entra group ID',
     'name' => 'entra_group_id',
     'value' => $client->entra_group_id ?? '',
+    'help' => $fieldHelps['entra_group_id'],
 ])
 
 @include('admin.partials.form-field', [
@@ -18,6 +24,7 @@
     'name' => 'entra_sync_enabled',
     'type' => 'checkbox',
     'value' => $client->entra_sync_enabled ?? false,
+    'help' => $fieldHelps['entra_sync_enabled'],
 ])
 
 @if(isset($client) && $client->entra_synced_at)

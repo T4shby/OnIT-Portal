@@ -172,6 +172,73 @@
         @apply relative z-[1] flex-1 p-6 text-white/80 lg:p-8;
     }
 
+    .admin-shell .text-slate-900 {
+        @apply text-white;
+    }
+
+    .admin-shell .text-slate-700 {
+        @apply text-white/80;
+    }
+
+    .admin-shell .text-slate-600 {
+        @apply text-white/70;
+    }
+
+    .admin-shell .text-slate-500 {
+        @apply text-white/50;
+    }
+
+    .admin-shell .text-slate-300 {
+        @apply text-white/60;
+    }
+
+    .admin-shell thead.bg-slate-50,
+    .admin-shell .bg-slate-50 {
+        @apply bg-onit-surface;
+    }
+
+    .admin-shell tr.hover\:bg-slate-50:hover {
+        @apply bg-white/[0.02];
+    }
+
+    .admin-shell .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+        border-color: rgb(255 255 255 / 0.05);
+    }
+
+    .admin-shell select.border-slate-300,
+    .admin-shell select.rounded-lg {
+        @apply admin-input;
+    }
+
+    .admin-shell label.text-slate-700 {
+        @apply portal-label mb-2 block;
+    }
+
+    .admin-stat-label {
+        @apply portal-body-muted text-sm;
+    }
+
+    .admin-stat-value {
+        @apply mt-1 font-condensed text-4xl font-extrabold text-white;
+    }
+
+    .admin-section-title {
+        @apply portal-card-title mb-4 text-lg;
+    }
+
+    .admin-client-tiles {
+        @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .admin-client-tile {
+        @apply benefit-card flex min-h-[10rem] flex-col no-underline transition-all duration-200;
+    }
+
+    .admin-client-tile:hover {
+        @apply border-onit/50;
+        transform: translateY(-4px);
+    }
+
     .admin-card {
         @apply benefit-card;
     }
@@ -266,5 +333,37 @@
 
     .onboarding-step__check {
         @apply flex cursor-pointer items-center gap-2 text-xs text-white/80;
+    }
+
+    .field-help {
+        @apply relative shrink-0;
+    }
+
+    .field-help__trigger {
+        @apply flex cursor-pointer list-none items-center gap-1 rounded border border-onit/30 bg-onit/10 px-2 py-0.5 font-condensed text-[10px] font-bold uppercase tracking-wider text-onit transition-colors hover:border-onit hover:bg-onit/20;
+    }
+
+    .field-help__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .field-help__icon {
+        @apply flex h-4 w-4 items-center justify-center rounded-full bg-onit/20 text-[10px] font-bold leading-none;
+    }
+
+    .field-help__panel {
+        @apply absolute right-0 top-full z-20 mt-2 w-72 border border-onit-border bg-onit-ink p-4 shadow-lg sm:w-80;
+    }
+
+    .field-help[open] .field-help__trigger {
+        @apply border-onit bg-onit/20;
+    }
+
+    .field-help__title {
+        @apply mb-2 font-condensed text-xs font-bold uppercase tracking-wide text-onit;
+    }
+
+    .field-help__steps {
+        @apply list-decimal space-y-1.5 pl-4 text-xs font-light leading-relaxed text-white/70;
     }
 }

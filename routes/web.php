@@ -51,6 +51,10 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.sync-entra');
             Route::put('clients/{client}/onboarding', [ClientController::class, 'updateOnboarding'])
                 ->name('clients.onboarding.update');
+            Route::get('clients/{client}/users', [UserController::class, 'forClient'])
+                ->name('clients.users.index');
+            Route::get('users/internal', [UserController::class, 'internal'])
+                ->name('users.internal');
             Route::resource('users', UserController::class)->except(['show']);
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
             Route::resource('notices', NoticeController::class)->except(['show']);

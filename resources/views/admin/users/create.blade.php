@@ -19,7 +19,7 @@
                 <select name="client_id" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit">
                     <option value="">None</option>
                     @foreach($clients as $client)
-                        <option value="{{ $client->id }}" @selected(old('client_id') == $client->id)>{{ $client->name }}</option>
+                        <option value="{{ $client->id }}" @selected(old('client_id', $selectedClientId ?? null) == $client->id)>{{ $client->name }}</option>
                     @endforeach
                 </select>
             </div>

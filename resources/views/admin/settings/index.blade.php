@@ -13,7 +13,7 @@
                 ])
             @endforeach
             <div class="flex gap-3 mt-6">
-                <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg text-sm font-medium">Save Settings</button>
+                <button type="submit" class="cta-btn text-sm px-6 py-3">Save Settings</button>
             </div>
         </form>
     </x-card>

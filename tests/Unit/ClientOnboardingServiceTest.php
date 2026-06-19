@@ -43,6 +43,15 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertSame(10, $progress['total']);
     }
 
+    public function test_field_helps_include_entra_ids(): void
+    {
+        $helps = app(ClientOnboardingService::class)->fieldHelps();
+
+        $this->assertArrayHasKey('entra_tenant_id', $helps);
+        $this->assertArrayHasKey('entra_group_id', $helps);
+        $this->assertNotEmpty($helps['entra_tenant_id']);
+    }
+
     public function test_update_checklist_persists_manual_checkpoints(): void
     {
         $client = Client::factory()->create();

@@ -15,6 +15,8 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
+    private const PREVIEW_USERS = 5;
+
     public function __construct(
         private ActivityLogService $activityLog,
     ) {}
@@ -25,24 +27,50 @@ class UserController extends Controller
 
         $clientIds = $request->user()->accessibleClientIds();
 
-        $users = User::query()
-            ->with('client')
-            ->when(! empty($clientIds), function ($q) use ($clientIds, $request) {
-                $q->where(function ($q) use ($clientIds, $request) {
-                    $q->whereIn('client_id', $clientIds);
-                    if ($request->user()->role === UserRole::AccountManager) {
-                        $q->orWhereIn('id', function ($sub) use ($clientIds) {
-                            $sub->select('user_id')
-                                ->from('client_user')
-                                ->whereIn('client_id', $clientIds);
-                        });
-                    }
-                });
-            })
-            ->latest()
-            ->paginate(15);
+        $clients = Client::query()
+            ->withCount([
+                'users',
+                'users as active_users_count' => fn ($q) => $q->where('is_active', true),
+            ])
+            ->with(['users' => fn ($q) => $q->orderBy('name')->limit(self::PREVIEW_USERS)])
+            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->orderBy('name')
+            ->get();
 
-        return view('admin.users.index', compact('users'));
+        $internalUsers = User::query()
+            ->whereNull('client_id')
+            ->orderBy('name')
+            ->get();
+
+        $internalPreview = $internalUsers->take(self::PREVIEW_USERS);
+
+        return view('admin.users.index', compact('clients', 'internalUsers', 'internalPreview'));
+    }
+
+    public function forClient(Request $request, Client $client): View
+    {
+        $this->authorize('view', $client);
+
+        $users = User::query()
+            ->where('client_id', $client->id)
+            ->orderBy('name')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.users.client', compact('client', 'users'));
+    }
+
+    public function internal(Request $request): View
+    {
+        $this->authorize('viewAny', User::class);
+
+        $users = User::query()
+            ->whereNull('client_id')
+            ->orderBy('name')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.users.internal', compact('users'));
     }
 
     public function create(Request $request): View
@@ -56,8 +84,9 @@ class UserController extends Controller
             ->get();
 
         $roles = UserRole::cases();
+        $selectedClientId = old('client_id', $request->query('client'));
 
-        return view('admin.users.create', compact('clients', 'roles'));
+        return view('admin.users.create', compact('clients', 'roles', 'selectedClientId'));
     }
 
     public function store(StoreUserRequest $request): RedirectResponse
@@ -72,7 +101,7 @@ class UserController extends Controller
 
         $this->activityLog->log('user.created', $user, clientId: $user->client_id);
 
-        return redirect()->route('admin.users.index')
+        return $this->redirectAfterUserChange($user)
             ->with('success', 'User created successfully.');
     }
 
@@ -106,7 +135,7 @@ class UserController extends Controller
 
         $this->activityLog->log('user.updated', $user, clientId: $user->client_id);
 
-        return redirect()->route('admin.users.index')
+        return $this->redirectAfterUserChange($user)
             ->with('success', 'User updated successfully.');
     }
 
@@ -114,11 +143,24 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
+        $clientId = $user->client_id;
+
         $this->activityLog->log('user.deleted', $user, clientId: $user->client_id);
 
         $user->delete();
 
-        return redirect()->route('admin.users.index')
+        return $this->redirectAfterUserChange(null, $clientId)
             ->with('success', 'User deleted successfully.');
+    }
+
+    private function redirectAfterUserChange(?User $user = null, ?int $clientId = null): RedirectResponse
+    {
+        $clientId ??= $user?->client_id;
+
+        if ($clientId) {
+            return redirect()->route('admin.clients.users.index', $clientId);
+        }
+
+        return redirect()->route('admin.users.internal');
     }
 }

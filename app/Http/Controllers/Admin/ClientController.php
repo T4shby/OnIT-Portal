@@ -41,7 +41,23 @@ class ClientController extends Controller
     {
         $this->authorize('create', Client::class);
 
-        return view('admin.clients.create');
+        $client = new Client;
+
+        return view('admin.clients.create', $this->onboardingViewData($client));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function onboardingViewData(Client $client): array
+    {
+        return [
+            'client' => $client,
+            'onboardingSteps' => $this->onboarding->steps($client),
+            'onboardingProgress' => $this->onboarding->progress($client),
+            'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
+            'fieldHelps' => $this->onboarding->fieldHelps(),
+        ];
     }
 
     public function store(StoreClientRequest $request): RedirectResponse
@@ -72,12 +88,14 @@ class ClientController extends Controller
         $onboardingSteps = $this->onboarding->steps($client);
         $onboardingProgress = $this->onboarding->progress($client);
         $adminConsentUrl = $this->onboarding->adminConsentUrl($client);
+        $fieldHelps = $this->onboarding->fieldHelps();
 
         return view('admin.clients.edit', compact(
             'client',
             'onboardingSteps',
             'onboardingProgress',
             'adminConsentUrl',
+            'fieldHelps',
         ));
     }
 

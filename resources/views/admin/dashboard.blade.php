@@ -1,46 +1,46 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Admin Dashboard'])
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+    <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
         <x-card>
-            <p class="text-sm text-slate-500">Clients</p>
-            <p class="text-3xl font-bold text-slate-900 mt-1">{{ $stats['clients'] }}</p>
+            <p class="admin-stat-label">Clients</p>
+            <p class="admin-stat-value">{{ $stats['clients'] }}</p>
         </x-card>
         <x-card>
-            <p class="text-sm text-slate-500">Users</p>
-            <p class="text-3xl font-bold text-slate-900 mt-1">{{ $stats['users'] }}</p>
+            <p class="admin-stat-label">Users</p>
+            <p class="admin-stat-value">{{ $stats['users'] }}</p>
         </x-card>
         <x-card>
-            <p class="text-sm text-slate-500">Active Notices</p>
-            <p class="text-3xl font-bold text-slate-900 mt-1">{{ $stats['notices'] }}</p>
+            <p class="admin-stat-label">Active Notices</p>
+            <p class="admin-stat-value">{{ $stats['notices'] }}</p>
         </x-card>
     </div>
 
-    <x-card>
-        <h2 class="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h2>
+    <div class="admin-table-wrap">
+        <div class="border-b border-white/10 px-6 py-4">
+            <h2 class="admin-section-title mb-0">Recent Activity</h2>
+        </div>
         @if($recentActivity->isNotEmpty())
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead>
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>User</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($recentActivity as $log)
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Action</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">User</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Time</th>
+                            <td>{{ $log->action }}</td>
+                            <td>{{ $log->user?->name ?? 'System' }}</td>
+                            <td class="text-white/50">{{ $log->created_at->diffForHumans() }}</td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200">
-                        @foreach($recentActivity as $log)
-                            <tr>
-                                <td class="px-4 py-3 text-sm">{{ $log->action }}</td>
-                                <td class="px-4 py-3 text-sm">{{ $log->user?->name ?? 'System' }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-500">{{ $log->created_at->diffForHumans() }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    @endforeach
+                </tbody>
+            </table>
         @else
-            <x-empty-state title="No activity yet" />
+            <div class="px-6 py-12"><x-empty-state title="No activity yet" /></div>
         @endif
-    </x-card>
+    </div>
 </x-admin-layout>

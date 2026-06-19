@@ -14,7 +14,7 @@ $links = [
 
 @foreach($links as $link)
     <a href="{{ route($link['route']) }}"
-       class="flex items-center gap-3 px-3 py-2 text-sm transition-colors {{ request()->routeIs(str_replace('.index', '.*', $link['route'])) || request()->routeIs($link['route']) ? 'text-onit' : 'text-slate-300 hover:text-onit' }}">
+       class="flex items-center gap-3 px-3 py-2 text-sm transition-colors {{ request()->routeIs(str_replace('.index', '.*', $link['route'])) || request()->routeIs($link['route']) ? 'text-onit' : 'text-white/60 hover:text-onit' }}">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $link['icon'] }}"/></svg>
         {{ $link['label'] }}
     </a>
