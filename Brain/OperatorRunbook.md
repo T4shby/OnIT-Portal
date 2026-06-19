@@ -227,7 +227,7 @@ Follow [Deployment.md](Deployment.md):
 
 | Item | Reason |
 |---|---|
-| Technician SSO Entra app | Required for seamless technician launch — configure in SuperOps Technician SSO + Entra (separate from Requester SSO) |
+| Technician SSO Entra app | **Not required** — technicians use same M365 identity; SuperOps maps MSP accounts to technician. Portal launches `/#/technician/login`. Requester SAML app is for **clients only**. |
 | Assigning Tom to Requester SSO | You are MSP technician |
 | Per-user Entra SAML assignment | Use groups instead |
 | `SUPEROPS_API_TOKEN` | Only needed for `/support` embed, not SSO launch |

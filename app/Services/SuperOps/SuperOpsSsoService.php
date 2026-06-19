@@ -30,7 +30,7 @@ class SuperOpsSsoService
     public function configurationHint(): string
     {
         return 'Set SUPEROPS_PORTAL_URL for technicians and SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL for clients. '
-            .'Configure Entra SAML inside SuperOps (Technician SSO / Global SSO), not in portal .env.';
+            .'Client requester SSO: configure Entra SAML in SuperOps Global SSO. Technicians use the same M365 login — no separate SAML app.';
     }
 
     public function accessDeniedHint(User $user): string

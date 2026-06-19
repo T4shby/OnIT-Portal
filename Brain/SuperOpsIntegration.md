@@ -153,7 +153,14 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | `super_admin`, `account_manager` | `SUPEROPS_PORTAL_URL` set | `app.superops.ai/#/technician/login` |
 | `client_user`, `client_admin` | `superops_sso_enabled` on client | Requester portal `/#/requester/login` |
 
-**The portal cannot pass its Laravel session to SuperOps.** Seamless login depends on SuperOps SAML (Technician SSO for staff, Requester Global SSO for clients) and the Microsoft account matching the correct role in SuperOps.
+**The portal cannot pass its Laravel session to SuperOps.** Seamless login uses the **same Microsoft account** already signed into the portal:
+
+| Audience | What happens |
+|---|---|
+| **Technicians** | Portal OAuth → M365 session → launch `app.superops.ai/#/technician/login` + `login_hint`. SuperOps maps MSP staff emails to **technician** automatically — even if the URL said requester (see below). **No separate Technician SAML Entra app required.** |
+| **Client users** | Launch `portal.onit.ltd/#/requester/login` → SuperOps **Requester Global SSO** (SAML Entra app #2) → requester dashboard. |
+
+**Proof (On IT):** `tom.ashby@onit.ltd` clicking the requester path still lands as **technician** — Brain documents this as expected SuperOps behaviour, not a portal bug. The technician launch path (`/#/technician/login`) is the correct entry point; identity is the same M365 user.
 
 ## When it breaks
 
