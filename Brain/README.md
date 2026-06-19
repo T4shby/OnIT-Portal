@@ -63,6 +63,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | SuperOps technician SSO launch for team — [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | 2026-06-19 | Pax8 SSO launch (`pax8_sso`, `/integrations/pax8/launch`, `clients.pax8_company_id`) — [Pax8Integration.md](Pax8Integration.md) |
 | 2026-06-19 | In-app client setup wizard on Admin → Clients → Edit |
 | 2026-06-19 | Two-sync model: Entra group sync (portal) + SuperOps SCIM; ADR-016; docs aligned |
