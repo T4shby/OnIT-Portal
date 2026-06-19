@@ -65,6 +65,7 @@ return [
                 : null),
         'sso_url' => env('SUPEROPS_SSO_URL'),
         'requester_login_path' => env('SUPEROPS_REQUESTER_LOGIN_PATH', '/#/requester/login'),
+        'technician_login_path' => env('SUPEROPS_TECHNICIAN_LOGIN_PATH', '/#/technician/login'),
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),

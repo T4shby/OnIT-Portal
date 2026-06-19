@@ -105,7 +105,7 @@ SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 ```
 
-Without `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL`, the SuperOps card shows a configuration error. Only `client_user` / `client_admin` on clients with `superops_sso_enabled` see the card.
+Technicians (`super_admin`, `account_manager`) see the SuperOps card when `SUPEROPS_PORTAL_URL` is set. Client users need `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` plus `superops_sso_enabled` on their client.
 
 ## PHP SSL Certificates (Windows — required)
 

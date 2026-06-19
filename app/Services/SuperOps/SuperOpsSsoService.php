@@ -8,11 +8,19 @@ class SuperOpsSsoService
 {
     public function isEnabledForUser(User $user): bool
     {
-        if (! $this->hasLaunchTarget()) {
+        if (! config('services.superops.sso_enabled', true)) {
             return false;
         }
 
+        if ($user->role->isAdmin()) {
+            return $this->hasTechnicianLaunchTarget();
+        }
+
         if (! $user->role->isClientFacing()) {
+            return false;
+        }
+
+        if (! $this->hasRequesterLaunchTarget()) {
             return false;
         }
 
@@ -21,31 +29,48 @@ class SuperOpsSsoService
 
     public function configurationHint(): string
     {
-        return 'Set SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL in .env. '
-            .'Configure Entra Login URL inside SuperOps (Global SSO), not in portal .env.';
+        return 'Set SUPEROPS_PORTAL_URL for technicians and SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL for clients. '
+            .'Configure Entra SAML inside SuperOps (Technician SSO / Global SSO), not in portal .env.';
     }
 
     public function accessDeniedHint(User $user): string
     {
-        if (! $user->role->isClientFacing()) {
-            return 'SuperOps opens as a client requester. Sign in with a client account (for example portal.test@onit.ltd), not an MSP admin account.';
+        if (! config('services.superops.sso_enabled', true)) {
+            return 'SuperOps SSO is not enabled. Contact your administrator.';
         }
 
-        if (! $user->client?->superops_sso_enabled) {
-            return 'SuperOps SSO is not enabled for your organisation. Contact your administrator.';
+        if ($user->role->isAdmin()) {
+            if (! $this->hasTechnicianLaunchTarget()) {
+                return 'SuperOps technician portal is not configured. Set SUPEROPS_PORTAL_URL in .env.';
+            }
+        }
+
+        if ($user->role->isClientFacing()) {
+            if (! $user->client?->superops_sso_enabled) {
+                return 'SuperOps SSO is not enabled for your organisation. Contact your administrator.';
+            }
+
+            if (! $this->hasRequesterLaunchTarget()) {
+                return $this->configurationHint();
+            }
+        }
+
+        if (! $user->role->isAdmin() && ! $user->role->isClientFacing()) {
+            return 'SuperOps access requires a team or client account.';
         }
 
         return $this->configurationHint();
     }
 
-    private function hasLaunchTarget(): bool
-    {
-        return filled(config('services.superops.requester_portal_url'))
-            || filled(config('services.superops.subdomain'));
-    }
-
     public function launchUrlFor(User $user): string
     {
+        if ($user->role->isAdmin()) {
+            $base = rtrim((string) config('services.superops.portal_url'), '/');
+            $path = config('services.superops.technician_login_path', '/#/technician/login');
+
+            return $this->appendLoginHint($base.$path, $user->email);
+        }
+
         $configured = config('services.superops.sso_url');
 
         if ($configured && ! $this->isEntraSamlEndpoint($configured)) {
@@ -56,6 +81,17 @@ class SuperOpsSsoService
         $path = config('services.superops.requester_login_path', '/#/requester/login');
 
         return $this->appendLoginHint($base.$path, $user->email);
+    }
+
+    private function hasTechnicianLaunchTarget(): bool
+    {
+        return filled(config('services.superops.portal_url'));
+    }
+
+    private function hasRequesterLaunchTarget(): bool
+    {
+        return filled(config('services.superops.requester_portal_url'))
+            || filled(config('services.superops.subdomain'));
     }
 
     private function appendLoginHint(string $url, ?string $email): string

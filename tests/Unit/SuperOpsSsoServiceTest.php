@@ -16,6 +16,7 @@ class SuperOpsSsoServiceTest extends TestCase
     public function test_client_user_with_sso_enabled_can_launch(): void
     {
         config([
+            'services.superops.sso_enabled' => true,
             'services.superops.requester_portal_url' => 'https://portal.onit.ltd',
             'services.superops.requester_login_path' => '/#/requester/login',
             'services.superops.login_hint_enabled' => true,
@@ -37,11 +38,13 @@ class SuperOpsSsoServiceTest extends TestCase
         );
     }
 
-    public function test_super_admin_cannot_launch_as_requester(): void
+    public function test_super_admin_can_launch_technician_portal(): void
     {
         config([
-            'services.superops.requester_portal_url' => 'https://portal.onit.ltd',
             'services.superops.sso_enabled' => true,
+            'services.superops.portal_url' => 'https://app.superops.ai',
+            'services.superops.technician_login_path' => '/#/technician/login',
+            'services.superops.login_hint_enabled' => true,
         ]);
 
         $user = User::factory()->create([
@@ -52,7 +55,29 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $service = app(SuperOpsSsoService::class);
 
+        $this->assertTrue($service->isEnabledForUser($user));
+        $this->assertSame(
+            'https://app.superops.ai/?login_hint=tom.ashby%40onit.ltd#/technician/login',
+            $service->launchUrlFor($user),
+        );
+    }
+
+    public function test_client_user_without_sso_enabled_is_blocked(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.requester_portal_url' => 'https://portal.onit.ltd',
+        ]);
+
+        $client = Client::factory()->create(['superops_sso_enabled' => false]);
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientUser,
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
         $this->assertFalse($service->isEnabledForUser($user));
-        $this->assertStringContainsString('client account', $service->accessDeniedHint($user));
+        $this->assertStringContainsString('not enabled for your organisation', $service->accessDeniedHint($user));
     }
 }

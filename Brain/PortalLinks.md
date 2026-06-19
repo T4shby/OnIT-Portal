@@ -30,7 +30,7 @@ The seeded global links are intentionally minimal — two portals only:
 
 | Name | Type | Target |
 |---|---|---|
-| SuperOps | `superops_sso` | `/integrations/superops/launch` → SuperOps requester portal |
+| SuperOps | `superops_sso` | `/integrations/superops/launch` → technician portal (team) or requester portal (clients) |
 | Pax8 | `pax8_sso` | `/integrations/pax8/launch` → partner portal (team) or company view (clients) |
 
 `ExternalServicesService::syncDefaultLinks()` upserts these and removes stale global links. Re-run with:

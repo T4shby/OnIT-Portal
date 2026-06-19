@@ -171,15 +171,18 @@ Documented in [LocalDevelopment.md](LocalDevelopment.md). Juniors must not clone
 
 ---
 
-## ADR-013
+## ADR-013 (updated 2026-06-19)
 
-Date: 2026-06-12
+Date: 2026-06-12 — updated 2026-06-19
 
 Decision:
-Configure **SuperOps Requester SSO only** via a dedicated Entra SAML enterprise app. Do not implement or document Technician SSO for the On IT Portal MVP.
+Configure **SuperOps Requester SSO** via a dedicated Entra SAML enterprise app for client users. Add **technician launch** from the portal (`/#/technician/login` on `SUPEROPS_PORTAL_URL`) for `super_admin` and `account_manager` — same single `superops_sso` link type with role-based routing (mirrors Pax8).
 
 Reason:
-Portal users are clients (`client_user`, `client_admin`) who map to SuperOps **requesters**. Technician SSO is a separate Entra app and MSP workflow ([SuperOps docs](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)). The portal OAuth app cannot serve SAML for SuperOps.
+Portal users are clients (`client_user`, `client_admin`) who map to SuperOps **requesters**. On IT staff need one-click launch to the MSP technician console without using the requester portal.
+
+Consequences:
+Requester SSO: existing Entra app + SuperOps Global SSO. Technician SSO: separate Entra app + SuperOps Technician SSO settings ([SuperOps technician SSO docs](https://support.superops.com/en/articles/6632446-setting-up-technician-sso-with-azure-ad)). `SuperOpsSsoService` branches on role.
 
 Consequences:
 Two Entra apps in production (portal OAuth + SuperOps requester SAML). Entra Login URL is configured in SuperOps Global SSO only; portal redirects to `portal.onit.ltd` for SP-initiated SAML.
