@@ -281,7 +281,7 @@ Record per client in your internal wiki:
 | SAML direct | Private window → Entra Login URL → test requester | ☐ |
 | Portal → SuperOps | Test user → dashboard → **SuperOps** → Microsoft → requester dashboard | ☐ |
 | Portal OAuth | Test user → `/login` → Microsoft | ☐ |
-| Pax8 | Dashboard → **Pax8** → opens Pax8 | ☐ |
+| Pax8 | Dashboard → **Pax8** → launch route → Pax8 (partner or company view) | ☐ |
 
 ### After each new client / user
 

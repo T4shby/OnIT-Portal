@@ -86,6 +86,42 @@ Entra Login URL stays in **SuperOps admin only** — not portal `.env`.
 
 ---
 
+## Phase A2 — Pax8 SSO launch (production)
+
+Detail: [Pax8Integration.md](Pax8Integration.md)
+
+### P1. Pax8 Enterprise SSO (On IT technicians)
+
+1. Pax8 → **Admin → My Partner Profile → Enterprise SSO → Azure AD**
+2. Global Admin consents
+3. Ensure each technician is a **Pax8 app user** (same email as portal login)
+
+### P2. Portal `.env` (production)
+
+```env
+PAX8_SSO_ENABLED=true
+PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
+PAX8_LOGIN_HINT_ENABLED=true
+```
+
+### P3. Deploy on server
+
+After Plesk Git pull, run the full block in [Deployment.md — Updating the Application](Deployment.md#updating-the-application) (includes `migrate`, `PortalLinkSeeder`, `optimize`).
+
+### P4. Per client
+
+1. **Admin → Clients → Edit** → **Pax8 company ID** (from Pax8 → Companies)
+2. Client users need a matching Pax8 user for their company (until Pax8 ships customer SSO)
+
+### P5. Test
+
+- [ ] Technician → dashboard → **Pax8** → partner portal
+- [ ] Client with `pax8_company_id` → **Pax8** → company view
+- [ ] Client without company ID → Pax8 tile hidden on dashboard
+
+---
+
 ## Phase B — Day-to-day: new client employee (MVP)
 
 Use this every time someone new needs the portal.
@@ -181,7 +217,9 @@ Follow [Deployment.md](Deployment.md):
 | On IT tenant ID | `586cc505-d298-4131-a3dc-9d1cd7c5ac0b` |
 | SAML Login URL | `https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2` |
 | SAML Reply URL | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` |
-| Pax8 | https://app.pax8.com (external link on dashboard) |
+| Pax8 launch route | `/integrations/pax8/launch` (dashboard tile, same tab) |
+| Pax8 partner URL | `https://app.pax8.com` (`PAX8_PARTNER_PORTAL_URL`) |
+| Pax8 company URL | `https://app.pax8.com/companies/{companyId}` — set per client in Admin |
 
 ---
 

@@ -252,7 +252,7 @@ Completed by:          _______________________________
 | Error 1027 after Microsoft | Entra SAML `email` claim missing or wrong namespace |
 | SuperOps opens as technician | You tested with an MSP staff account; use a client requester |
 | SuperOps card missing | Client has **SuperOps SSO enabled**; user role is `client_user` or `client_admin` |
-| Pax8 missing | `PAX8_URL` set in production `.env`; run portal link seeder if needed |
+| Pax8 missing on dashboard | Set Pax8 vars in `.env` ([Pax8Integration.md](Pax8Integration.md)); run `php artisan db:seed --class=PortalLinkSeeder --force`; set `pax8_company_id` on client for customer users |
 
 Escalate to Tom with: exact URL, screenshot, email used, and time of failure.
 

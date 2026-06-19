@@ -19,6 +19,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [LocalDevelopment.md](LocalDevelopment.md) | **Windows dev setup, SSL fix, troubleshooting** |
 | [Authentication.md](Authentication.md) | Microsoft Entra ID login and sessions |
 | [SuperOpsIntegration.md](SuperOpsIntegration.md) | Embedded support + SSO launch |
+| [Pax8Integration.md](Pax8Integration.md) | **Pax8 SSO launch (dashboard tile → partner or company view)** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters (no technician SSO)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
@@ -47,6 +48,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
+| Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
 | Portal links | `app/Models/PortalLink.php`, `ExternalServicesService.php` |
 | Config | `config/services.php` |
 
@@ -61,6 +63,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | Pax8 SSO launch (`pax8_sso`, `/integrations/pax8/launch`, `clients.pax8_company_id`) — [Pax8Integration.md](Pax8Integration.md) |
 | 2026-06-19 | In-app client setup wizard on Admin → Clients → Edit |
 | 2026-06-19 | Two-sync model: Entra group sync (portal) + SuperOps SCIM; ADR-016; docs aligned |
 | 2026-06-16 | Added [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) — shareable tenant onboarding timeline |
@@ -96,13 +99,13 @@ You are the senior engineer on the On IT Portal project.
 
 **Stack:** Laravel 11, Blade, Tailwind, Alpine.js, SQLite (local), MySQL (production Plesk).
 **Auth:** Microsoft Entra ID multi-tenant (organizations) via Socialite.
-**Integrations:** SuperOps embedded support + SSO launch (see Brain/SuperOpsIntegration.md). Requester SSO setup: Brain/SuperOpsRequesterSsoSetup.md. Requester SSO setup: Brain/SuperOpsRequesterSsoSetup.md.
+**Integrations:** SuperOps embedded support + SSO launch ([SuperOpsIntegration.md](SuperOpsIntegration.md)). Pax8 SSO launch ([Pax8Integration.md](Pax8Integration.md)). Requester SSO setup: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 **Local dev:** php artisan serve --host=localhost --port=8000 → http://localhost:8000/login
 **Local setup:** Brain/LocalDevelopment.md (includes Windows PHP SSL/cacert.pem fix).
 
-**Key routes:** /login, /auth/microsoft/callback, /dashboard, /support, /integrations/superops/launch, /admin/*
-**Key code:** app/Http/Controllers/Auth/MicrosoftAuthController.php, app/Services/SuperOps/*
+**Key routes:** /login, /auth/microsoft/callback, /dashboard, /support, /integrations/superops/launch, /integrations/pax8/launch, /admin/*
+**Key code:** app/Http/Controllers/Auth/MicrosoftAuthController.php, app/Services/SuperOps/*, app/Services/Pax8/*
 
 **Current state:** MVP built. Microsoft OAuth login works. SuperOps requester SSO is live in production at **`https://app.onit.ltd`**. `portal.onit.ltd` remains the SuperOps requester portal.
 

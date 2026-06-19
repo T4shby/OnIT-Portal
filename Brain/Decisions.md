@@ -71,13 +71,13 @@ Date: 2026-06-09 — Superseded 2026-06-12
 Date: 2026-06-12
 
 Decision:
-Integrate SuperOps as first-class partner (embedded support + SSO launch). Pax8 remains launch-only.
+Integrate SuperOps as first-class partner (embedded support + SSO launch). Pax8 uses the same launch-route pattern (`pax8_sso`); Pax8 API automation is Phase 3.
 
 Reason:
 Business requirement for true SSO — one Microsoft login, support without second credential.
 
 Consequences:
-SuperOps services, migration, support routes, Brain/SuperOpsIntegration.md. See ADR-011 implementation map in Brain/README.md.
+SuperOps services, migration, support routes, Brain/SuperOpsIntegration.md. Pax8: `Pax8SsoService`, `Pax8LaunchController`, `clients.pax8_company_id`, Brain/Pax8Integration.md.
 
 ---
 

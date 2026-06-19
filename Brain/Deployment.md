@@ -109,7 +109,10 @@ SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 SUPEROPS_AUTO_OPEN_AFTER_LOGIN=false
 
-PAX8_PORTAL_URL=https://your-pax8-url
+PAX8_SSO_ENABLED=true
+PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
+PAX8_LOGIN_HINT_ENABLED=true
 MICROSOFT_365_PORTAL_URL=https://admin.microsoft.com
 KNOWLEDGE_BASE_URL=https://your-kb-url
 BILLING_PORTAL_URL=https://your-billing-url
@@ -177,7 +180,8 @@ In Plesk → Scheduled Tasks, add:
 - [ ] Microsoft sign-in redirects and returns successfully
 - [ ] Dashboard displays for authenticated user
 - [ ] Admin area accessible for admin roles
-- [ ] Service cards launch external URLs in new tabs
+- [ ] Dashboard **SuperOps** and **Pax8** tiles redirect via launch routes (same tab)
+- [ ] Technician Pax8 → partner portal; client with `pax8_company_id` → company view
 - [ ] `APP_DEBUG=false` — no stack traces on errors
 - [ ] SSL certificate valid and HTTP redirects to HTTPS
 
@@ -195,26 +199,49 @@ $PHP -v
 
 **Plesk Git deploy:** The live site path (`/var/www/vhosts/onit.ltd/app.onit.ltd`) often has **no `.git` folder** — Plesk copies files from a separate clone. Use **Plesk → Git → Pull/Deploy** for code updates; SSH `git pull` only works if `.git` exists in that directory.
 
+**Copy-paste block (run after every Plesk Git pull/deploy):**
+
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
+PHP=/opt/plesk/php/8.3/bin/php    # use 8.2 or 8.3 — match Plesk PHP Settings for app.onit.ltd
 
-# If .git exists here:
-git pull origin main
+rm -f public/hot
 
 composer install --no-dev --optimize-autoloader
+
+$PHP artisan migrate --force
 
 $PHP artisan route:clear
 $PHP artisan config:clear
 $PHP artisan view:clear
 
-$PHP artisan migrate --force
+$PHP artisan db:seed --class=PortalLinkSeeder --force
 
 $PHP artisan optimize
 ```
 
-> **Why `route:clear` before `optimize`?** New admin routes (e.g. Team) are referenced in the sidebar. If an old route cache is left in place, Super Admins get **500 on every `/admin` page** with `Route [admin.team.index] not defined` in `storage/logs/laravel.log`.
+> **Why `route:clear` before `optimize`?** New routes (e.g. Team, Pax8 launch) are referenced in views. Stale route cache causes **500 on `/admin`** with `Route [...] not defined` in `storage/logs/laravel.log`.
+
+> **Why `PortalLinkSeeder`?** Upserts dashboard links to `superops_sso` and `pax8_sso` launch routes. Safe to re-run.
+
+> **Why `rm -f public/hot`?** A leftover Vite dev file makes production load CSS from `localhost:5173` — unstyled pages. See [CSS not loading](#css-not-loading-unstyled-html).
+
+If `.git` exists in the app directory you can `git pull origin main` before the block; on typical Plesk deploys use **Plesk → Git → Pull/Deploy** instead (no `.git` in the live path).
 
 `php artisan portal:purge-demo-data --force` is safe to re-run on older installs; skip if you have already cleaned demo data.
+
+### Pax8 first deploy
+
+Add to production `.env` (see [Pax8Integration.md](Pax8Integration.md)):
+
+```env
+PAX8_SSO_ENABLED=true
+PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
+PAX8_LOGIN_HINT_ENABLED=true
+```
+
+Then run the deploy block above. Set **Pax8 company ID** per client in Admin → Clients → Edit.
 
 ## Troubleshooting
 

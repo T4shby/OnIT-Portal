@@ -181,4 +181,4 @@ If you see an email form, `SUPEROPS_SSO_URL` / portal `.env` is not the fix. The
 
 - No public SuperOps “create session” API — full portal SSO needs Entra + SuperOps Requester SSO
 - `portal.onit.ltd` is the **SuperOps** requester portal — the Laravel app is **`app.onit.ltd`** — see [Deployment.md](Deployment.md)
-- Pax8 remains launch-only (Phase 3)
+- Pax8 SSO launch implemented — see [Pax8Integration.md](Pax8Integration.md). Pax8 API remains Phase 3.
