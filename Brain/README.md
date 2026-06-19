@@ -24,7 +24,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
 | [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Simple guide for non-technical staff (60-client scale)** |
-| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Share with technicians — timeline and steps per customer tenant** |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Primary: in-app setup wizard** (Admin → Clients → Edit) + backup checklist |
 | [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps Entra SCIM per client** |
 | [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
@@ -43,6 +43,7 @@ Read these documents before changing application code. **Update Brain in the sam
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
+| Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients/{id}/edit` |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
@@ -60,6 +61,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | In-app client setup wizard on Admin → Clients → Edit |
 | 2026-06-19 | Two-sync model: Entra group sync (portal) + SuperOps SCIM; ADR-016; docs aligned |
 | 2026-06-16 | Added [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) — shareable tenant onboarding timeline |
 | 2026-06-16 | Added `Brain/design/` - synced marketing design system (SKILL, design-system, components) |

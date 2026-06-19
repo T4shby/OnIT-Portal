@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreClientRequest;
+use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\Client;
 use App\Services\ActivityLogService;
+use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,7 @@ class ClientController extends Controller
 {
     public function __construct(
         private ActivityLogService $activityLog,
+        private ClientOnboardingService $onboarding,
     ) {}
 
     public function index(Request $request): View
@@ -66,7 +69,16 @@ class ClientController extends Controller
     {
         $this->authorize('update', $client);
 
-        return view('admin.clients.edit', compact('client'));
+        $onboardingSteps = $this->onboarding->steps($client);
+        $onboardingProgress = $this->onboarding->progress($client);
+        $adminConsentUrl = $this->onboarding->adminConsentUrl($client);
+
+        return view('admin.clients.edit', compact(
+            'client',
+            'onboardingSteps',
+            'onboardingProgress',
+            'adminConsentUrl',
+        ));
     }
 
     public function update(UpdateClientRequest $request, Client $client): RedirectResponse
@@ -125,6 +137,22 @@ class ClientController extends Controller
         );
 
         return back()->with('success', ucfirst($message));
+    }
+
+    public function updateOnboarding(UpdateClientOnboardingRequest $request, Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        $this->onboarding->updateChecklist($client, $request->validated('checkpoints'));
+
+        $this->activityLog->log(
+            'client.onboarding_updated',
+            $client,
+            properties: $request->validated('checkpoints'),
+            clientId: $client->id,
+        );
+
+        return back()->with('success', 'Setup checklist saved.');
     }
 
     public function destroy(Client $client): RedirectResponse

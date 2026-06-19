@@ -20,6 +20,7 @@ class Client extends Model
         'entra_group_id',
         'entra_sync_enabled',
         'entra_synced_at',
+        'onboarding_checklist',
         'is_active',
     ];
 
@@ -30,6 +31,7 @@ class Client extends Model
             'superops_sso_enabled' => 'boolean',
             'entra_sync_enabled' => 'boolean',
             'entra_synced_at' => 'datetime',
+            'onboarding_checklist' => 'array',
         ];
     }
 

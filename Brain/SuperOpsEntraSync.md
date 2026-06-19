@@ -56,7 +56,7 @@ SuperOps will auto-create/update/deactivate requesters based on group membership
 
 ### 4. SuperOps Client SSO (separate — for login)
 
-SCIM provisions **users**. **Client SSO** (SAML) is still required for Microsoft sign-in to `portal.onit.ltd` (SuperOps requester portal). See [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) §2.4.
+SCIM provisions **users**. **Client SSO** (SAML) is still required for Microsoft sign-in to `portal.onit.ltd` (SuperOps requester portal). See [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and in-app setup wizard step 6.
 
 ---
 

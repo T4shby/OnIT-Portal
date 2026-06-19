@@ -14,5 +14,6 @@
                 <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
             </div>
         </form>
+        <p class="portal-body-muted mt-6 text-xs border-t border-white/10 pt-4">After creating the client, open <strong class="text-white/80">Edit</strong> to see the full setup checklist with M365 consent link and step-by-step instructions.</p>
     </x-card>
 </x-admin-layout>

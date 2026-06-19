@@ -157,7 +157,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 
 ## Step 3: Configure the client in the portal
 
-**Admin → Clients → Edit** (e.g. On IT Technology Partners or pilot client):
+**Admin → Clients → Edit** — the setup checklist on the right walks through every step. On the left:
 
 | Field | Value |
 |---|---|
@@ -165,7 +165,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 | Entra group ID | Security group object ID |
 | Entra sync enabled | ✓ |
 
-Save. You should see **Dry run sync** and **Sync now** on the edit page.
+Save. Use **Dry run sync** and **Sync now** on the left, or tick steps in the checklist panel.
 
 ---
 

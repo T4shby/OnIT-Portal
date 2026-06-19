@@ -126,6 +126,28 @@ class ClientEntraSyncTest extends TestCase
         $response->assertSessionHas('error');
     }
 
+    public function test_super_admin_can_save_onboarding_checklist(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create();
+
+        $response = $this->actingAs($admin)
+            ->put(route('admin.clients.onboarding.update', $client), [
+                'checkpoints' => [
+                    'entra_group_created' => '1',
+                    'superops_scim_configured' => '1',
+                ],
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $client->refresh();
+        $this->assertTrue($client->onboarding_checklist['entra_group_created']);
+        $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
+        $this->assertFalse($client->onboarding_checklist['handed_off']);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $users
      */

@@ -4,7 +4,7 @@ Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you g
 
 **Detail docs:** [ClientOnboarding.md](ClientOnboarding.md) · [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [LocalDevelopment.md](LocalDevelopment.md) · [Deployment.md](Deployment.md)
 
-> **New client?** Start with [ClientOnboarding.md](ClientOnboarding.md) — not this file alone.
+> **New client?** Use **Admin → Clients → Edit** (in-app setup wizard), or [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md). Background: [ClientOnboarding.md](ClientOnboarding.md).
 
 ---
 

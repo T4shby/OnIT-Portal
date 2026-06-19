@@ -79,6 +79,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 | `entra_tenant_id` + `entra_group_id` on clients | ✅ |
 | `portal:sync-entra-users` | ✅ Portal users only |
 | Admin dry-run / sync now | ✅ |
+| In-app client setup wizard | ✅ Admin → Clients → Edit |
 | SuperOps requester provisioning | ✅ **SuperOps SCIM** (not portal code) |
 
 ---
@@ -89,7 +90,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 |---|---|
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | Sync 1 — SCIM setup per client |
 | [EntraGroupSync.md](EntraGroupSync.md) | Sync 2 — portal setup |
-| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | Step-by-step new client checklist |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | In-app wizard + backup checklist |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | SAML / Client SSO |
 
 ---
@@ -99,5 +100,5 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 | Date | Change |
 |---|---|
 | 2026-06-19 | Two-sync model: SuperOps SCIM + portal group sync; removed portal SuperOps API provisioner |
-| 2026-06-19 | Two-sync model documented; portal SuperOps API provisioner removed |
+| 2026-06-19 | In-app client setup wizard; Brain docs point to Admin → Clients → Edit |
 | 2026-06-16 | Initial doc |

@@ -1,6 +1,8 @@
 # New client setup
 
-**Goal:** Customer signs in at **app.onit.ltd** with their M365 work account. **SuperOps** works from the portal. Users stay up to date from one M365 group.
+**Use the in-app wizard:** **Admin → Clients → Edit client** — setup checklist, consent URL, and sync buttons are on that page.
+
+This doc is a backup reference.
 
 | URL | What |
 |---|---|
@@ -149,5 +151,6 @@ Tell customer: go to **https://app.onit.ltd**, sign in with Microsoft using work
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | In-app setup wizard on client edit page |
 | 2026-06-19 | Rewritten as blunt step-by-step checklist |
 | 2026-06-16 | Initial guide |

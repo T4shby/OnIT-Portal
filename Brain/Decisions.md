@@ -197,7 +197,7 @@ Reason:
 SCIM or Graph-based sync requires per-client Entra group design, API permissions, and conflict handling. Manual provisioning is sufficient for Phase A testing and early clients.
 
 Consequences:
-Documented in [ClientOnboarding.md](ClientOnboarding.md#future--m365--entra-user-sync) and [Roadmap.md](Roadmap.md). Removing a user from M365 does not deactivate the portal account until sync is built. SuperOps requester rows remain a separate manual (or Phase 3 API) step.
+Superseded for portal users by **ADR-016** (Entra group sync built). See [ClientOnboarding.md](ClientOnboarding.md) and in-app setup wizard on Admin → Clients → Edit.
 
 ---
 

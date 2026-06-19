@@ -10,6 +10,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Users</th>
+                    <th>Setup</th>
                     <th>Entra sync</th>
                     <th>Status</th>
                     <th class="text-right">Actions</th>
@@ -20,6 +21,14 @@
                     <tr>
                         <td>{{ $client->name }}</td>
                         <td>{{ $client->users_count }}</td>
+                        <td>
+                            @php $progress = app(\App\Services\ClientOnboardingService::class)->progress($client); @endphp
+                            @if($progress['percent'] === 100)
+                                <x-badge variant="success">Complete</x-badge>
+                            @else
+                                <span class="text-white/60">{{ $progress['percent'] }}%</span>
+                            @endif
+                        </td>
                         <td>
                             @if($client->hasEntraSyncConfigured())
                                 <x-badge variant="success">On</x-badge>
@@ -36,7 +45,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
+                    <tr><td colspan="6" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
                 @endforelse
             </tbody>
         </table>

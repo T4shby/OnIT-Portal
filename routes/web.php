@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->name('clients.sync-entra');
+            Route::put('clients/{client}/onboarding', [ClientController::class, 'updateOnboarding'])
+                ->name('clients.onboarding.update');
             Route::resource('users', UserController::class)->except(['show']);
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
             Route::resource('notices', NoticeController::class)->except(['show']);

@@ -2,10 +2,13 @@
 
 Use this when onboarding a **new client organisation** or a **new user**. It lists every system and what to configure in each.
 
+> **Start here in the app:** **Admin → Clients → Add Client**, then **Edit** — the **Client setup** panel on the right has step-by-step instructions, admin consent URL, checkpoints, and sync buttons. Backup text: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
+
 **Related docs (read once for platform setup):**
 
 | Doc | When |
 |---|---|
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **In-app wizard + backup checklist** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Give this to staff adding clients/users (simple)** |
 | [AccessAndSync.md](AccessAndSync.md) | **Auto-sync, offboarding, 60-tenant scale** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | One-time Entra SAML + SuperOps Global SSO |

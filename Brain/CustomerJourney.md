@@ -2,7 +2,7 @@
 
 ## 1. Invitation
 
-Admin follows [ClientOnboarding.md](ClientOnboarding.md): create client and users in portal + SuperOps (+ Entra group if Path A). Share portal URL.
+Admin: **Admin → Clients → Add/Edit** (in-app setup wizard) or [ClientOnboarding.md](ClientOnboarding.md). Share portal URL https://app.onit.ltd.
 
 ## 2. First Login
 

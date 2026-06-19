@@ -1,7 +1,6 @@
 # Colleague Setup Guide (simple version)
 
-> **Status:** Entra group sync is **built** — see [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) and [EntraGroupSync.md](EntraGroupSync.md).  
-> **At scale (60 tenants):** technicians create **companies**; users come from the Entra security group automatically (portal sync + SuperOps SCIM).
+> **Status:** Entra group sync is **built**. Use the **in-app wizard**: Admin → Clients → Edit. Backup: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) · [EntraGroupSync.md](EntraGroupSync.md).
 
 Give this document to someone who will **add customers** but does not need to understand Laravel, code, or Microsoft SAML.
 
