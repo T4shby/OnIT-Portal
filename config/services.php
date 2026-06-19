@@ -67,8 +67,7 @@ return [
             ?: env('SUPEROPS_REQUESTER_PORTAL_URL')
             ?: (filled(env('SUPEROPS_SUBDOMAIN'))
                 ? 'https://'.env('SUPEROPS_SUBDOMAIN').'.superops.ai'
-                : null)
-            ?: env('SUPEROPS_PORTAL_URL', 'https://app.superops.ai'),
+                : null),
         'sso_url' => env('SUPEROPS_SSO_URL'),
         'requester_login_path' => env('SUPEROPS_REQUESTER_LOGIN_PATH', '/#/requester/login'),
         'technician_login_path' => env('SUPEROPS_TECHNICIAN_LOGIN_PATH', '/#/technician/login'),

@@ -80,4 +80,47 @@ class SuperOpsSsoServiceTest extends TestCase
         $this->assertFalse($service->isEnabledForUser($user));
         $this->assertStringContainsString('not enabled for your organisation', $service->accessDeniedHint($user));
     }
+
+    public function test_technician_launch_inherits_requester_portal_host(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.technician_portal_url' => 'https://portal.onit.ltd',
+            'services.superops.technician_login_path' => '/#/technician/login',
+            'services.superops.login_hint_enabled' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => null,
+            'role' => UserRole::AccountManager,
+            'email' => 'tech@onit.ltd',
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
+        $this->assertTrue($service->isEnabledForUser($user));
+        $this->assertSame(
+            'https://portal.onit.ltd/?login_hint=tech%40onit.ltd#/technician/login',
+            $service->launchUrlFor($user),
+        );
+    }
+
+    public function test_super_admin_blocked_when_only_msp_app_url_configured(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.technician_portal_url' => null,
+            'services.superops.portal_url' => 'https://app.superops.ai',
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => null,
+            'role' => UserRole::SuperAdmin,
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
+        $this->assertFalse($service->isEnabledForUser($user));
+        $this->assertStringContainsString('SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL', $service->accessDeniedHint($user));
+    }
 }

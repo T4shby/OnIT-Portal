@@ -72,4 +72,22 @@ class SuperOpsLaunchTest extends TestCase
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas('error');
     }
+
+    public function test_technician_without_portal_config_gets_redirect_with_error(): void
+    {
+        config([
+            'services.superops.technician_portal_url' => null,
+            'services.superops.portal_url' => 'https://app.superops.ai',
+        ]);
+
+        $user = User::factory()->create([
+            'role' => UserRole::SuperAdmin,
+            'client_id' => null,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('integrations.superops.launch'));
+
+        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHas('error');
+    }
 }
