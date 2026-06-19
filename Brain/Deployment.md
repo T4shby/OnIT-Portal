@@ -185,15 +185,20 @@ In Plesk → Scheduled Tasks, add:
 
 After **every** deploy (Plesk Git pull or manual), run **all** of these over SSH — not just `git pull`.
 
-**Plesk PHP:** `php` is not on the root shell `PATH`. Use the Plesk binary (adjust version to match the domain — check Plesk → Domains → app.onit.ltd → PHP Settings):
+**Plesk PHP:** `php` is not on the root shell `PATH`. List installed versions and use the one set on the domain (Plesk → Domains → **app.onit.ltd** → **PHP Settings** — must be **8.2+** for Laravel 11):
 
 ```bash
-PHP=/opt/plesk/php/8.2/bin/php   # or 8.3 — use whatever the domain runs
+ls /opt/plesk/php/*/bin/php
+PHP=/opt/plesk/php/8.3/bin/php    # example — use 8.2 or 8.3, not 8.1
+$PHP -v
 ```
+
+**Plesk Git deploy:** The live site path (`/var/www/vhosts/onit.ltd/app.onit.ltd`) often has **no `.git` folder** — Plesk copies files from a separate clone. Use **Plesk → Git → Pull/Deploy** for code updates; SSH `git pull` only works if `.git` exists in that directory.
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
 
+# If .git exists here:
 git pull origin main
 
 composer install --no-dev --optimize-autoloader
@@ -248,16 +253,16 @@ ls -la public/build/assets/
 # 3. APP_URL must be https (in .env)
 grep APP_URL .env          # expect APP_URL=https://app.onit.ltd
 
-php artisan config:clear
-php artisan view:clear
-php artisan optimize
+$PHP artisan config:clear
+$PHP artisan view:clear
+$PHP artisan optimize
 ```
 
 If `public/build` is missing or empty, build on the server (Node 18+ required):
 
 ```bash
 npm ci && npm run build
-php artisan optimize
+$PHP artisan optimize
 ```
 
 **Quick browser check:** View page source on the dashboard. You should see:
@@ -266,16 +271,9 @@ php artisan optimize
 <link rel="stylesheet" href="/build/assets/app-....css" />
 ```
 
-If you see `app-XXXX.css` in `public/build/assets/` but page source references a **different** hash, `manifest.json` and the CSS file are out of sync (common if `npm run build` was run on the server and then `git pull` overwrote only `manifest.json`). Fix by restoring the whole build folder from git:
+If you see `app-XXXX.css` in `public/build/assets/` but page source references a **different** hash, `manifest.json` and the CSS file are out of sync. On a **git** checkout: `git checkout HEAD -- public/build/`. On **Plesk deploy** (no `.git`): run `npm ci && npm run build` in the app directory to regenerate both files, then `$PHP artisan view:clear && $PHP artisan optimize`.
 
-```bash
-cd /var/www/vhosts/onit.ltd/app.onit.ltd
-git checkout HEAD -- public/build/
-$PHP artisan view:clear
-$PHP artisan optimize
-```
-
-Repo expects e.g. `app-BPNDoNek.css` — run `cat public/build/manifest.json` and confirm the `"file"` entry matches a file in `public/build/assets/`.
+Repo on GitHub may use a different hash (e.g. `app-BPNDoNek.css`) than the server (`app-CWxgn93d.css`) — that is fine **as long as `manifest.json` and the file in `assets/` match on the same machine**.
 
 **Never run `npm run dev` on production** — local dev only ([LocalDevelopment.md](LocalDevelopment.md)).
 
