@@ -101,9 +101,12 @@ Detail: [Pax8Integration.md](Pax8Integration.md)
 ```env
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_PARTNER_LOGIN_PATH=/login
 PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
 PAX8_LOGIN_HINT_ENABLED=true
 ```
+
+> **`login_hint` pre-fills email only.** Technician Microsoft SSO requires Pax8 Enterprise SSO (P1). After setup: identifier page → **Continue** → Microsoft → Pax8. See [Pax8Integration.md — Troubleshooting](Pax8Integration.md#troubleshooting).
 
 ### P3. Deploy on server
 
@@ -116,7 +119,8 @@ After Plesk Git pull, run the full block in [Deployment.md — Updating the Appl
 
 ### P5. Test
 
-- [ ] Technician → dashboard → **Pax8** → partner portal
+- [ ] Technician → dashboard → **Pax8** → `app.pax8.com/login?login_hint=…` → Auth0 identifier (email pre-filled)
+- [ ] After Enterprise SSO (P1): click **Continue** → Microsoft → Pax8 partner dashboard
 - [ ] Client with `pax8_company_id` → **Pax8** → company view
 - [ ] Client without company ID → Pax8 tile hidden on dashboard
 
@@ -218,7 +222,7 @@ Follow [Deployment.md](Deployment.md):
 | SAML Login URL | `https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2` |
 | SAML Reply URL | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` |
 | Pax8 launch route | `/integrations/pax8/launch` (dashboard tile, same tab) |
-| Pax8 partner URL | `https://app.pax8.com` (`PAX8_PARTNER_PORTAL_URL`) |
+| Pax8 partner URL | `https://app.pax8.com/login` (`PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH`) |
 | Pax8 company URL | `https://app.pax8.com/companies/{companyId}` — set per client in Admin |
 
 ---

@@ -19,6 +19,7 @@ class Pax8LaunchTest extends TestCase
         config([
             'services.pax8.enabled' => true,
             'services.pax8.partner_url' => 'https://app.pax8.com',
+            'services.pax8.partner_login_path' => '/login',
             'services.pax8.company_url_template' => 'https://app.pax8.com/companies/{companyId}',
             'services.pax8.login_hint_enabled' => true,
         ]);
@@ -40,7 +41,7 @@ class Pax8LaunchTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('integrations.pax8.launch'));
 
-        $response->assertRedirect('https://app.pax8.com?login_hint=tom.ashby%40onit.ltd');
+        $response->assertRedirect('https://app.pax8.com/login?login_hint=tom.ashby%40onit.ltd');
     }
 
     public function test_client_with_pax8_company_id_can_launch(): void

@@ -112,6 +112,7 @@ SUPEROPS_AUTO_OPEN_AFTER_LOGIN=false
 
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_PARTNER_LOGIN_PATH=/login
 PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
 PAX8_LOGIN_HINT_ENABLED=true
 MICROSOFT_365_PORTAL_URL=https://admin.microsoft.com
@@ -244,6 +245,7 @@ Add to production `.env` (see [Pax8Integration.md](Pax8Integration.md)):
 ```env
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
+PAX8_PARTNER_LOGIN_PATH=/login
 PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
 PAX8_LOGIN_HINT_ENABLED=true
 ```

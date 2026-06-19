@@ -65,9 +65,10 @@ class Pax8SsoService
     public function launchUrlFor(User $user): string
     {
         if ($user->role->isAdmin()) {
-            $url = rtrim((string) config('services.pax8.partner_url'), '/');
+            $base = rtrim((string) config('services.pax8.partner_url'), '/');
+            $path = (string) config('services.pax8.partner_login_path', '/login');
 
-            return $this->appendLoginHint($url, $user->email);
+            return $this->appendLoginHint($base.$path, $user->email);
         }
 
         $companyId = $user->client->pax8_company_id;

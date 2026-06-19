@@ -22,6 +22,7 @@ class Pax8SsoServiceTest extends TestCase
         config([
             'services.pax8.enabled' => true,
             'services.pax8.partner_url' => 'https://app.pax8.com',
+            'services.pax8.partner_login_path' => '/login',
             'services.pax8.company_url_template' => 'https://app.pax8.com/companies/{companyId}',
             'services.pax8.login_hint_enabled' => true,
         ]);
@@ -39,7 +40,7 @@ class Pax8SsoServiceTest extends TestCase
 
         $this->assertTrue($this->service->isEnabledForUser($user));
         $this->assertSame(
-            'https://app.pax8.com?login_hint=tom.ashby%40onit.ltd',
+            'https://app.pax8.com/login?login_hint=tom.ashby%40onit.ltd',
             $this->service->launchUrlFor($user),
         );
     }
@@ -88,6 +89,22 @@ class Pax8SsoServiceTest extends TestCase
         $this->assertSame(
             'Pax8 SSO is not enabled. Contact your administrator.',
             $this->service->accessDeniedHint($user),
+        );
+    }
+
+    public function test_technician_launch_uses_configured_login_path(): void
+    {
+        config(['services.pax8.partner_login_path' => '/']);
+
+        $user = User::factory()->create([
+            'role' => UserRole::AccountManager,
+            'client_id' => null,
+            'email' => 'tech@onit.ltd',
+        ]);
+
+        $this->assertSame(
+            'https://app.pax8.com/?login_hint=tech%40onit.ltd',
+            $this->service->launchUrlFor($user),
         );
     }
 }

@@ -231,3 +231,18 @@ SuperOps already provides per-client SCIM endpoints (Integrations → Entra ID).
 
 Consequences:
 Supersedes the deferred-sync intent in ADR-014 for portal users. SuperOps requesters are SCIM-managed, not manual (when SCIM is configured). Manual portal users (`provisioned_by = manual`) are skipped by sync. See [AccessAndSync.md](AccessAndSync.md), [EntraGroupSync.md](EntraGroupSync.md), [SuperOpsEntraSync.md](SuperOpsEntraSync.md).
+
+---
+
+## ADR-017
+
+Date: 2026-06-19
+
+Decision:
+Pax8 technician launch uses `PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH` (default `/login`) with `login_hint`. True Microsoft SSO requires Pax8 **Enterprise SSO (Azure AD)** configured in Pax8 admin — the portal cannot bypass Auth0's identifier step or force Azure redirect like SuperOps SAML.
+
+Reason:
+Pax8 partner auth runs through Auth0 at `login.pax8.com`. `login_hint` pre-fills email on the identifier screen but does not complete SSO. Pax8's Enterprise SSO PDF requires users to authenticate at `https://app.pax8.com` after Azure AD federation is enabled in Pax8 admin. Launching to bare `app.pax8.com` without `/login` is less explicit than SuperOps' technician login path pattern.
+
+Consequences:
+Technician launch URL: `https://app.pax8.com/login?login_hint=…`. Operator must configure Pax8 Enterprise SSO and matching app users. Customer SSO remains `login_hint` + company deep link until Pax8 ships customer IdP SSO. Documented in [Pax8Integration.md](Pax8Integration.md).

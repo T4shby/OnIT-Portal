@@ -49,6 +49,7 @@ return [
 
     'pax8' => [
         'partner_url' => env('PAX8_PARTNER_PORTAL_URL', env('PAX8_PORTAL_URL', 'https://app.pax8.com')),
+        'partner_login_path' => env('PAX8_PARTNER_LOGIN_PATH', '/login'),
         'company_url_template' => env('PAX8_COMPANY_URL_TEMPLATE', 'https://app.pax8.com/companies/{companyId}'),
         'login_hint_enabled' => env('PAX8_LOGIN_HINT_ENABLED', true),
         'enabled' => env('PAX8_SSO_ENABLED', true),
