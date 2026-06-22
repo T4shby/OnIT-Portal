@@ -2,6 +2,8 @@
 
 **Status:** Implemented (SSO launch route). Pax8 **API** automation remains Phase 3 ([Roadmap.md](Roadmap.md)).
 
+**Operator setup:** [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) — full Enterprise SSO checklist (Primary Partner Admin, DNS, Finalize).
+
 ## User experience
 
 No new dashboard or page. The existing **Pax8 tile** on `/dashboard` works like SuperOps:
@@ -12,7 +14,7 @@ No new dashboard or page. The existing **Pax8 tile** on `/dashboard` works like 
 
 | User type | Portal role | Pax8 destination |
 |---|---|---|
-| On IT technicians | `super_admin`, `account_manager` | Partner login (`PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH`) |
+| On IT technicians | `super_admin`, `account_manager` | Partner login (`https://app.pax8.com/login` + `login_hint`) |
 | Customer users | `client_admin`, `client_user` | Company view (`PAX8_COMPANY_URL_TEMPLATE` + `client.pax8_company_id`) |
 
 If a client user's organisation has no **Pax8 company ID** set, the Pax8 tile is hidden on the dashboard. A direct hit to the launch URL redirects back with an error flash.
@@ -22,11 +24,16 @@ If a client user's organisation has no **Pax8 company ID** set, the Pax8 tile is
 ```
 Microsoft Entra → On IT Portal session
                   └── GET /integrations/pax8/launch
-                        ├── Team member → partner login URL + login_hint
+                        ├── Team member → app.pax8.com/login + login_hint
+                        │                 → Auth0 identifier → Continue
+                        │                 → Microsoft (Pax8 Enterprise SSO)
+                        │                 → Pax8 partner dashboard
                         └── Client user  → company URL + login_hint
 ```
 
-Mirrors [SuperOpsIntegration.md](SuperOpsIntegration.md) Pillar 2.
+Unlike SuperOps, Pax8 does **not** use a separate Entra SAML app in your tenant. Pax8 **Primary Partner Admin** configures Azure AD federation inside Pax8 (**Admin → My Partner Profile → Enterprise SSO**). See [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md).
+
+Mirrors [SuperOpsIntegration.md](SuperOpsIntegration.md) Pillar 2 for launch routing only.
 
 ### Code map
 
@@ -55,28 +62,38 @@ PAX8_LOGIN_HINT_ENABLED=true
 
 `PAX8_PORTAL_URL` is legacy fallback for `PAX8_PARTNER_PORTAL_URL` in `config/services.php`.
 
-Technicians launch to **`https://app.pax8.com/login?login_hint=…`** (not the bare root). Pax8's SPA then redirects to Auth0 at `login.pax8.com`.
+Technicians always launch to **`https://app.pax8.com`** — required for Enterprise SSO. If `.env` points at `mycommandconsole.com`, the service falls back to `app.pax8.com` (custom URLs do not support federation per Pax8 docs).
 
 After deploy, run `php artisan db:seed --class=PortalLinkSeeder --force` so the dashboard Pax8 link uses `pax8_sso` (not a static external URL).
 
 ## Pax8 platform constraints
 
-### `login_hint` is not SSO
+### `login_hint` is not SSO by itself
 
 The portal passes `login_hint` so Pax8/Auth0 pre-fills the user's email on the identifier screen (`login.pax8.com/u/login/identifier`). **This does not complete authentication or trigger Microsoft SSO by itself.**
 
-Unlike SuperOps requester SAML (portal → Microsoft → SuperOps in one hop), Pax8 uses **Auth0 Universal Login** with optional **Enterprise SSO (Azure AD)** configured inside Pax8. The portal cannot bypass the Auth0 identifier step or force an Azure redirect without Pax8-side Enterprise SSO being enabled.
+Unlike SuperOps requester SAML (portal → Microsoft → SuperOps in one hop), Pax8 uses **Auth0 Universal Login** with **Enterprise SSO (Azure AD)** configured inside Pax8. After federation: identifier → **Continue** → Microsoft → Pax8.
 
-### Partner Enterprise SSO (technicians)
+### Partner Enterprise SSO (technicians) — required
 
-- Pax8 → **Admin → My Partner Profile → Enterprise SSO → Azure AD** (Primary Partner Admin + Global Admin consents).
-- Technicians must exist as **app users** in Pax8 with the **same UPN/email** as their Microsoft account.
-- After setup: identifier screen (email pre-filled) → **Continue** → Microsoft consent/login → Pax8 dashboard.
-- **Do not** use `mycommandconsole.com` or other custom Pax8 URLs for SSO — Pax8 docs require `https://app.pax8.com`. [Enterprise SSO PDF](https://www.pax8nebula.com/m/10eadb52f582df44/original/Enterprise-SSO.pdf)
+Full steps: **[Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md)**
+
+Summary:
+
+| Requirement | Detail |
+|---|---|
+| Pax8 role | **Primary Partner Admin** to configure (Partner Admin can use SSO after setup) |
+| Entra role | **Global Admin** for first consent only |
+| Domains | Primary domain + optional aliases in Pax8 → DNS TXT → Verify → **Finalize** |
+| Users | Pax8 **app user** per technician; UPN must match Microsoft exactly |
+| Launch URL | **`https://app.pax8.com` only** — not `mycommandconsole.com` |
+| MFA | Microsoft only after federation (no Pax8 MFA for new federated users) |
+
+Official reference: [Enterprise SSO PDF](https://www.pax8nebula.com/m/10eadb52f582df44/original/Enterprise-SSO.pdf)
 
 ### Customer SSO
 
-Pax8 docs — self-service customer IdP SSO is **not** available yet. Customer launch relies on `login_hint` + Microsoft session and per-company URL.
+Pax8 docs — self-service customer IdP SSO is **not** available yet. Customer launch relies on `login_hint` + per-company URL (`/companies/{companyId}`). Customer must exist as Pax8 user for that company.
 
 ### API
 
@@ -84,14 +101,14 @@ OAuth 2.0 ([devx.pax8.com](https://devx.pax8.com/docs/authentication)) — Phase
 
 ## Operator setup (one-time + per client)
 
-### P1. Pax8 Enterprise SSO (required for technician Microsoft SSO)
+See **[Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md)** for the full checklist. Short version:
 
-1. Sign in to Pax8 as **Primary Partner Admin**.
-2. **Admin → My Partner Profile → Enterprise SSO → Azure AD**.
-3. Enter **Email Domain** (On IT primary Azure domain, e.g. `onit.ltd`) and any **Domain Aliases**.
-4. **Create** → add DNS TXT record → **Verify Domain** → **Finalize**.
-5. Ensure each technician is a **Pax8 app user** with UPN matching portal login (e.g. `tom.ashby@onit.ltd`).
-6. First login after setup: Global Admin accepts Pax8 consent at Microsoft.
+### P1. Pax8 Enterprise SSO (technicians)
+
+1. Create **Pax8 app users** with UPN matching Microsoft (before Finalize).
+2. **Primary Partner Admin** → **Admin → My Partner Profile → Enterprise SSO → Azure AD**.
+3. Email domain `onit.ltd` + aliases → **Create** → DNS TXT → **Verify** → **Finalize**.
+4. First login: **Global Admin** accepts Microsoft consent for Pax8.
 
 ### P2. Portal `.env` (production)
 
@@ -112,22 +129,27 @@ Set **Pax8 company ID** in **Admin → Clients → Edit** (from Pax8 → Compani
 In a private/incognito window (no existing Pax8 session):
 
 1. Portal → dashboard → **Pax8**.
-2. Expect redirect to `https://app.pax8.com/login?login_hint=…` then Auth0 identifier with email pre-filled.
-3. Click **Continue** → Microsoft login (if Enterprise SSO configured) → Pax8 partner dashboard.
+2. Expect `https://app.pax8.com/login?login_hint=…` → Auth0 identifier with email pre-filled.
+3. Click **Continue** → Microsoft (after Enterprise SSO Finalize) → Pax8 partner dashboard.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Lands on `login.pax8.com/u/login/identifier` with email pre-filled, stops there | Expected before Enterprise SSO; or SSO not configured | Complete **P1** above; click **Continue** to trigger Azure redirect |
-| Identifier page, no Microsoft redirect after Continue | Enterprise SSO not finalized, wrong email domain, or user not a Pax8 app user | Re-check Pax8 Enterprise SSO domains; create matching app user |
-| Pax8 password/MFA prompt instead of Microsoft | Enterprise SSO not active for that domain | Use `app.pax8.com` (not `mycommandconsole.com`); verify SSO status in Pax8 admin |
-| `invalid_request` hitting `login.pax8.com` directly | Auth0 requires SPA-initiated flow | Portal must launch via `app.pax8.com/login`, not `login.pax8.com` |
+| No Enterprise SSO tab in Pax8 | Not Primary Partner Admin | Use Primary Partner Admin — see [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) |
+| Lands on identifier with email pre-filled, stops there | Expected before Finalize; or must click Continue | Complete Enterprise SSO; click **Continue** |
+| No Microsoft redirect after Continue | Domain not verified/finalized, or not Pax8 app user | Re-check domains; create matching app user |
+| Login fails after SSO enabled | UPN ≠ Pax8 username | Align Entra UPN, Pax8 user, portal `users.email` |
+| SSO on app.pax8.com but not custom URL | Pax8 limitation | Portal always launches `app.pax8.com` |
+| Pax8 password/MFA instead of Microsoft | Federation not active | Verify Finalize; check domain list |
 | Client user — Pax8 tile missing | No `pax8_company_id` on client | Set company ID in Admin → Clients → Edit |
+| Customer expects Microsoft SSO | Not supported by Pax8 yet | Company deep link only |
 
 ## Testing checklist
 
-- [ ] Technician → dashboard → Pax8 → `app.pax8.com/login` → Auth0 → Microsoft (after Enterprise SSO)
+- [ ] Primary Partner Admin completed Enterprise SSO (DNS verified, Finalized)
+- [ ] Technician Pax8 app user exists with UPN matching portal email
+- [ ] Technician → dashboard → Pax8 → `app.pax8.com/login` → Continue → Microsoft
 - [ ] Client approver with `pax8_company_id` → company subscriptions view
 - [ ] Client without `pax8_company_id` → Pax8 tile hidden; direct launch shows error
 - [ ] `php artisan test --filter=Pax8` passes
@@ -138,6 +160,7 @@ See [Deployment.md — Updating the Application](Deployment.md#updating-the-appl
 
 ## Related
 
+- [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) — **step-by-step Enterprise SSO**
 - [SuperOpsIntegration.md](SuperOpsIntegration.md) — launch pattern
 - [AccessAndSync.md](AccessAndSync.md) — identity model
 - [OperatorRunbook.md](OperatorRunbook.md) — day-to-day ops

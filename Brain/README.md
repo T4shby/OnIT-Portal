@@ -20,6 +20,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [Authentication.md](Authentication.md) | Microsoft Entra ID login and sessions |
 | [SuperOpsIntegration.md](SuperOpsIntegration.md) | Embedded support + SSO launch |
 | [Pax8Integration.md](Pax8Integration.md) | **Pax8 SSO launch (dashboard tile → partner or company view)** |
+| [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) | **Pax8 Enterprise SSO for technicians (Primary Partner Admin, DNS, Finalize)** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters** |
 | [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) | **Entra SAML setup for SuperOps technicians (On IT staff)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |

@@ -30,8 +30,9 @@ class Pax8SsoService
 
     public function configurationHint(): string
     {
-        return 'Set PAX8_PARTNER_PORTAL_URL and PAX8_COMPANY_URL_TEMPLATE in .env. '
-            .'Configure Pax8 Enterprise SSO (Azure AD) in Pax8 Admin → My Partner Profile.';
+        return 'Set PAX8_PARTNER_PORTAL_URL=https://app.pax8.com and PAX8_COMPANY_URL_TEMPLATE in .env. '
+            .'Technician Microsoft SSO requires Pax8 Enterprise SSO (Primary Partner Admin → My Partner Profile → Enterprise SSO). '
+            .'See Brain/Pax8EnterpriseSsoSetup.md.';
     }
 
     public function accessDeniedHint(User $user): string
@@ -66,7 +67,7 @@ class Pax8SsoService
     public function launchUrlFor(User $user): string
     {
         if ($user->role->isAdmin()) {
-            $base = rtrim((string) config('services.pax8.partner_url'), '/');
+            $base = $this->partnerLaunchBase();
             $path = (string) config('services.pax8.partner_login_path', '/login');
 
             return $this->appendLoginHint($base.$path, $user->email);
@@ -100,5 +101,32 @@ class Pax8SsoService
         $separator = str_contains($url, '?') ? '&' : '?';
 
         return $url.$separator.$hint;
+    }
+
+    /**
+     * Pax8 Enterprise SSO only works at app.pax8.com — not mycommandconsole.com.
+     *
+     * @see Brain/Pax8EnterpriseSsoSetup.md
+     */
+    private function partnerLaunchBase(): string
+    {
+        $configured = rtrim((string) config('services.pax8.partner_url'), '/');
+
+        if ($this->isEnterpriseSsoCompatiblePartnerUrl($configured)) {
+            return $configured;
+        }
+
+        return 'https://app.pax8.com';
+    }
+
+    private function isEnterpriseSsoCompatiblePartnerUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '') {
+            return false;
+        }
+
+        return strtolower($host) === 'app.pax8.com';
     }
 }

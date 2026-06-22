@@ -239,7 +239,7 @@ If `.git` exists in the app directory you can `git pull origin main` before the 
 
 ### Pax8 first deploy
 
-Add to production `.env` (see [Pax8Integration.md](Pax8Integration.md)):
+Add to production `.env` (see [Pax8Integration.md](Pax8Integration.md)). Technician Microsoft SSO: [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md).
 
 ```env
 PAX8_SSO_ENABLED=true

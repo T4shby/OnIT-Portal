@@ -146,13 +146,18 @@ Entra Login URL stays in **SuperOps admin only** — not portal `.env`.
 
 ## Phase A2 — Pax8 SSO launch (production)
 
-Detail: [Pax8Integration.md](Pax8Integration.md)
+Detail: [Pax8Integration.md](Pax8Integration.md) · **Full setup:** [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md)
 
-### P1. Pax8 Enterprise SSO (On IT technicians)
+### P1. Pax8 Enterprise SSO (On IT technicians) — Primary Partner Admin
 
-1. Pax8 → **Admin → My Partner Profile → Enterprise SSO → Azure AD**
-2. Global Admin consents
-3. Ensure each technician is a **Pax8 app user** (same email as portal login)
+1. **Before SSO:** Pax8 → **Users** — each technician is an **app user**; UPN must match Microsoft (e.g. `tom.ashby@onit.ltd`)
+2. **Admin → My Partner Profile → Enterprise SSO → Azure AD**
+3. **Email Domain:** `onit.ltd` (+ domain aliases if any)
+4. **Create** → add DNS **TXT** at registrar → **Verify Domain** → **Finalize**
+5. First federated login: **Global Admin** accepts Microsoft consent for Pax8
+6. Optional: Entra → **Enterprise applications → Pax8** → assign `Pax8 Technicians` group
+
+> **Partner Admin** can use SSO after setup; only **Primary Partner Admin** can configure it.
 
 ### P2. Portal `.env` (production)
 

@@ -107,4 +107,21 @@ class Pax8SsoServiceTest extends TestCase
             $this->service->launchUrlFor($user),
         );
     }
+
+    public function test_technician_launch_falls_back_to_app_pax8_when_custom_url_configured(): void
+    {
+        config(['services.pax8.partner_url' => 'https://onit.mycommandconsole.com']);
+
+        $user = User::factory()->create([
+            'role' => UserRole::SuperAdmin,
+            'client_id' => null,
+            'email' => 'tom.ashby@onit.ltd',
+        ]);
+
+        $this->assertTrue($this->service->isEnabledForUser($user));
+        $this->assertSame(
+            'https://app.pax8.com/login?login_hint=tom.ashby%40onit.ltd',
+            $this->service->launchUrlFor($user),
+        );
+    }
 }
