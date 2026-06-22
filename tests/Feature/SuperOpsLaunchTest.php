@@ -42,7 +42,7 @@ class SuperOpsLaunchTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('integrations.superops.launch'));
 
-        $response->assertRedirect('https://portal.onit.ltd/?login_hint=tom.ashby%40onit.ltd#/technician/login');
+        $response->assertRedirect('https://portal.onit.ltd/#/technician/login?login_hint=tom.ashby%40onit.ltd');
     }
 
     public function test_client_with_sso_enabled_can_launch_requester_portal(): void
@@ -56,7 +56,7 @@ class SuperOpsLaunchTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('integrations.superops.launch'));
 
-        $response->assertRedirect('https://portal.onit.ltd/?login_hint=portal.test%40onit.ltd#/requester/login');
+        $response->assertRedirect('https://portal.onit.ltd/#/requester/login?login_hint=portal.test%40onit.ltd');
     }
 
     public function test_client_without_sso_enabled_gets_redirect_with_error(): void

@@ -33,7 +33,7 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $this->assertTrue($service->isEnabledForUser($user));
         $this->assertSame(
-            'https://portal.onit.ltd/?login_hint=portal.test%40onit.ltd#/requester/login',
+            'https://portal.onit.ltd/#/requester/login?login_hint=portal.test%40onit.ltd',
             $service->launchUrlFor($user),
         );
     }
@@ -57,7 +57,7 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $this->assertTrue($service->isEnabledForUser($user));
         $this->assertSame(
-            'https://portal.onit.ltd/?login_hint=tom.ashby%40onit.ltd#/technician/login',
+            'https://portal.onit.ltd/#/technician/login?login_hint=tom.ashby%40onit.ltd',
             $service->launchUrlFor($user),
         );
     }
@@ -100,7 +100,7 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $this->assertTrue($service->isEnabledForUser($user));
         $this->assertSame(
-            'https://portal.onit.ltd/?login_hint=tech%40onit.ltd#/technician/login',
+            'https://portal.onit.ltd/#/technician/login?login_hint=tech%40onit.ltd',
             $service->launchUrlFor($user),
         );
     }
@@ -124,7 +124,7 @@ class SuperOpsSsoServiceTest extends TestCase
 
         $this->assertTrue($service->isEnabledForUser($user));
         $this->assertSame(
-            'https://onitltd.superops.ai/?login_hint=tech%40onit.ltd#/technician/login',
+            'https://onitltd.superops.ai/#/technician/login?login_hint=tech%40onit.ltd',
             $service->launchUrlFor($user),
         );
     }
@@ -168,7 +168,7 @@ class SuperOpsSsoServiceTest extends TestCase
         $service = app(SuperOpsSsoService::class);
 
         $this->assertSame(
-            'https://portal.onit.ltd/?login_hint=portal.test%40onit.ltd#/requester/login',
+            'https://portal.onit.ltd/#/requester/login?login_hint=portal.test%40onit.ltd',
             $service->launchUrlFor($user),
         );
     }

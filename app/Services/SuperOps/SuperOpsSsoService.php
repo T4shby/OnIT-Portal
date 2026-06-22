@@ -104,9 +104,11 @@ class SuperOpsSsoService
 
         if (str_contains($url, '#')) {
             [$before, $fragment] = explode('#', $url, 2);
-            $separator = str_contains($before, '?') ? '&' : '?';
+            $separator = str_contains($fragment, '?') ? '&' : '?';
 
-            return $before.$separator.$hint.'#'.$fragment;
+            // Keep login_hint inside the hash fragment so SuperOps SPA routes to
+            // /#/technician/login or /#/requester/login instead of /#/login chooser.
+            return $before.'#'.$fragment.$separator.$hint;
         }
 
         $separator = str_contains($url, '?') ? '&' : '?';
