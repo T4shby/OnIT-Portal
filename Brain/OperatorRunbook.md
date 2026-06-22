@@ -68,6 +68,8 @@ SUPEROPS_SSO_ENABLED=true
 
 ## Phase A — Finish SuperOps Requester SSO (do now)
 
+**Customer portal SSO overview:** [CustomerPortalSso.md](CustomerPortalSso.md)
+
 ### A1. Entra — fix claims (if not done)
 
 1. [Azure Portal](https://portal.azure.com) → **Entra ID** → **Enterprise applications** → **SuperOps Requester SSO (On IT)**
@@ -177,8 +179,9 @@ After Plesk Git pull, run the full block in [Deployment.md — Updating the Appl
 
 ### P4. Per client
 
-1. **Admin → Clients → Edit** → **Pax8 company ID** (from Pax8 → Companies)
-2. Client users need a matching Pax8 user for their company (until Pax8 ships customer SSO)
+1. **Admin → Clients → Edit** → **Pax8 company ID** + **Pax8 access enabled** (from Pax8 → Companies)
+2. Pax8 → company → **Users** — matching emails ([Pax8CustomerAccess.md](Pax8CustomerAccess.md))
+3. Client users need a Pax8 company user (Pax8 customer Microsoft SSO not available yet)
 
 ### P5. Test
 

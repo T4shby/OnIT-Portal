@@ -17,6 +17,7 @@ class Client extends Model
         'superops_account_id',
         'superops_sso_enabled',
         'pax8_company_id',
+        'pax8_sso_enabled',
         'entra_tenant_id',
         'entra_group_id',
         'entra_sync_enabled',
@@ -30,6 +31,7 @@ class Client extends Model
         return [
             'is_active' => 'boolean',
             'superops_sso_enabled' => 'boolean',
+            'pax8_sso_enabled' => 'boolean',
             'entra_sync_enabled' => 'boolean',
             'entra_synced_at' => 'datetime',
             'onboarding_checklist' => 'array',

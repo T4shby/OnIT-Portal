@@ -21,6 +21,8 @@ Read these documents before changing application code. **Update Brain in the sam
 | [SuperOpsIntegration.md](SuperOpsIntegration.md) | Embedded support + SSO launch |
 | [Pax8Integration.md](Pax8Integration.md) | **Pax8 SSO launch (dashboard tile → partner or company view)** |
 | [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) | **Pax8 Enterprise SSO for technicians (Primary Partner Admin, DNS, Finalize)** |
+| [CustomerPortalSso.md](CustomerPortalSso.md) | **Customer SSO — portal + SuperOps requester + Pax8 access** |
+| [Pax8CustomerAccess.md](Pax8CustomerAccess.md) | **Pax8 company view for clients (no customer IdP SSO)** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters** |
 | [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) | **Entra SAML setup for SuperOps technicians (On IT staff)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |

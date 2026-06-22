@@ -47,7 +47,10 @@ class Pax8SsoServiceTest extends TestCase
 
     public function test_client_with_company_id_can_launch(): void
     {
-        $client = Client::factory()->create(['pax8_company_id' => 'abc-123']);
+        $client = Client::factory()->create([
+            'pax8_company_id' => 'abc-123',
+            'pax8_sso_enabled' => true,
+        ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientUser,
@@ -63,7 +66,10 @@ class Pax8SsoServiceTest extends TestCase
 
     public function test_client_without_company_id_is_denied(): void
     {
-        $client = Client::factory()->create(['pax8_company_id' => null]);
+        $client = Client::factory()->create([
+            'pax8_company_id' => null,
+            'pax8_sso_enabled' => true,
+        ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientUser,
@@ -121,6 +127,44 @@ class Pax8SsoServiceTest extends TestCase
         $this->assertTrue($this->service->isEnabledForUser($user));
         $this->assertSame(
             'https://app.pax8.com/login?login_hint=tom.ashby%40onit.ltd',
+            $this->service->launchUrlFor($user),
+        );
+    }
+
+    public function test_client_without_pax8_sso_enabled_is_denied(): void
+    {
+        $client = Client::factory()->create([
+            'pax8_company_id' => 'abc-123',
+            'pax8_sso_enabled' => false,
+        ]);
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientUser,
+        ]);
+
+        $this->assertFalse($this->service->isEnabledForUser($user));
+        $this->assertStringContainsString(
+            'not enabled for your organisation',
+            $this->service->accessDeniedHint($user),
+        );
+    }
+
+    public function test_company_launch_url_falls_back_to_app_pax8_host(): void
+    {
+        config(['services.pax8.company_url_template' => 'https://evil.example/companies/{companyId}']);
+
+        $client = Client::factory()->create([
+            'pax8_company_id' => 'abc-123',
+            'pax8_sso_enabled' => true,
+        ]);
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientUser,
+            'email' => 'approver@customer.example',
+        ]);
+
+        $this->assertSame(
+            'https://app.pax8.com/companies/abc-123?login_hint=approver%40customer.example',
             $this->service->launchUrlFor($user),
         );
     }

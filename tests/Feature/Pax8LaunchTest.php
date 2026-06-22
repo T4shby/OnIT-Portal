@@ -46,7 +46,7 @@ class Pax8LaunchTest extends TestCase
 
     public function test_client_with_pax8_company_id_can_launch(): void
     {
-        $client = Client::factory()->create(['pax8_company_id' => 'abc-123']);
+        $client = Client::factory()->create(['superops_sso_enabled' => true, 'pax8_sso_enabled' => true, 'pax8_company_id' => 'abc-123']);
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientAdmin,
@@ -60,7 +60,10 @@ class Pax8LaunchTest extends TestCase
 
     public function test_client_without_pax8_company_id_gets_redirect_with_error(): void
     {
-        $client = Client::factory()->create(['pax8_company_id' => null]);
+        $client = Client::factory()->create([
+            'pax8_company_id' => null,
+            'pax8_sso_enabled' => true,
+        ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientUser,
@@ -72,6 +75,27 @@ class Pax8LaunchTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertStringContainsString(
             'Pax8 company ID',
+            session('error'),
+        );
+    }
+
+    public function test_client_without_pax8_sso_enabled_gets_redirect_with_error(): void
+    {
+        $client = Client::factory()->create([
+            'pax8_company_id' => 'abc-123',
+            'pax8_sso_enabled' => false,
+        ]);
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientUser,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('integrations.pax8.launch'));
+
+        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHas('error');
+        $this->assertStringContainsString(
+            'not enabled for your organisation',
             session('error'),
         );
     }

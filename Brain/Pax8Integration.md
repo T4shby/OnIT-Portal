@@ -15,9 +15,11 @@ No new dashboard or page. The existing **Pax8 tile** on `/dashboard` works like 
 | User type | Portal role | Pax8 destination |
 |---|---|---|
 | On IT technicians | `super_admin`, `account_manager` | Partner login (`https://app.pax8.com/login` + `login_hint`) |
-| Customer users | `client_admin`, `client_user` | Company view (`PAX8_COMPANY_URL_TEMPLATE` + `client.pax8_company_id`) |
+| Customer users | `client_admin`, `client_user` | Company view (`PAX8_COMPANY_URL_TEMPLATE` + `client.pax8_company_id`) when `pax8_sso_enabled` |
 
-If a client user's organisation has no **Pax8 company ID** set, the Pax8 tile is hidden on the dashboard. A direct hit to the launch URL redirects back with an error flash.
+If a client user's organisation has no **Pax8 company ID** or **Pax8 access** is disabled, the Pax8 tile is hidden on the dashboard. A direct hit to the launch URL redirects back with an error flash.
+
+**Customer Microsoft SSO:** not offered by Pax8 for company users — see [Pax8CustomerAccess.md](Pax8CustomerAccess.md). For SuperOps + portal login, see [CustomerPortalSso.md](CustomerPortalSso.md).
 
 ## Architecture
 
@@ -43,7 +45,7 @@ Mirrors [SuperOpsIntegration.md](SuperOpsIntegration.md) Pillar 2 for launch rou
 | Service | `app/Services/Pax8/Pax8SsoService.php` |
 | Controller | `app/Http/Controllers/Integrations/Pax8LaunchController.php` |
 | Route | `routes/web.php` → `integrations.pax8.launch` |
-| Client field | `clients.pax8_company_id` |
+| Client field | `clients.pax8_company_id`, `clients.pax8_sso_enabled` |
 | Admin forms | `admin/clients/create`, `admin/clients/edit` |
 | Dashboard tile | `resources/views/components/service-card.blade.php` |
 | Tests | `tests/Feature/Pax8LaunchTest.php`, `tests/Unit/Pax8SsoServiceTest.php` |

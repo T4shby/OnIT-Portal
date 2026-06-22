@@ -24,6 +24,10 @@ class Pax8SsoService
             return false;
         }
 
+        if (! (bool) $user->client?->pax8_sso_enabled) {
+            return false;
+        }
+
         return filled($user->client?->pax8_company_id)
             && preg_match('/^[A-Za-z0-9_-]+$/', (string) $user->client->pax8_company_id);
     }
@@ -48,6 +52,10 @@ class Pax8SsoService
         }
 
         if ($user->role->isClientFacing()) {
+            if (! (bool) $user->client?->pax8_sso_enabled) {
+                return 'Pax8 access is not enabled for your organisation. Contact your administrator.';
+            }
+
             if (! filled($user->client?->pax8_company_id)) {
                 return 'Pax8 is not linked to your organisation yet. Ask your administrator to set the Pax8 company ID on your client record.';
             }
@@ -80,7 +88,7 @@ class Pax8SsoService
             (string) config('services.pax8.company_url_template'),
         );
 
-        return $this->appendLoginHint($url, $user->email);
+        return $this->appendLoginHint($this->companyLaunchUrl($url), $user->email);
     }
 
     private function appendLoginHint(string $url, ?string $email): string
@@ -117,6 +125,21 @@ class Pax8SsoService
         }
 
         return 'https://app.pax8.com';
+    }
+
+    private function companyLaunchUrl(string $url): string
+    {
+        if ($this->isEnterpriseSsoCompatiblePartnerUrl($url)) {
+            return $url;
+        }
+
+        $companyId = basename(parse_url($url, PHP_URL_PATH) ?: '');
+
+        if ($companyId === '' || $companyId === 'companies') {
+            return $url;
+        }
+
+        return 'https://app.pax8.com/companies/'.$companyId;
     }
 
     private function isEnterpriseSsoCompatiblePartnerUrl(string $url): bool

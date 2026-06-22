@@ -238,7 +238,8 @@ class ClientOnboardingService
                 'Sign in to the Pax8 partner portal (app.pax8.com).',
                 'Go to Companies → open the customer.',
                 'Copy the company UUID from the URL or company profile.',
-                'Paste it here so client approvers launch into their Pax8 company view.',
+                'Paste it here and enable Pax8 access so client users see the licensing tile.',
+                'Create matching company users in Pax8 (Pax8 does not offer customer Microsoft SSO yet).',
             ],
             'entra_tenant_id' => [
                 'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker).',
