@@ -147,4 +147,29 @@ class SuperOpsSsoServiceTest extends TestCase
         $this->assertFalse($service->isEnabledForUser($user));
         $this->assertStringContainsString('SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL', $service->accessDeniedHint($user));
     }
+
+    public function test_malicious_superops_sso_url_is_ignored(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.sso_url' => 'https://evil.example/phish',
+            'services.superops.requester_portal_url' => 'https://portal.onit.ltd',
+            'services.superops.requester_login_path' => '/#/requester/login',
+            'services.superops.login_hint_enabled' => true,
+        ]);
+
+        $client = Client::factory()->create(['superops_sso_enabled' => true]);
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientUser,
+            'email' => 'portal.test@onit.ltd',
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
+        $this->assertSame(
+            'https://portal.onit.ltd/?login_hint=portal.test%40onit.ltd#/requester/login',
+            $service->launchUrlFor($user),
+        );
+    }
 }

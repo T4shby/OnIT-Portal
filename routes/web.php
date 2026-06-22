@@ -40,9 +40,11 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/integrations/superops/launch', SuperOpsLaunchController::class)
+        ->middleware('throttle:integrations-launch')
         ->name('integrations.superops.launch');
 
     Route::get('/integrations/pax8/launch', Pax8LaunchController::class)
+        ->middleware('throttle:integrations-launch')
         ->name('integrations.pax8.launch');
 
     Route::prefix('admin')

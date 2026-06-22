@@ -24,7 +24,8 @@ class Pax8SsoService
             return false;
         }
 
-        return filled($user->client?->pax8_company_id);
+        return filled($user->client?->pax8_company_id)
+            && preg_match('/^[A-Za-z0-9_-]+$/', (string) $user->client->pax8_company_id);
     }
 
     public function configurationHint(): string
@@ -71,7 +72,7 @@ class Pax8SsoService
             return $this->appendLoginHint($base.$path, $user->email);
         }
 
-        $companyId = $user->client->pax8_company_id;
+        $companyId = (string) $user->client->pax8_company_id;
         $url = str_replace(
             '{companyId}',
             $companyId,

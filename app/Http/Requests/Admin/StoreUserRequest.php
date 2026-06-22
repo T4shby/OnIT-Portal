@@ -3,11 +3,14 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\UserRole;
+use App\Http\Requests\Concerns\ValidatesClientAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
+    use ValidatesClientAccess;
+
     public function authorize(): bool
     {
         return true;
@@ -22,5 +25,12 @@ class StoreUserRequest extends FormRequest
             'client_id' => ['required', 'exists:clients,id'],
             'is_active' => ['boolean'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function () {
+            $this->validateClientAccessForActor((int) $this->input('client_id'));
+        });
     }
 }

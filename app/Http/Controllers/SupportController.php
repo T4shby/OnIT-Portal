@@ -78,8 +78,8 @@ class SupportController extends Controller
                 $request->validated('subject'),
                 $request->validated('description'),
             );
-        } catch (\Throwable $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+        } catch (\Throwable) {
+            return back()->withInput()->with('error', 'Unable to submit support request. Please try again.');
         }
 
         $this->activityLog->log('support.ticket_created', null, [

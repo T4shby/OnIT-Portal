@@ -73,7 +73,7 @@ class SuperOpsSsoService
 
         $configured = config('services.superops.sso_url');
 
-        if ($configured && ! $this->isEntraSamlEndpoint($configured)) {
+        if ($configured && ! $this->isEntraSamlEndpoint($configured) && $this->isAllowedSuperOpsUrl($configured)) {
             return $this->appendLoginHint($configured, $user->email);
         }
 
@@ -117,6 +117,23 @@ class SuperOpsSsoService
     private function isEntraSamlEndpoint(string $url): bool
     {
         return str_contains($url, 'login.microsoftonline.com');
+    }
+
+    private function isAllowedSuperOpsUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '') {
+            return false;
+        }
+
+        $host = strtolower($host);
+
+        if (str_ends_with($host, '.superops.ai') || $host === 'superops.ai') {
+            return true;
+        }
+
+        return in_array($host, ['portal.onit.ltd', 'app.onit.ltd'], true);
     }
 
     public function establishSsoSession(User $user): void

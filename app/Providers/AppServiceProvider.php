@@ -24,5 +24,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-callback', function (Request $request) {
             return Limit::perMinute(6)->by($request->ip());
         });
+
+        RateLimiter::for('integrations-launch', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }
