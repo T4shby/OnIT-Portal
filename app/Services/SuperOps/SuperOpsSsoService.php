@@ -66,7 +66,10 @@ class SuperOpsSsoService
     {
         if ($user->role->isAdmin()) {
             $base = rtrim((string) config('services.superops.technician_portal_url'), '/');
-            $path = config('services.superops.technician_login_path', '/#/technician/login');
+            $path = $this->hashLoginPath(
+                config('services.superops.technician_login_path'),
+                '/#/technician/login',
+            );
 
             return $this->appendLoginHint($base.$path, $user->email);
         }
@@ -78,9 +81,24 @@ class SuperOpsSsoService
         }
 
         $base = rtrim((string) config('services.superops.requester_portal_url'), '/');
-        $path = config('services.superops.requester_login_path', '/#/requester/login');
+        $path = $this->hashLoginPath(
+            config('services.superops.requester_login_path'),
+            '/#/requester/login',
+        );
 
         return $this->appendLoginHint($base.$path, $user->email);
+    }
+
+    /**
+     * .env values like /#/technician/login are truncated at # (comment) unless quoted.
+     */
+    private function hashLoginPath(?string $configured, string $default): string
+    {
+        if (! filled($configured) || ! str_contains($configured, '#/')) {
+            return $default;
+        }
+
+        return $configured;
     }
 
     private function hasTechnicianLaunchTarget(): bool

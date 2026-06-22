@@ -172,4 +172,27 @@ class SuperOpsSsoServiceTest extends TestCase
             $service->launchUrlFor($user),
         );
     }
+
+    public function test_technician_launch_falls_back_when_env_path_truncated_at_hash(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.technician_portal_url' => 'https://portal.onit.ltd',
+            'services.superops.technician_login_path' => '/',
+            'services.superops.login_hint_enabled' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => null,
+            'role' => UserRole::SuperAdmin,
+            'email' => 'tech@onit.ltd',
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
+        $this->assertSame(
+            'https://portal.onit.ltd/#/technician/login?login_hint=tech%40onit.ltd',
+            $service->launchUrlFor($user),
+        );
+    }
 }
