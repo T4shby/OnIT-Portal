@@ -105,6 +105,30 @@ class SuperOpsSsoServiceTest extends TestCase
         );
     }
 
+    public function test_technician_launch_uses_subdomain_host_when_configured(): void
+    {
+        config([
+            'services.superops.sso_enabled' => true,
+            'services.superops.technician_portal_url' => 'https://onitltd.superops.ai',
+            'services.superops.technician_login_path' => '/#/technician/login',
+            'services.superops.login_hint_enabled' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => null,
+            'role' => UserRole::SuperAdmin,
+            'email' => 'tech@onit.ltd',
+        ]);
+
+        $service = app(SuperOpsSsoService::class);
+
+        $this->assertTrue($service->isEnabledForUser($user));
+        $this->assertSame(
+            'https://onitltd.superops.ai/?login_hint=tech%40onit.ltd#/technician/login',
+            $service->launchUrlFor($user),
+        );
+    }
+
     public function test_super_admin_blocked_when_only_msp_app_url_configured(): void
     {
         config([

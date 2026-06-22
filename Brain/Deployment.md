@@ -102,9 +102,8 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 
 SUPEROPS_API_TOKEN=
 SUPEROPS_SUBDOMAIN=onitltd
-SUPEROPS_REGION=us
-SUPEROPS_PORTAL_URL=https://app.superops.ai
 SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
+SUPEROPS_TECHNICIAN_LOGIN_PATH="/#/technician/login"
 SUPEROPS_REQUESTER_LOGIN_PATH="/#/requester/login"
 SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true

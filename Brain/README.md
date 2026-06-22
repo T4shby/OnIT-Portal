@@ -20,7 +20,8 @@ Read these documents before changing application code. **Update Brain in the sam
 | [Authentication.md](Authentication.md) | Microsoft Entra ID login and sessions |
 | [SuperOpsIntegration.md](SuperOpsIntegration.md) | Embedded support + SSO launch |
 | [Pax8Integration.md](Pax8Integration.md) | **Pax8 SSO launch (dashboard tile → partner or company view)** |
-| [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters (no technician SSO)** |
+| [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters** |
+| [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) | **Entra SAML setup for SuperOps technicians (On IT staff)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
 | [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
@@ -63,6 +64,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-22 | SuperOps Technician SSO guide + ADR-013 update — [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) |
 | 2026-06-19 | SuperOps technician SSO launch for team — [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | 2026-06-19 | Pax8 SSO launch (`pax8_sso`, `/integrations/pax8/launch`, `clients.pax8_company_id`) — [Pax8Integration.md](Pax8Integration.md) |
 | 2026-06-19 | In-app client setup wizard on Admin → Clients → Edit |

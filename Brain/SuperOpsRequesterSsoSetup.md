@@ -26,7 +26,7 @@ Client → On IT Portal (OAuth app #1)
 
 You need **two** Entra apps. Do **not** reuse the portal OAuth app for SuperOps SAML.
 
-**Technician SSO:** not required for this project. Do not create a third Entra app unless On IT later wants SSO into the MSP technician console.
+**Technician SSO:** separate Entra app and SuperOps **Technician Login → SSO** — see [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). Do **not** reuse the requester SAML app.
 
 ---
 

@@ -105,7 +105,7 @@ SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 ```
 
-Technicians (`super_admin`, `account_manager`) see the SuperOps card when `SUPEROPS_PORTAL_URL` is set. Client users need `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` plus `superops_sso_enabled` on their client.
+Technicians (`super_admin`, `account_manager`) see the SuperOps card when `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` is set (technician launch uses the same host + `/#/technician/login`). Client users need `superops_sso_enabled` on their client.
 
 ## PHP SSL Certificates (Windows — required)
 

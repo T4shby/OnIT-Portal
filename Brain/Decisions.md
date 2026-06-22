@@ -171,21 +171,18 @@ Documented in [LocalDevelopment.md](LocalDevelopment.md). Juniors must not clone
 
 ---
 
-## ADR-013 (updated 2026-06-19)
+## ADR-013 (updated 2026-06-22)
 
-Date: 2026-06-12 — updated 2026-06-19
+Date: 2026-06-12 — updated 2026-06-22
 
 Decision:
-Configure **SuperOps Requester SSO** via a dedicated Entra SAML enterprise app for **client users only**. Technicians launch to `/#/technician/login` on `SUPEROPS_PORTAL_URL` using the **same M365 identity** from portal OAuth — SuperOps maps MSP staff to technician; no second SAML app needed (confirmed: requester URL + Tom's account still lands as technician).
+Configure **SuperOps Requester SSO** via a dedicated Entra SAML enterprise app (#2) for **client users**, and **SuperOps Technician SSO** via a separate Entra SAML app (#3) for **On IT staff**. Technicians launch to `/#/technician/login` on the **same SuperOps host** as requesters (`portal.onit.ltd`), not `app.superops.ai`. The portal redirects only; SuperOps SPA initiates SP-initiated SAML.
 
 Reason:
-Portal client users map to SuperOps **requesters** and need Requester Global SSO (SAML). On IT staff are already M365 users in SuperOps as **technicians** — only the launch endpoint differs.
+SuperOps requires separate Entra apps for requester vs technician SAML (Entity IDs `https://clientuser.superops.ai` vs `https://superops.ai`). Launching technicians to `app.superops.ai` bypasses the custom-domain Technician Login SSO configuration and shows email/password login.
 
 Consequences:
-Requester SAML: Entra app #2 + SuperOps Global SSO for clients. Technician launch: portal role routing + `SUPEROPS_PORTAL_URL` — same auth, different SuperOps SPA route.
-
-Consequences:
-Two Entra apps in production (portal OAuth + SuperOps requester SAML). Entra Login URL is configured in SuperOps Global SSO only; portal redirects to `portal.onit.ltd` for SP-initiated SAML.
+Three Entra apps in production (portal OAuth + requester SAML + technician SAML). Entra Login URLs configured in SuperOps admin only. Portal `.env` uses `SUPEROPS_REQUESTER_PORTAL_URL` for both roles (different hash paths). Setup guides: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md), [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md).
 
 ---
 

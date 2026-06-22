@@ -22,7 +22,7 @@ Microsoft Entra ID → On IT Portal session
 ### Pillar 2 — SSO launch
 
 - Route: `GET /integrations/superops/launch`
-- **Technicians** (`super_admin`, `account_manager`) → MSP portal `SUPEROPS_PORTAL_URL` + `/#/technician/login`
+- **Technicians** (`super_admin`, `account_manager`) → same host as requester (`portal.onit.ltd`) + `/#/technician/login`
 - **Client users** (`client_user`, `client_admin`) → requester portal + `/#/requester/login` (when `superops_sso_enabled`)
 - Launch URL priority (requester path):
   1. `SUPEROPS_REQUESTER_PORTAL_URL` or `https://{subdomain}.superops.ai` + `/#/requester/login`
@@ -58,9 +58,11 @@ SUPEROPS_REGION=us
 SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login
 SUPEROPS_LOGIN_HINT_ENABLED=true
 
-# MSP technician portal — used for team launch:
-SUPEROPS_PORTAL_URL=https://app.superops.ai
+# Technician launch — same host as requester (defaults from SUPEROPS_REQUESTER_PORTAL_URL):
+SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
 SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/technician/login
+# Optional override; legacy MSP app URL — not used for SSO launch:
+# SUPEROPS_PORTAL_URL=https://app.superops.ai
 ```
 
 ### Role chooser (requester vs technician)
@@ -100,9 +102,11 @@ Configure via `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login` (default).
 
 ### Requester SSO setup (step-by-step)
 
-**→ [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md)** — full Entra + SuperOps guide (requester only; no technician SSO).
+**→ [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md)** — Entra + SuperOps guide for **client requesters**.
 
-Summary: two Entra apps (portal OAuth + SuperOps requester SAML). Entra Login URL in SuperOps admin; portal redirects to `portal.onit.ltd`.
+**→ [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md)** — Entra + SuperOps guide for **On IT technicians** (separate SAML app #3).
+
+Summary: three Entra apps (portal OAuth + requester SAML + technician SAML). Entra Login URLs live in SuperOps admin only; portal redirects to `portal.onit.ltd` with role-specific SPA paths.
 
 ## Client mapping
 
@@ -157,17 +161,17 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 
 | Audience | What happens |
 |---|---|
-| **Technicians** | Portal OAuth → M365 session → launch `app.superops.ai/#/technician/login` + `login_hint`. SuperOps maps MSP staff emails to **technician** automatically — even if the URL said requester (see below). **No separate Technician SAML Entra app required.** |
+| **Technicians** | Portal OAuth → M365 session → launch `portal.onit.ltd/#/technician/login` + `login_hint` → SuperOps **Technician Login SSO** (SAML Entra app #3) → MSP console. Requires [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). |
 | **Client users** | Launch `portal.onit.ltd/#/requester/login` → SuperOps **Requester Global SSO** (SAML Entra app #2) → requester dashboard. |
 
-**Proof (On IT):** `tom.ashby@onit.ltd` clicking the requester path still lands as **technician** — Brain documents this as expected SuperOps behaviour, not a portal bug. The technician launch path (`/#/technician/login`) is the correct entry point; identity is the same M365 user.
+**Do not launch technicians to `app.superops.ai`** — that host does not use the custom-domain Technician Login SSO configuration. Use the same host as requesters (`portal.onit.ltd`) with `/#/technician/login`.
 
 ## When it breaks
 
 | Screen | Meaning |
 |---|---|
 | Role chooser (requester vs technician) | Wrong launch path — portal must use `/#/requester/login`, not `/#/login` or `/#/login/requester` |
-| SuperOps card missing for admin | Set `SUPEROPS_PORTAL_URL` in `.env`; run `php artisan config:clear` |
+| SuperOps card missing for admin | Set `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` in `.env`; run `php artisan config:clear` |
 | SuperOps card missing for client | Client needs `superops_sso_enabled`; user must be `client_user` or `client_admin` |
 | **Error 1027** | Entra `email` claim missing — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore — use portal or `/#/requester/login` flow (SP-initiated) |
@@ -190,7 +194,7 @@ If you see an email form, `SUPEROPS_SSO_URL` / portal `.env` is not the fix. The
 | Portal action | Result |
 |---|---|
 | `GET /integrations/superops/launch` | Technicians → `/#/technician/login`; clients → `/#/requester/login` with `login_hint` |
-| Role-based access | Admins need `SUPEROPS_PORTAL_URL`; clients need `superops_sso_enabled` |
+| Role-based access | Admins need `SUPEROPS_SUBDOMAIN` or requester URL; clients need `superops_sso_enabled` |
 | Stored `microsoft_tokens` on user | For future API/embed — **does not** log user into full SuperOps web UI |
 | `SUPEROPS_API_TOKEN` + `/support` | Embedded tickets in portal without opening SuperOps (alternative UX) |
 

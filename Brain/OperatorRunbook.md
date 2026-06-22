@@ -2,9 +2,47 @@
 
 Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you go.
 
-**Detail docs:** [ClientOnboarding.md](ClientOnboarding.md) · [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [LocalDevelopment.md](LocalDevelopment.md) · [Deployment.md](Deployment.md)
+**Detail docs:** [ClientOnboarding.md](ClientOnboarding.md) · [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) · [LocalDevelopment.md](LocalDevelopment.md) · [Deployment.md](Deployment.md)
 
 > **New client?** Use **Admin → Clients → Edit** (in-app setup wizard), or [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md). Background: [ClientOnboarding.md](ClientOnboarding.md).
+
+---
+
+## Phase A0 — SuperOps Technician SSO (On IT staff)
+
+Detail: [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md)
+
+### T1. SuperOps — Technician Login SSO
+
+1. **Settings → Technician Login → SSO**
+2. Copy **Consumer Service URL** → Entra Reply URL (T3)
+3. After Entra setup: paste **IDP Login URL** + **Certificate** → **Save**
+
+### T2. Entra — create Technician SAML app
+
+1. **Enterprise applications** → **+ New application** → non-gallery → `SuperOps Technician SSO (On IT)`
+2. **Single sign-on** → **SAML**:
+   - Entity ID: `https://superops.ai`
+   - Reply URL: Consumer Service URL from T1
+3. **Attributes & Claims** — only `email`, `firstname`, `lastname` (see guide §2.4)
+4. **Users and groups** → assign `SuperOps Technicians` group (On IT staff only — not requesters)
+
+### T3. Portal `.env` (production + local)
+
+```env
+SUPEROPS_SUBDOMAIN=onitltd
+SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
+SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/technician/login
+SUPEROPS_SSO_ENABLED=true
+```
+
+`php artisan config:clear`
+
+### T4. Test technician SSO
+
+- [ ] Private window → https://app.onit.ltd/login → **`tom.ashby@onit.ltd`**
+- [ ] Dashboard → **SuperOps** → `portal.onit.ltd/?login_hint=…#/technician/login`
+- [ ] Microsoft → SuperOps **technician** MSP console (not email/password form)
 
 ---
 
@@ -231,7 +269,7 @@ Follow [Deployment.md](Deployment.md):
 
 | Item | Reason |
 |---|---|
-| Technician SSO Entra app | **Not required** — technicians use same M365 identity; SuperOps maps MSP accounts to technician. Portal launches `/#/technician/login`. Requester SAML app is for **clients only**. |
+| Technician SSO Entra app | **Required** for one-click technician SSO — see [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). Portal launches `portal.onit.ltd/#/technician/login`; SuperOps Technician Login SSO completes SAML. |
 | Assigning Tom to Requester SSO | You are MSP technician |
 | Per-user Entra SAML assignment | Use groups instead |
 | `SUPEROPS_API_TOKEN` | Only needed for `/support` embed, not SSO launch |
