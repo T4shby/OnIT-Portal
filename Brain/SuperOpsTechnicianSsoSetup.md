@@ -1,195 +1,224 @@
 # SuperOps Technician SSO — Setup Guide (On IT)
 
-Step-by-step guide to enable **Microsoft Entra ID SSO for SuperOps technicians** (MSP staff). This is **separate** from requester SSO — SuperOps requires a **different** Entra enterprise app and SuperOps admin settings.
+Copy the **requester SSO** process ([SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md)) — same steps, **different values** and a **different Entra app**. Technicians and requesters share the same Microsoft tenant; SuperOps requires separate SAML registrations.
 
 **Official SuperOps reference:** [Setting up Technician SSO with Azure AD](https://support.superops.com/en/articles/6632446-setting-up-technician-sso-with-azure-ad)
 
-**Related:** [SuperOpsIntegration.md](SuperOpsIntegration.md) · [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [Authentication.md](Authentication.md) · [Deployment.md](Deployment.md)
+**Related:** [SuperOpsIntegration.md](SuperOpsIntegration.md) · [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [OperatorRunbook.md](OperatorRunbook.md) (Phase A0)
 
 ---
 
-## What you are building
+## Why a second Entra app? (requester vs technician)
 
-```
-Technician → On IT Portal (OAuth app #1)
-          → clicks SuperOps
-          → /integrations/superops/launch
-          → SuperOps technician login SPA (same host as requester)
-          → Microsoft Entra ID (SAML app #3)
-          → signed in as technician
-```
-
-| Entra enterprise app | Protocol | Purpose |
+| | **Requester SSO** (already done) | **Technician SSO** (this guide) |
 |---|---|---|
-| **On IT Portal** | OAuth 2.0 / OIDC | Sign in to this Laravel portal (`MICROSOFT_CLIENT_ID`) |
-| **SuperOps Requester SSO (On IT)** | SAML | Client users → `portal.onit.ltd` as **requester** |
-| **SuperOps Technician SSO (On IT)** | SAML | On IT staff → `portal.onit.ltd` as **technician** |
+| **Who** | Client staff (`portal.test@onit.ltd`) | On IT staff (`tom.ashby@onit.ltd`) |
+| **SuperOps screen** | Settings → **Requester Login** → SSO Protected → Global SSO | Settings → **Technician Login** → SSO |
+| **Entra app name** | SuperOps Requester SSO (On IT) | **SuperOps Technician SSO (On IT)** |
+| **Entity ID** | `https://clientuser.superops.ai` | `https://superops.ai` |
+| **Reply URL (On IT)** | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` | `https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448` |
+| **Portal launch path** | `/#/requester/login` | `/#/technician/login` |
 
-You need **three** Entra apps for full portal + SuperOps SSO. Do **not** reuse the requester SAML app for technicians — SuperOps explicitly requires separate apps.
-
-**Portal role:** The Laravel app **cannot** perform SAML. It redirects to the SuperOps SPA (`/#/technician/login`), which initiates SP-initiated SAML to Entra — same pattern as requester SSO.
+Same IdP Login URL format, same three claims (`email`, `firstname`, `lastname`), same cert copy/paste workflow — **different Reply URL and Entity ID**. One Entra app cannot use the requester Reply URL for technician login.
 
 ---
 
-## Prerequisites
+## Master checklist (tick as you go)
 
-- [ ] SuperOps MSP admin access (On IT tenant: subdomain **`onitltd`**)
-- [ ] Entra ID **Cloud Application Administrator** (or Global Administrator)
-- [ ] On IT Portal running with Entra login working ([Authentication.md](Authentication.md))
-- [ ] Requester SSO already working or in progress ([SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md))
-- [ ] Technician users exist in SuperOps with the **same email** as their On IT Portal account
+### Part A — SuperOps (5 min)
+
+- [ ] **A1** Open **Settings → Technician Login → SSO** tab (not Requester Login)
+- [ ] **A2** Turn **Global SSO Configurations** ON
+- [ ] **A3** Copy **Consumer Service URL** from Step 1 (save in Notepad)
+- [ ] **A4** Leave Step 2 empty for now — fill after Entra (§2.6–2.7)
+
+### Part B — Entra (20 min)
+
+- [ ] **B1** Create enterprise app `SuperOps Technician SSO (On IT)` — non-gallery
+- [ ] **B2** Single sign-on → **SAML**
+- [ ] **B3** Basic SAML: Entity ID `https://superops.ai` + Reply URL from A3
+- [ ] **B4** Attributes & claims: only `email`, `firstname`, `lastname`
+- [ ] **B5** Create group `SuperOps Technicians`, add On IT staff, assign to app
+- [ ] **B6** Download SAML certificate (Base64)
+
+### Part C — SuperOps again (5 min)
+
+- [ ] **C1** Paste **IDP Login URL** from Entra into SuperOps Step 2
+- [ ] **C2** Paste **certificate** (body only, no BEGIN/END lines) into SuperOps Step 2
+- [ ] **C3** Click **Save** — reload page and confirm both fields still populated
+
+### Part D — Test
+
+- [ ] **D1** Private window → `https://portal.onit.ltd/#/technician/login` → **Microsoft** (not email form)
+- [ ] **D2** Portal → `https://app.onit.ltd` → login as `tom.ashby@onit.ltd` → **SuperOps** tile → technician console
 
 ---
 
 ## Part 1 — SuperOps (before Entra)
 
-### 1.1 Confirm launch host
+### Step A1 — Open Technician SSO (not Requester)
 
-On IT launches technicians to the **same SuperOps host** as requesters (custom CNAME), with a different SPA path:
+1. Sign in to SuperOps MSP console
+2. **Settings → Technician Login**
+3. Click tab **SSO PROTECTED** (not Password Protected)
 
-| Audience | Launch URL |
-|---|---|
-| Requester (clients) | `https://portal.onit.ltd/#/requester/login` |
-| Technician (On IT staff) | `https://portal.onit.ltd/#/technician/login` |
+> **Requester SSO** lives under **Requester Login**. Turning that on does **not** configure technician SSO.
 
-Do **not** launch technicians to `https://app.superops.ai` — that host does not share the custom-domain Technician Login SSO configuration.
+### Step A2 — Enable Global SSO toggle
 
-Portal `.env`:
+1. Under **Global SSO Configurations**, switch **ON** (green)
+2. Do **not** click Save yet if Step 2 is still empty — you will Save after §2.7
+
+### Step A3 — Copy Consumer Service URL
+
+From **Step 1: Consumer service URL**, copy the full **Consumer Service URL**.
+
+**On IT value (confirmed 2026-06-22):**
+
+```
+https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448
+```
+
+> This is **not** the same URL as requester SSO (`portal.onit.ltd/accounts-web/...`). Paste this exact string into Entra Reply URL in §2.3.
+
+SuperOps also reminds you: configure attributes **`email`**, **`firstname`**, **`lastname`** in Entra.
+
+### Step A4 — Portal launch host (no SuperOps change)
+
+On IT portal redirects technicians to:
+
+```
+https://portal.onit.ltd/#/technician/login
+```
+
+Production `.env` (on `app.onit.ltd`):
 
 ```env
 SUPEROPS_SUBDOMAIN=onitltd
 SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
-# Optional override — defaults to same host as requester:
-# SUPEROPS_TECHNICIAN_PORTAL_URL=https://portal.onit.ltd
 SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/technician/login
+SUPEROPS_SSO_ENABLED=true
 ```
-
-### 1.2 Open Technician SSO settings
-
-1. Sign in to SuperOps MSP console
-2. **Settings → Technician Login → SSO**
-3. Keep this page open — you will copy values **to** and **from** here
-
-> Technician Login SSO is **independent** of **Settings → Requester Login → SSO Protected → Global SSO**. Configuring requester SSO does **not** enable technician SSO.
-
-### 1.3 Consumer Service URL (for Entra Reply URL)
-
-From **Settings → Technician Login → SSO** → **Consumer Service URL**.
-
-Copy the exact value shown in SuperOps — it is tenant-specific. On IT uses custom domain `portal.onit.ltd`; the path will resemble:
-
-```
-https://portal.onit.ltd/accounts-web/accounts/saml/response/{id}
-```
-
-If you change CNAME or regenerate SSO in SuperOps, this URL may change — update Entra **Reply URL** to match.
 
 ---
 
-## Part 2 — Microsoft Entra ID (SAML app)
+## Part 2 — Microsoft Entra ID (SAML app #3)
 
-### 2.1 Create enterprise application
+Mirror [SuperOpsRequesterSsoSetup.md §2](SuperOpsRequesterSsoSetup.md) — same clicks, technician values below.
 
-1. [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID**
+### Step B1 — Create enterprise application ← **YOU ARE HERE**
+
+1. Open [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID**
 2. **Enterprise applications** → **+ New application**
-3. **+ Create your own application**
-4. Name: `SuperOps Technician SSO (On IT)` (must be distinct from portal OAuth and requester SAML apps)
-5. Select **Integrate any other application you don't find in the gallery (Non-gallery)**
-6. **Create**
+3. Click **+ Create your own application**
+4. **What's the name of your app?** → `SuperOps Technician SSO (On IT)`
+5. **What are you looking to do?** → select:
+   - **Integrate any other application you don't find in the gallery (Non-gallery)**
+   - Do **not** select "Register an application to integrate with Microsoft Entra ID" (that is for OAuth apps like the portal)
+6. Click **Create**
 
-### 2.2 Assign users (use groups)
+You should land on the new app's **Overview** page.
 
-Entra **Users and groups** controls who may use this SAML app.
+### Step B2 — Start SAML setup
 
-**Recommended:**
+1. Left menu → **Single sign-on**
+2. Click **SAML** (only SAML tile)
+3. You are now on **Set up Single Sign-On with SAML**
 
-1. Create an Entra **security group**, e.g. `SuperOps Technicians` or `On IT - MSP Staff`
-2. Add On IT technicians (e.g. `tom.ashby@onit.ltd`)
-3. Enterprise app → **Users and groups** → **+ Add user/group** → **Groups** tab → select the group → **Assign**
+### Step B3 — Basic SAML configuration
 
-**Who must NOT be assigned:**
-
-Client **requesters**. This app is for **MSP technicians** only. Do not assign `portal.test@onit.ltd` here — that user tests requester SSO with the **requester** SAML app.
-
-### 2.3 Configure SAML
-
-1. **Single sign-on** → **SAML**
-2. **Edit** Basic SAML Configuration:
+1. Click **Edit** on **Basic SAML Configuration**
+2. Fill in:
 
 | Field | Value |
 |---|---|
 | **Identifier (Entity ID)** | `https://superops.ai` |
-| **Reply URL (ACS)** | Consumer Service URL from SuperOps §1.3 |
+| **Reply URL (Assertion Consumer Service URL)** | `https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448` |
 
-3. Mark Entity ID as **default**; remove any other default identifier entries (per SuperOps docs)
-4. **Save**
+3. Mark `https://superops.ai` as **default** identifier
+4. Remove any other default identifier rows (per SuperOps docs)
+5. **Save**
 
-> **Requester vs technician Entity ID:** Requester SSO uses `https://clientuser.superops.ai`. Technician SSO uses `https://superops.ai`. They are **not** interchangeable.
+Compare to requester app (do not mix up):
 
-### 2.4 User attributes & claims
+| App | Entity ID | Reply URL |
+|---|---|---|
+| Requester | `https://clientuser.superops.ai` | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` |
+| **Technician** | `https://superops.ai` | `https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448` |
 
-Click **Edit** on Attributes & Claims. SuperOps requires exact claim names — Entra defaults will not work.
+### Step B4 — User attributes & claims
 
-**Remove or replace** default claims and add **only** these three (**case-sensitive**):
+1. **Attributes & Claims** → **Edit**
+2. Delete default claims (`emailaddress`, `givenname`, `surname`, `name`, etc.)
+3. Add **only** these three (**case-sensitive** names):
 
 | Claim name | Source attribute |
 |---|---|
-| `email` | `user.mail` (or `user.userprincipalname` if mailbox empty) |
+| `email` | `user.mail` (or `user.userprincipalname` if no mailbox) |
 | `firstname` | `user.givenname` |
 | `lastname` | `user.surname` |
 
-Steps in Entra:
-1. **Edit** → delete extra claims (`emailaddress`, `givenname`, `surname`, `name`, etc.)
-2. For each row: **Claim name** = left column, **Source attribute** = right column
-3. **Namespace:** Edit each additional claim → **Namespace** must be **empty** (custom namespace with no URI), so the SAML attribute name is literally `email`
-4. **Save**
+4. For each claim: **Edit** → **Namespace** = **empty** (no URI prefix)
+5. **Save**
 
-**Error 1027** (`Email attribute missing`) means the assertion did not include a claim named exactly `email` — fix Entra claims, not portal code.
+Same as requester SSO — see [SuperOpsRequesterSsoSetup.md §2.4](SuperOpsRequesterSsoSetup.md) if you get **Error 1027**.
 
-### 2.5 Certificate → SuperOps
+### Step B5 — Assign technicians (groups)
 
-1. Entra app → **SAML Certificates** → download **Certificate (Base64)**
-2. Open in Notepad
-3. Copy **only** the certificate body — **no** `-----BEGIN CERTIFICATE-----` / `-----END CERTIFICATE-----` lines
-4. SuperOps → **Settings → Technician Login → SSO → Certificate** → paste → **Save**
+1. Left menu → **Users and groups** → **+ Add user/group**
+2. Create security group **`SuperOps Technicians`** (if not exists) → add `tom.ashby@onit.ltd` and other On IT staff
+3. **Groups** tab → select `SuperOps Technicians` → **Assign**
 
-### 2.6 IDP Login URL → SuperOps
+**Do not assign:**
 
-| Step | Where | Action |
-|---|---|---|
-| 1 | Entra → **SuperOps Technician SSO (On IT)** | Open app |
-| 2 | **Single sign-on** → **SAML** | Scroll to **Set up SuperOps Technician SSO (On IT)** |
-| 3 | Copy **Login URL** | Format: `https://login.microsoftonline.com/{tenant-id}/saml2` |
-| 4 | SuperOps → **Technician Login → SSO** | Paste into **IDP Login URL** |
-| 5 | Click **Save** | Toggle alone is not enough |
+- `portal.test@onit.ltd` (requester test user — belongs on **Requester** SAML app only)
+- Client customer users
 
-**On IT tenant ID (verify in Entra):**
+### Step B6 — Copy Login URL and certificate
+
+Still on **Single sign-on → SAML**, scroll to **Set up SuperOps Technician SSO (On IT)**:
+
+1. Copy **Login URL** — On IT format:
 
 ```
 https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2
 ```
 
-### 2.7 Enable Technician SSO in SuperOps
+2. Under **SAML Certificates** → download **Certificate (Base64)**
+3. Open in Notepad → copy **only** the certificate characters (no `-----BEGIN CERTIFICATE-----` lines)
 
-1. Enable **SSO** for technician login in SuperOps admin
-2. Confirm **IDP Login URL** and **Certificate** are saved (reload page to verify)
-3. When SSO is on, password login for technicians may be disabled (expected)
+Keep both in Notepad for Part C.
 
-### 2.8 Where each URL lives (do not mix up)
-
-| URL | Copy from | Paste into | Never put in |
-|---|---|---|---|
-| **Consumer Service URL** | SuperOps Technician Login SSO | Entra SAML **Reply URL** | Portal `.env` |
-| **Entity ID** `https://superops.ai` | SuperOps docs | Entra SAML **Identifier** | Portal `.env` |
-| **Login URL** `login.microsoftonline.com/.../saml2` | Entra Section 4 | SuperOps **IDP Login URL** | Portal `.env` (causes `AADSTS750054`) |
-| **Certificate (Base64)** | Entra SAML Certificates | SuperOps **Certificate** | Portal `.env` |
-| Technician launch host | — | `SUPEROPS_REQUESTER_PORTAL_URL` (or `SUPEROPS_TECHNICIAN_PORTAL_URL`) | Entra |
+> **Ignore Entra "Test single sign-on"** if it shows Error 1028 — same as requester guide. Test via `portal.onit.ltd/#/technician/login` instead.
 
 ---
 
-## Part 3 — On IT Portal `.env`
+## Part 3 — SuperOps (finish Step 2)
 
-After SuperOps and Entra are linked:
+Return to **Settings → Technician Login → SSO**.
+
+### Step C1 — IDP Login URL
+
+1. **Step 2: Identity provider configuration**
+2. **IDP Login URL** → paste Login URL from B6
+3. Example: `https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2`
+
+### Step C2 — Certificate
+
+1. **Certificate** field → paste certificate body from B6 (no BEGIN/END markers)
+
+### Step C3 — Save and verify
+
+1. Click purple **Save** (top right)
+2. **Reload the page**
+3. Confirm **IDP Login URL** and **Certificate** are still populated (not blank)
+4. Confirm **Global SSO Configurations** still ON
+
+If Step 2 was empty when you tested before, you would see `usauth.superops.ai` **Login with Email** — that is fixed once C1–C3 are saved.
+
+---
+
+## Part 4 — Portal `.env` (app.onit.ltd)
 
 ```env
 SUPEROPS_SUBDOMAIN=onitltd
@@ -199,120 +228,66 @@ SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 ```
 
-**Do not** set `SUPEROPS_SSO_URL` to the Entra Login URL. That URL belongs in **SuperOps admin only**.
+**Never** put the Entra Login URL in `SUPEROPS_SSO_URL` (causes `AADSTS750054`).
 
-`SUPEROPS_PORTAL_URL` (`https://app.superops.ai`) is **not** used for technician SSO launch — it is legacy/reference only.
+After deploy or `.env` change:
 
-Apply config:
-
-```powershell
+```bash
 php artisan config:clear
+php artisan optimize
 ```
 
-### How the portal launch works
-
-1. Technician (`super_admin` or `account_manager`) clicks **SuperOps** on the dashboard
-2. Portal redirects to `https://portal.onit.ltd/?login_hint=…#/technician/login`
-3. SuperOps (Service Provider) sends the user to Entra **with** a `SAMLRequest`
-4. After Microsoft sign-in, user returns to SuperOps as a **technician**
-
-Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAMLRequest will always fail (`AADSTS750054`).
-
----
-
-## Part 4 — Users
-
-### 4.1 SuperOps technicians
-
-Each On IT portal team user must exist in SuperOps as an **MSP technician** with the **same email** as `users.email` in the portal.
-
-1. SuperOps → **Settings → Users** (or team management) → confirm technician exists
-2. Email must match exactly (e.g. `tom.ashby@onit.ltd`)
-
-### 4.2 On IT Portal users
-
-1. Admin → **Users** — role `super_admin` or `account_manager`
-2. Email must match SuperOps technician account
-
-### 4.3 Entra assignment
-
-Add technicians to `SuperOps Technicians` group (or assign directly) on the **Technician SSO** enterprise app — **not** the requester SAML app.
-
----
-
-## Part 5 — Test checklist
-
-### After saving SuperOps Technician SSO (IDP URL + certificate)
-
-- [ ] SuperOps Technician Login **SSO** toggle ON and **Save** clicked
-- [ ] IDP Login URL and Certificate not empty when you reload the page
-
-### SuperOps technician SSO (private browser)
-
-Use **`tom.ashby@onit.ltd`** (`super_admin`) — not `portal.test@onit.ltd` (requester).
-
-- [ ] Open `https://portal.onit.ltd/#/technician/login` — technician login (not role chooser)
-- [ ] Redirects to **Microsoft** (not “Login with Email” / password form)
-- [ ] At Microsoft, confirm **`tom.ashby@onit.ltd`**
-- [ ] Land in SuperOps **technician** MSP console
-
-### On IT Portal (end-to-end)
-
-- [ ] `php artisan config:clear` (no Entra URL in `SUPEROPS_SSO_URL`)
-- [ ] Private/incognito → https://app.onit.ltd/login → **`tom.ashby@onit.ltd`**
-- [ ] Dashboard → **SuperOps** — direct redirect to `portal.onit.ltd/?login_hint=…#/technician/login`
-- [ ] Microsoft → technician MSP console
-
-### Expected flow when working
+### How portal launch works
 
 ```
-Portal (Microsoft login once as tom.ashby@onit.ltd) → Dashboard → SuperOps
-  → portal.onit.ltd/?login_hint=...#/technician/login
-  → Microsoft (session may be silent)
+tom.ashby@onit.ltd → app.onit.ltd/dashboard → SuperOps tile
+  → /integrations/superops/launch
+  → portal.onit.ltd/?login_hint=tom.ashby@onit.ltd#/technician/login
+  → SuperOps sends SAMLRequest → Microsoft
   → SuperOps technician MSP console
 ```
 
-### Negative tests
+---
 
-- [ ] Launch to `app.superops.ai/#/technician/login` → SSO fails or shows email/password (wrong host)
-- [ ] Technician not assigned to Technician SAML app → Entra denies or SuperOps error
-- [ ] `portal.test@onit.ltd` via technician path → should not land as technician (wrong user for this test)
+## Part 5 — Test
+
+### Direct SuperOps test (private/incognito)
+
+1. Open `https://portal.onit.ltd/#/technician/login`
+2. Expect redirect to **Microsoft** — not `usauth.superops.ai` email/password form
+3. Sign in as **`tom.ashby@onit.ltd`**
+4. Land in SuperOps **technician** console
+
+### End-to-end via portal
+
+1. `https://app.onit.ltd/login` → `tom.ashby@onit.ltd`
+2. Dashboard → **SuperOps**
+3. Same Microsoft → technician console flow
+
+---
+
+## Workaround (until Part C is done)
+
+If you need technician access **before** Technician SSO is saved, use the **working requester SAML** path temporarily:
+
+```env
+SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/requester/login
+```
+
+SuperOps maps `tom.ashby@onit.ltd` to technician even on the requester path. Switch back to `/#/technician/login` after Part C is complete.
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
+| Symptom | Cause | Fix |
 |---|---|---|
-| Role chooser appears | Wrong launch path | Use `/#/technician/login` — not `/#/login` |
-| `Login with Email` on technician login | Technician SSO not configured or Step 2 empty | Configure **Technician Login → SSO** in SuperOps; paste IDP URL + cert |
-| Redirect to `app.superops.ai` | Stale portal config or old code | Set `SUPEROPS_REQUESTER_PORTAL_URL`; `config:clear`; deploy latest portal |
-| **Error 1027** — email missing | Entra claims wrong | Fix claims (§2.4); use `user.userprincipalname` if no mailbox |
-| **Error 1028** on Entra Test SSO only | IdP-initiated test | Ignore — test via portal or `/#/technician/login` (SP-initiated) |
-| **Error 1028** on real login | Cert mismatch or wrong Reply URL | Re-download Entra cert; verify Consumer Service URL |
+| `Login with Email` on `usauth.superops.ai` | Step 2 empty in SuperOps Technician SSO | Complete Part C (IDP URL + cert + Save) |
+| Redirect to Microsoft then error | Wrong Reply URL or cert | Re-check B3 values against SuperOps Consumer Service URL |
+| **Error 1027** | Wrong Entra claims | Fix B4 (namespace empty, names `email`/`firstname`/`lastname`) |
+| **Error 1028** on Entra Test only | IdP-initiated test | Ignore — test via `/#/technician/login` |
+| Requester SSO breaks | Reused requester Entra app | Separate apps — see comparison table at top |
 | `AADSTS750054` | Entra Login URL in portal `.env` | Remove from `SUPEROPS_SSO_URL` |
-| Portal shows configuration error | Missing `SUPEROPS_SUBDOMAIN` / requester URL | Set `.env`; `config:clear` |
-| SAML works but access denied | User not a SuperOps technician | Provision technician in SuperOps with matching email |
-| Requester SSO breaks after technician setup | Reused same Entra app | Separate apps — requester Entity ID `clientuser.superops.ai`, technician `superops.ai` |
-
----
-
-## Production (Plesk)
-
-Same steps; update production `.env` on **`app.onit.ltd`**:
-
-```env
-APP_URL=https://app.onit.ltd
-MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
-SUPEROPS_SUBDOMAIN=onitltd
-SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
-SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/technician/login
-SUPEROPS_SSO_ENABLED=true
-```
-
-After Git pull: `php artisan config:clear` and `php artisan optimize`.
-
-See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 ---
 
@@ -322,19 +297,19 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 |---|---|
 | Entra app name | SuperOps Technician SSO (On IT) |
 | Entra tenant ID | `586cc505-d298-4131-a3dc-9d1cd7c5ac0b` |
-| SuperOps Entity ID (Entra) | `https://superops.ai` |
-| Technician launch host | https://portal.onit.ltd |
-| Technician launch path | `/#/technician/login` |
-| Portal launch route | `/integrations/superops/launch` |
-| SuperOps SSO setting path | Settings → Technician Login → SSO |
-| Test user | `tom.ashby@onit.ltd` (`super_admin`) |
-
-> Consumer Service URL and Entra app IDs are copied from SuperOps / Entra admin at setup time — do not hard-code in portal `.env`.
+| SAML Login URL | `https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2` |
+| Entity ID (Entra) | `https://superops.ai` |
+| Reply URL (Entra) | `https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448` |
+| SuperOps settings path | Settings → Technician Login → SSO |
+| Technician launch URL | `https://portal.onit.ltd/#/technician/login` |
+| Test user | `tom.ashby@onit.ltd` |
+| Entra group | `SuperOps Technicians` |
 
 ---
 
 ## Change log
 
-| Date | Author | Notes |
-|---|---|---|
-| 2026-06-22 | On IT | Initial guide — technician SAML app #3, same host as requester, portal launch path |
+| Date | Notes |
+|---|---|
+| 2026-06-22 | Added master checklist, requester comparison, On IT `usauth` Consumer URL, step B1–C3 aligned to screenshots |
+| 2026-06-22 | Initial guide |

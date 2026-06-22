@@ -10,24 +10,43 @@ Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you g
 
 ## Phase A0 — SuperOps Technician SSO (On IT staff)
 
-Detail: [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md)
+**Full guide:** [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) — copy requester setup, different values.
+
+**Why two Entra apps?** Requester Reply URL = `portal.onit.ltd/...` · Technician Reply URL = `usauth.superops.ai/...` · Different Entity IDs. See comparison table in guide.
 
 ### T1. SuperOps — Technician Login SSO
 
-1. **Settings → Technician Login → SSO**
-2. Copy **Consumer Service URL** → Entra Reply URL (T3)
-3. After Entra setup: paste **IDP Login URL** + **Certificate** → **Save**
+1. **Settings → Technician Login → SSO** tab (not Requester Login)
+2. **Global SSO Configurations** → ON
+3. Copy **Consumer Service URL** from Step 1:
+
+```
+https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448
+```
+
+4. Leave Step 2 empty until T2 complete — then paste IDP Login URL + certificate → **Save**
 
 ### T2. Entra — create Technician SAML app
 
-1. **Enterprise applications** → **+ New application** → non-gallery → `SuperOps Technician SSO (On IT)`
-2. **Single sign-on** → **SAML**:
-   - Entity ID: `https://superops.ai`
-   - Reply URL: Consumer Service URL from T1
-3. **Attributes & Claims** — only `email`, `firstname`, `lastname` (see guide §2.4)
-4. **Users and groups** → assign `SuperOps Technicians` group (On IT staff only — not requesters)
+**You are here if creating the app:**
 
-### T3. Portal `.env` (production + local)
+1. Entra → **Enterprise applications** → **+ New application** → **Create your own application**
+2. Name: `SuperOps Technician SSO (On IT)`
+3. Select: **Integrate any other application you don't find in the gallery (Non-gallery)**
+4. Click **Create**
+5. **Single sign-on** → **SAML** → **Edit** Basic configuration:
+   - Identifier: `https://superops.ai`
+   - Reply URL: URL from T1 (usauth URL above)
+6. **Attributes & Claims** → only `email`, `firstname`, `lastname` (empty namespace)
+7. **Users and groups** → assign **`SuperOps Technicians`** group (On IT staff only)
+8. Copy **Login URL** + download **Certificate (Base64)**
+
+### T3. SuperOps — finish Step 2
+
+1. **Technician Login → SSO** → paste **IDP Login URL** + **Certificate** (no BEGIN/END lines)
+2. **Save** → reload page → confirm fields not blank
+
+### T4. Portal `.env` (production)
 
 ```env
 SUPEROPS_SUBDOMAIN=onitltd
@@ -36,13 +55,14 @@ SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/technician/login
 SUPEROPS_SSO_ENABLED=true
 ```
 
-`php artisan config:clear`
+`php artisan config:clear && php artisan optimize`
 
-### T4. Test technician SSO
+### T5. Test
 
-- [ ] Private window → https://app.onit.ltd/login → **`tom.ashby@onit.ltd`**
-- [ ] Dashboard → **SuperOps** → `portal.onit.ltd/?login_hint=…#/technician/login`
-- [ ] Microsoft → SuperOps **technician** MSP console (not email/password form)
+- [ ] `https://portal.onit.ltd/#/technician/login` → **Microsoft** (not Login with Email)
+- [ ] Portal → `tom.ashby@onit.ltd` → **SuperOps** tile → technician console
+
+**Workaround until T3 done:** `SUPEROPS_TECHNICIAN_LOGIN_PATH=/#/requester/login` (uses existing requester SAML)
 
 ---
 
