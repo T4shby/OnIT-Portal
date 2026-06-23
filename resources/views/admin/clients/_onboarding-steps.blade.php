@@ -33,7 +33,7 @@
 
                 <span class="onboarding-guide__copy">
                     <span class="agenda-title">{{ $step['title'] }}</span>
-                    <span class="onboarding-guide__meta">Responsible: {{ $step['who'] }}</span>
+                    <span class="onboarding-guide__meta">{{ $step['who'] }}</span>
                 </span>
 
                 @if($isDone)

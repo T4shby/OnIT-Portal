@@ -131,6 +131,19 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertTrue($step['auto_detected']);
     }
 
+    public function test_checklist_uses_msp_role_labels_not_you(): void
+    {
+        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+
+        $steps = app(ClientOnboardingService::class)->steps($client);
+
+        foreach ($steps as $step) {
+            $this->assertNotSame('You', $step['who']);
+            $this->assertNotSame('M365 admin', $step['who']);
+            $this->assertStringContainsString('On IT technician', $step['who']);
+        }
+    }
+
     public function test_field_helps_include_entra_ids(): void
     {
         $helps = app(ClientOnboardingService::class)->fieldHelps();

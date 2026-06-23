@@ -42,10 +42,12 @@ This guide is **only for each new customer tenant**.
 
 | Person | Typical tasks |
 |--------|----------------|
-| **You (On IT technician)** | SuperOps client, portal client record, sync, test, handoff |
-| **Customer M365 admin** (or you via GDAP) | Security group, admin consent, SCIM app, Client SSO SAML app |
+| **On IT technician (portal / SuperOps)** | SuperOps client, portal client record, Pax8 ID, enable sync, dry-run, test, handoff |
+| **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, admin consent, Client SSO SAML — all in the **customer** tenant |
 
-If you have GDAP on the customer tenant, you can do the M365 steps yourself. Otherwise send them the consent URL and SCIM/SSO instructions from the sections below.
+If GDAP is not available, the customer Global Admin runs admin consent; On IT still owns the checklist until complete.
+
+This is the **same process for every MSP customer** — scale by repeating **Admin → Clients → Edit** per company.
 
 ---
 

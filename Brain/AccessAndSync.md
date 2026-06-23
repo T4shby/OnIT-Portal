@@ -50,12 +50,10 @@ Target membership: **licensed users + shared mailboxes** that should be SuperOps
 
 ## What staff do vs what sync does
 
-| Task | Who |
+| Task | Owner |
 |---|---|
-| Create security group + add SuperOps users | M365 admin |
-| SuperOps SCIM app + group assignment | M365 admin |
-| SuperOps Client SSO (SAML) | M365 admin |
-| Portal client record + Entra tenant ID + sync enabled | Technician |
+| Portal client + SuperOps / Pax8 IDs + sync | On IT technician (portal / SuperOps) |
+| Security group, SCIM, consent, Client SSO | On IT technician (customer Entra / GDAP) |
 | Portal users (licensed + shared mailboxes) | **Automatic** — whole tenant |
 | SuperOps requesters | **Automatic** — SCIM for group members only |
 

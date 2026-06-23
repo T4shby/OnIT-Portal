@@ -13,9 +13,11 @@
         </div>
 
         <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            Work through each step in order. Steps with saved fields on the left complete automatically after you click <strong class="text-white/80">Update</strong>.
-            Steps done in M365 or SuperOps need <strong class="text-white/80">Mark this step complete</strong> when there is nothing left to save here.
-            <strong class="text-white/80">Dry run sync</strong> and <strong class="text-white/80">Sync now</strong> are on the left under Microsoft Entra sync.
+            Per-client checklist for On IT technicians onboarding an MSP customer (repeat for each of your clients).
+            Steps marked <strong class="text-white/80">portal / SuperOps</strong> use app.onit.ltd and the SuperOps MSP console.
+            Steps marked <strong class="text-white/80">customer Entra / GDAP</strong> use portal.azure.com in the customer tenant.
+            Saved fields on the left complete automatically after <strong class="text-white/80">Update</strong>.
+            <strong class="text-white/80">Dry run sync</strong> and <strong class="text-white/80">Sync now</strong> are under Microsoft Entra sync on the left.
         </p>
 
         <div class="onboarding-panel__progress">

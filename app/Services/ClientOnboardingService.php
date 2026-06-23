@@ -6,6 +6,11 @@ use App\Models\Client;
 
 class ClientOnboardingService
 {
+    /** Shown on checklist steps — MSP role labels, not generic "you". */
+    public const RESPONSIBLE_ON_IT_PORTAL = 'On IT technician (portal / SuperOps)';
+
+    public const RESPONSIBLE_ON_IT_CUSTOMER_ENTRA = 'On IT technician (customer Entra / GDAP)';
+
     /** @var list<string> */
     public const MANUAL_CHECKPOINTS = [
         'entra_group_created',
@@ -69,7 +74,7 @@ class ClientOnboardingService
             [
                 'key' => 'portal_client_created',
                 'title' => 'Portal client record',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Client name should match SuperOps.',
                     'Enable SuperOps SSO and Active on the left.',
@@ -83,7 +88,7 @@ class ClientOnboardingService
             [
                 'key' => 'superops_linked',
                 'title' => 'Link SuperOps client',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Open the SuperOps MSP console → Clients → select this customer.',
                     'Copy the Account ID from the URL (e.g. portal.onit.ltd/#/client/3425667307281944576/detail).',
@@ -98,7 +103,7 @@ class ClientOnboardingService
             [
                 'key' => 'pax8_linked',
                 'title' => 'Link Pax8 company (optional)',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Skip if this client does not use the Pax8 licensing tile.',
                     'Pax8 partner portal → Companies → open customer → copy company UUID from the URL.',
@@ -112,7 +117,7 @@ class ClientOnboardingService
             [
                 'key' => 'entra_group_created',
                 'title' => 'M365 security group (SuperOps)',
-                'who' => 'M365 admin',
+                'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'instructions' => $this->entraGroupInstructions($groupName),
                 'complete' => $entraGroupComplete,
                 'manual' => true,
@@ -122,7 +127,7 @@ class ClientOnboardingService
             [
                 'key' => 'superops_scim_configured',
                 'title' => 'SuperOps SCIM (requesters)',
-                'who' => 'M365 admin',
+                'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'instructions' => $this->superOpsScimInstructions($client->name, $groupName),
                 'complete' => (bool) ($checklist['superops_scim_configured'] ?? false),
                 'manual' => true,
@@ -132,7 +137,7 @@ class ClientOnboardingService
             [
                 'key' => 'entra_admin_consent_granted',
                 'title' => 'Portal Graph admin consent',
-                'who' => 'M365 admin',
+                'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'instructions' => array_values(array_filter([
                     'Open portal.azure.com as Global Administrator in the customer tenant (not On IT\'s tenant).',
                     'Use the admin consent URL below (or open it from a ticket to the customer admin).',
@@ -148,7 +153,7 @@ class ClientOnboardingService
             [
                 'key' => 'superops_client_sso_configured',
                 'title' => 'SuperOps Client SSO (SAML)',
-                'who' => 'M365 admin',
+                'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'instructions' => $this->superOpsClientSsoInstructions($client->name, $groupName),
                 'complete' => (bool) ($checklist['superops_client_sso_configured'] ?? false),
                 'manual' => true,
@@ -158,7 +163,7 @@ class ClientOnboardingService
             [
                 'key' => 'portal_sync_configured',
                 'title' => 'Enable portal sync',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => array_values(array_filter([
                     'On the left: paste Entra tenant ID, enable Entra sync, then click Update.',
                     $syncEnabledGlobally ? null : 'Set ENTRA_SYNC_ENABLED=true in server .env first.',
@@ -171,7 +176,7 @@ class ClientOnboardingService
             [
                 'key' => 'portal_sync_run',
                 'title' => 'Run portal sync',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Use Dry run sync, then Sync now (buttons on the left).',
                     'Check Admin → Users — expected users should appear.',
@@ -184,7 +189,7 @@ class ClientOnboardingService
             [
                 'key' => 'login_tested',
                 'title' => 'Test sign-in',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Incognito window. Use a customer work email — not a technician account.',
                     'app.onit.ltd/login → Sign in with Microsoft → dashboard loads.',
@@ -198,7 +203,7 @@ class ClientOnboardingService
             [
                 'key' => 'handed_off',
                 'title' => 'Hand off to customer',
-                'who' => 'You',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
                     'Tell customer: go to https://app.onit.ltd and sign in with Microsoft using work email.',
                 ],

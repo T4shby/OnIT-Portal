@@ -18,7 +18,20 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 ---
 
-## In-app wizard behaviour
+## Who performs each step (MSP — ~100 clients)
+
+Every step is performed by **On IT technicians**. The label shows **where** you work, not a different company.
+
+| Label in app | Where | Examples |
+|--------------|-------|----------|
+| **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
+| **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, admin consent, Client SSO |
+
+If you do not have GDAP on a tenant, send the customer admin the consent URL from step 06 — the checklist owner is still On IT until handed off.
+
+Same playbook for every client: **Admin → Clients → Add → Edit** → work the checklist → next client.
+
+---
 
 | Page | What you see |
 |------|----------------|
