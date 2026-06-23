@@ -29,7 +29,8 @@ Read these documents before changing application code. **Update Brain in the sam
 | [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
 | [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Simple guide for non-technical staff (60-client scale)** |
-| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Primary: in-app setup wizard** (Admin → Clients → Edit) + backup checklist |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Quick pointer** to in-app wizard |
+| [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) | **New customer tenant — full technician guide (start here)** |
 | [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps Entra SCIM per client** |
 | [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
@@ -67,6 +68,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-23 | [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — full new-customer guide; tenant sync + M365 directory |
 | 2026-06-22 | SuperOps Technician SSO guide + ADR-013 update — [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) |
 | 2026-06-19 | SuperOps technician SSO launch for team — [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | 2026-06-19 | Pax8 SSO launch (`pax8_sso`, `/integrations/pax8/launch`, `clients.pax8_company_id`) — [Pax8Integration.md](Pax8Integration.md) |
