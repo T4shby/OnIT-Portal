@@ -22,6 +22,8 @@ M365 security group (per customer tenant)  ←  SOURCE OF TRUTH
 
 ## Per-client setup (e.g. Ductec)
 
+> **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05 (SCIM)** and **07 (Client SSO)** contain the full click-by-click instructions for technicians. This doc is the reference copy.
+
 ### 1. Create the security group in customer Entra
 
 1. Customer tenant (e.g. Ductec) → **Entra ID → Groups**

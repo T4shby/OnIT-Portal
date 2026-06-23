@@ -94,6 +94,18 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertTrue($step['auto_detected']);
     }
 
+    public function test_scim_step_includes_detailed_instructions(): void
+    {
+        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+
+        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_scim_configured')['instructions'];
+
+        $this->assertGreaterThanOrEqual(10, count($instructions));
+        $this->assertStringContainsString('Test Connection', implode(' ', $instructions));
+        $this->assertStringContainsString('Ductec LTD', implode(' ', $instructions));
+    }
+
     public function test_successful_sync_auto_completes_admin_consent_step(): void
     {
         $client = Client::factory()->create([

@@ -135,27 +135,31 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={O
 
 ### 3c — SuperOps SCIM (keeps SuperOps requesters in sync)
 
-1. SuperOps → **Integrations → Microsoft Entra ID → Generate Tokens** → select **this client**.  
+**In-app:** **Admin → Clients → Edit** → checklist step **05 SuperOps SCIM** has the full click-by-click guide (Part A SuperOps, Part B customer Entra).
+
+Summary:
+
+1. SuperOps MSP console → **Integrations → Microsoft Entra ID → Generate Tokens** → select **this client**.  
 2. Copy **Tenant URL** and **Auth Token**.  
-3. Customer Entra → **Enterprise applications → New application** → create a **non-gallery** app (e.g. `SuperOps Provisioning - Acme`).  
-4. **Provisioning → Mode: Automatic**.  
-5. Paste Tenant URL + Secret Token → **Test connection** → **Save**.  
-6. **Users and groups** → assign `On IT Portal - {Company}`.  
-7. Start provisioning (or wait for the sync cycle).
+3. Customer Entra → **Enterprise applications → New application** → non-gallery app (e.g. `SuperOps Provisioning - Acme`).  
+4. **Provisioning → Mode: Automatic** → paste URL + token → **Test connection** → **Save**.  
+5. **Users and groups** → assign `On IT Portal - {Company}`.  
+6. **Start provisioning** → check logs after a few minutes.
 
 Detail: [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
 
 ### 3d — SuperOps Client SSO (customer Microsoft login to SuperOps)
 
-Separate app from SCIM — needed so the **SuperOps** tile works for `@customer.com` users.
+**In-app:** checklist step **07 SuperOps Client SSO (SAML)** has the full guide (separate Entra app from SCIM).
+
+Summary:
 
 1. SuperOps → **Settings → Requester Login → SSO Protected → Client SSO → + Configuration**.  
 2. Copy **Entity ID** and **Consumer Service URL**.  
-3. Customer Entra → **new non-gallery enterprise app** (SAML, not SCIM):  
-   - Identifier + Reply URL from SuperOps  
-   - Claims (lowercase): `email`, `firstname`, `lastname`  
-   - Assign group `On IT Portal - {Company}`  
-4. Copy Entra **Login URL** + certificate into SuperOps Client SSO config → **Save**.
+3. Customer Entra → **new non-gallery SAML app** → paste Identifier + Reply URL.  
+4. Claims (lowercase, empty namespace): `email`, `firstname`, `lastname`.  
+5. Copy Entra **Login URL** + certificate into SuperOps Client SSO → **Save**.  
+6. Assign group `On IT Portal - {Company}`.
 
 Detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) (Client SSO section)
 

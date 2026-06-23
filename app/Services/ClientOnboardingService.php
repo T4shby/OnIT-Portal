@@ -113,13 +113,7 @@ class ClientOnboardingService
                 'key' => 'entra_group_created',
                 'title' => 'M365 security group',
                 'who' => 'M365 admin',
-                'instructions' => [
-                    'In the customer Entra tenant: Entra ID → Groups → New group.',
-                    'Name: '.$groupName,
-                    'Add all users who need portal + SuperOps access.',
-                    'Paste the group Object ID into Entra group ID on the left and click Update.',
-                    'Paste the tenant ID into Entra tenant ID on the left (needed for later steps).',
-                ],
+                'instructions' => $this->entraGroupInstructions($groupName),
                 'complete' => $entraGroupComplete,
                 'manual' => true,
                 'auto_detected' => $entraGroupSaved,
@@ -129,12 +123,7 @@ class ClientOnboardingService
                 'key' => 'superops_scim_configured',
                 'title' => 'SuperOps SCIM (requesters)',
                 'who' => 'M365 admin',
-                'instructions' => [
-                    'SuperOps → Integrations → Microsoft Entra ID → Generate Tokens → select this client.',
-                    'Customer Entra → new enterprise app → Provisioning → Automatic.',
-                    'Paste SuperOps Tenant URL + Auth Token → Test connection → Save.',
-                    'Assign '.$groupName.' to the SCIM app.',
-                ],
+                'instructions' => $this->superOpsScimInstructions($client->name, $groupName),
                 'complete' => (bool) ($checklist['superops_scim_configured'] ?? false),
                 'manual' => true,
                 'auto_detected' => false,
@@ -145,9 +134,11 @@ class ClientOnboardingService
                 'title' => 'Portal Graph admin consent',
                 'who' => 'M365 admin',
                 'instructions' => array_values(array_filter([
-                    'Open the consent link below as Global Admin in the customer tenant.',
-                    'Accept permissions so the portal can read the customer tenant.',
-                    $consentUrl ? null : 'Save the Entra tenant ID on the left to generate the consent link.',
+                    'Open portal.azure.com as Global Administrator in the customer tenant (not On IT\'s tenant).',
+                    'Use the admin consent URL below (or open it from a ticket to the customer admin).',
+                    'Review the permissions list → Accept. This grants the On IT Portal app read access in this tenant for sync and the M365 directory.',
+                    'If the link fails, confirm Entra tenant ID on the left matches the customer tenant and the admin is signed into that tenant.',
+                    $consentUrl ? null : 'Save the Entra tenant ID on the left to generate the consent link here.',
                 ])),
                 'complete' => $adminConsentComplete,
                 'manual' => true,
@@ -158,12 +149,7 @@ class ClientOnboardingService
                 'key' => 'superops_client_sso_configured',
                 'title' => 'SuperOps Client SSO (SAML)',
                 'who' => 'M365 admin',
-                'instructions' => [
-                    'SuperOps → Settings → Requester Login → SSO Protected → Client SSO → + Configuration.',
-                    'Customer Entra → new non-gallery SAML app with Entity ID + Reply URL from SuperOps.',
-                    'Claims (lowercase): email, firstname, lastname.',
-                    'Assign '.$groupName.' to the SSO app.',
-                ],
+                'instructions' => $this->superOpsClientSsoInstructions($client->name, $groupName),
                 'complete' => (bool) ($checklist['superops_client_sso_configured'] ?? false),
                 'manual' => true,
                 'auto_detected' => false,
@@ -221,6 +207,68 @@ class ClientOnboardingService
                 'auto_detected' => false,
                 'blocked' => ! ($checklist['login_tested'] ?? false),
             ],
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function entraGroupInstructions(string $groupName): array
+    {
+        return [
+            'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker — not On IT\'s tenant).',
+            'Microsoft Entra ID → Groups → New group.',
+            'Group type: Security. Name: '.$groupName.'.',
+            'Membership type: Assigned. Add every licensed user who needs the portal and SuperOps (you can add more later).',
+            'Create the group, open it → Overview → copy Object ID → paste into Entra group ID on the left → Update.',
+            'Entra ID → Overview → copy Tenant ID → paste into Entra tenant ID on the left → Update (needed for sync and consent).',
+        ];
+    }
+
+    /**
+     * SCIM provisions SuperOps requesters from M365. This is separate from Client SSO (SAML login).
+     *
+     * @return list<string>
+     */
+    private function superOpsScimInstructions(string $clientName, string $groupName): array
+    {
+        return [
+            'Prerequisite: security group '.$groupName.' must exist in the customer tenant (previous step).',
+            'You will create one Entra enterprise app for SCIM provisioning. Client SSO (step 7) uses a different app.',
+            'Part A — SuperOps (sign in as On IT technician to the MSP console): Integrations → Microsoft Entra ID.',
+            'Find the row for '.$clientName.' → Generate Tokens (create the SuperOps client first if it is missing).',
+            'Copy Tenant URL and Auth Token to Notepad. Use tokens for '.$clientName.' only — not another client\'s row.',
+            'Part B — Customer Entra (portal.azure.com, customer tenant selected): Enterprise applications → New application.',
+            'Create your own application → name e.g. SuperOps Provisioning - '.$clientName.' → Integrate any other application (Non-gallery) → Create.',
+            'Open the new app → Provisioning → Provisioning Mode: Automatic → Save.',
+            'Admin Credentials: Tenant URL = paste from SuperOps; Secret Token = paste Auth Token from SuperOps.',
+            'Test Connection — must succeed. If it fails, re-copy both values and confirm you used '.$clientName.'\'s SuperOps tokens.',
+            'Users and groups → Add user/group → select '.$groupName.' → Assign → Save.',
+            'Provisioning → Start provisioning (if shown). After a few minutes, check Provisioning logs — status should be Success for group members.',
+            'Verify: a user in '.$groupName.' should appear under SuperOps → Clients → '.$clientName.' → Users as a requester (may take one SCIM cycle).',
+        ];
+    }
+
+    /**
+     * Client SSO (SAML) lets customer staff sign into SuperOps with their own Microsoft tenant.
+     *
+     * @return list<string>
+     */
+    private function superOpsClientSsoInstructions(string $clientName, string $groupName): array
+    {
+        return [
+            'This is separate from the SCIM provisioning app (step 5). SCIM creates users; SAML lets them sign in with Microsoft.',
+            'Part A — SuperOps MSP console: Settings → Requester Login → SSO Protected → Client SSO → + Configuration for '.$clientName.'.',
+            'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps — you paste these into Entra in Part B.',
+            'Part B — Customer Entra: Enterprise applications → New application → non-gallery → name e.g. SuperOps SSO - '.$clientName.' → Create.',
+            'Single sign-on → SAML → Edit Basic SAML Configuration: Identifier = Entity ID from SuperOps; Reply URL = Consumer Service URL from SuperOps → Save.',
+            'Attributes & Claims → add three additional claims. Namespace must be empty on each (not the default URI prefix).',
+            'Claim names (exactly lowercase): email → user.mail (use user.userprincipalname if the user has no mailbox); firstname → user.givenname; lastname → user.surname.',
+            'SAML Certificates → download Certificate (Base64). Copy only the certificate body — no BEGIN/END lines.',
+            'Part C — Back in SuperOps Client SSO for '.$clientName.': IDP Login URL = Entra app Overview → Login URL (ends in /saml2); Certificate = paste Base64 body → Save.',
+            'Entra app → Users and groups → assign '.$groupName.' (same group as SCIM).',
+            'Test in a private/incognito window with a customer work email: app.onit.ltd → SuperOps tile → requester view (not the technician role chooser).',
+            'SuperOps reference: support.superops.com — article "Setting up Requester SSO in SuperOps" (Client SSO section).',
         ];
     }
 
