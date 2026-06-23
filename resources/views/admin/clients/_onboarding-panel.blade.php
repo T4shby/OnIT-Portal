@@ -13,18 +13,21 @@
         </div>
 
         <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            Per-client checklist for On IT technicians. <strong class="text-white/80">Not every step is on this page.</strong>
-            Use the checklist for order and ticks; work in the system named on each step.
+            <strong class="text-white/80">Complete start-to-finish onboarding for this customer.</strong>
+            Expand each numbered step below — every URL, click path, and server command is listed there.
+            Work through the steps in order from 00 to 11.
         </p>
-        <ul class="support-list mt-4 mb-5 text-sm portal-body-muted">
-            <li><strong class="text-white/80">app.onit.ltd</strong> (this page) — client fields, consent URL, Dry run / Sync now, checklist ticks</li>
-            <li><strong class="text-white/80">portal.azure.com</strong> (customer tenant) — security group, SuperOps Entra app, admin consent</li>
-            <li><strong class="text-white/80">SuperOps MSP console</strong> — SCIM tokens, Client SSO config, verify requesters</li>
-            <li><strong class="text-white/80">portal.azure.com</strong> (On IT tenant, once per platform) — Graph permissions on OnIT Portal for Portals — already done if all 9 permissions show Granted</li>
-        </ul>
-        <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            <strong class="text-white/80">Entra tenant ID and group ID</strong> are saved with the orange <strong class="text-white/80">Save client</strong> button on the left — not Save checklist.
-            Save checklist only stores manual ticks for steps you finished outside the portal.
+        <p class="portal-body-muted mt-4 max-w-prose text-sm leading-relaxed">
+            <strong class="text-white/80">Recommended order:</strong>
+            Platform Graph (00, once) → Portal record (01) → SuperOps link (02) → Pax8 if used (03) →
+            M365 group in customer Entra (04) → Admin consent (05) → SuperOps SCIM (06) → SuperOps SAML (07) →
+            Enable sync on left (08) → Dry run / Sync now (09) → Test sign-in (10) → Hand off (11).
+        </p>
+        <p class="portal-body-muted mt-4 max-w-prose text-sm leading-relaxed">
+            <strong class="text-white/80">Saving data:</strong>
+            Entra tenant ID, group ID, and sync settings are saved with the orange
+            <strong class="text-white/80">Save client</strong> button on the left — not Save checklist.
+            Save checklist stores manual ticks for steps done in Azure or SuperOps.
         </p>
 
         <div class="onboarding-panel__progress">

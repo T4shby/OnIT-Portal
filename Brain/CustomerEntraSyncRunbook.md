@@ -44,7 +44,7 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
 | 06 Admin consent | **Azure** (customer tenant) | Consent URL on portal checklist → Microsoft login |
 | 07 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 05 |
-| 08 Enable sync | **Portal** | app.onit.ltd — left column fields → Update |
+| 08 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
 | 09 Run sync | **Portal** | Dry run sync / Sync now buttons on left |
 | 10 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
 | 11 Hand off | **Email/ticket** | Tell customer the portal URL |
@@ -94,7 +94,7 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **0** | On IT tenant | Add Graph **Application** permissions + grant consent (once per platform) |
 | **1** | Portal | Client record, SuperOps Account ID |
 | **2** | Customer tenant | Create **empty** security group → copy Object ID |
-| **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Update |
+| **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step 06) |
 | **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group |
 | **6** | Same app | Add SAML (Client SSO) — do **not** create a second app |
@@ -186,7 +186,7 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 | Entra Group ID | Group Object ID from step 2 |
 | Entra sync enabled | ✓ |
 
-Click **Update**.
+Click **Save client**.
 
 ---
 
@@ -327,7 +327,7 @@ php artisan portal:sync-entra-users --client={id}
 | Symptom | Cause | Fix |
 |---------|--------|-----|
 | Consent error `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess` | Azure UI lag after adding permission | **Refresh page**, click Grant admin consent again |
-| No `SuperOps group` line in sync output | `Entra group ID` empty | Paste group Object ID → Update |
+| No `SuperOps group` line in sync output | `Entra group ID` empty | Paste group Object ID → Save client |
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps | Group not assigned to SCIM app; provisioning off | Step 5b |

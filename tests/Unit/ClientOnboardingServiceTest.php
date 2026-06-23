@@ -11,6 +11,34 @@ class ClientOnboardingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_platform_step_includes_graph_permission_commands(): void
+    {
+        $client = Client::factory()->create();
+
+        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'platform_graph_permissions')['instructions'];
+
+        $text = implode(' ', $instructions);
+
+        $this->assertStringContainsString('GroupMember.ReadWrite.All', $text);
+        $this->assertStringContainsString('Grant admin consent', $text);
+        $this->assertStringContainsString('OnIT Portal for Portals', $text);
+    }
+
+    public function test_run_sync_step_includes_server_deploy_commands(): void
+    {
+        $client = Client::factory()->create(['id' => 42]);
+
+        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'portal_sync_run')['instructions'];
+
+        $text = implode(' ', $instructions);
+
+        $this->assertStringContainsString('git pull origin main', $text);
+        $this->assertStringContainsString('--client=42', $text);
+        $this->assertStringContainsString('ENTRA_SYNC_ENABLED=true', $text);
+    }
+
     public function test_admin_consent_url_uses_tenant_and_app_client_id(): void
     {
         config(['services.entra_sync.client_id' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee']);
@@ -41,7 +69,7 @@ class ClientOnboardingServiceTest extends TestCase
         $progress = app(ClientOnboardingService::class)->progress($client);
 
         $this->assertGreaterThanOrEqual(6, $progress['complete']);
-        $this->assertSame(11, $progress['total']);
+        $this->assertSame(12, $progress['total']);
     }
 
     public function test_unsaved_client_does_not_mark_portal_record_complete(): void
