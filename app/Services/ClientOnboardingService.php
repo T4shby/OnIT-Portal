@@ -245,7 +245,8 @@ class ClientOnboardingService
     private function adminConsentInstructions(?string $consentUrl): array
     {
         $lines = [
-            'Where: customer tenant — use the Admin consent URL below (opens Microsoft login). Not the On IT tenant.',
+            'This step is Microsoft only — not Sign in with Microsoft on app.onit.ltd.',
+            'Where: customer tenant — use the Admin consent URL below (login.microsoftonline.com). Not the On IT tenant.',
             'Sign in as Global Administrator of the customer tenant (or GDAP with consent rights).',
             'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
             'Review the permissions list → click Accept.',
