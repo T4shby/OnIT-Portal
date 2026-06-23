@@ -1,23 +1,44 @@
 # Access control and user sync
 
-## Three-way sync — two independent syncs
+## Two syncs — different scopes
 
-**M365 security group = source of truth** (one group per customer tenant, e.g. `On IT Portal - Ductec`).
+**M365 is the source of truth.** The portal and SuperOps each have their own sync — they do **not** use the same membership rule.
 
 ```
-M365 security group
+Customer M365 tenant
         │
-        ├──► Sync 1: SuperOps Entra SCIM     →  requesters in SuperOps
+        ├──► Sync 1: SuperOps SCIM
+        │         Security group members only  →  SuperOps requesters
         │
-        └──► Sync 2: Portal Entra group sync  →  users in app.onit.ltd
+        └──► Sync 2: Portal Entra sync
+                  Whole tenant (licensed users + shared mailboxes)  →  portal users
 ```
 
-| Sync | System | How | Doc |
+| Sync | System | Who gets synced | Doc |
 |---|---|---|---|
-| **1** | SuperOps requesters | SuperOps **Integrations → Entra ID** → SCIM per client | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
-| **2** | Portal users | `portal:sync-entra-users` (hourly) | [EntraGroupSync.md](EntraGroupSync.md) |
+| **1** | SuperOps requesters | Users in security group `On IT Portal - {Company}` | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| **2** | Portal users | **All licensed M365 users** + **shared mailboxes** in the tenant | [EntraGroupSync.md](EntraGroupSync.md) |
 
-**Do not** run a custom SuperOps API provisioner from the portal. SuperOps handles its own leg.
+**Do not** run a custom SuperOps API provisioner from the portal. SuperOps handles its own leg via SCIM.
+
+---
+
+## The security group — what it is for
+
+The group `On IT Portal - {Company}` is **not** how the portal discovers users.
+
+| System | Uses the group? |
+|---|---|
+| **On IT Portal** (`portal:sync-entra-users`) | **No** — reads the whole tenant via Graph. `entra_group_id` on the client record is optional (reference / SCIM). |
+| **SuperOps SCIM** | **Yes** — only group members are provisioned as requesters |
+| **SuperOps Client SSO (SAML)** | **Yes** — assign the same group to the SAML app |
+
+### Adding members to the group
+
+- **Entra ID Free** (e.g. many small tenants): membership type **Assigned** — add users manually when they need SuperOps (`Members → Add`).
+- **Entra ID P1+** (optional): use a **Dynamic user** group with a rule (e.g. licensed users) to avoid manual adds.
+
+New licensed user in M365 → appears in **portal** on next hourly sync automatically. They only appear in **SuperOps** after they are in the security group (manual add or dynamic rule).
 
 ---
 
@@ -25,12 +46,12 @@ M365 security group
 
 | Task | Who |
 |---|---|
-| Create security group + add users | Tom (M365 admin) |
-| SuperOps SCIM app + group assignment | Tom (per customer tenant) |
-| SuperOps Client SSO (SAML) | Tom (once per customer) |
-| Portal client record + Entra group ID | Technician |
-| Portal users | **Automatic** (Sync 2) |
-| SuperOps requesters | **Automatic** (Sync 1) |
+| Create security group + add SuperOps users | M365 admin |
+| SuperOps SCIM app + group assignment | M365 admin |
+| SuperOps Client SSO (SAML) | M365 admin |
+| Portal client record + Entra tenant ID + sync enabled | Technician |
+| Portal users (licensed + shared mailboxes) | **Automatic** — whole tenant |
+| SuperOps requesters | **Automatic** — SCIM for group members only |
 
 ---
 
@@ -38,25 +59,21 @@ M365 security group
 
 | Question | Answer |
 |---|---|
-| Source of truth? | **M365 security group** per customer |
-| Auto-create portal users? | **Yes** — `ENTRA_SYNC_ENABLED=true` + group on client |
-| Auto-create SuperOps requesters? | **Yes** — SuperOps SCIM provisioning per client |
-| Remove user from group? | SCIM deprovisions SuperOps; portal sync deactivates portal user |
-| Disable M365 account? | Microsoft blocks login; both syncs should reflect disabled state |
+| Does the portal scan all licensed users? | **Yes** — tenant-wide sync when `entra_sync_enabled` + admin consent |
+| Do I add everyone to the group for the portal? | **No** — only for SuperOps SCIM / SSO |
+| Auto-create portal users? | **Yes** — hourly `portal:sync-entra-users` |
+| Auto-create SuperOps requesters? | **Yes** — SCIM, but only for **group members** |
+| Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
+| Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
 
 ---
 
 ## Offboarding
 
-**Single action in M365:** remove from security group (or disable account).
-
-| System | Result |
-|---|---|
-| M365 | User blocked / removed from group |
-| SuperOps | SCIM deprovisions requester |
-| Portal | Sync sets `is_active=false` |
-
-Also remove Client SSO app assignment if used separately from the SCIM group.
+| Action | Portal | SuperOps |
+|---|---|---|
+| Remove licence / disable account in M365 | Deactivated on next portal sync | SCIM should deactivate if still in group — prefer remove from group too |
+| Remove from security group only | No change (still licensed) | SCIM deprovisions requester |
 
 ---
 
@@ -65,33 +82,33 @@ Also remove Client SSO app assignment if used separately from the SCIM group.
 ```
 User → app.onit.ltd → Microsoft OAuth
      → portal checks users table (sync-managed)
-     → allowed if active row exists
+     → allowed if active row exists and portal_login_enabled
 ```
 
-On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if API token is set (for embedded `/support` only). It does not create requesters — SCIM does.
+Shared mailboxes sync to the portal for directory/SuperOps records but **cannot** sign in (`portal_login_enabled=false`).
+
+On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if API token is set. It does not create requesters — SCIM does.
 
 ---
 
-## What is built (portal — Sync 2 only)
+## What is built (portal — Sync 2)
 
 | Piece | Status |
 |---|---|
-| `entra_tenant_id` + `entra_group_id` on clients | ✅ |
-| `portal:sync-entra-users` | ✅ Portal users only |
-| Admin dry-run / sync now | ✅ |
-| In-app client setup wizard | ✅ Admin → Clients → Edit |
-| SuperOps requester provisioning | ✅ **SuperOps SCIM** (not portal code) |
+| `entra_tenant_id` on clients (required for sync) | ✅ |
+| `entra_group_id` optional (SCIM reference, not portal scope) | ✅ |
+| `portal:sync-entra-users` | ✅ Tenant-wide |
+| SuperOps requester provisioning | ✅ SuperOps SCIM (Sync 1) |
 
 ---
 
-## Related documents
+## Related docs
 
-| Doc | Purpose |
+| Doc | Topic |
 |---|---|
-| [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | Sync 1 — SCIM setup per client |
-| [EntraGroupSync.md](EntraGroupSync.md) | Sync 2 — portal setup |
-| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | In-app wizard + backup checklist |
-| [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | SAML / Client SSO |
+| [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | Sync 1 — SCIM per client |
+| [EntraGroupSync.md](EntraGroupSync.md) | Sync 2 — portal tenant sync |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | In-app wizard |
 
 ---
 
@@ -99,6 +116,5 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 
 | Date | Change |
 |---|---|
-| 2026-06-19 | Two-sync model: SuperOps SCIM + portal group sync; removed portal SuperOps API provisioner |
-| 2026-06-19 | In-app client setup wizard; Brain docs point to Admin → Clients → Edit |
-| 2026-06-16 | Initial doc |
+| 2026-06-16 | Clarify portal = whole tenant; group = SuperOps SCIM/SSO only (not portal scope) |
+| 2026-06-19 | Two-sync model documented |

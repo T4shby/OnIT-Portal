@@ -11,9 +11,9 @@
 
 **Rule:** Work email must match in M365, SuperOps, and the portal.
 
-**Portal sync (automatic):** Licensed users + shared mailboxes in the **customer tenant** → portal users (`Jane Smith (User)` / `Name (Shared Mailbox)`).
+**Portal sync (automatic):** Whole tenant — licensed users + shared mailboxes → portal users. **No group membership required for portal.**
 
-**SuperOps sync (SCIM):** M365 security group `On IT Portal - {Company}` → SuperOps requesters.
+**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` members only → SuperOps requesters. Add users to the group manually (Assigned) or use a Dynamic group on Entra ID P1.
 
 **Client admins:** **Microsoft 365** menu → read-only directory (people + groups).
 

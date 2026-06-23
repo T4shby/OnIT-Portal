@@ -100,16 +100,15 @@ If you have GDAP on the customer tenant, you can do the M365 steps yourself. Oth
 
 These steps happen in the **customer's** Microsoft Entra tenant — **not** On IT's `@onit.ltd` tenant.
 
-### 3a — Security group
+### 3a — Security group (SuperOps SCIM + SSO — not portal user discovery)
 
-1. Open [Azure Portal](https://portal.azure.com) → switch to the **customer** directory (top-right).  
-2. **Microsoft Entra ID → Groups → New group**.  
-3. Name: `On IT Portal - {Company}` (e.g. `On IT Portal - Acme Ltd`).  
-4. Type: **Security**.  
-5. Add members who should use **portal + SuperOps** (licensed users).  
-   - Add **shared mailboxes** to this group only if they need to appear as SuperOps requesters for ticketing.  
-6. Copy **Tenant ID** (Entra → Overview) and the group **Object ID** (open group → Overview).  
-7. Send both IDs to yourself / paste into the portal in Part 5.
+1. Open [Azure Portal](https://portal.azure.com) → switch to the **customer** directory (top-right, e.g. **Ductec Ltd**).  
+2. **Microsoft Entra ID → Manage → Groups → New group**.  
+3. Name: `On IT Portal - {Company}` (e.g. `On IT Portal - Ductec LTD`). Type: **Security**.  
+4. **Portal vs group:** the portal syncs **all licensed users in the tenant** automatically (Part 4). You do **not** add people to this group for portal login.  
+5. **Add to the group:** users who need **SuperOps** (tickets / requester portal). Membership type **Assigned** = pick members manually (normal on Entra ID Free).  
+6. Optional: **Entra ID P1** customers can use a **Dynamic user** group with a licence rule instead of manual adds.  
+7. Copy group **Object ID** → portal **Entra group ID**. Copy **Tenant ID** from Entra → Overview → portal **Entra tenant ID**.
 
 ### 3b — Admin consent (Graph API)
 

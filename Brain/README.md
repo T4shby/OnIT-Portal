@@ -68,7 +68,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
-| 2026-06-16 | Expanded in-app SCIM and Client SSO checklist steps; Brain docs cross-linked |
+| 2026-06-16 | Clarify portal syncs whole tenant; security group is SuperOps SCIM/SSO only |
 | 2026-06-23 | [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — full new-customer guide; tenant sync + M365 directory |
 | 2026-06-22 | SuperOps Technician SSO guide + ADR-013 update — [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) |
 | 2026-06-19 | SuperOps technician SSO launch for team — [SuperOpsIntegration.md](SuperOpsIntegration.md) |

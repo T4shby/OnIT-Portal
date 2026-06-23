@@ -26,10 +26,12 @@ M365 security group (per customer tenant)  ←  SOURCE OF TRUTH
 
 ### 1. Create the security group in customer Entra
 
-1. Customer tenant (e.g. Ductec) → **Entra ID → Groups**
+Used for **SuperOps SCIM and Client SSO** — not for portal user discovery (portal syncs the whole tenant).
+
+1. Customer tenant (e.g. Ductec) → **Entra ID → Manage → Groups**
 2. Create security group: `On IT Portal - {Company}`
-3. Add all users who need portal + SuperOps access
-4. This group is assigned to **both** provisioning apps below
+3. Add users who need **SuperOps** (Assigned membership = manual pick on Entra ID Free)
+4. Assign this group to the SCIM app and Client SSO SAML app (below)
 
 ### 2. SuperOps — generate SCIM credentials
 

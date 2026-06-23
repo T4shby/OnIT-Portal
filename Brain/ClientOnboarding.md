@@ -34,7 +34,7 @@ The checklist does not appear until the client is saved. After Create you land o
 | Portal client record | Client exists (you are on Edit) | — |
 | SuperOps linked | `SuperOps Account ID` saved | — |
 | Pax8 linked (optional) | Pax8 off, or company ID saved | — |
-| M365 security group | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
+| M365 security group (SuperOps) | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
 | SuperOps SCIM | — | Done in SuperOps + customer Entra |
 | Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
 | SuperOps Client SSO (SAML) | — | SAML app configured in customer Entra |
@@ -43,7 +43,7 @@ The checklist does not appear until the client is saved. After Create you land o
 | Test sign-in | — | You tested in incognito |
 | Hand off | — | Customer notified |
 
-**Rule:** If a step shows **Done**, you will not see “Mark this step complete” for it. Saving tenant ID alone does **not** complete the security group step — paste **Entra group ID** or tick manually.
+**Rule:** Portal sync reads the **whole tenant** (licensed users + shared mailboxes) — you do **not** add everyone to the security group for portal access. The group is for **SuperOps SCIM and Client SSO** only. Add members manually (Assigned) or use a Dynamic group if the customer has Entra ID P1.
 
 **Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 

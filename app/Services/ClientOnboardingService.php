@@ -111,7 +111,7 @@ class ClientOnboardingService
             ],
             [
                 'key' => 'entra_group_created',
-                'title' => 'M365 security group',
+                'title' => 'M365 security group (SuperOps)',
                 'who' => 'M365 admin',
                 'instructions' => $this->entraGroupInstructions($groupName),
                 'complete' => $entraGroupComplete,
@@ -216,12 +216,14 @@ class ClientOnboardingService
     private function entraGroupInstructions(string $groupName): array
     {
         return [
-            'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker — not On IT\'s tenant).',
-            'Microsoft Entra ID → Groups → New group.',
-            'Group type: Security. Name: '.$groupName.'.',
-            'Membership type: Assigned. Add every licensed user who needs the portal and SuperOps (you can add more later).',
-            'Create the group, open it → Overview → copy Object ID → paste into Entra group ID on the left → Update.',
-            'Entra ID → Overview → copy Tenant ID → paste into Entra tenant ID on the left → Update (needed for sync and consent).',
+            'Open portal.azure.com → switch to the customer tenant (top-right — e.g. Ductec Ltd, not On IT).',
+            'Microsoft Entra ID → Manage → Groups → New group.',
+            'Group type: Security. Group name: '.$groupName.'. Description: optional.',
+            'Do not confuse two syncs: the On IT Portal scans the whole tenant for licensed users automatically (step 9–10). This group is for SuperOps only.',
+            'Membership type: Assigned (normal on Entra ID Free). Add people who need SuperOps tickets — click Members → add each work account. You do not add people here just for portal login.',
+            'Optional: if the customer has Entra ID P1, you can use Dynamic user membership with a licence rule instead of manual adds.',
+            'Create the group → open it → Overview → copy Object ID → paste into Entra group ID on the left → Update.',
+            'Microsoft Entra ID → Overview → copy Tenant ID → paste into Entra tenant ID on the left → Update (portal sync + admin consent).',
         ];
     }
 

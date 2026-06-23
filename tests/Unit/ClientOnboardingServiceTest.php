@@ -106,6 +106,18 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Ductec LTD', implode(' ', $instructions));
     }
 
+    public function test_group_step_clarifies_portal_vs_superops_scope(): void
+    {
+        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'entra_group_created')['instructions']);
+
+        $this->assertStringContainsString('Manage → Groups', $text);
+        $this->assertStringContainsString('whole tenant', $text);
+        $this->assertStringContainsString('SuperOps', $text);
+    }
+
     public function test_successful_sync_auto_completes_admin_consent_step(): void
     {
         $client = Client::factory()->create([
