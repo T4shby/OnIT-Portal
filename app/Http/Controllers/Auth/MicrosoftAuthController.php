@@ -56,6 +56,7 @@ class MicrosoftAuthController extends Controller
 
             Log::warning('Microsoft OAuth error redirect', [
                 ...$this->oauthDiagnostics($request),
+                'full_url' => $request->fullUrl(),
                 'microsoft_error' => $request->input('error'),
                 'description' => $description,
             ]);
@@ -64,6 +65,17 @@ class MicrosoftAuthController extends Controller
                 ->with('error', $this->publicOAuthErrorMessage(
                     new \RuntimeException('Microsoft sign-in was rejected: '.$description)
                 ));
+        }
+
+        if (! $request->filled('code')) {
+            Log::warning('Microsoft OAuth callback missing authorization code', [
+                ...$this->oauthDiagnostics($request),
+                'full_url' => $request->fullUrl(),
+                'query_keys' => array_keys($request->query()),
+            ]);
+
+            return redirect()->route('login')
+                ->with('error', $this->missingAuthorizationCodeMessage());
         }
 
         try {
@@ -188,6 +200,10 @@ class MicrosoftAuthController extends Controller
             return $this->sessionLostMessage();
         }
 
+        if (str_contains($haystack, 'aadsts900144') || str_contains($haystack, "parameter: 'code'")) {
+            return $this->missingAuthorizationCodeMessage();
+        }
+
         if (str_contains($haystack, 'invalid_client') || str_contains($haystack, '7000215')) {
             return 'Microsoft client secret is invalid or expired. In Entra → OnIT Portal for Portals → Certificates & secrets, create a new secret, update MICROSOFT_CLIENT_SECRET in server .env, then php artisan config:clear.';
         }
@@ -228,6 +244,13 @@ class MicrosoftAuthController extends Controller
         }
 
         return $body !== '' ? $body : null;
+    }
+
+    private function missingAuthorizationCodeMessage(): string
+    {
+        return 'Microsoft did not return a sign-in code to the portal. '
+            .'Open https://app.onit.ltd/login in a normal browser window (no private browsing, VPN off), click Sign in with Microsoft once, and wait — do not refresh, go back, or open multiple login tabs. '
+            .'In Entra → OnIT Portal for Portals → Authentication, the redirect URI must be Web (not SPA): '.config('services.azure.redirect');
     }
 
     private function sessionLostMessage(): string
