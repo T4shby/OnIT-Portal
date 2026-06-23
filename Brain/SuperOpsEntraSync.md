@@ -100,7 +100,7 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 |---|---|
 | **On IT Portal** users | Portal sync — [EntraGroupSync.md](EntraGroupSync.md) |
 | **Portal login** (OAuth) | On IT Portal app — separate from SCIM app |
-| **SuperOps SSO login** (SAML) | Client SSO enterprise app — separate from SCIM app |
+| **SuperOps SSO login** (SAML) | Same **SuperOps - {Company}** app as SCIM (default) — see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 
 You may have **two** Entra enterprise apps per customer tenant (plus On IT Portal OAuth in On IT's tenant):
 
@@ -141,5 +141,6 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 ## Change log
 
 | Date | Change |
-|---|---|
+|------|--------|
+| 2026-06-19 | Auto-maintain group; single app SCIM+SAML default; link to [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-06-19 | Document two-sync model; SuperOps SCIM per client (Ductec, On IT) |

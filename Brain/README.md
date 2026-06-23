@@ -34,6 +34,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps Entra SCIM per client** |
 | [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
+| [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete re-do guide — permissions, group, SCIM, SAML, deploy, troubleshooting** |
 | [PortalLinks.md](PortalLinks.md) | Link types and resolution |
 | [DatabaseSchema.md](DatabaseSchema.md) | Tables, columns, tenant rules |
 | [CustomerJourney.md](CustomerJourney.md) | End-to-end user flows |

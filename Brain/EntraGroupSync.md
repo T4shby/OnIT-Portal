@@ -76,33 +76,53 @@ Edit server `.env` (see [Step 4](#step-4-server-env) below). Set `ENTRA_SYNC_ENA
 
 ## Step 1: Add Graph permissions to the Portal OAuth app (On IT tenant)
 
-Do this in **your** Entra tenant (where the app registration lives — On IT Technology Partners).
+**Full click-by-click instructions:** [CustomerEntraSyncRunbook.md § Step 0](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time)
 
-1. [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations**
-2. Open **On IT Portal** (the app whose Client ID is in `MICROSOFT_CLIENT_ID`)
-3. **API permissions** → **Add a permission**
-4. **Microsoft Graph** → **Application permissions** (not Delegated)
-5. Add:
+Do this in **On IT Technology Partners LTD** (not the customer tenant).
+
+| Item | Production value |
+|------|------------------|
+| App registration name | **OnIT Portal for Portals** |
+| Matches `.env` | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
+
+### Summary
+
+1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
+2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
+3. Add all five Application permissions:
    - `User.Read.All`
    - `LicenseAssignment.Read.All`
    - `MailboxSettings.Read`
    - `Group.Read.All`
    - `GroupMember.ReadWrite.All`
-6. **Add permissions**
-7. **Grant admin consent for On IT Technology Partners** (green tick on your home tenant)
+4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
-You should now see **two types** of permissions on the app:
+### Expected result
 
-| Type | Examples | Used for |
-|---|---|---|
-| Delegated | `openid`, `User.Read` | User login (unchanged) |
-| Application | `User.Read.All`, `LicenseAssignment.Read.All`, `MailboxSettings.Read`, `Group.Read.All`, `GroupMember.ReadWrite.All` | Background sync + M365 directory + SuperOps group membership |
+| Type | Permissions | Status |
+|------|-------------|--------|
+| Delegated (4) | email, openid, profile, User.Read | Granted |
+| Application (5) | User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All | Granted |
+
+### Consent error fix
+
+If **Grant admin consent** fails with:
+
+> `GroupMember.ReadWrite.All does not exist in client application's RequiredResourceAccess`
+
+1. **Refresh the browser page** (F5)
+2. Confirm all five Application permissions are still listed
+3. Click **Grant admin consent** again
+
+No manifest edit or PowerShell required — refresh fixed this in production (June 2026).
 
 ---
 
 ## Step 2: Admin consent in each customer tenant
 
-Application permissions only work in a customer tenant after **that tenant's** admin grants consent.
+**Order:** Complete [Step 1](#step-1-add-graph-permissions-to-the-portal-oauth-app-on-it-tenant) in On IT tenant **before** customer consent, so `GroupMember.ReadWrite.All` is included.
+
+**Full sequence:** [CustomerEntraSyncRunbook.md — Order of operations](CustomerEntraSyncRunbook.md#order-of-operations-do-in-this-sequence)
 
 For each client you sync (start with your 100-user pilot tenant):
 
@@ -147,7 +167,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 | Field | Value |
 |---|---|
 | Entra tenant ID | Customer tenant GUID (required for sync) |
-| Entra group ID | Optional — SCIM group reference; portal sync does not require it |
+| Entra group ID | Security group Object ID — **required** for automatic SuperOps group membership |
 | Entra sync enabled | ✓ |
 
 Save with **Update**. Use **Dry run sync** and **Sync now** on the left, or tick manual steps on the right and **Save checklist**.
@@ -160,6 +180,7 @@ Add or set on the server (then `php artisan config:clear`):
 
 ```env
 ENTRA_SYNC_ENABLED=true
+ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
 
 MICROSOFT_CLIENT_ID=your-portal-app-client-id
 MICROSOFT_CLIENT_SECRET=your-portal-app-secret
@@ -182,7 +203,7 @@ php artisan portal:sync-entra-users --client={id} --dry-run
 php artisan portal:sync-entra-users --client={id}
 ```
 
-Check **Admin → Users**. Expect users matching group membership.
+Check **Admin → Users**. Expect licensed users + shared mailboxes from the **whole tenant**. If `entra_group_id` is set, sync output also shows `SuperOps group: +N / -M members`.
 
 ---
 
@@ -218,16 +239,20 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | `Entra sync is disabled` | Set `ENTRA_SYNC_ENABLED=true`; `php artisan config:clear` |
 | `Failed to obtain Graph token` | Admin consent not granted in **that customer** tenant |
 | `Microsoft Graph request failed: 403` | Missing Application permissions or consent not granted in customer tenant |
+| `SuperOps group sync failed` / group 403 | Add `GroupMember.ReadWrite.All`; re-consent in customer tenant — see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
+| Consent: `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess` | **Refresh Azure page**, grant consent again — see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | `Microsoft Graph credentials are not configured` | `MICROSOFT_CLIENT_ID` / `SECRET` missing in `.env` |
 | Buttons missing on client edit | Branch not deployed; run `migrate`; save tenant + group + sync enabled |
 | Email belongs to another client | Duplicate email across clients; resolve manually |
-| User not in portal after sync | Not in group, no valid mail/UPN, or sync not enabled on client |
-| User not in SuperOps | Check SCIM provisioning — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| User not in portal after sync | Unlicensed (and not shared mailbox), no valid mail/UPN, or sync not enabled |
+| User not in SuperOps | Group not filled / not assigned to SCIM app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 
 ---
 
 ## Related
 
+- [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) — **complete re-do from scratch**
 - [Authentication.md](Authentication.md) — portal OAuth app (app #1)
 - [SuperOpsEntraSync.md](SuperOpsEntraSync.md) — Sync 1 (SCIM requesters)
 - [Deployment.md](Deployment.md) — Plesk deploy and updates

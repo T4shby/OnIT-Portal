@@ -105,7 +105,9 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 | Piece | Status |
 |---|---|
 | `entra_tenant_id` on clients (required for sync) | ✅ |
-| `entra_group_id` optional (SCIM reference, not portal scope) | ✅ |
+| `entra_group_id` on clients (required for auto SuperOps group maintain) | ✅ |
+| `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP` (default true) | ✅ |
+| Auto-maintain SCIM group via `GroupMember.ReadWrite.All` | ✅ |
 | `portal:sync-entra-users` | ✅ Tenant-wide |
 | SuperOps requester provisioning | ✅ SuperOps SCIM (Sync 1) |
 
@@ -115,6 +117,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 
 | Doc | Topic |
 |---|---|
+| [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete re-do — permissions, group, SCIM, SAML, deploy** |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | Sync 1 — SCIM per client |
 | [EntraGroupSync.md](EntraGroupSync.md) | Sync 2 — portal tenant sync |
 | [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | In-app wizard |
@@ -125,5 +128,6 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 
 | Date | Change |
 |---|---|
+| 2026-06-19 | Auto-maintain group; single SuperOps app; [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-06-16 | Clarify portal = whole tenant; group = SuperOps SCIM/SSO only (not portal scope) |
 | 2026-06-19 | Two-sync model documented |

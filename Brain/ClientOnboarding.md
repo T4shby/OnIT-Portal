@@ -11,6 +11,7 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 | [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **In-app wizard + backup checklist** |
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Give this to staff adding clients/users (simple)** |
 | [AccessAndSync.md](AccessAndSync.md) | **Auto-sync, offboarding, 60-tenant scale** |
+| [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete Entra/SCIM/SAML re-do from scratch** |
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | One-time Entra SAML + SuperOps Global SSO |
 | [OperatorRunbook.md](OperatorRunbook.md) | Phase A test, day-to-day ops |
 | [Authentication.md](Authentication.md) | Portal OAuth (app #1) |

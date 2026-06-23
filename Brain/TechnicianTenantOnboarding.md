@@ -13,7 +13,9 @@
 
 **Portal sync (automatic):** Whole tenant — licensed users + shared mailboxes → portal users. **No group membership required for portal.**
 
-**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` members only → SuperOps requesters. Add users to the group manually (Assigned) or use a Dynamic group on Entra ID P1.
+**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` — portal **auto-fills** members when `entra_group_id` is set. One Entra app `SuperOps - {Company}` for SCIM + SAML.
+
+**Full runbook:** [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
 **Client admins:** **Microsoft 365** menu → read-only directory (people + groups).
 

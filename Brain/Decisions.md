@@ -243,3 +243,18 @@ Pax8 partner auth runs through Auth0 at `login.pax8.com`. `login_hint` pre-fills
 
 Consequences:
 Technician launch URL: `https://app.pax8.com/login?login_hint=…`. Operator must configure Pax8 Enterprise SSO (Primary Partner Admin, DNS TXT, Finalize) and matching Pax8 app users with UPN aligned to Microsoft. Portal enforces `app.pax8.com` for federation (falls back if `.env` uses unsupported custom URL). Customer SSO remains `login_hint` + company deep link until Pax8 ships customer IdP SSO. Documented in [Pax8Integration.md](Pax8Integration.md) and [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md).
+
+---
+
+## ADR-018
+
+Date: 2026-06-19
+
+Decision:
+(1) Portal sync **auto-maintains** the customer security group via Graph (`GroupMember.ReadWrite.All`) when `entra_group_id` is set — technicians create an **empty** Assigned group only. (2) Default customer SuperOps setup is **one** Entra enterprise app (`SuperOps - {Company}`) with SCIM provisioning and Client SSO (SAML) on the same object; assign the group once.
+
+Reason:
+Manual group membership and separate SCIM/SSO apps do not scale to ~100 MSP clients. Entra SCIM still requires an app assignment scope; auto-maintain removes bulk-add/PowerShell. Microsoft Entra supports SAML + provisioning on one enterprise app; SuperOps exposes separate wizards but not separate apps as a requirement.
+
+Consequences:
+`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true` (default). Onboarding checklist and [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) document order of operations, consent refresh fix, and validation steps. Legacy: dynamic groups (`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false`) or two-app fallback if single-app fails.
