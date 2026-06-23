@@ -81,6 +81,7 @@ return [
         'enabled' => env('ENTRA_SYNC_ENABLED', false),
         'client_id' => env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID')),
         'client_secret' => env('ENTRA_SYNC_CLIENT_SECRET', env('MICROSOFT_CLIENT_SECRET')),
+        'directory_cache_minutes' => env('ENTRA_DIRECTORY_CACHE_MINUTES', 15),
     ],
 
 ];

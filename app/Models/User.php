@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EntraIdentityType;
 use App\Enums\UserProvisionSource;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,12 +17,14 @@ class User extends Authenticatable
     protected $fillable = [
         'client_id',
         'entra_object_id',
+        'entra_identity_type',
         'superops_user_id',
         'microsoft_tokens',
         'email',
         'name',
         'role',
         'is_active',
+        'portal_login_enabled',
         'provisioned_by',
         'last_login_at',
         'entra_synced_at',
@@ -32,8 +35,10 @@ class User extends Authenticatable
     {
         return [
             'role' => UserRole::class,
+            'entra_identity_type' => EntraIdentityType::class,
             'provisioned_by' => UserProvisionSource::class,
             'is_active' => 'boolean',
+            'portal_login_enabled' => 'boolean',
             'last_login_at' => 'datetime',
             'entra_synced_at' => 'datetime',
             'superops_synced_at' => 'datetime',

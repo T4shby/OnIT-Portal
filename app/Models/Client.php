@@ -41,8 +41,7 @@ class Client extends Model
     public function hasEntraSyncConfigured(): bool
     {
         return $this->entra_sync_enabled
-            && filled($this->entra_tenant_id)
-            && filled($this->entra_group_id);
+            && filled($this->entra_tenant_id);
     }
 
     public function users(): HasMany

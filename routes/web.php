@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientMicrosoft365DirectoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\NoticeController;
 use App\Http\Controllers\Admin\OpportunityController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Microsoft365DirectoryController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
 use App\Http\Controllers\Integrations\SuperOpsLaunchController;
 use App\Http\Controllers\SupportController;
@@ -47,12 +49,18 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:integrations-launch')
         ->name('integrations.pax8.launch');
 
+    Route::get('/microsoft-365/directory', [Microsoft365DirectoryController::class, 'index'])
+        ->middleware('can:view-m365-directory')
+        ->name('microsoft-365.directory');
+
     Route::prefix('admin')
         ->name('admin.')
         ->middleware('role:'.implode(',', UserRole::adminRoles()))
         ->group(function () {
             Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+            Route::get('clients/{client}/microsoft-365', [ClientMicrosoft365DirectoryController::class, 'show'])
+                ->name('clients.microsoft-365');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->name('clients.sync-entra');

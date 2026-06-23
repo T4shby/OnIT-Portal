@@ -53,7 +53,7 @@ class ClientOnboardingService
         $groupName = 'On IT Portal - '.$client->name;
 
         $superopsLinked = filled($client->superops_account_id);
-        $entraIdsSaved = filled($client->entra_tenant_id) && filled($client->entra_group_id);
+        $entraIdsSaved = filled($client->entra_tenant_id);
         $syncConfigured = $client->hasEntraSyncConfigured();
         $syncRun = $client->entra_synced_at !== null;
         $syncEnabledGlobally = (bool) config('services.entra_sync.enabled');
@@ -248,17 +248,19 @@ class ClientOnboardingService
                 'This is the customer\'s M365 directory — not On IT\'s tenant.',
             ],
             'entra_group_id' => [
-                'In the same customer tenant: Entra ID → Groups.',
-                'Create or open the group: On IT Portal - {Company name}.',
-                'Open the group → copy Object ID from the overview blade.',
-                'Add all users who need portal + SuperOps access to this group.',
-                'The same group is used for SuperOps SCIM and portal sync.',
+                'Optional for portal sync — still recommended for SuperOps SCIM group assignment.',
+                'In the customer tenant: Entra ID → Groups → On IT Portal - {Company name}.',
+                'Copy Object ID if you use a group to scope who gets SuperOps SCIM provisioning.',
+                'Portal sync now reads the whole tenant: licensed users and shared mailboxes.',
             ],
             'entra_sync_enabled' => [
-                'Turn on after Entra tenant ID and group ID are saved.',
-                'When enabled, the portal reads group members and creates/deactivates users automatically.',
-                'SuperOps requesters are still managed by SuperOps SCIM (separate setup in the checklist).',
-                'Use Dry run sync first, then Sync now, after admin consent is granted in the customer tenant.',
+                'Turn on after Entra tenant ID is saved (group ID optional for portal sync).',
+                'Syncs licensed M365 users and shared mailboxes from the customer tenant.',
+                'Display names are formatted as Jane Smith (User) or Accounts (Shared Mailbox).',
+                'Shared mailboxes are synced for SuperOps records but cannot sign in to the portal.',
+                'Client admins can browse the Microsoft 365 directory in the portal (People + Groups).',
+                'Graph permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All.',
+                'Use Dry run sync first, then Sync now, after admin consent is granted.',
             ],
         ];
     }

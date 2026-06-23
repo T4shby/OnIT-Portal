@@ -91,6 +91,11 @@ class MicrosoftAuthController extends Controller
                 ->with('error', 'Your account has been deactivated. Please contact your administrator.');
         }
 
+        if ($user->portal_login_enabled === false) {
+            return redirect()->route('login')
+                ->with('error', 'This account cannot sign in to the portal. Shared mailboxes are synced for support records only — please use your personal work account.');
+        }
+
         $user->update([
             'entra_object_id' => $microsoftUser->getId(),
             'name' => $microsoftUser->getName() ?? $user->name,

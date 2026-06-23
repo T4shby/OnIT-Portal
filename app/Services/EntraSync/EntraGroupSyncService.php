@@ -2,6 +2,7 @@
 
 namespace App\Services\EntraSync;
 
+use App\Enums\EntraIdentityType;
 use App\Enums\UserProvisionSource;
 use App\Enums\UserRole;
 use App\Models\Client;
@@ -9,7 +10,6 @@ use App\Models\User;
 use App\Services\ExternalServicesService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Throwable;
 
 class EntraGroupSyncService
@@ -34,12 +34,9 @@ class EntraGroupSyncService
         }
 
         try {
-            $graphUsers = $this->graph->listGroupUsers(
-                $client->entra_tenant_id,
-                $client->entra_group_id,
-            );
+            $graphUsers = $this->graph->listSyncEligibleUsers($client->entra_tenant_id);
         } catch (Throwable $e) {
-            Log::error('Entra group sync failed to read Graph', [
+            Log::error('Entra tenant sync failed to read Graph', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
@@ -65,11 +62,20 @@ class EntraGroupSyncService
                 continue;
             }
 
+            $identityType = $graphUser['identityType'];
             $activeObjectIds[] = $graphUser['id'];
             $activeEmails[] = $email;
 
-            $shouldBeActive = $graphUser['accountEnabled'];
-            $name = $graphUser['displayName'] ?: Str::before($email, '@');
+            [$shouldBeActive, $portalLoginEnabled] = $this->resolveAccountFlags(
+                $identityType,
+                $graphUser['accountEnabled'],
+            );
+
+            $name = EntraSyncDisplayName::format(
+                $graphUser['displayName'],
+                $identityType,
+                $email,
+            );
 
             $existing = User::query()
                 ->whereRaw('LOWER(email) = ?', [$email])
@@ -106,37 +112,37 @@ class EntraGroupSyncService
                 continue;
             }
 
+            $attributes = [
+                'name' => $name,
+                'entra_object_id' => $graphUser['id'],
+                'entra_identity_type' => $identityType,
+                'is_active' => $shouldBeActive,
+                'portal_login_enabled' => $portalLoginEnabled,
+                'provisioned_by' => UserProvisionSource::EntraSync,
+                'entra_synced_at' => now(),
+            ];
+
             if ($existing) {
-                $existing->update([
-                    'name' => $name,
-                    'entra_object_id' => $graphUser['id'],
-                    'is_active' => $shouldBeActive,
-                    'provisioned_by' => UserProvisionSource::EntraSync,
-                    'entra_synced_at' => now(),
-                ]);
+                $existing->update($attributes);
                 $updated++;
             } else {
-                User::create([
+                User::create(array_merge($attributes, [
                     'client_id' => $client->id,
                     'email' => $email,
-                    'name' => $name,
                     'role' => UserRole::ClientUser,
-                    'is_active' => $shouldBeActive,
-                    'entra_object_id' => $graphUser['id'],
-                    'provisioned_by' => UserProvisionSource::EntraSync,
-                    'entra_synced_at' => now(),
-                ]);
+                ]));
                 $created++;
             }
         }
 
-        $toDeactivate = $this->usersRemovedFromGroup($client, $activeObjectIds, $activeEmails);
+        $toDeactivate = $this->usersRemovedFromScope($client, $activeObjectIds, $activeEmails);
         $deactivated = $toDeactivate->count();
 
         if (! $dryRun) {
             foreach ($toDeactivate as $user) {
                 $user->update([
                     'is_active' => false,
+                    'portal_login_enabled' => false,
                     'entra_synced_at' => now(),
                 ]);
             }
@@ -149,11 +155,23 @@ class EntraGroupSyncService
     }
 
     /**
+     * @return array{0: bool, 1: bool} [is_active, portal_login_enabled]
+     */
+    private function resolveAccountFlags(EntraIdentityType $identityType, bool $accountEnabled): array
+    {
+        if ($identityType === EntraIdentityType::SharedMailbox) {
+            return [true, false];
+        }
+
+        return [$accountEnabled, $accountEnabled];
+    }
+
+    /**
      * @param  list<string>  $activeObjectIds
      * @param  list<string>  $activeEmails
      * @return Collection<int, User>
      */
-    private function usersRemovedFromGroup(Client $client, array $activeObjectIds, array $activeEmails): Collection
+    private function usersRemovedFromScope(Client $client, array $activeObjectIds, array $activeEmails): Collection
     {
         return User::query()
             ->where('client_id', $client->id)
@@ -185,8 +203,7 @@ class EntraGroupSyncService
         $query = Client::query()
             ->where('is_active', true)
             ->where('entra_sync_enabled', true)
-            ->whereNotNull('entra_tenant_id')
-            ->whereNotNull('entra_group_id');
+            ->whereNotNull('entra_tenant_id');
 
         if ($clientId) {
             $query->whereKey($clientId);

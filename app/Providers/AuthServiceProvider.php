@@ -46,5 +46,15 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manage-all-clients', function (User $user) {
             return $user->role === UserRole::SuperAdmin;
         });
+
+        Gate::define('view-m365-directory', function (User $user) {
+            if ($user->role !== UserRole::ClientAdmin) {
+                return false;
+            }
+
+            return filled($user->client?->entra_tenant_id)
+                && filled(config('services.entra_sync.client_id'))
+                && filled(config('services.entra_sync.client_secret'));
+        });
     }
 }

@@ -22,6 +22,13 @@
                 @include('admin.partials.form-field', ['label' => 'Pax8 access enabled', 'name' => 'pax8_sso_enabled', 'type' => 'checkbox', 'value' => $client->pax8_sso_enabled])
                 @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                 @include('admin.clients._entra-sync-fields', ['client' => $client])
+                @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
+                    <div class="mt-4">
+                        <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            View Microsoft 365 directory
+                        </a>
+                    </div>
+                @endif
                 <div class="flex gap-3 mt-6">
                     <button type="submit" class="cta-btn text-sm px-6 py-3">Update</button>
                     <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>

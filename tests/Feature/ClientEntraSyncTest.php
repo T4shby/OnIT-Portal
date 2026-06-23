@@ -28,22 +28,21 @@ class ClientEntraSyncTest extends TestCase
     public function test_super_admin_can_dry_run_entra_sync(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
-        $groupId = '22222222-2222-2222-2222-222222222222';
 
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'entra_tenant_id' => $tenantId,
-            'entra_group_id' => $groupId,
             'entra_sync_enabled' => true,
         ]);
 
-        $this->fakeGraphResponses($tenantId, $groupId, [
-            [
-                'id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
                 'mail' => 'jane@acme.com',
                 'userPrincipalName' => 'jane@acme.com',
                 'displayName' => 'Jane Smith',
                 'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
             ],
         ]);
 
@@ -58,22 +57,21 @@ class ClientEntraSyncTest extends TestCase
     public function test_super_admin_can_run_entra_sync(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
-        $groupId = '22222222-2222-2222-2222-222222222222';
 
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'entra_tenant_id' => $tenantId,
-            'entra_group_id' => $groupId,
             'entra_sync_enabled' => true,
         ]);
 
-        $this->fakeGraphResponses($tenantId, $groupId, [
-            [
-                'id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
                 'mail' => 'jane@acme.com',
                 'userPrincipalName' => 'jane@acme.com',
                 'displayName' => 'Jane Smith',
                 'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
             ],
         ]);
 
@@ -84,6 +82,7 @@ class ClientEntraSyncTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('users', [
             'email' => 'jane@acme.com',
+            'name' => 'Jane Smith (User)',
             'client_id' => $client->id,
             'provisioned_by' => UserProvisionSource::EntraSync->value,
         ]);
@@ -93,7 +92,6 @@ class ClientEntraSyncTest extends TestCase
     {
         $client = Client::factory()->create([
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
-            'entra_group_id' => '22222222-2222-2222-2222-222222222222',
             'entra_sync_enabled' => true,
         ]);
 
@@ -115,7 +113,6 @@ class ClientEntraSyncTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
-            'entra_group_id' => '22222222-2222-2222-2222-222222222222',
             'entra_sync_enabled' => true,
         ]);
 
@@ -124,6 +121,28 @@ class ClientEntraSyncTest extends TestCase
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
+    }
+
+    public function test_shared_mailbox_user_cannot_sign_in_via_microsoft_oauth(): void
+    {
+        $client = Client::factory()->create();
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'accounts@acme.com',
+            'role' => UserRole::ClientUser,
+            'is_active' => true,
+            'portal_login_enabled' => false,
+            'entra_object_id' => 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        ]);
+
+        $this->mockMicrosoftSocialiteUser('accounts@acme.com', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
+
+        $response = $this->get(route('auth.microsoft.callback'));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'Shared mailboxes'));
+        $this->assertGuest();
     }
 
     public function test_super_admin_can_save_onboarding_checklist(): void
@@ -149,18 +168,89 @@ class ClientEntraSyncTest extends TestCase
     }
 
     /**
-     * @param  list<array<string, mixed>>  $users
+     * @param  array<string, array<string, mixed>>  $usersById
      */
-    private function fakeGraphResponses(string $tenantId, string $groupId, array $users): void
+    private function fakeTenantSyncGraph(string $tenantId, array $usersById): void
     {
-        Http::fake([
-            "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token" => Http::response([
-                'access_token' => 'fake-token',
-                'expires_in' => 3600,
-            ]),
-            "https://graph.microsoft.com/v1.0/groups/{$groupId}/transitiveMembers/microsoft.graph.user*" => Http::response([
-                'value' => $users,
-            ]),
-        ]);
+        $list = [];
+
+        foreach ($usersById as $id => $user) {
+            $list[] = [
+                'id' => $id,
+                'mail' => $user['mail'],
+                'userPrincipalName' => $user['userPrincipalName'],
+                'displayName' => $user['displayName'],
+                'accountEnabled' => $user['accountEnabled'],
+            ];
+        }
+
+        Http::fake(function ($request) use ($tenantId, $usersById, $list) {
+            $url = $request->url();
+
+            if ($url === "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token") {
+                return Http::response(['access_token' => 'fake-token', 'expires_in' => 3600]);
+            }
+
+            if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/users?')) {
+                return Http::response(['value' => $list]);
+            }
+
+            if (preg_match('#/users/([0-9a-f-]+)/licenseDetails$#', $url, $matches)) {
+                $userId = $matches[1];
+                $licensed = $usersById[$userId]['licensed'] ?? false;
+
+                return Http::response([
+                    'value' => $licensed ? [['skuId' => 'test-sku', 'skuPartNumber' => 'O365_BUSINESS']] : [],
+                ]);
+            }
+
+            if (preg_match('#/users/([0-9a-f-]+)/mailboxSettings#', $url, $matches)) {
+                $userId = $matches[1];
+                $purpose = $usersById[$userId]['mailboxPurpose'] ?? null;
+
+                return Http::response([
+                    'userPurpose' => $purpose,
+                ]);
+            }
+
+            return Http::response([], 404);
+        });
+    }
+
+    private function mockMicrosoftSocialiteUser(string $email, string $objectId): void
+    {
+        $socialiteUser = new class($email, $objectId)
+        {
+            public function __construct(private string $email, private string $objectId) {}
+
+            public function getEmail(): string
+            {
+                return $this->email;
+            }
+
+            public function getId(): string
+            {
+                return $this->objectId;
+            }
+
+            public function getName(): string
+            {
+                return 'Accounts';
+            }
+
+            public string $token = 'token';
+
+            public ?string $refreshToken = null;
+
+            public ?int $expiresIn = 3600;
+        };
+
+        $driver = \Mockery::mock('Laravel\Socialite\Contracts\Provider');
+        $driver->shouldReceive('redirectUrl')->andReturnSelf();
+        $driver->shouldReceive('user')->andReturn($socialiteUser);
+
+        \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')
+            ->with('azure')
+            ->andReturn($driver);
     }
 }
