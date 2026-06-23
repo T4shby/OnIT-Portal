@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
@@ -68,14 +69,17 @@ class MicrosoftAuthController extends Controller
         try {
             $microsoftUser = $this->azureDriver()->user();
         } catch (\Throwable $e) {
+            $microsoftError = $this->microsoftOAuthErrorDetails($e);
+
             Log::error('Microsoft OAuth callback failed', [
                 ...$this->oauthDiagnostics($request),
                 'message' => $e->getMessage(),
                 'class' => $e::class,
+                'microsoft_error' => $microsoftError,
             ]);
 
             return redirect()->route('login')
-                ->with('error', $this->publicOAuthErrorMessage($e));
+                ->with('error', $this->publicOAuthErrorMessage($e, $microsoftError));
         }
 
         $email = strtolower($microsoftUser->getEmail() ?? '');
@@ -171,31 +175,59 @@ class MicrosoftAuthController extends Controller
         ];
     }
 
-    private function publicOAuthErrorMessage(\Throwable $e): string
+    private function publicOAuthErrorMessage(\Throwable $e, ?string $microsoftError = null): string
     {
+        $microsoftError ??= $this->microsoftOAuthErrorDetails($e);
+        $haystack = strtolower(($microsoftError ?? '').' '.$e->getMessage());
+
         if (config('app.debug')) {
-            return 'Authentication failed: '.$e->getMessage();
+            return 'Authentication failed: '.($microsoftError ?? $e->getMessage());
         }
 
         if ($e instanceof InvalidStateException) {
             return $this->sessionLostMessage();
         }
 
-        $message = $e->getMessage();
-
-        if (str_contains($message, 'invalid_client') || str_contains($message, '7000215')) {
-            return 'Microsoft client secret is invalid or expired. Update MICROSOFT_CLIENT_SECRET on the server and run php artisan config:clear.';
+        if (str_contains($haystack, 'invalid_client') || str_contains($haystack, '7000215')) {
+            return 'Microsoft client secret is invalid or expired. In Entra → OnIT Portal for Portals → Certificates & secrets, create a new secret, update MICROSOFT_CLIENT_SECRET in server .env, then php artisan config:clear.';
         }
 
-        if (str_contains(strtolower($message), 'redirect_uri') || str_contains($message, 'AADSTS50011')) {
-            return 'Redirect URI mismatch. Entra app registration must include exactly: '.config('services.azure.redirect');
+        if (str_contains($haystack, 'redirect_uri') || str_contains($haystack, 'aadsts50011')) {
+            return 'Redirect URI mismatch. Entra app → Authentication must include exactly: '.config('services.azure.redirect');
         }
 
-        if ($e instanceof RequestException || str_contains($message, 'cURL error')) {
+        if (str_contains($haystack, 'invalid_grant') || str_contains($haystack, 'aadsts54005')) {
+            return 'Microsoft sign-in expired or was already used. Close all login tabs, open a fresh window at https://app.onit.ltd/login, and try once (no VPN/private browsing if possible).';
+        }
+
+        if ($microsoftError) {
+            return 'Microsoft rejected sign-in: '.Str::before($microsoftError, 'Trace ID');
+        }
+
+        if ($e instanceof RequestException || str_contains($haystack, 'curl error')) {
             return 'Server could not reach Microsoft to complete sign-in. Check outbound HTTPS from the server (see storage/logs/laravel.log).';
         }
 
         return 'Microsoft sign-in failed ('.class_basename($e).'). Run: tail -20 storage/logs/laravel.log on the server immediately after trying again.';
+    }
+
+    private function microsoftOAuthErrorDetails(\Throwable $e): ?string
+    {
+        if (! $e instanceof RequestException || $e->getResponse() === null) {
+            return null;
+        }
+
+        $body = (string) $e->getResponse()->getBody();
+        $json = json_decode($body, true);
+
+        if (is_array($json)) {
+            $error = $json['error'] ?? 'error';
+            $description = $json['error_description'] ?? $json['error_uri'] ?? $body;
+
+            return $error.': '.$description;
+        }
+
+        return $body !== '' ? $body : null;
     }
 
     private function sessionLostMessage(): string
