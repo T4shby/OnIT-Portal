@@ -272,7 +272,7 @@ class ClientOnboardingService
             'Where: app.onit.ltd — this page, left column, Microsoft Entra sync section.',
             'Prerequisites: step 04 group ID saved, step 06 admin consent accepted, step 08 Entra sync enabled.',
             'Click Dry run sync first. Read the message at the top of the page.',
-            'Expect: Created / Save clientd / Deactivated counts for portal users.',
+            'Expect: Created / Updated / Deactivated counts for portal users.',
             'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
             'If there is no SuperOps group line: Entra group ID is empty on the left — go back to step 04.',
             'If errors mention 403 or group: step 06 consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
