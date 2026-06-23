@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\SuperOps\SuperOpsSsoService;
 use App\Services\SuperOps\SuperOpsUserSyncService;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,9 +41,9 @@ class MicrosoftAuthController extends Controller
                 ->with('error', 'Microsoft sign-in is not configured. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to your .env file.');
         }
 
-        // Persist session before leaving for Microsoft — avoids InvalidStateException when
-        // the callback returns before the session cookie is written (common behind Plesk/nginx).
         $request->session()->save();
+
+        Log::info('Microsoft OAuth redirect started', $this->oauthDiagnostics($request));
 
         return $this->azureDriver()->redirect();
     }
@@ -53,46 +54,43 @@ class MicrosoftAuthController extends Controller
             $description = $request->string('error_description')->before('Trace ID')->trim();
 
             Log::warning('Microsoft OAuth error redirect', [
-                'error' => $request->input('error'),
+                ...$this->oauthDiagnostics($request),
+                'microsoft_error' => $request->input('error'),
                 'description' => $description,
             ]);
 
             return redirect()->route('login')
-                ->with('error', $this->authErrorMessage(
-                    'Microsoft sign-in was rejected: '.$description
+                ->with('error', $this->publicOAuthErrorMessage(
+                    new \RuntimeException('Microsoft sign-in was rejected: '.$description)
                 ));
         }
 
         try {
             $microsoftUser = $this->azureDriver()->user();
-        } catch (InvalidStateException $e) {
+        } catch (\Throwable $e) {
             Log::error('Microsoft OAuth callback failed', [
-                'message' => $e->getMessage(),
-                'class' => $e::class,
-                'session_id' => $request->session()->getId(),
-                'has_session_cookie' => $request->hasCookie(config('session.cookie')),
-            ]);
-
-            return redirect()->route('login')
-                ->with('error', $this->sessionLostMessage());
-        } catch (\Exception $e) {
-            Log::error('Microsoft OAuth callback failed', [
+                ...$this->oauthDiagnostics($request),
                 'message' => $e->getMessage(),
                 'class' => $e::class,
             ]);
 
             return redirect()->route('login')
-                ->with('error', $this->authErrorMessage(
-                    'Authentication failed: '.$e->getMessage()
-                ));
+                ->with('error', $this->publicOAuthErrorMessage($e));
         }
 
         $email = strtolower($microsoftUser->getEmail() ?? '');
+
+        Log::info('Microsoft OAuth callback succeeded', [
+            'email' => $email,
+            'object_id' => $microsoftUser->getId(),
+        ]);
 
         $user = User::where('entra_object_id', $microsoftUser->getId())->first()
             ?? User::whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (! $user) {
+            Log::warning('Microsoft OAuth user not provisioned in portal', ['email' => $email]);
+
             return redirect()->route('login')
                 ->with('error', 'Your account has not been set up. Please contact your administrator.');
         }
@@ -156,19 +154,54 @@ class MicrosoftAuthController extends Controller
         return $driver;
     }
 
-    private function sessionLostMessage(): string
+    /**
+     * @return array<string, mixed>
+     */
+    private function oauthDiagnostics(Request $request): array
     {
-        return 'Sign-in session was lost during Microsoft redirect. '
-            .'Use https://app.onit.ltd/login in one browser window (allow cookies), click Sign in with Microsoft once, and complete login without switching tabs. '
-            .'If this keeps happening, ask your administrator to set MICROSOFT_OAUTH_STATELESS=true in production .env and run php artisan config:clear.';
+        return [
+            'session_driver' => config('session.driver'),
+            'session_id' => $request->session()->getId(),
+            'has_session_cookie' => $request->hasCookie(config('session.cookie')),
+            'session_cookie_name' => config('session.cookie'),
+            'oauth_stateless' => (bool) config('services.azure.oauth_stateless'),
+            'redirect_uri' => config('services.azure.redirect'),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
     }
 
-    private function authErrorMessage(string $detailed): string
+    private function publicOAuthErrorMessage(\Throwable $e): string
     {
         if (config('app.debug')) {
-            return $detailed;
+            return 'Authentication failed: '.$e->getMessage();
         }
 
-        return 'Authentication failed. Please try again.';
+        if ($e instanceof InvalidStateException) {
+            return $this->sessionLostMessage();
+        }
+
+        $message = $e->getMessage();
+
+        if (str_contains($message, 'invalid_client') || str_contains($message, '7000215')) {
+            return 'Microsoft client secret is invalid or expired. Update MICROSOFT_CLIENT_SECRET on the server and run php artisan config:clear.';
+        }
+
+        if (str_contains(strtolower($message), 'redirect_uri') || str_contains($message, 'AADSTS50011')) {
+            return 'Redirect URI mismatch. Entra app registration must include exactly: '.config('services.azure.redirect');
+        }
+
+        if ($e instanceof RequestException || str_contains($message, 'cURL error')) {
+            return 'Server could not reach Microsoft to complete sign-in. Check outbound HTTPS from the server (see storage/logs/laravel.log).';
+        }
+
+        return 'Microsoft sign-in failed ('.class_basename($e).'). Run: tail -20 storage/logs/laravel.log on the server immediately after trying again.';
+    }
+
+    private function sessionLostMessage(): string
+    {
+        return 'Sign-in session was lost during the Microsoft redirect. '
+            .'Use one browser window at https://app.onit.ltd/login — turn off VPN/private-browsing cookie blocking if possible, click Sign in with Microsoft once, and finish in the same tab. '
+            .'Production should use MICROSOFT_OAUTH_STATELESS=true (now the default after git pull + config:clear).';
     }
 }
