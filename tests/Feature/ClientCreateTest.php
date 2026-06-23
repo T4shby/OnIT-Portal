@@ -51,7 +51,7 @@ class ClientCreateTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Edit Client — Ductec LTD', false);
-        $response->assertSee('Update', false);
+        $response->assertSee('Save client', false);
         $response->assertDontSee('>Create<', false);
     }
 

@@ -14,12 +14,7 @@
 
     <div class="grid gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] max-w-7xl">
         <x-card>
-            <form
-                method="POST"
-                action="{{ route('admin.clients.update', $client) }}"
-                x-data="{ saving: false }"
-                x-on:submit="saving = true"
-            >
+            <form method="POST" action="{{ route('admin.clients.update', $client) }}">
                 @csrf @method('PUT')
                 @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $client->name])
                 @include('admin.partials.form-field', [
@@ -38,25 +33,21 @@
                 @include('admin.partials.form-field', ['label' => 'Pax8 access enabled', 'name' => 'pax8_sso_enabled', 'type' => 'checkbox', 'value' => $client->pax8_sso_enabled])
                 @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                 @include('admin.clients._entra-sync-fields', ['client' => $client])
-                @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
-                    <div class="mt-4">
-                        <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
-                            View Microsoft 365 directory
-                        </a>
-                    </div>
-                @endif
                 <div class="flex gap-3 mt-6">
-                    <button
-                        type="submit"
-                        class="cta-btn text-sm px-6 py-3 disabled:cursor-not-allowed disabled:opacity-70"
-                        :disabled="saving"
-                    >
-                        <span x-show="!saving">Update</span>
-                        <span x-show="saving" x-cloak>Saving…</span>
-                    </button>
+                    <button type="submit" class="cta-btn text-sm px-6 py-3">Save client</button>
                     <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
                 </div>
             </form>
+
+            @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
+                <div class="mt-4">
+                    <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                        View Microsoft 365 directory
+                    </a>
+                </div>
+            @endif
+
+            @include('admin.clients._entra-sync-actions', ['client' => $client])
         </x-card>
 
         @include('admin.clients._onboarding-panel', [

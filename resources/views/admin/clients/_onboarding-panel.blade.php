@@ -23,7 +23,7 @@
             <li><strong class="text-white/80">portal.azure.com</strong> (On IT tenant, once per platform) — Graph permissions on OnIT Portal for Portals — already done if all 9 permissions show Granted</li>
         </ul>
         <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            <strong class="text-white/80">Entra tenant ID and group ID</strong> are saved with the orange <strong class="text-white/80">Update</strong> button on the left — not Save checklist.
+            <strong class="text-white/80">Entra tenant ID and group ID</strong> are saved with the orange <strong class="text-white/80">Save client</strong> button on the left — not Save checklist.
             Save checklist only stores manual ticks for steps you finished outside the portal.
         </p>
 
@@ -48,8 +48,6 @@
             method="POST"
             action="{{ route('admin.clients.onboarding.update', $client) }}"
             class="onboarding-panel__body"
-            x-data="{ saving: false }"
-            x-on:submit="saving = true"
         >
             @csrf
             @method('PUT')
@@ -60,14 +58,7 @@
                 'showCheckboxes' => true,
             ])
             <div class="onboarding-panel__actions">
-                <button
-                    type="submit"
-                    class="cta-btn text-sm disabled:cursor-not-allowed disabled:opacity-70"
-                    :disabled="saving"
-                >
-                    <span x-show="!saving">Save checklist</span>
-                    <span x-show="saving" x-cloak>Saving…</span>
-                </button>
+                <button type="submit" class="cta-btn text-sm">Save checklist</button>
             </div>
         </form>
     @else

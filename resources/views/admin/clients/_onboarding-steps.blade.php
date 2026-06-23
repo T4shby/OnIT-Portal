@@ -69,7 +69,7 @@
 
                 @if($step['key'] === 'entra_group_created' && ! $isDone && ! $isBlocked)
                     <p class="onboarding-guide__note portal-body-muted text-sm">
-                        After pasting the group Object ID into <strong class="text-white/80">Entra group ID</strong> on the left, click <strong class="text-white/80">Update</strong> (not Save checklist). This step turns Done when the ID is saved.
+                        After pasting the group Object ID into <strong class="text-white/80">Entra group ID</strong> on the left, click <strong class="text-white/80">Save client</strong> (not Save checklist). This step turns Done when the ID is saved.
                     </p>
                 @endif
 

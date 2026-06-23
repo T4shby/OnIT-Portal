@@ -79,7 +79,7 @@ class ClientOnboardingService
                     'Where: app.onit.ltd — Admin → Clients → Edit (this page).',
                     'Client name should match the SuperOps client name exactly.',
                     'On the left: enable SuperOps SSO and Active.',
-                    'Click Update at the bottom of the form after any change.',
+                    'Click Save client at the bottom of the form after any change.',
                 ],
                 'complete' => $clientExists,
                 'manual' => false,
@@ -94,7 +94,7 @@ class ClientOnboardingService
                     'Where: SuperOps MSP console (technician login), then app.onit.ltd (this page).',
                     'SuperOps → Clients → open this customer.',
                     'Copy the Account ID from the browser URL (the long number after /client/ in the address bar).',
-                    'On this page (left): paste into SuperOps Account ID → click Update.',
+                    'On this page (left): paste into SuperOps Account ID → click Save client.',
                     'SuperOps → Clients → this customer → Requesters: confirm people exist with correct @customer work emails. SCIM will match by email later — no need to delete existing requesters.',
                 ],
                 'complete' => $superopsLinked,
@@ -110,7 +110,7 @@ class ClientOnboardingService
                     'Where: Pax8 partner portal (app.pax8.com), then app.onit.ltd (this page).',
                     'Skip entirely if this client does not use the Pax8 licensing tile on the dashboard.',
                     'Pax8 → Companies → open the customer → copy the company UUID from the URL or profile.',
-                    'On this page (left): paste Pax8 Company ID, enable Pax8 access → Update.',
+                    'On this page (left): paste Pax8 Company ID, enable Pax8 access → Save client.',
                 ],
                 'complete' => $pax8Configured,
                 'manual' => false,
@@ -165,7 +165,7 @@ class ClientOnboardingService
                     'Where: app.onit.ltd — this page (left column, Microsoft Entra sync section).',
                     'Entra tenant ID: customer tenant GUID (from customer Entra → Overview → Tenant ID).',
                     'Entra group ID: Object ID of the empty security group from step 04 (required for automatic group membership).',
-                    'Tick Entra sync enabled → click Update.',
+                    'Tick Entra sync enabled → click Save client.',
                     $syncEnabledGlobally ? null : 'Server: set ENTRA_SYNC_ENABLED=true in production .env, then php artisan config:clear on the server.',
                 ])),
                 'complete' => $syncConfigured,
@@ -233,8 +233,8 @@ class ClientOnboardingService
             'The group is for SuperOps SCIM and SSO only. Portal user discovery reads the whole tenant — you do not add people to this group for portal login.',
             'Existing SuperOps requesters: leave them. SCIM matches by email when they enter the group — no duplicates.',
             'After Create: open the group → Overview → copy Object ID.',
-            'On app.onit.ltd (this page, left): paste Object ID into Entra group ID → Update. Step 04 completes automatically when saved.',
-            'If Entra tenant ID is not on the left yet: customer Entra → Overview → copy Tenant ID → paste Entra tenant ID → Update.',
+            'On app.onit.ltd (this page, left): paste Object ID into Entra group ID → Save client. Step 04 completes automatically when saved.',
+            'If Entra tenant ID is not on the left yet: customer Entra → Overview → copy Tenant ID → paste Entra tenant ID → Save client.',
         ];
     }
 
@@ -272,7 +272,7 @@ class ClientOnboardingService
             'Where: app.onit.ltd — this page, left column, Microsoft Entra sync section.',
             'Prerequisites: step 04 group ID saved, step 06 admin consent accepted, step 08 Entra sync enabled.',
             'Click Dry run sync first. Read the message at the top of the page.',
-            'Expect: Created / Updated / Deactivated counts for portal users.',
+            'Expect: Created / Save clientd / Deactivated counts for portal users.',
             'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
             'If there is no SuperOps group line: Entra group ID is empty on the left — go back to step 04.',
             'If errors mention 403 or group: step 06 consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
@@ -377,7 +377,7 @@ class ClientOnboardingService
     }
 
     /**
-     * Persist checklist ticks that match saved client fields (e.g. group ID pasted and Update clicked).
+     * Persist checklist ticks that match saved client fields (e.g. group ID pasted and Save client clicked).
      */
     public function syncAutoCheckpointsFromClient(Client $client): void
     {
@@ -404,7 +404,7 @@ class ClientOnboardingService
                 'Where: SuperOps MSP console, then this field on app.onit.ltd.',
                 'SuperOps → Clients → open the customer.',
                 'Copy the Account ID from the URL (long number after /client/).',
-                'Paste here → Update. Must match the SuperOps client exactly.',
+                'Paste here → Save client. Must match the SuperOps client exactly.',
             ],
             'pax8_company_id' => [
                 'Where: Pax8 partner portal (app.pax8.com), then this field.',
