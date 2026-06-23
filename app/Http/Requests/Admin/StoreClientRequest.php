@@ -25,4 +25,21 @@ class StoreClientRequest extends FormRequest
             'is_active' => ['boolean'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        $trimmed = [];
+
+        foreach (['entra_tenant_id', 'entra_group_id', 'pax8_company_id', 'superops_account_id'] as $field) {
+            $value = $this->input($field);
+
+            if (is_string($value)) {
+                $trimmed[$field] = trim($value) === '' ? null : trim($value);
+            }
+        }
+
+        if ($trimmed !== []) {
+            $this->merge($trimmed);
+        }
+    }
 }

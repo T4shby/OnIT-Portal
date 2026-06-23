@@ -119,10 +119,19 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
+        $client->refresh();
+        $this->onboarding->syncAutoCheckpointsFromClient($client);
+
         $this->activityLog->log('client.updated', $client, clientId: $client->id);
 
-        return redirect()->route('admin.clients.index')
-            ->with('success', 'Client updated successfully.');
+        $message = 'Client updated successfully.';
+
+        if (filled($client->entra_group_id)) {
+            $message .= ' Security group step (04) is complete — Entra group ID is saved.';
+        }
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', $message);
     }
 
     public function syncEntra(Client $client, EntraGroupSyncService $sync): RedirectResponse

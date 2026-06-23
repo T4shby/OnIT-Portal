@@ -375,6 +375,24 @@ class ClientOnboardingService
     }
 
     /**
+     * Persist checklist ticks that match saved client fields (e.g. group ID pasted and Update clicked).
+     */
+    public function syncAutoCheckpointsFromClient(Client $client): void
+    {
+        $current = $client->onboarding_checklist ?? [];
+        $changed = false;
+
+        if (filled($client->entra_group_id)) {
+            $changed = ($current['entra_group_created'] ?? false) !== true;
+            $current['entra_group_created'] = true;
+        }
+
+        if ($changed) {
+            $client->update(['onboarding_checklist' => $current]);
+        }
+    }
+
+    /**
      * @return array<string, list<string>>
      */
     public function fieldHelps(): array

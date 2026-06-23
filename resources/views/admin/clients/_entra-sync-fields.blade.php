@@ -13,7 +13,7 @@
 ])
 
 @include('admin.partials.form-field', [
-    'label' => 'Entra group ID (optional — SCIM)',
+    'label' => 'Entra group ID (SuperOps SCIM)',
     'name' => 'entra_group_id',
     'value' => $client->entra_group_id ?? '',
     'help' => $fieldHelps['entra_group_id'],

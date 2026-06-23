@@ -23,9 +23,8 @@
             <li><strong class="text-white/80">portal.azure.com</strong> (On IT tenant, once per platform) — Graph permissions on OnIT Portal for Portals — already done if all 9 permissions show Granted</li>
         </ul>
         <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            Saved fields on the left complete automatically after <strong class="text-white/80">Update</strong>.
-            Manual steps: tick the box and click <strong class="text-white/80">Save checklist</strong>.
-            Full reference: Brain/CustomerEntraSyncRunbook.md in the repo.
+            <strong class="text-white/80">Entra tenant ID and group ID</strong> are saved with the orange <strong class="text-white/80">Update</strong> button on the left — not Save checklist.
+            Save checklist only stores manual ticks for steps you finished outside the portal.
         </p>
 
         <div class="onboarding-panel__progress">
