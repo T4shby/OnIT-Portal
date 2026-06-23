@@ -12,8 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\InvalidStateException;
 
 class MicrosoftAuthController extends Controller
@@ -143,7 +143,7 @@ class MicrosoftAuthController extends Controller
         return redirect()->route('login');
     }
 
-    private function azureDriver(): AbstractProvider
+    private function azureDriver(): Provider
     {
         $driver = Socialite::driver('azure')
             ->redirectUrl(config('services.azure.redirect'))
