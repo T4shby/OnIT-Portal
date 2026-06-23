@@ -7,7 +7,7 @@ Sync **portal users** from a customer's Microsoft Entra tenant. Part of the **tw
 | **1** | M365 → SuperOps requesters (SCIM) | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | **2** | M365 → Portal users (this doc) | `portal:sync-entra-users` |
 
-**Scope:** All **licensed** M365 users and **shared mailboxes** in the customer tenant. `entra_group_id` is **optional** for portal sync (still used for SCIM group assignment in SuperOps).
+**Scope:** All **licensed** M365 users and **shared mailboxes** in the customer tenant. When `entra_group_id` is set, the same scope is **written into** the SuperOps SCIM security group automatically.
 
 ---
 
@@ -44,9 +44,10 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 | User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
 | User **disabled** in Entra | Portal user set inactive |
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
-| **SuperOps requesters** | **Not handled here** — use [SuperOpsEntraSync.md](SuperOpsEntraSync.md) SCIM |
+| **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
+| **SuperOps requesters** | Provisioned by SCIM from group membership — portal does not call the SuperOps API |
 
-Use security group `On IT Portal - {Company}` for **SuperOps SCIM** assignment. Portal sync reads the **whole tenant** — group ID on the client record is optional.
+Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
 
 ---
 
@@ -86,6 +87,7 @@ Do this in **your** Entra tenant (where the app registration lives — On IT Tec
    - `LicenseAssignment.Read.All`
    - `MailboxSettings.Read`
    - `Group.Read.All`
+   - `GroupMember.ReadWrite.All`
 6. **Add permissions**
 7. **Grant admin consent for On IT Technology Partners** (green tick on your home tenant)
 
@@ -94,7 +96,7 @@ You should now see **two types** of permissions on the app:
 | Type | Examples | Used for |
 |---|---|---|
 | Delegated | `openid`, `User.Read` | User login (unchanged) |
-| Application | `User.Read.All`, `LicenseAssignment.Read.All`, `MailboxSettings.Read`, `Group.Read.All` | Background sync + M365 directory |
+| Application | `User.Read.All`, `LicenseAssignment.Read.All`, `MailboxSettings.Read`, `Group.Read.All`, `GroupMember.ReadWrite.All` | Background sync + M365 directory + SuperOps group membership |
 
 ---
 
@@ -108,9 +110,9 @@ For each client you sync (start with your 100-user pilot tenant):
 
 1. Azure Portal → switch directory to **customer tenant** (top-right account picker)
 2. **Entra ID → Groups → New group**
-3. Type: **Security**
+3. Type: **Security**, Membership: **Assigned**
 4. Name: `On IT Portal` (or `On IT Portal - {Company}`)
-5. Add members who should access the portal
+5. **Do not add members manually** — portal sync fills the group via Graph on each run
 6. Open the group → copy **Object ID** → this is `entra_group_id` in the portal
 
 ### 2b. Copy tenant ID

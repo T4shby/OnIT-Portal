@@ -26,66 +26,59 @@ Customer M365 tenant
 
 ### 1. Create the security group in customer Entra
 
-Used for **SuperOps SCIM and Client SSO** — not for portal user discovery (portal syncs the whole tenant).
+Used for **SuperOps SCIM and Client SSO** — portal sync **maintains membership** when `entra_group_id` is saved on the client.
 
 1. Customer tenant (e.g. Ductec) → **Entra ID → Manage → Groups**
-2. Create security group: `On IT Portal - {Company}`
-3. **Who should be in the group?** Licensed users and shared mailboxes that need SuperOps — same scope you want for requesters. You do **not** add them one-by-one in the UI for large clients (see below).
-4. Assign this group to the SCIM app and Client SSO SAML app (below)
+2. Create security group: `On IT Portal - {Company}` — type **Security**, membership **Assigned**
+3. **Leave the group empty** — `portal:sync-entra-users` adds licensed users and shared mailboxes via Microsoft Graph (same scope as portal users)
+4. Copy **Object ID** → **Entra group ID** on the portal client record
+5. Assign this group to the SuperOps Entra app once (SCIM + SAML on the same app — see below)
 
-### 1b — Populate the group without 100 manual clicks
+### 1b — Legacy / optional alternatives
+
+You no longer need PowerShell bulk-add or dynamic groups for most clients. The portal writes group membership on each sync.
 
 | Situation | What to do |
 |---|---|
-| **Client already has requesters in SuperOps** (e.g. Ductec) | Leave them. SCIM **matches by email** — no duplicates. When users join the group, SCIM updates existing rows. |
-| **Entra ID P1+** | Create a **Dynamic user** group, e.g. rule `(user.userPrincipalName -contains "@ductec.co.uk")` or a licence-based rule — all matching users auto-join. |
-| **Entra ID Free** (Assigned only) | One-time bulk add via **Microsoft Graph PowerShell** or Entra admin export — not the SuperOps Import button for ongoing sync. Example: add all enabled member users to the group in one script (run with GDAP). |
-| **Greenfield, few users** | Add members manually in Entra → group → Members. |
+| **Default** | Empty Assigned group + `entra_group_id` — automatic |
+| **Client already has requesters in SuperOps** | Leave them. SCIM **matches by email** — no duplicates. |
+| **Entra ID P1+ dynamic group** | Set `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` on the server if you prefer a dynamic rule instead |
+| **Greenfield, few users** | Still use an empty group — first sync adds everyone |
 
-**Does not work:** putting only one admin in the group. SCIM syncs **only people in the assigned group** — one member = one SuperOps requester via SCIM. There is no “sync everyone via one admin” mode.
+**Does not work:** putting only one admin in the group and expecting SCIM to provision everyone else. SCIM syncs **group members only**.
 
-**SuperOps Import** (Clients → Requesters → Import) is fine for a **one-time** CSV load; use SCIM for **ongoing** joiners/leavers after that.
+**SuperOps Import** (Clients → Requesters → Import) is fine for a **one-time** CSV load; SCIM + automatic group membership handles **ongoing** joiners/leavers.
 
-**Example — bulk add enabled users to an Assigned group (Entra ID Free, run with GDAP):**
+### 2–3. One Entra app: SCIM + SAML
 
-```powershell
-# Install-Module Microsoft.Graph -Scope CurrentUser
-Connect-MgGraph -TenantId "CUSTOMER-TENANT-ID" -Scopes "Group.ReadWrite.All","User.Read.All"
-$groupId = "GROUP-OBJECT-ID"
-Get-MgUser -Filter "accountEnabled eq true and userType eq 'Member'" -All |
-  ForEach-Object { New-MgGroupMember -GroupId $groupId -DirectoryObjectId $_.Id }
-```
+**Default per customer:** one non-gallery enterprise app (e.g. `SuperOps - Ductec LTD`) with **Provisioning** and **SAML** on the same object. Assign the security group **once**.
 
-Adjust the filter for your policy (e.g. licensed users only). Shared mailboxes are separate user objects in Entra — include them if they need SuperOps requester records.
-
-### 2. SuperOps — generate SCIM credentials
+#### 2a. SuperOps — SCIM credentials
 
 1. SuperOps MSP console → **Integrations → Microsoft Entra ID**
 2. **Generate Tokens** → select the SuperOps client (e.g. **Ductec LTD**)
-3. Copy **Tenant URL** and **Auth Token** (SCIM endpoint)
+3. Copy **Tenant URL** and **Auth Token**
 
-You already have tokens for **On IT LTD** and **Ductec LTD** in this screen.
-
-### 3. Customer Entra — enterprise app for SCIM provisioning
-
-In the **customer's** Entra tenant (not On IT's):
+#### 2b. Customer Entra — create app and SCIM
 
 1. **Entra ID → Enterprise applications → New application**
-2. Create a **non-gallery** app (e.g. `SuperOps Provisioning - Ductec`)
-3. **Provisioning** → Mode: **Automatic**
-4. **Admin Credentials:**
-   - **Tenant URL** — paste from SuperOps
-   - **Secret Token** — paste Auth Token from SuperOps
-5. **Test connection** → Save
-6. **Mappings** — ensure user principal name / email maps correctly
-7. **Users and groups** — assign the `On IT Portal - Ductec` security group
-8. Start provisioning (or wait for sync cycle)
+2. Non-gallery: `SuperOps - {Company}` → Create
+3. **Provisioning** → Automatic → Tenant URL + Secret Token from SuperOps → **Test connection** → Save
+4. **Users and groups** → assign `On IT Portal - {Company}` (empty group — portal sync fills it)
+5. Start provisioning
 
-SuperOps will auto-create/update/deactivate requesters based on group membership.
+#### 2c. Same app — Client SSO (SAML)
 
-### 4. SuperOps Client SSO (separate — for login)
+1. SuperOps → **Settings → Requester Login → Client SSO** → copy Entity ID + Reply URL
+2. On the **same** Entra app → **Single sign-on → SAML** → configure Identifier + Reply URL, claims, certificate
+3. Paste Entra Login URL + certificate back into SuperOps Client SSO
+4. No second app; no second group assignment
 
-SCIM provisions **users**. **Client SSO** (SAML) is still required for Microsoft sign-in to `portal.onit.ltd` (SuperOps requester portal). See [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and in-app setup wizard step 6.
+If SCIM test connection fails after SAML is added, or SuperOps support confirms incompatibility, fall back to two apps (legacy) — uncommon.
+
+### Legacy: two separate Entra apps
+
+Only if the single-app setup fails validation: `SuperOps Provisioning - {Company}` + `SuperOps SSO - {Company}`, both assigned the same group.
 
 ---
 
@@ -109,13 +102,14 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 | **Portal login** (OAuth) | On IT Portal app — separate from SCIM app |
 | **SuperOps SSO login** (SAML) | Client SSO enterprise app — separate from SCIM app |
 
-You may have **three** Entra enterprise apps per customer tenant:
+You may have **two** Entra enterprise apps per customer tenant (plus On IT Portal OAuth in On IT's tenant):
 
 | App | Purpose |
 |---|---|
-| SuperOps SCIM provisioning | M365 → SuperOps requesters |
-| SuperOps Client SSO (SAML) | Microsoft login to SuperOps |
-| On IT Portal (via multi-tenant OAuth + group sync) | Microsoft login to `app.onit.ltd` |
+| **SuperOps - {Company}** (single app) | SCIM provisioning + Client SSO (SAML) — **default** |
+| On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant |
+
+Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 
 ---
 

@@ -116,6 +116,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Manage → Groups', $text);
         $this->assertStringContainsString('whole tenant', $text);
         $this->assertStringContainsString('SuperOps', $text);
+        $this->assertStringContainsString('automatically', $text);
     }
 
     public function test_successful_sync_auto_completes_admin_consent_step(): void

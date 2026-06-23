@@ -233,6 +233,73 @@ class MicrosoftGraphClient
         return $users;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function listGroupMemberUserIds(string $tenantId, string $groupId): array
+    {
+        $ids = [];
+        $url = "https://graph.microsoft.com/v1.0/groups/{$groupId}/members/microsoft.graph.user";
+        $query = ['$select' => 'id', '$top' => 999];
+
+        while ($url) {
+            $response = $this->request($tenantId)
+                ->get($url, $url === "https://graph.microsoft.com/v1.0/groups/{$groupId}/members/microsoft.graph.user" ? $query : []);
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph group members request failed: '.$response->status().' '.$response->body()
+                );
+            }
+
+            $data = $response->json();
+
+            foreach ($data['value'] ?? [] as $member) {
+                if (! empty($member['id'])) {
+                    $ids[] = (string) $member['id'];
+                }
+            }
+
+            $url = $data['@odata.nextLink'] ?? null;
+        }
+
+        return $ids;
+    }
+
+    public function addGroupMember(string $tenantId, string $groupId, string $userId): void
+    {
+        $response = $this->request($tenantId)
+            ->post("https://graph.microsoft.com/v1.0/groups/{$groupId}/members/\$ref", [
+                '@odata.id' => "https://graph.microsoft.com/v1.0/directoryObjects/{$userId}",
+            ]);
+
+        if ($response->status() === 204 || $response->status() === 201) {
+            return;
+        }
+
+        if ($response->status() === 400 && str_contains($response->body(), 'already exist')) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph add group member failed: '.$response->status().' '.$response->body()
+        );
+    }
+
+    public function removeGroupMember(string $tenantId, string $groupId, string $userId): void
+    {
+        $response = $this->request($tenantId)
+            ->delete("https://graph.microsoft.com/v1.0/groups/{$groupId}/members/{$userId}/\$ref");
+
+        if ($response->status() === 204 || $response->status() === 404) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph remove group member failed: '.$response->status().' '.$response->body()
+        );
+    }
+
     private function request(string $tenantId): PendingRequest
     {
         return Http::acceptJson()

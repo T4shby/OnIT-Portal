@@ -48,9 +48,15 @@ class EntraGroupSyncService
         $updated = 0;
         $deactivated = 0;
         $skipped = 0;
+        $groupMembersAdded = 0;
+        $groupMembersRemoved = 0;
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
+        $desiredGroupMemberIds = array_map(
+            static fn (array $graphUser): string => $graphUser['id'],
+            $graphUsers,
+        );
 
         foreach ($graphUsers as $graphUser) {
             $email = $this->resolveEmail($graphUser);
@@ -151,7 +157,88 @@ class EntraGroupSyncService
             $this->portalLinks->clearCache($client->id);
         }
 
-        return new EntraSyncResult($created, $updated, $deactivated, $skipped, $errors);
+        if ($this->shouldMaintainSuperOpsGroup($client)) {
+            [$groupMembersAdded, $groupMembersRemoved, $groupErrors] = $this->syncSuperOpsGroupMembership(
+                $client,
+                $desiredGroupMemberIds,
+                $dryRun,
+            );
+            $errors = array_merge($errors, $groupErrors);
+        }
+
+        return new EntraSyncResult(
+            $created,
+            $updated,
+            $deactivated,
+            $skipped,
+            $groupMembersAdded,
+            $groupMembersRemoved,
+            $errors,
+        );
+    }
+
+    private function shouldMaintainSuperOpsGroup(Client $client): bool
+    {
+        return config('services.entra_sync.maintain_superops_group')
+            && filled($client->entra_group_id);
+    }
+
+    /**
+     * Keep the customer's SuperOps SCIM security group aligned with licensed users + shared mailboxes.
+     *
+     * @param  list<string>  $desiredMemberIds
+     * @return array{0: int, 1: int, 2: list<string>}
+     */
+    private function syncSuperOpsGroupMembership(Client $client, array $desiredMemberIds, bool $dryRun): array
+    {
+        $tenantId = (string) $client->entra_tenant_id;
+        $groupId = (string) $client->entra_group_id;
+
+        try {
+            $currentMemberIds = $this->graph->listGroupMemberUserIds($tenantId, $groupId);
+        } catch (Throwable $e) {
+            Log::error('Entra SuperOps group membership read failed', [
+                'client_id' => $client->id,
+                'group_id' => $groupId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [0, 0, ['SuperOps group sync failed: '.$e->getMessage()]];
+        }
+
+        $desired = array_values(array_unique($desiredMemberIds));
+        $current = array_values(array_unique($currentMemberIds));
+
+        $toAdd = array_values(array_diff($desired, $current));
+        $toRemove = array_values(array_diff($current, $desired));
+
+        if ($dryRun) {
+            return [count($toAdd), count($toRemove), []];
+        }
+
+        $added = 0;
+        $removed = 0;
+        $errors = [];
+
+        foreach ($toAdd as $userId) {
+            try {
+                $this->graph->addGroupMember($tenantId, $groupId, $userId);
+                $added++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to add {$userId} to SuperOps group: {$e->getMessage()}";
+            }
+        }
+
+        foreach ($toRemove as $userId) {
+            try {
+                $this->graph->removeGroupMember($tenantId, $groupId, $userId);
+                $removed++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to remove {$userId} from SuperOps group: {$e->getMessage()}";
+            }
+        }
+
+        return [$added, $removed, $errors];
     }
 
     /**

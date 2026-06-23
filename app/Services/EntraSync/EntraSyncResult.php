@@ -9,6 +9,8 @@ class EntraSyncResult
         public readonly int $updated = 0,
         public readonly int $deactivated = 0,
         public readonly int $skipped = 0,
+        public readonly int $groupMembersAdded = 0,
+        public readonly int $groupMembersRemoved = 0,
         public readonly array $errors = [],
     ) {}
 
@@ -19,21 +21,32 @@ class EntraSyncResult
 
     public function totalChanged(): int
     {
-        return $this->created + $this->updated + $this->deactivated;
+        return $this->created + $this->updated + $this->deactivated
+            + $this->groupMembersAdded + $this->groupMembersRemoved;
     }
 
     public function summary(bool $dryRun = false): string
     {
         $prefix = $dryRun ? 'Dry run: ' : '';
 
-        return sprintf(
-            '%screated %d, updated %d, deactivated %d, skipped %d.',
+        $parts = sprintf(
+            '%screated %d, updated %d, deactivated %d, skipped %d',
             $prefix,
             $this->created,
             $this->updated,
             $this->deactivated,
             $this->skipped,
         );
+
+        if ($this->groupMembersAdded > 0 || $this->groupMembersRemoved > 0) {
+            $parts .= sprintf(
+                '; SuperOps group +%d / -%d members',
+                $this->groupMembersAdded,
+                $this->groupMembersRemoved,
+            );
+        }
+
+        return $parts.'.';
     }
 
     public function failed(): bool

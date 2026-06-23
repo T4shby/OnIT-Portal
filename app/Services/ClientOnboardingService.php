@@ -223,60 +223,62 @@ class ClientOnboardingService
         return [
             'Open portal.azure.com → switch to the customer tenant (top-right — e.g. Ductec Ltd, not On IT).',
             'Microsoft Entra ID → Manage → Groups → New group.',
-            'Group type: Security. Group name: '.$groupName.'.',
-            'Who belongs in this group: licensed users and shared mailboxes that should be SuperOps requesters (same idea as portal, but SuperOps only sees group members).',
-            'Portal sync (steps 9–10) scans the whole tenant automatically — you do NOT use this group for portal users.',
-            'You do NOT add 100 people one-by-one in the UI. Pick one approach:',
-            '• Entra ID P1+: Membership type Dynamic user — rule e.g. (user.userPrincipalName -contains "@customerdomain.com") so all staff auto-join.',
-            '• Entra ID Free: create Assigned group, then bulk-add members once via Graph PowerShell (GDAP) — see Brain/SuperOpsEntraSync.md §1b.',
-            '• Client already has requesters in SuperOps: leave them; SCIM matches by email when they enter the group (no duplicates).',
-            'Putting only one admin in the group does NOT sync everyone else — SCIM provisions group members only.',
+            'Group type: Security. Membership type: Assigned. Group name: '.$groupName.'.',
+            'Create an empty group — do not add members manually. The portal sync job fills it automatically via Microsoft Graph.',
+            'Who gets added: licensed M365 users and shared mailboxes (same scope as portal users). Joiners and leavers stay in sync on each run.',
+            'Portal sync (steps 9–10) also scans the whole tenant for portal accounts — the group is for SuperOps SCIM only.',
+            'Client already has requesters in SuperOps: leave them; SCIM matches by email when they enter the group (no duplicates).',
             'Create the group → Overview → copy Object ID → Entra group ID on the left → Update.',
             'Entra ID → Overview → copy Tenant ID → Entra tenant ID on the left → Update.',
+            'Requires Graph permission GroupMember.ReadWrite.All (application) with admin consent in the customer tenant — see Brain/EntraGroupSync.md.',
         ];
     }
 
     /**
-     * SCIM provisions SuperOps requesters from M365. This is separate from Client SSO (SAML login).
+     * SCIM provisions SuperOps requesters from M365. SAML login is configured on the same Entra app (step 7).
      *
      * @return list<string>
      */
     private function superOpsScimInstructions(string $clientName, string $groupName): array
     {
+        $appName = 'SuperOps - '.$clientName;
+
         return [
-            'Prerequisite: security group '.$groupName.' must exist and contain the users you want as SuperOps requesters (previous step).',
-            'Existing requesters in SuperOps (e.g. already listed under Clients → Requesters) are matched by email — SCIM will not duplicate them.',
-            'You will create one Entra enterprise app for SCIM provisioning. Client SSO (step 7) uses a different app.',
+            'Prerequisite: security group '.$groupName.' must exist (empty is fine — portal sync adds members automatically).',
+            'Existing requesters in SuperOps are matched by email — SCIM will not duplicate them.',
+            'Create one non-gallery Entra enterprise app: '.$appName.' — SCIM and SAML both go on this app (do not create a second app in step 7).',
             'Part A — SuperOps MSP console: Integrations → Microsoft Entra ID → Generate Tokens → select '.$clientName.'.',
-            'Copy Tenant URL and Secret Token (Auth Token). Store securely — do not share in chat or email. Regenerate if exposed.',
-            'Part B — Customer Entra: Enterprise applications → New application → non-gallery (e.g. SuperOps Provisioning - '.$clientName.') → Create.',
+            'Copy Tenant URL and Secret Token (Auth Token). Store securely — regenerate if exposed.',
+            'Part B — Customer Entra: Enterprise applications → New application → non-gallery → '.$appName.' → Create.',
             'Provisioning → Mode: Automatic → Admin Credentials: Tenant URL + Secret Token from SuperOps → Test Connection → must succeed → Save.',
-            'Users and groups → assign security group '.$groupName.' (not individual users — assign the group).',
+            'Users and groups → assign security group '.$groupName.' once (covers SCIM and SAML).',
             'Start provisioning. Check Entra → app → Provisioning logs after a few minutes.',
             'Verify: SuperOps → Clients → '.$clientName.' → Requesters — existing emails updated; new group members appear after SCIM cycle.',
+            'Step 7 adds SAML to this same app — do not create SuperOps SSO - '.$clientName.' as a separate application.',
         ];
     }
 
     /**
-     * Client SSO (SAML) lets customer staff sign into SuperOps with their own Microsoft tenant.
+     * Client SSO (SAML) on the same Entra app created in step 5.
      *
      * @return list<string>
      */
     private function superOpsClientSsoInstructions(string $clientName, string $groupName): array
     {
+        $appName = 'SuperOps - '.$clientName;
+
         return [
-            'This is separate from the SCIM provisioning app (step 5). SCIM creates users; SAML lets them sign in with Microsoft.',
+            'Use the same Entra enterprise app as step 5 ('.$appName.') — SCIM and SAML live on one app.',
             'Part A — SuperOps MSP console: Settings → Requester Login → SSO Protected → Client SSO → + Configuration for '.$clientName.'.',
-            'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps — you paste these into Entra in Part B.',
-            'Part B — Customer Entra: Enterprise applications → New application → non-gallery → name e.g. SuperOps SSO - '.$clientName.' → Create.',
-            'Single sign-on → SAML → Edit Basic SAML Configuration: Identifier = Entity ID from SuperOps; Reply URL = Consumer Service URL from SuperOps → Save.',
-            'Attributes & Claims → add three additional claims. Namespace must be empty on each (not the default URI prefix).',
-            'Claim names (exactly lowercase): email → user.mail (use user.userprincipalname if the user has no mailbox); firstname → user.givenname; lastname → user.surname.',
+            'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps.',
+            'Part B — Customer Entra: open '.$appName.' (do not create a new application).',
+            'Single sign-on → SAML → Edit Basic SAML Configuration: Identifier = Entity ID; Reply URL = Consumer Service URL → Save.',
+            'Attributes & Claims → add three additional claims. Namespace must be empty on each.',
+            'Claim names (exactly lowercase): email → user.mail (use user.userprincipalname if no mailbox); firstname → user.givenname; lastname → user.surname.',
             'SAML Certificates → download Certificate (Base64). Copy only the certificate body — no BEGIN/END lines.',
-            'Part C — Back in SuperOps Client SSO for '.$clientName.': IDP Login URL = Entra app Overview → Login URL (ends in /saml2); Certificate = paste Base64 body → Save.',
-            'Entra app → Users and groups → assign '.$groupName.' (same group as SCIM).',
-            'Test in a private/incognito window with a customer work email: app.onit.ltd → SuperOps tile → requester view (not the technician role chooser).',
-            'SuperOps reference: support.superops.com — article "Setting up Requester SSO in SuperOps" (Client SSO section).',
+            'Part C — SuperOps Client SSO for '.$clientName.': IDP Login URL = Entra app Overview → Login URL (ends in /saml2); Certificate = paste Base64 body → Save.',
+            'Group '.$groupName.' is already assigned from step 5 — no second assignment needed unless you skipped it.',
+            'Test in a private/incognito window: app.onit.ltd → SuperOps tile → requester view with a customer work email.',
         ];
     }
 
@@ -338,18 +340,19 @@ class ClientOnboardingService
                 'This is the customer\'s M365 directory — not On IT\'s tenant.',
             ],
             'entra_group_id' => [
-                'Optional for portal sync — still recommended for SuperOps SCIM group assignment.',
+                'Create an empty security group in the customer tenant — portal sync maintains membership via Graph.',
                 'In the customer tenant: Entra ID → Groups → On IT Portal - {Company name}.',
-                'Copy Object ID if you use a group to scope who gets SuperOps SCIM provisioning.',
-                'Portal sync now reads the whole tenant: licensed users and shared mailboxes.',
+                'Copy Object ID after creating the group. Licensed users and shared mailboxes are added on each sync run.',
+                'SuperOps SCIM provisions from this group. Portal user sync reads the whole tenant separately.',
             ],
             'entra_sync_enabled' => [
-                'Turn on after Entra tenant ID is saved (group ID optional for portal sync).',
+                'Turn on after Entra tenant ID is saved (group ID required for automatic SuperOps group membership).',
                 'Syncs licensed M365 users and shared mailboxes from the customer tenant.',
+                'When Entra group ID is set, sync also adds/removes group members for SuperOps SCIM.',
                 'Display names are formatted as Jane Smith (User) or Accounts (Shared Mailbox).',
                 'Shared mailboxes are synced for SuperOps records but cannot sign in to the portal.',
                 'Client admins can browse the Microsoft 365 directory in the portal (People + Groups).',
-                'Graph permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All.',
+                'Graph permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All.',
                 'Use Dry run sync first, then Sync now, after admin consent is granted.',
             ],
         ];

@@ -56,7 +56,7 @@ The checklist does not appear until the client is saved. After Create you land o
 | Test sign-in | — | You tested in incognito |
 | Hand off | — | Customer notified |
 
-**Rule:** Portal sync reads the **whole tenant**. SuperOps SCIM reads **security group members only** — use a Dynamic group (P1), bulk PowerShell (Free), or match existing SuperOps requesters by email. One admin in the group does **not** sync everyone else.
+**Rule:** Portal sync reads the **whole tenant** and **maintains** the SuperOps SCIM security group when `entra_group_id` is set. SuperOps SCIM provisions **group members only** — existing requesters match by email.
 
 **Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 

@@ -12,7 +12,7 @@ class SyncEntraGroupUsers extends Command
                             {--client= : Sync a single client by ID}
                             {--dry-run : Show changes without writing to the database}';
 
-    protected $description = 'Sync portal users from Microsoft Entra security group membership';
+    protected $description = 'Sync portal users from Microsoft Entra and maintain SuperOps SCIM group membership';
 
     public function handle(EntraGroupSyncService $sync): int
     {
@@ -56,6 +56,10 @@ class SyncEntraGroupUsers extends Command
             $this->line("  Updated: {$result->updated}");
             $this->line("  Deactivated: {$result->deactivated}");
             $this->line("  Skipped: {$result->skipped}");
+
+            if ($result->groupMembersAdded > 0 || $result->groupMembersRemoved > 0) {
+                $this->line("  SuperOps group: +{$result->groupMembersAdded} / -{$result->groupMembersRemoved} members");
+            }
 
             foreach ($result->errors as $error) {
                 $this->warn('  '.$error);

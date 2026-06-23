@@ -215,6 +215,76 @@ class EntraGroupSyncServiceTest extends TestCase
         ]);
     }
 
+    public function test_sync_maintains_superops_group_membership(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'jane@acme.com',
+                'userPrincipalName' => 'jane@acme.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => [
+                'mail' => 'bob@acme.com',
+                'userPrincipalName' => 'bob@acme.com',
+                'displayName' => 'Bob Jones',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ], $groupId, [
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(1, $result->groupMembersAdded);
+        $this->assertSame(1, $result->groupMembersRemoved);
+        $this->assertSame(2, $result->created);
+    }
+
+    public function test_group_membership_sync_skipped_when_disabled(): void
+    {
+        config(['services.entra_sync.maintain_superops_group' => false]);
+
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'jane@acme.com',
+                'userPrincipalName' => 'jane@acme.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ], $groupId, []);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->groupMembersAdded);
+        $this->assertSame(0, $result->groupMembersRemoved);
+    }
+
     public function test_display_name_formatter_strips_existing_suffix(): void
     {
         $this->assertSame(
@@ -225,10 +295,16 @@ class EntraGroupSyncServiceTest extends TestCase
 
     /**
      * @param  array<string, array<string, mixed>>  $usersById
+     * @param  list<string>  $initialGroupMembers
      */
-    private function fakeTenantSyncGraph(string $tenantId, array $usersById): void
-    {
+    private function fakeTenantSyncGraph(
+        string $tenantId,
+        array $usersById,
+        ?string $groupId = null,
+        array $initialGroupMembers = [],
+    ): void {
         $list = [];
+        $groupMembers = $initialGroupMembers;
 
         foreach ($usersById as $id => $user) {
             $list[] = [
@@ -240,7 +316,7 @@ class EntraGroupSyncServiceTest extends TestCase
             ];
         }
 
-        Http::fake(function ($request) use ($tenantId, $usersById, $list) {
+        Http::fake(function ($request) use ($tenantId, $usersById, $list, $groupId, &$groupMembers) {
             $url = $request->url();
 
             if ($url === "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token") {
@@ -249,6 +325,40 @@ class EntraGroupSyncServiceTest extends TestCase
 
             if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/users?')) {
                 return Http::response(['value' => $list]);
+            }
+
+            if ($groupId && str_contains($url, "/groups/{$groupId}/members/microsoft.graph.user")) {
+                return Http::response([
+                    'value' => array_map(
+                        static fn (string $id): array => ['id' => $id],
+                        $groupMembers,
+                    ),
+                ]);
+            }
+
+            if ($groupId && $request->method() === 'POST' && str_contains($url, "/groups/{$groupId}/members/\$ref")) {
+                $odataId = $request->data()['@odata.id'] ?? '';
+                preg_match('#/directoryObjects/([0-9a-f-]+)$#', $odataId, $matches);
+                $userId = $matches[1] ?? null;
+
+                if ($userId && ! in_array($userId, $groupMembers, true)) {
+                    $groupMembers[] = $userId;
+                }
+
+                return Http::response(null, 204);
+            }
+
+            if ($groupId && $request->method() === 'DELETE' && preg_match(
+                "#/groups/{$groupId}/members/([0-9a-f-]+)/\\\$ref$#",
+                $url,
+                $matches,
+            )) {
+                $groupMembers = array_values(array_filter(
+                    $groupMembers,
+                    static fn (string $id): bool => $id !== $matches[1],
+                ));
+
+                return Http::response(null, 204);
             }
 
             if (preg_match('#/users/([0-9a-f-]+)/licenseDetails$#', $url, $matches)) {

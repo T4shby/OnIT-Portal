@@ -82,6 +82,7 @@ return [
         'client_id' => env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID')),
         'client_secret' => env('ENTRA_SYNC_CLIENT_SECRET', env('MICROSOFT_CLIENT_SECRET')),
         'directory_cache_minutes' => env('ENTRA_DIRECTORY_CACHE_MINUTES', 15),
+        'maintain_superops_group' => env('ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP', true),
     ],
 
 ];

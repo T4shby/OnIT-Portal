@@ -29,20 +29,25 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 
 | System | Uses the group? |
 |---|---|
-| **On IT Portal** (`portal:sync-entra-users`) | **No** — reads the whole tenant via Graph. `entra_group_id` on the client record is optional (reference / SCIM). |
+| **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set — adds licensed users + shared mailboxes, removes leavers. Portal user discovery still reads the whole tenant. |
 | **SuperOps SCIM** | **Yes** — only group members are provisioned as requesters |
 | **SuperOps Client SSO (SAML)** | **Yes** — assign the same group to the SAML app |
 
-### Adding members to the group
+### Group membership — automatic
 
-Target membership: **licensed users + shared mailboxes** that should be SuperOps requesters (your policy). The portal still discovers licensed users tenant-wide without the group.
+Create an **empty** Assigned security group and paste its Object ID into the portal. Each `portal:sync-entra-users` run:
 
-| Approach | When |
+1. Discovers licensed users + shared mailboxes in the tenant (portal accounts)
+2. Adds missing members to the SuperOps SCIM group; removes people who left scope
+
+Requires **GroupMember.ReadWrite.All** (application) with admin consent in the customer tenant. Disable with `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` if you manage the group yourself (e.g. dynamic group on P1).
+
+| Situation | What to do |
 |---|---|
-| **Dynamic group** (Entra ID P1+) | Rule on domain or licence — auto-includes new hires |
-| **Bulk script** (Entra ID Free) | One-time Graph PowerShell add of all users — see [SuperOpsEntraSync.md §1b](SuperOpsEntraSync.md) |
-| **Already in SuperOps** | SCIM matches by email; populate group when ready |
-| **One admin only** | ❌ Does not sync other staff — SCIM is per group member |
+| **Default (recommended)** | Empty Assigned group + `entra_group_id` — portal maintains membership |
+| **Client already has requesters in SuperOps** | Leave them; SCIM matches by email when they enter the group |
+| **Entra ID P1+ dynamic group** | Optional alternative — set `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` so portal does not fight the dynamic rule |
+| **One admin only in group** | ❌ Does not sync other staff — group must contain (or auto-include) everyone SCIM should provision |
 
 **SuperOps Import** is OK for initial CSV load; SCIM handles ongoing changes.
 
