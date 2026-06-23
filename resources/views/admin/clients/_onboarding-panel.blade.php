@@ -13,11 +13,19 @@
         </div>
 
         <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
-            Per-client checklist for On IT technicians onboarding an MSP customer (repeat for each of your clients).
-            Steps marked <strong class="text-white/80">portal / SuperOps</strong> use app.onit.ltd and the SuperOps MSP console.
-            Steps marked <strong class="text-white/80">customer Entra / GDAP</strong> use portal.azure.com in the customer tenant.
+            Per-client checklist for On IT technicians. <strong class="text-white/80">Not every step is on this page.</strong>
+            Use the checklist for order and ticks; work in the system named on each step.
+        </p>
+        <ul class="support-list mt-4 mb-5 text-sm portal-body-muted">
+            <li><strong class="text-white/80">app.onit.ltd</strong> (this page) — client fields, consent URL, Dry run / Sync now, checklist ticks</li>
+            <li><strong class="text-white/80">portal.azure.com</strong> (customer tenant) — security group, SuperOps Entra app, admin consent</li>
+            <li><strong class="text-white/80">SuperOps MSP console</strong> — SCIM tokens, Client SSO config, verify requesters</li>
+            <li><strong class="text-white/80">portal.azure.com</strong> (On IT tenant, once per platform) — Graph permissions on OnIT Portal for Portals — already done if all 9 permissions show Granted</li>
+        </ul>
+        <p class="portal-body-muted max-w-prose text-sm leading-relaxed">
             Saved fields on the left complete automatically after <strong class="text-white/80">Update</strong>.
-            <strong class="text-white/80">Dry run sync</strong> and <strong class="text-white/80">Sync now</strong> are under Microsoft Entra sync on the left.
+            Manual steps: tick the box and click <strong class="text-white/80">Save checklist</strong>.
+            Full reference: Brain/CustomerEntraSyncRunbook.md in the repo.
         </p>
 
         <div class="onboarding-panel__progress">

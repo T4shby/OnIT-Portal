@@ -2,9 +2,54 @@
 
 **Use this** when onboarding a new MSP customer (e.g. Ductec LTD) or if you need to rebuild Entra sync, SCIM, and SSO from zero.
 
-**In-app wizard:** **Admin → Clients → Edit** — checklist on the right, sync buttons on the left.
+**In-app wizard:** **Admin → Clients → Edit** — checklist on the **right** (full instructions per step). **Not all steps are on the portal** — see table below.
 
 **Related:** [AccessAndSync.md](AccessAndSync.md) · [EntraGroupSync.md](EntraGroupSync.md) · [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
+
+---
+
+## Do I need git pull on the server?
+
+**Yes — on production (`app.onit.ltd`), pull after code is pushed to `main`.** You do not push from the server.
+
+```bash
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
+export PATH="/opt/plesk/php/8.3/bin:$PATH"
+export COMPOSER_ALLOW_SUPERUSER=1
+git pull origin main
+rm -f public/hot
+composer install --no-dev --optimize-autoloader
+php artisan config:clear
+php artisan view:clear
+php artisan optimize
+```
+
+Pull when:
+
+- Checklist instructions were updated (you will see longer steps and “Where:” lines on each step)
+- Entra sync / group auto-maintain code changed (`eab02ed` and later)
+
+You do **not** need pull for Azure or SuperOps steps — those are outside the portal.
+
+---
+
+## Where each step runs (not all on the portal)
+
+| Checklist step | Primary system | URL / location |
+|----------------|----------------|----------------|
+| 01 Portal client record | **Portal** | https://app.onit.ltd — Admin → Clients → Edit |
+| 02 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
+| 03 Pax8 (optional) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
+| 04 Security group | **Azure** (customer tenant) | portal.azure.com — Ductec directory |
+| 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
+| 06 Admin consent | **Azure** (customer tenant) | Consent URL on portal checklist → Microsoft login |
+| 07 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 05 |
+| 08 Enable sync | **Portal** | app.onit.ltd — left column fields → Update |
+| 09 Run sync | **Portal** | Dry run sync / Sync now buttons on left |
+| 10 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
+| 11 Hand off | **Email/ticket** | Tell customer the portal URL |
+
+**Once per platform (not per client):** Graph permissions on **OnIT Portal for Portals** in **On IT** tenant — Step 0 below.
 
 ---
 

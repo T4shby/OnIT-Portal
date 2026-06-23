@@ -76,9 +76,10 @@ class ClientOnboardingService
                 'title' => 'Portal client record',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
-                    'Client name should match SuperOps.',
-                    'Enable SuperOps SSO and Active on the left.',
-                    'Click Update after changing any field.',
+                    'Where: app.onit.ltd — Admin → Clients → Edit (this page).',
+                    'Client name should match the SuperOps client name exactly.',
+                    'On the left: enable SuperOps SSO and Active.',
+                    'Click Update at the bottom of the form after any change.',
                 ],
                 'complete' => $clientExists,
                 'manual' => false,
@@ -90,10 +91,11 @@ class ClientOnboardingService
                 'title' => 'Link SuperOps client',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
-                    'Open the SuperOps MSP console → Clients → select this customer.',
-                    'Copy the Account ID from the URL (e.g. portal.onit.ltd/#/client/3425667307281944576/detail).',
-                    'Paste into SuperOps Account ID on the left and click Update.',
-                    'Confirm requesters exist with correct work emails (SCIM will manage them after step 5).',
+                    'Where: SuperOps MSP console (technician login), then app.onit.ltd (this page).',
+                    'SuperOps → Clients → open this customer.',
+                    'Copy the Account ID from the browser URL (the long number after /client/ in the address bar).',
+                    'On this page (left): paste into SuperOps Account ID → click Update.',
+                    'SuperOps → Clients → this customer → Requesters: confirm people exist with correct @customer work emails. SCIM will match by email later — no need to delete existing requesters.',
                 ],
                 'complete' => $superopsLinked,
                 'manual' => false,
@@ -105,9 +107,10 @@ class ClientOnboardingService
                 'title' => 'Link Pax8 company (optional)',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
-                    'Skip if this client does not use the Pax8 licensing tile.',
-                    'Pax8 partner portal → Companies → open customer → copy company UUID from the URL.',
-                    'Paste Pax8 Company ID on the left, enable Pax8 access, and save.',
+                    'Where: Pax8 partner portal (app.pax8.com), then app.onit.ltd (this page).',
+                    'Skip entirely if this client does not use the Pax8 licensing tile on the dashboard.',
+                    'Pax8 → Companies → open the customer → copy the company UUID from the URL or profile.',
+                    'On this page (left): paste Pax8 Company ID, enable Pax8 access → Update.',
                 ],
                 'complete' => $pax8Configured,
                 'manual' => false,
@@ -138,13 +141,7 @@ class ClientOnboardingService
                 'key' => 'entra_admin_consent_granted',
                 'title' => 'Portal Graph admin consent',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
-                'instructions' => array_values(array_filter([
-                    'Open portal.azure.com as Global Administrator in the customer tenant (not On IT\'s tenant).',
-                    'Use the admin consent URL below (or open it from a ticket to the customer admin).',
-                    'Review the permissions list → Accept. This grants the On IT Portal app read access in this tenant for sync and the M365 directory.',
-                    'If the link fails, confirm Entra tenant ID on the left matches the customer tenant and the admin is signed into that tenant.',
-                    $consentUrl ? null : 'Save the Entra tenant ID on the left to generate the consent link here.',
-                ])),
+                'instructions' => $this->adminConsentInstructions($consentUrl),
                 'complete' => $adminConsentComplete,
                 'manual' => true,
                 'auto_detected' => $syncRun,
@@ -165,8 +162,11 @@ class ClientOnboardingService
                 'title' => 'Enable portal sync',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => array_values(array_filter([
-                    'On the left: paste Entra tenant ID, enable Entra sync, then click Update.',
-                    $syncEnabledGlobally ? null : 'Set ENTRA_SYNC_ENABLED=true in server .env first.',
+                    'Where: app.onit.ltd — this page (left column, Microsoft Entra sync section).',
+                    'Entra tenant ID: customer tenant GUID (from customer Entra → Overview → Tenant ID).',
+                    'Entra group ID: Object ID of the empty security group from step 04 (required for automatic group membership).',
+                    'Tick Entra sync enabled → click Update.',
+                    $syncEnabledGlobally ? null : 'Server: set ENTRA_SYNC_ENABLED=true in production .env, then php artisan config:clear on the server.',
                 ])),
                 'complete' => $syncConfigured,
                 'manual' => false,
@@ -177,10 +177,7 @@ class ClientOnboardingService
                 'key' => 'portal_sync_run',
                 'title' => 'Run portal sync',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
-                'instructions' => [
-                    'Use Dry run sync, then Sync now (buttons on the left).',
-                    'Check Admin → Users — expected users should appear.',
-                ],
+                'instructions' => $this->portalSyncRunInstructions(),
                 'complete' => $syncRun,
                 'manual' => false,
                 'auto_detected' => $syncRun,
@@ -191,9 +188,12 @@ class ClientOnboardingService
                 'title' => 'Test sign-in',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
-                    'Incognito window. Use a customer work email — not a technician account.',
-                    'app.onit.ltd/login → Sign in with Microsoft → dashboard loads.',
-                    'SuperOps card opens requester view. portal.onit.ltd/#/requester/login works.',
+                    'Where: private/incognito browser — app.onit.ltd and SuperOps requester portal.',
+                    'Do not use tom.ashby@onit.ltd or other technician accounts — use a customer work email synced in step 10.',
+                    'Test 1 — Portal: https://app.onit.ltd/login → Sign in with Microsoft → dashboard loads with SuperOps and Pax8 tiles.',
+                    'Test 2 — SuperOps SSO: from dashboard click SuperOps → should open requester view (not technician role chooser) → Microsoft sign-in with customer email.',
+                    'Test 3 — Optional direct: https://portal.onit.ltd/#/requester/login with customer Microsoft account.',
+                    'Tick Mark this step complete → Save checklist when all three behave as expected.',
                 ],
                 'complete' => (bool) ($checklist['login_tested'] ?? false),
                 'manual' => true,
@@ -205,7 +205,10 @@ class ClientOnboardingService
                 'title' => 'Hand off to customer',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'instructions' => [
-                    'Tell customer: go to https://app.onit.ltd and sign in with Microsoft using work email.',
+                    'Where: email or ticket to the customer contact.',
+                    'Tell them: go to https://app.onit.ltd and sign in with Microsoft using their work email.',
+                    'They must already be a licensed M365 user (or shared mailbox record only — shared mailboxes cannot sign in).',
+                    'Tick Mark this step complete → Save checklist.',
                 ],
                 'complete' => (bool) ($checklist['handed_off'] ?? false),
                 'manual' => true,
@@ -221,16 +224,62 @@ class ClientOnboardingService
     private function entraGroupInstructions(string $groupName): array
     {
         return [
-            'Open portal.azure.com → switch to the customer tenant (top-right — e.g. Ductec Ltd, not On IT).',
-            'Microsoft Entra ID → Manage → Groups → New group.',
+            'Where: portal.azure.com — customer tenant only (switch directory top-right to the customer, e.g. Ductec Ltd, not On IT).',
+            'Prerequisite (On IT tenant, once per platform): OnIT Portal for Portals app must have all 9 Graph permissions granted — you already did this if Application permissions show green ticks.',
+            'Microsoft Entra ID → Groups → New group.',
             'Group type: Security. Membership type: Assigned. Group name: '.$groupName.'.',
-            'Create an empty group — do not add members manually. The portal sync job fills it automatically via Microsoft Graph.',
-            'Who gets added: licensed M365 users and shared mailboxes (same scope as portal users). Joiners and leavers stay in sync on each run.',
-            'Portal sync (steps 9–10) also scans the whole tenant for portal accounts — the group is for SuperOps SCIM only.',
-            'Client already has requesters in SuperOps: leave them; SCIM matches by email when they enter the group (no duplicates).',
-            'Create the group → Overview → copy Object ID → Entra group ID on the left → Update.',
-            'Entra ID → Overview → copy Tenant ID → Entra tenant ID on the left → Update.',
-            'Requires Graph permission GroupMember.ReadWrite.All (application) with admin consent in the customer tenant — see Brain/EntraGroupSync.md.',
+            'Members: leave empty. Do not add anyone manually — step 10 (Sync now) fills the group automatically.',
+            'Who gets added on sync: licensed M365 users and shared mailboxes (same scope as portal users). Joiners and leavers update on each hourly sync.',
+            'The group is for SuperOps SCIM and SSO only. Portal user discovery reads the whole tenant — you do not add people to this group for portal login.',
+            'Existing SuperOps requesters: leave them. SCIM matches by email when they enter the group — no duplicates.',
+            'After Create: open the group → Overview → copy Object ID.',
+            'On app.onit.ltd (this page, left): paste Object ID into Entra group ID → Update. Step 04 completes automatically when saved.',
+            'If Entra tenant ID is not on the left yet: customer Entra → Overview → copy Tenant ID → paste Entra tenant ID → Update.',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function adminConsentInstructions(?string $consentUrl): array
+    {
+        $lines = [
+            'Where: customer tenant — use the Admin consent URL below (opens Microsoft login). Not the On IT tenant.',
+            'Sign in as Global Administrator of the customer tenant (or GDAP with consent rights).',
+            'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
+            'Review the permissions list → click Accept.',
+            'This grants the OnIT Portal for Portals app these Application permissions in the customer tenant:',
+            'User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All.',
+            'Re-consent even if you consented before — new permissions (especially GroupMember.ReadWrite.All) are not included in old consent.',
+            'Verify: customer Entra → Enterprise applications → OnIT Portal for Portals → Permissions → all show Granted.',
+        ];
+
+        if (! $consentUrl) {
+            $lines[] = 'Save Entra tenant ID on the left first — the consent URL appears below this list.';
+        } else {
+            $lines[] = 'Click Open below (or Copy and paste into a browser). Complete Accept before step 10 Sync now.';
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function portalSyncRunInstructions(): array
+    {
+        return [
+            'Where: app.onit.ltd — this page, left column, Microsoft Entra sync section.',
+            'Prerequisites: step 04 group ID saved, step 06 admin consent accepted, step 08 Entra sync enabled.',
+            'Click Dry run sync first. Read the message at the top of the page.',
+            'Expect: Created / Updated / Deactivated counts for portal users.',
+            'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
+            'If there is no SuperOps group line: Entra group ID is empty on the left — go back to step 04.',
+            'If errors mention 403 or group: step 06 consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
+            'Click Sync now to apply changes.',
+            'Verify portal: Admin → Users — filter by this client — licensed users appear with names like Jane Smith (User).',
+            'Verify Entra: customer tenant → Groups → On IT Portal - {Company} → Members — populated without manual adds.',
+            'Verify SuperOps: Clients → Requesters — emails match (after SCIM cycle from step 05).',
         ];
     }
 
@@ -244,17 +293,21 @@ class ClientOnboardingService
         $appName = 'SuperOps - '.$clientName;
 
         return [
-            'Prerequisite: security group '.$groupName.' must exist (empty is fine — portal sync adds members automatically).',
-            'Existing requesters in SuperOps are matched by email — SCIM will not duplicate them.',
-            'Create one non-gallery Entra enterprise app: '.$appName.' — SCIM and SAML both go on this app (do not create a second app in step 7).',
+            'Where: SuperOps MSP console, then portal.azure.com (customer tenant). Tick step complete on this page when done.',
+            'Prerequisite: step 04 security group '.$groupName.' must exist (empty is fine).',
+            'One Entra app only: '.$appName.' — SCIM now, SAML in step 07 on the same app. Do not create a second app.',
             'Part A — SuperOps MSP console: Integrations → Microsoft Entra ID → Generate Tokens → select '.$clientName.'.',
-            'Copy Tenant URL and Secret Token (Auth Token). Store securely — regenerate if exposed.',
-            'Part B — Customer Entra: Enterprise applications → New application → non-gallery → '.$appName.' → Create.',
-            'Provisioning → Mode: Automatic → Admin Credentials: Tenant URL + Secret Token from SuperOps → Test Connection → must succeed → Save.',
-            'Users and groups → assign security group '.$groupName.' once (covers SCIM and SAML).',
-            'Start provisioning. Check Entra → app → Provisioning logs after a few minutes.',
-            'Verify: SuperOps → Clients → '.$clientName.' → Requesters — existing emails updated; new group members appear after SCIM cycle.',
-            'Step 7 adds SAML to this same app — do not create SuperOps SSO - '.$clientName.' as a separate application.',
+            'Copy Tenant URL and Secret Token (Auth Token). Store in password manager — regenerate if exposed.',
+            'Part B — Customer Entra: Enterprise applications → New application → Create your own application → non-gallery.',
+            'Name: '.$appName.' → Create.',
+            'Left menu → Provisioning → Provisioning → Provisioning Mode: Automatic.',
+            'Admin Credentials: Tenant URL = from SuperOps; Secret Token = Auth Token from SuperOps.',
+            'Click Test Connection — must succeed → Save.',
+            'Left menu → Users and groups → Add user/group → select security group '.$groupName.' → Assign (assign the group, not individual users).',
+            'Provisioning → Start provisioning (or wait for the next cycle).',
+            'Check: Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
+            'Check: SuperOps → Clients → '.$clientName.' → Requesters — existing emails updated; no duplicate rows.',
+            'Step 07 adds SAML to this same '.$appName.' app.',
         ];
     }
 
@@ -268,17 +321,24 @@ class ClientOnboardingService
         $appName = 'SuperOps - '.$clientName;
 
         return [
-            'Use the same Entra enterprise app as step 5 ('.$appName.') — SCIM and SAML live on one app.',
-            'Part A — SuperOps MSP console: Settings → Requester Login → SSO Protected → Client SSO → + Configuration for '.$clientName.'.',
-            'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps.',
-            'Part B — Customer Entra: open '.$appName.' (do not create a new application).',
-            'Single sign-on → SAML → Edit Basic SAML Configuration: Identifier = Entity ID; Reply URL = Consumer Service URL → Save.',
-            'Attributes & Claims → add three additional claims. Namespace must be empty on each.',
-            'Claim names (exactly lowercase): email → user.mail (use user.userprincipalname if no mailbox); firstname → user.givenname; lastname → user.surname.',
-            'SAML Certificates → download Certificate (Base64). Copy only the certificate body — no BEGIN/END lines.',
-            'Part C — SuperOps Client SSO for '.$clientName.': IDP Login URL = Entra app Overview → Login URL (ends in /saml2); Certificate = paste Base64 body → Save.',
-            'Group '.$groupName.' is already assigned from step 5 — no second assignment needed unless you skipped it.',
-            'Test in a private/incognito window: app.onit.ltd → SuperOps tile → requester view with a customer work email.',
+            'Where: SuperOps MSP console, then portal.azure.com (customer tenant). Same app as step 05 — do not create a new application.',
+            'Part A — SuperOps MSP console: Settings → Requester Login → SSO Protected → Client SSO.',
+            'Click + Configuration for '.$clientName.' (or edit existing).',
+            'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps — keep this tab open.',
+            'Part B — Customer Entra: Enterprise applications → open '.$appName.' (created in step 05).',
+            'Single sign-on → SAML → Edit Basic SAML Configuration.',
+            'Identifier (Entity ID): paste Entity ID from SuperOps. Reply URL (ACS): paste Consumer Service URL from SuperOps → Save.',
+            'Attributes & Claims → Edit → Add new claim (repeat three times).',
+            'Important: Namespace on each claim must be empty (delete the default URI prefix if present).',
+            'Claim 1: name email, source user.mail (use user.userprincipalname if the user has no mailbox).',
+            'Claim 2: name firstname, source user.givenname.',
+            'Claim 3: name lastname, source user.surname.',
+            'SAML Certificates → Certificate (Base64) → Download. Copy only the certificate body — no -----BEGIN CERTIFICATE----- lines.',
+            'Part C — Back in SuperOps Client SSO for '.$clientName.':',
+            'IDP Login URL: from Entra → '.$appName.' → Overview → Login URL (ends in /saml2).',
+            'Certificate: paste Base64 body → Save in SuperOps.',
+            'Group '.$groupName.' was assigned in step 05 — no second assignment unless you skipped it.',
+            'Test: incognito → app.onit.ltd → SuperOps tile → Microsoft sign-in with a @customer work email.',
         ];
     }
 
@@ -321,39 +381,32 @@ class ClientOnboardingService
     {
         return [
             'superops_account_id' => [
-                'Sign in to the SuperOps MSP console (technician login).',
-                'Go to Clients → open the customer.',
-                'Copy the Account ID from the client profile or URL.',
-                'Paste it here — must match the SuperOps client exactly.',
+                'Where: SuperOps MSP console, then this field on app.onit.ltd.',
+                'SuperOps → Clients → open the customer.',
+                'Copy the Account ID from the URL (long number after /client/).',
+                'Paste here → Update. Must match the SuperOps client exactly.',
             ],
             'pax8_company_id' => [
-                'Sign in to the Pax8 partner portal (app.pax8.com).',
-                'Go to Companies → open the customer.',
-                'Copy the company UUID from the URL or company profile.',
-                'Paste it here and enable Pax8 access so client users see the licensing tile.',
-                'Create matching company users in Pax8 (Pax8 does not offer customer Microsoft SSO yet).',
+                'Where: Pax8 partner portal (app.pax8.com), then this field.',
+                'Companies → open customer → copy company UUID from URL or profile.',
+                'Enable Pax8 access if the client should see the licensing tile.',
             ],
             'entra_tenant_id' => [
-                'Open portal.azure.com and switch to the customer\'s Microsoft tenant (top-right directory picker).',
-                'Go to Microsoft Entra ID → Overview.',
-                'Copy Tenant ID (a GUID like 11111111-1111-1111-1111-111111111111).',
-                'This is the customer\'s M365 directory — not On IT\'s tenant.',
+                'Where: portal.azure.com (customer tenant) → paste here.',
+                'Switch to the customer directory (top-right), not On IT.',
+                'Microsoft Entra ID → Overview → Tenant ID (GUID).',
             ],
             'entra_group_id' => [
-                'Create an empty security group in the customer tenant — portal sync maintains membership via Graph.',
-                'In the customer tenant: Entra ID → Groups → On IT Portal - {Company name}.',
-                'Copy Object ID after creating the group. Licensed users and shared mailboxes are added on each sync run.',
-                'SuperOps SCIM provisions from this group. Portal user sync reads the whole tenant separately.',
+                'Where: portal.azure.com (customer tenant) → paste here after creating the group.',
+                'Create empty security group On IT Portal - {Company name} — do not add members.',
+                'Group → Overview → Object ID. Portal sync fills members on Sync now.',
+                'Required for automatic SuperOps SCIM group membership.',
             ],
             'entra_sync_enabled' => [
-                'Turn on after Entra tenant ID is saved (group ID required for automatic SuperOps group membership).',
-                'Syncs licensed M365 users and shared mailboxes from the customer tenant.',
-                'When Entra group ID is set, sync also adds/removes group members for SuperOps SCIM.',
-                'Display names are formatted as Jane Smith (User) or Accounts (Shared Mailbox).',
-                'Shared mailboxes are synced for SuperOps records but cannot sign in to the portal.',
-                'Client admins can browse the Microsoft 365 directory in the portal (People + Groups).',
-                'Graph permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All.',
-                'Use Dry run sync first, then Sync now, after admin consent is granted.',
+                'Where: this page. Turn on after Entra tenant ID is saved.',
+                'Requires admin consent (step 06) before Sync now will succeed.',
+                'Syncs licensed users + shared mailboxes; maintains SuperOps group when group ID is set.',
+                'Use Dry run sync, then Sync now, on the left.',
             ],
         ];
     }
