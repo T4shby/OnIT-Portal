@@ -33,10 +33,19 @@ class ClientOnboardingService
             return null;
         }
 
+        $redirectUri = config('services.azure.redirect');
+        $state = $client->exists ? 'client-'.$client->id : null;
+
+        $query = http_build_query(array_filter([
+            'client_id' => $appClientId,
+            'redirect_uri' => $redirectUri,
+            'state' => $state,
+        ]));
+
         return sprintf(
-            'https://login.microsoftonline.com/%s/adminconsent?client_id=%s',
+            'https://login.microsoftonline.com/%s/adminconsent?%s',
             $client->entra_tenant_id,
-            $appClientId,
+            $query,
         );
     }
 
@@ -259,7 +268,7 @@ class ClientOnboardingService
         if (! $consentUrl) {
             $lines[] = 'Save Entra tenant ID on the left first — the consent URL appears below this list.';
         } else {
-            $lines[] = 'Click Open below (or Copy and paste into a browser). Complete Accept before Run portal sync.';
+            $lines[] = 'Click Open below (or Copy and paste into a browser). After Accept, Microsoft redirects briefly to the portal — that is success, not a login failure. Step 05 ticks automatically.';
         }
 
         return $lines;

@@ -138,11 +138,31 @@ class ClientEntraSyncTest extends TestCase
 
         $this->mockMicrosoftSocialiteUser('accounts@acme.com', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
 
-        $response = $this->get(route('auth.microsoft.callback'));
+        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code']));
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'Shared mailboxes'));
         $this->assertGuest();
+    }
+
+    public function test_admin_consent_callback_shows_success_page_and_ticks_checklist(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
+        ]);
+
+        $response = $this->get(route('auth.microsoft.callback', [
+            'admin_consent' => 'True',
+            'tenant' => $client->entra_tenant_id,
+            'state' => 'client-'.$client->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Admin consent granted', false);
+        $response->assertSee('not</strong> a failed login', false);
+
+        $client->refresh();
+        $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted']);
     }
 
     public function test_super_admin_can_save_onboarding_checklist(): void

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\ClientOnboardingService;
 use App\Services\SuperOps\SuperOpsSsoService;
 use App\Services\SuperOps\SuperOpsUserSyncService;
 use GuzzleHttp\Exception\RequestException;
@@ -49,8 +51,12 @@ class MicrosoftAuthController extends Controller
         return $this->azureDriver()->redirect();
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request): RedirectResponse|View
     {
+        if ($request->query('admin_consent') === 'True') {
+            return $this->handleAdminConsentReturn($request);
+        }
+
         if ($request->filled('error')) {
             $description = $request->string('error_description')->before('Trace ID')->trim();
 
@@ -155,6 +161,44 @@ class MicrosoftAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function handleAdminConsentReturn(Request $request): RedirectResponse|View
+    {
+        Log::info('Microsoft admin consent completed', [
+            ...$this->oauthDiagnostics($request),
+            'tenant' => $request->query('tenant'),
+            'state' => $request->query('state'),
+        ]);
+
+        $client = $this->clientFromAdminConsentState($request->query('state'));
+
+        if ($client) {
+            app(ClientOnboardingService::class)->updateChecklist($client, [
+                'entra_admin_consent_granted' => true,
+            ]);
+        }
+
+        if (Auth::check() && $client) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('success', 'Admin consent granted in the customer tenant. Verify Entra → Enterprise applications → OnIT Portal for Portals → Permissions, then run Dry run sync.');
+        }
+
+        return view('auth.admin-consent-complete', [
+            'tenant' => $request->query('tenant'),
+            'client' => $client,
+        ]);
+    }
+
+    private function clientFromAdminConsentState(mixed $state): ?Client
+    {
+        if (! is_string($state) || ! str_starts_with($state, 'client-')) {
+            return null;
+        }
+
+        $clientId = (int) substr($state, 7);
+
+        return $clientId > 0 ? Client::find($clientId) : null;
     }
 
     private function azureDriver(): Provider

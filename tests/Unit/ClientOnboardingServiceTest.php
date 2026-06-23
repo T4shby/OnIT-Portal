@@ -44,11 +44,15 @@ class ClientOnboardingServiceTest extends TestCase
         ]);
 
         $url = app(ClientOnboardingService::class)->adminConsentUrl($client);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
 
-        $this->assertSame(
-            'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent?client_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        $this->assertStringStartsWith(
+            'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent',
             $url,
         );
+        $this->assertSame('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', $query['client_id']);
+        $this->assertSame(config('services.azure.redirect'), $query['redirect_uri']);
+        $this->assertSame('client-'.$client->id, $query['state']);
     }
 
     public function test_progress_counts_auto_completed_steps(): void
