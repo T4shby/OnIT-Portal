@@ -11,18 +11,14 @@ class ClientOnboardingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_platform_step_includes_graph_permission_commands(): void
+    public function test_client_checklist_does_not_include_platform_graph_step(): void
     {
         $client = Client::factory()->create();
 
-        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'platform_graph_permissions')['instructions'];
+        $keys = collect(app(ClientOnboardingService::class)->steps($client))->pluck('key');
 
-        $text = implode(' ', $instructions);
-
-        $this->assertStringContainsString('GroupMember.ReadWrite.All', $text);
-        $this->assertStringContainsString('Grant admin consent', $text);
-        $this->assertStringContainsString('OnIT Portal for Portals', $text);
+        $this->assertFalse($keys->contains('platform_graph_permissions'));
+        $this->assertSame(11, $keys->count());
     }
 
     public function test_run_sync_step_includes_server_deploy_commands(): void
@@ -69,7 +65,7 @@ class ClientOnboardingServiceTest extends TestCase
         $progress = app(ClientOnboardingService::class)->progress($client);
 
         $this->assertGreaterThanOrEqual(6, $progress['complete']);
-        $this->assertSame(12, $progress['total']);
+        $this->assertSame(11, $progress['total']);
     }
 
     public function test_unsaved_client_does_not_mark_portal_record_complete(): void

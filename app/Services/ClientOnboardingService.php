@@ -9,13 +9,10 @@ class ClientOnboardingService
     /** Shown on checklist steps — MSP role labels, not generic "you". */
     public const RESPONSIBLE_ON_IT_PORTAL = 'On IT technician (portal / SuperOps)';
 
-    public const RESPONSIBLE_ON_IT_PLATFORM = 'On IT technician (On IT tenant — once per platform)';
-
     public const RESPONSIBLE_ON_IT_CUSTOMER_ENTRA = 'On IT technician (customer Entra / GDAP)';
 
     /** @var list<string> */
     public const MANUAL_CHECKPOINTS = [
-        'platform_graph_permissions',
         'entra_group_created',
         'superops_scim_configured',
         'entra_admin_consent_granted',
@@ -74,16 +71,6 @@ class ClientOnboardingService
         $adminConsentComplete = (bool) ($checklist['entra_admin_consent_granted'] ?? false) || $syncRun;
 
         return [
-            [
-                'key' => 'platform_graph_permissions',
-                'title' => 'Platform Graph permissions (one-time)',
-                'who' => self::RESPONSIBLE_ON_IT_PLATFORM,
-                'instructions' => $this->platformGraphPermissionsInstructions(),
-                'complete' => (bool) ($checklist['platform_graph_permissions'] ?? false),
-                'manual' => true,
-                'auto_detected' => false,
-                'blocked' => false,
-            ],
             [
                 'key' => 'portal_client_created',
                 'title' => 'Portal client record',
@@ -239,7 +226,7 @@ class ClientOnboardingService
     {
         return [
             'Where: portal.azure.com — customer tenant only (switch directory top-right to the customer, e.g. Ductec Ltd, not On IT).',
-            'Prerequisite (On IT tenant, once per platform): OnIT Portal for Portals app must have all 9 Graph permissions granted — you already did this if Application permissions show green ticks.',
+            'Prerequisite (already done on On IT tenant — not part of this client checklist): OnIT Portal for Portals has all 9 Graph permissions granted in the On IT app registration.',
             'Microsoft Entra ID → Groups → New group.',
             'Group type: Security. Membership type: Assigned. Group name: '.$groupName.'.',
             'Members: leave empty. Do not add anyone manually — Run portal sync (step below) fills the group automatically.',
@@ -280,27 +267,6 @@ class ClientOnboardingService
     /**
      * @return list<string>
      */
-    private function platformGraphPermissionsInstructions(): array
-    {
-        return [
-            'Where: https://portal.azure.com — On IT Technology Partners LTD tenant only (not the customer tenant).',
-            'Do once per platform before the first customer sync. Skip and tick complete if all 9 Graph permissions already show Granted.',
-            'Sign in as @onit.ltd. Top-right directory must be On IT Technology Partners LTD.',
-            'Microsoft Entra ID → App registrations → open OnIT Portal for Portals.',
-            'Left menu → API permissions. You should already see Delegated: email, openid, profile, User.Read.',
-            'Click + Add a permission → Microsoft Graph → Application permissions tab (not Delegated).',
-            'Search and tick each Application permission: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All.',
-            'Click Add permissions at the bottom of the panel.',
-            'Click Grant admin consent for On IT Technology Partners LTD → Yes.',
-            'Verify: all 9 Microsoft Graph permissions show Status Granted (4 Delegated + 5 Application).',
-            'If consent fails with GroupMember.ReadWrite.All does not exist in RequiredResourceAccess: refresh the browser (F5), confirm all five Application rows still appear, click Grant admin consent again. Wait 2–3 minutes if needed.',
-            'Tick Mark this step complete → Save checklist when all 9 show Granted.',
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
     private function serverDeployInstructions(): array
     {
         return [
@@ -308,7 +274,7 @@ class ClientOnboardingService
             'cd /var/www/vhosts/onit.ltd/app.onit.ltd',
             'export PATH="/opt/plesk/php/8.3/bin:$PATH"',
             'export COMPOSER_ALLOW_SUPERUSER=1',
-            'git pull origin main',
+            'git pull origin main (or Plesk → Git → Deploy if the live site has no .git folder)',
             'rm -f public/hot',
             'composer install --no-dev --optimize-autoloader',
             'php artisan migrate --force',
