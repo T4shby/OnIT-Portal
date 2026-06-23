@@ -9,14 +9,14 @@ See also: [AccessAndSync.md](AccessAndSync.md) | [EntraGroupSync.md](EntraGroupS
 ## Architecture
 
 ```
-M365 security group (per customer tenant)  ←  SOURCE OF TRUTH
+Customer M365 tenant
         │
-        ├──► SuperOps SCIM provisioning     (this doc — Sync 1)
+        ├──► SuperOps SCIM          security group members  →  SuperOps requesters
         │
-        └──► Portal Entra group sync        (EntraGroupSync.md — Sync 2)
+        └──► Portal Entra sync      whole tenant (licensed + shared mailboxes)  →  portal users
 ```
 
-**Two independent syncs.** Same group membership in Entra drives both. Do not use portal code to create SuperOps requesters.
+**Portal does not use the security group.** The group controls **SuperOps SCIM** and **Client SSO** assignment only.
 
 ---
 
@@ -30,8 +30,33 @@ Used for **SuperOps SCIM and Client SSO** — not for portal user discovery (por
 
 1. Customer tenant (e.g. Ductec) → **Entra ID → Manage → Groups**
 2. Create security group: `On IT Portal - {Company}`
-3. Add users who need **SuperOps** (Assigned membership = manual pick on Entra ID Free)
+3. **Who should be in the group?** Licensed users and shared mailboxes that need SuperOps — same scope you want for requesters. You do **not** add them one-by-one in the UI for large clients (see below).
 4. Assign this group to the SCIM app and Client SSO SAML app (below)
+
+### 1b — Populate the group without 100 manual clicks
+
+| Situation | What to do |
+|---|---|
+| **Client already has requesters in SuperOps** (e.g. Ductec) | Leave them. SCIM **matches by email** — no duplicates. When users join the group, SCIM updates existing rows. |
+| **Entra ID P1+** | Create a **Dynamic user** group, e.g. rule `(user.userPrincipalName -contains "@ductec.co.uk")` or a licence-based rule — all matching users auto-join. |
+| **Entra ID Free** (Assigned only) | One-time bulk add via **Microsoft Graph PowerShell** or Entra admin export — not the SuperOps Import button for ongoing sync. Example: add all enabled member users to the group in one script (run with GDAP). |
+| **Greenfield, few users** | Add members manually in Entra → group → Members. |
+
+**Does not work:** putting only one admin in the group. SCIM syncs **only people in the assigned group** — one member = one SuperOps requester via SCIM. There is no “sync everyone via one admin” mode.
+
+**SuperOps Import** (Clients → Requesters → Import) is fine for a **one-time** CSV load; use SCIM for **ongoing** joiners/leavers after that.
+
+**Example — bulk add enabled users to an Assigned group (Entra ID Free, run with GDAP):**
+
+```powershell
+# Install-Module Microsoft.Graph -Scope CurrentUser
+Connect-MgGraph -TenantId "CUSTOMER-TENANT-ID" -Scopes "Group.ReadWrite.All","User.Read.All"
+$groupId = "GROUP-OBJECT-ID"
+Get-MgUser -Filter "accountEnabled eq true and userType eq 'Member'" -All |
+  ForEach-Object { New-MgGroupMember -GroupId $groupId -DirectoryObjectId $_.Id }
+```
+
+Adjust the filter for your policy (e.g. licensed users only). Shared mailboxes are separate user objects in Entra — include them if they need SuperOps requester records.
 
 ### 2. SuperOps — generate SCIM credentials
 

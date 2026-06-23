@@ -218,12 +218,16 @@ class ClientOnboardingService
         return [
             'Open portal.azure.com → switch to the customer tenant (top-right — e.g. Ductec Ltd, not On IT).',
             'Microsoft Entra ID → Manage → Groups → New group.',
-            'Group type: Security. Group name: '.$groupName.'. Description: optional.',
-            'Do not confuse two syncs: the On IT Portal scans the whole tenant for licensed users automatically (step 9–10). This group is for SuperOps only.',
-            'Membership type: Assigned (normal on Entra ID Free). Add people who need SuperOps tickets — click Members → add each work account. You do not add people here just for portal login.',
-            'Optional: if the customer has Entra ID P1, you can use Dynamic user membership with a licence rule instead of manual adds.',
-            'Create the group → open it → Overview → copy Object ID → paste into Entra group ID on the left → Update.',
-            'Microsoft Entra ID → Overview → copy Tenant ID → paste into Entra tenant ID on the left → Update (portal sync + admin consent).',
+            'Group type: Security. Group name: '.$groupName.'.',
+            'Who belongs in this group: licensed users and shared mailboxes that should be SuperOps requesters (same idea as portal, but SuperOps only sees group members).',
+            'Portal sync (steps 9–10) scans the whole tenant automatically — you do NOT use this group for portal users.',
+            'You do NOT add 100 people one-by-one in the UI. Pick one approach:',
+            '• Entra ID P1+: Membership type Dynamic user — rule e.g. (user.userPrincipalName -contains "@customerdomain.com") so all staff auto-join.',
+            '• Entra ID Free: create Assigned group, then bulk-add members once via Graph PowerShell (GDAP) — see Brain/SuperOpsEntraSync.md §1b.',
+            '• Client already has requesters in SuperOps: leave them; SCIM matches by email when they enter the group (no duplicates).',
+            'Putting only one admin in the group does NOT sync everyone else — SCIM provisions group members only.',
+            'Create the group → Overview → copy Object ID → Entra group ID on the left → Update.',
+            'Entra ID → Overview → copy Tenant ID → Entra tenant ID on the left → Update.',
         ];
     }
 
@@ -235,19 +239,16 @@ class ClientOnboardingService
     private function superOpsScimInstructions(string $clientName, string $groupName): array
     {
         return [
-            'Prerequisite: security group '.$groupName.' must exist in the customer tenant (previous step).',
+            'Prerequisite: security group '.$groupName.' must exist and contain the users you want as SuperOps requesters (previous step).',
+            'Existing requesters in SuperOps (e.g. already listed under Clients → Requesters) are matched by email — SCIM will not duplicate them.',
             'You will create one Entra enterprise app for SCIM provisioning. Client SSO (step 7) uses a different app.',
-            'Part A — SuperOps (sign in as On IT technician to the MSP console): Integrations → Microsoft Entra ID.',
-            'Find the row for '.$clientName.' → Generate Tokens (create the SuperOps client first if it is missing).',
-            'Copy Tenant URL and Auth Token to Notepad. Use tokens for '.$clientName.' only — not another client\'s row.',
-            'Part B — Customer Entra (portal.azure.com, customer tenant selected): Enterprise applications → New application.',
-            'Create your own application → name e.g. SuperOps Provisioning - '.$clientName.' → Integrate any other application (Non-gallery) → Create.',
-            'Open the new app → Provisioning → Provisioning Mode: Automatic → Save.',
-            'Admin Credentials: Tenant URL = paste from SuperOps; Secret Token = paste Auth Token from SuperOps.',
-            'Test Connection — must succeed. If it fails, re-copy both values and confirm you used '.$clientName.'\'s SuperOps tokens.',
-            'Users and groups → Add user/group → select '.$groupName.' → Assign → Save.',
-            'Provisioning → Start provisioning (if shown). After a few minutes, check Provisioning logs — status should be Success for group members.',
-            'Verify: a user in '.$groupName.' should appear under SuperOps → Clients → '.$clientName.' → Users as a requester (may take one SCIM cycle).',
+            'Part A — SuperOps MSP console: Integrations → Microsoft Entra ID → Generate Tokens → select '.$clientName.'.',
+            'Copy Tenant URL and Secret Token (Auth Token). Store securely — do not share in chat or email. Regenerate if exposed.',
+            'Part B — Customer Entra: Enterprise applications → New application → non-gallery (e.g. SuperOps Provisioning - '.$clientName.') → Create.',
+            'Provisioning → Mode: Automatic → Admin Credentials: Tenant URL + Secret Token from SuperOps → Test Connection → must succeed → Save.',
+            'Users and groups → assign security group '.$groupName.' (not individual users — assign the group).',
+            'Start provisioning. Check Entra → app → Provisioning logs after a few minutes.',
+            'Verify: SuperOps → Clients → '.$clientName.' → Requesters — existing emails updated; new group members appear after SCIM cycle.',
         ];
     }
 

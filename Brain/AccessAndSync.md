@@ -35,10 +35,16 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 
 ### Adding members to the group
 
-- **Entra ID Free** (e.g. many small tenants): membership type **Assigned** — add users manually when they need SuperOps (`Members → Add`).
-- **Entra ID P1+** (optional): use a **Dynamic user** group with a rule (e.g. licensed users) to avoid manual adds.
+Target membership: **licensed users + shared mailboxes** that should be SuperOps requesters (your policy). The portal still discovers licensed users tenant-wide without the group.
 
-New licensed user in M365 → appears in **portal** on next hourly sync automatically. They only appear in **SuperOps** after they are in the security group (manual add or dynamic rule).
+| Approach | When |
+|---|---|
+| **Dynamic group** (Entra ID P1+) | Rule on domain or licence — auto-includes new hires |
+| **Bulk script** (Entra ID Free) | One-time Graph PowerShell add of all users — see [SuperOpsEntraSync.md §1b](SuperOpsEntraSync.md) |
+| **Already in SuperOps** | SCIM matches by email; populate group when ready |
+| **One admin only** | ❌ Does not sync other staff — SCIM is per group member |
+
+**SuperOps Import** is OK for initial CSV load; SCIM handles ongoing changes.
 
 ---
 
