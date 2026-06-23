@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
+use Laravel\Socialite\Two\InvalidStateException;
 
 class MicrosoftAuthController extends Controller
 {
@@ -31,17 +33,18 @@ class MicrosoftAuthController extends Controller
         return view('auth.login');
     }
 
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
         if (! config('services.azure.client_id') || ! config('services.azure.client_secret')) {
             return redirect()->route('login')
                 ->with('error', 'Microsoft sign-in is not configured. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to your .env file.');
         }
 
-        return Socialite::driver('azure')
-            ->redirectUrl(config('services.azure.redirect'))
-            ->scopes(['openid', 'profile', 'email', 'User.Read'])
-            ->redirect();
+        // Persist session before leaving for Microsoft — avoids InvalidStateException when
+        // the callback returns before the session cookie is written (common behind Plesk/nginx).
+        $request->session()->save();
+
+        return $this->azureDriver()->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
@@ -61,9 +64,17 @@ class MicrosoftAuthController extends Controller
         }
 
         try {
-            $microsoftUser = Socialite::driver('azure')
-                ->redirectUrl(config('services.azure.redirect'))
-                ->user();
+            $microsoftUser = $this->azureDriver()->user();
+        } catch (InvalidStateException $e) {
+            Log::error('Microsoft OAuth callback failed', [
+                'message' => $e->getMessage(),
+                'class' => $e::class,
+                'session_id' => $request->session()->getId(),
+                'has_session_cookie' => $request->hasCookie(config('session.cookie')),
+            ]);
+
+            return redirect()->route('login')
+                ->with('error', $this->sessionLostMessage());
         } catch (\Exception $e) {
             Log::error('Microsoft OAuth callback failed', [
                 'message' => $e->getMessage(),
@@ -130,6 +141,26 @@ class MicrosoftAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function azureDriver(): AbstractProvider
+    {
+        $driver = Socialite::driver('azure')
+            ->redirectUrl(config('services.azure.redirect'))
+            ->scopes(['openid', 'profile', 'email', 'User.Read']);
+
+        if (config('services.azure.oauth_stateless')) {
+            $driver->stateless();
+        }
+
+        return $driver;
+    }
+
+    private function sessionLostMessage(): string
+    {
+        return 'Sign-in session was lost during Microsoft redirect. '
+            .'Use https://app.onit.ltd/login in one browser window (allow cookies), click Sign in with Microsoft once, and complete login without switching tabs. '
+            .'If this keeps happening, ask your administrator to set MICROSOFT_OAUTH_STATELESS=true in production .env and run php artisan config:clear.';
     }
 
     private function authErrorMessage(string $detailed): string

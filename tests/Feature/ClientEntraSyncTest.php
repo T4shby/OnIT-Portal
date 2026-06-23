@@ -259,6 +259,8 @@ class ClientEntraSyncTest extends TestCase
 
     private function mockMicrosoftSocialiteUser(string $email, string $objectId): void
     {
+        config(['services.azure.oauth_stateless' => true]);
+
         $socialiteUser = new class($email, $objectId)
         {
             public function __construct(private string $email, private string $objectId) {}
@@ -287,6 +289,8 @@ class ClientEntraSyncTest extends TestCase
 
         $driver = \Mockery::mock('Laravel\Socialite\Contracts\Provider');
         $driver->shouldReceive('redirectUrl')->andReturnSelf();
+        $driver->shouldReceive('scopes')->andReturnSelf();
+        $driver->shouldReceive('stateless')->andReturnSelf();
         $driver->shouldReceive('user')->andReturn($socialiteUser);
 
         \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')

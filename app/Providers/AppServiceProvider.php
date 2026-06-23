@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
     {
         if (app()->isProduction()) {
             URL::forceScheme('https');
+            URL::forceRootUrl(config('app.url'));
         }
 
         RateLimiter::for('auth-callback', function (Request $request) {

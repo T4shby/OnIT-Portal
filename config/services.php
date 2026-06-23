@@ -35,6 +35,7 @@ return [
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),
         'tenant' => env('MICROSOFT_TENANT_ID', 'organizations'),
+        'oauth_stateless' => env('MICROSOFT_OAUTH_STATELESS', false),
     ],
 
     'portal' => [

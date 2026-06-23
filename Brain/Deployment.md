@@ -258,7 +258,7 @@ Then run the deploy block above. Set **Pax8 company ID** per client in Admin →
 | **500 on `/admin` after deploy** | Run the full update block above. Then: `tail -50 storage/logs/laravel.log` — look for `Route [...] not defined`, missing class, or SQL "column not found" (run `php artisan migrate --force`) |
 | 500 error (general) | Check `storage/logs/laravel.log`, verify permissions |
 | Login redirect fails | Verify `MICROSOFT_REDIRECT_URI` matches Entra app registration exactly |
-| Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists, `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset) |
+| Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists (`php artisan tinker --execute="echo Schema::hasTable('sessions') ? 'yes' : 'no';"`), `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset). After deploy, set `MICROSOFT_OAUTH_STATELESS=true` in `.env` and `php artisan config:clear` if login still fails with session-lost message. |
 | CSS not loading / unstyled page | See **CSS not loading** below |
 | Permission denied | `chmod -R 775 storage bootstrap/cache` |
 | cURL SSL error on **local Windows only** | Not a production issue — see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |
