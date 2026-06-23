@@ -2,7 +2,7 @@
 
 Use this when onboarding a **new client organisation** or a **new user**. It lists every system and what to configure in each.
 
-> **Start here in the app:** **Admin → Clients → Add Client**, then **Edit** — the **Client setup** guide on the **right** tracks progress (manual checkboxes, admin consent URL). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync. On **Add Client**, the guide is preview-only until you click **Create**. Backup text: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
+> **Start here in the app:** **Admin → Clients → Add Client** (form only), then **Edit** after Create — the **Client setup** guide on the **right** tracks progress. Backup text: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
 
 **Related docs (read once for platform setup):**
 
@@ -20,12 +20,12 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 ## In-app wizard behaviour
 
-| Page | Checklist | Form fields |
-|------|-----------|-------------|
-| **Add Client** | Preview list only — statuses do not update while you type | Left column — click **Create** to save |
-| **Edit Client** | Live progress, manual tick boxes, **Save checklist** | Left column — **Update** saves IDs and sync settings |
+| Page | What you see |
+|------|----------------|
+| **Add Client** | Form only — fill in details and click **Create** |
+| **Edit Client** (opens automatically after Create) | Form on the left + **setup checklist** on the right |
 
-Steps marked **Blocked** mean a prior step must be **saved** first (e.g. Entra tenant ID before portal sync). **Pax8** is optional — the checklist marks it done when Pax8 access is off or a company ID is saved.
+The checklist does not appear until the client is saved. **Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Manual M365 steps are ticked on the right, then **Save checklist**.
 
 ---
 

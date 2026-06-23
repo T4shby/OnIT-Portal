@@ -2,7 +2,7 @@
 
 **Full guide for new technicians:** [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — start there if you have never used this app.
 
-**In-app wizard:** **Admin → Clients → Edit** — setup checklist and admin consent URL on the **right**; **Dry run sync** / **Sync now** on the **left** (Microsoft Entra sync section). On **Add Client**, the guide is preview-only until you save.
+**In-app wizard:** **Add Client** = form only. After **Create**, **Edit** opens with the setup checklist on the **right**; **Dry run sync** / **Sync now** on the **left**.
 
 | URL | What |
 |-----|------|

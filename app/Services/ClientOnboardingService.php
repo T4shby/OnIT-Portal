@@ -62,30 +62,31 @@ class ClientOnboardingService
 
         return [
             [
+                'key' => 'portal_client_created',
+                'title' => 'Portal client record',
+                'who' => 'You',
+                'instructions' => [
+                    'Client name should match SuperOps.',
+                    'Enable SuperOps SSO and Active on the left.',
+                    'Click Update after changing any field.',
+                ],
+                'complete' => $clientExists,
+                'manual' => false,
+                'blocked' => false,
+            ],
+            [
                 'key' => 'superops_linked',
                 'title' => 'Link SuperOps client',
                 'who' => 'You',
                 'instructions' => [
                     'Open the SuperOps MSP console → Clients → select this customer.',
                     'Copy the Account ID from the URL (e.g. portal.onit.ltd/#/client/3425667307281944576/detail).',
-                    'Paste into the field on the left and click Create or Update.',
+                    'Paste into SuperOps Account ID on the left and click Update.',
                     'Confirm requesters exist with correct work emails (SCIM will manage them after step 5).',
                 ],
                 'complete' => $superopsLinked,
                 'manual' => false,
-                'blocked' => false,
-            ],
-            [
-                'key' => 'portal_client_created',
-                'title' => 'Portal client record',
-                'who' => 'You',
-                'instructions' => [
-                    'On Add Client: fill name, SuperOps ID, and SSO flags, then click Create.',
-                    'On Edit: client name should match SuperOps; keep SuperOps SSO and Active enabled.',
-                ],
-                'complete' => $clientExists,
-                'manual' => false,
-                'blocked' => false,
+                'blocked' => ! $clientExists,
             ],
             [
                 'key' => 'pax8_linked',

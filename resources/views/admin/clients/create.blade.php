@@ -1,7 +1,12 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Add Client'])
 
-    <div class="grid gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] max-w-7xl">
+    <div class="max-w-2xl">
+        <p class="portal-body-muted mb-6 max-w-prose text-sm leading-relaxed">
+            Enter the client details below and click <strong class="text-white/80">Create</strong>.
+            The setup checklist opens on the next screen so you can track SuperOps, Pax8, and Microsoft 365 steps.
+        </p>
+
         <x-card>
             <form method="POST" action="{{ route('admin.clients.store') }}">
                 @csrf
@@ -26,12 +31,5 @@
                 </div>
             </form>
         </x-card>
-
-        @include('admin.clients._onboarding-panel', [
-            'client' => $client,
-            'onboardingSteps' => $onboardingSteps,
-            'onboardingProgress' => $onboardingProgress,
-            'adminConsentUrl' => $adminConsentUrl,
-        ])
     </div>
 </x-admin-layout>

@@ -41,9 +41,10 @@ class ClientController extends Controller
     {
         $this->authorize('create', Client::class);
 
-        $client = new Client;
-
-        return view('admin.clients.create', $this->onboardingViewData($client));
+        return view('admin.clients.create', [
+            'client' => new Client,
+            'fieldHelps' => $this->onboarding->fieldHelps(),
+        ]);
     }
 
     /**
@@ -79,8 +80,8 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
-        return redirect()->route('admin.clients.index')
-            ->with('success', 'Client created successfully.');
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', 'Client created. Use the setup guide on the right to finish onboarding.');
     }
 
     public function edit(Client $client): View
