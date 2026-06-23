@@ -158,13 +158,53 @@ class ClientEntraSyncTest extends TestCase
                 ],
             ]);
 
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.clients.edit', $client));
         $response->assertSessionHas('success');
 
         $client->refresh();
         $this->assertTrue($client->onboarding_checklist['entra_group_created']);
         $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
-        $this->assertFalse($client->onboarding_checklist['handed_off']);
+        $this->assertFalse($client->onboarding_checklist['handed_off'] ?? false);
+    }
+
+    public function test_marking_entra_group_step_complete_shows_done_on_edit(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
+            'entra_group_id' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.clients.onboarding.update', $client), [
+                'checkpoints' => ['entra_group_created' => '1'],
+            ])
+            ->assertRedirect(route('admin.clients.edit', $client));
+
+        $client->refresh();
+
+        $step = collect(app(\App\Services\ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'entra_group_created');
+
+        $this->assertTrue($step['complete']);
+    }
+
+    public function test_checklist_save_preserves_other_manual_ticks(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'onboarding_checklist' => ['superops_scim_configured' => true],
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.clients.onboarding.update', $client), [
+                'checkpoints' => ['entra_group_created' => '1'],
+            ]);
+
+        $client->refresh();
+
+        $this->assertTrue($client->onboarding_checklist['entra_group_created']);
+        $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
     }
 
     /**

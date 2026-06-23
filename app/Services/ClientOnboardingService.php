@@ -365,10 +365,12 @@ class ClientOnboardingService
     {
         $current = $client->onboarding_checklist ?? [];
 
-        foreach (self::MANUAL_CHECKPOINTS as $key) {
-            $current[$key] = array_key_exists($key, $checkpoints)
-                ? (bool) $checkpoints[$key]
-                : (bool) ($current[$key] ?? false);
+        foreach ($checkpoints as $key => $value) {
+            if (! in_array($key, self::MANUAL_CHECKPOINTS, true)) {
+                continue;
+            }
+
+            $current[$key] = (bool) $value;
         }
 
         $client->update(['onboarding_checklist' => $current]);

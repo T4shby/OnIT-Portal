@@ -170,6 +170,6 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertTrue($client->onboarding_checklist['entra_group_created']);
         $this->assertTrue($client->onboarding_checklist['login_tested']);
-        $this->assertFalse($client->onboarding_checklist['handed_off']);
+        $this->assertFalse($client->onboarding_checklist['handed_off'] ?? false);
     }
 }

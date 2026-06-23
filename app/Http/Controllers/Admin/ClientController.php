@@ -88,18 +88,10 @@ class ClientController extends Controller
     {
         $this->authorize('update', $client);
 
-        $onboardingSteps = $this->onboarding->steps($client);
-        $onboardingProgress = $this->onboarding->progress($client);
-        $adminConsentUrl = $this->onboarding->adminConsentUrl($client);
-        $fieldHelps = $this->onboarding->fieldHelps();
+        $this->onboarding->syncAutoCheckpointsFromClient($client);
+        $client->refresh();
 
-        return view('admin.clients.edit', compact(
-            'client',
-            'onboardingSteps',
-            'onboardingProgress',
-            'adminConsentUrl',
-            'fieldHelps',
-        ));
+        return view('admin.clients.edit', $this->onboardingViewData($client));
     }
 
     public function update(UpdateClientRequest $request, Client $client): RedirectResponse
@@ -176,6 +168,7 @@ class ClientController extends Controller
         $this->authorize('update', $client);
 
         $this->onboarding->updateChecklist($client, $request->validated('checkpoints'));
+        $client->refresh();
 
         $this->activityLog->log(
             'client.onboarding_updated',
@@ -184,7 +177,8 @@ class ClientController extends Controller
             clientId: $client->id,
         );
 
-        return back()->with('success', 'Setup checklist saved.');
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', 'Setup checklist saved.');
     }
 
     public function destroy(Client $client): RedirectResponse

@@ -112,12 +112,16 @@
                 @endif
 
                 @if(($showCheckboxes ?? false) && $step['manual'] && ! $isBlocked && ! $isDone)
+                    @php
+                        $checkpointSaved = (bool) (($client->onboarding_checklist ?? [])[$step['key']] ?? false);
+                    @endphp
                     <label class="onboarding-guide__check">
                         <input
                             type="checkbox"
                             name="checkpoints[{{ $step['key'] }}]"
                             value="1"
                             class="border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                            @checked($checkpointSaved)
                         >
                         <span>Mark this step complete</span>
                     </label>

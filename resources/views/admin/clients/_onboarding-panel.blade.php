@@ -44,7 +44,13 @@
     </div>
 
     @if($hasManualCheckboxes)
-        <form method="POST" action="{{ route('admin.clients.onboarding.update', $client) }}" class="onboarding-panel__body">
+        <form
+            method="POST"
+            action="{{ route('admin.clients.onboarding.update', $client) }}"
+            class="onboarding-panel__body"
+            x-data="{ saving: false }"
+            x-on:submit="saving = true"
+        >
             @csrf
             @method('PUT')
             @include('admin.clients._onboarding-steps', [
@@ -54,7 +60,14 @@
                 'showCheckboxes' => true,
             ])
             <div class="onboarding-panel__actions">
-                <button type="submit" class="cta-btn text-sm">Save checklist</button>
+                <button
+                    type="submit"
+                    class="cta-btn text-sm disabled:cursor-not-allowed disabled:opacity-70"
+                    :disabled="saving"
+                >
+                    <span x-show="!saving">Save checklist</span>
+                    <span x-show="saving" x-cloak>Saving…</span>
+                </button>
             </div>
         </form>
     @else

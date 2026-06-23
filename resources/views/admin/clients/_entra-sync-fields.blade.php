@@ -34,14 +34,38 @@
 @if(isset($client) && $client->exists && $client->hasEntraSyncConfigured())
     @if(config('services.entra_sync.enabled'))
         <div class="mt-4 flex flex-wrap gap-3">
-            <form method="POST" action="{{ route('admin.clients.sync-entra', $client) }}">
+            <form
+                method="POST"
+                action="{{ route('admin.clients.sync-entra', $client) }}"
+                x-data="{ saving: false }"
+                x-on:submit="saving = true"
+            >
                 @csrf
                 <input type="hidden" name="dry_run" value="1">
-                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3">Dry run sync</button>
+                <button
+                    type="submit"
+                    class="cta-btn-ghost text-sm px-6 py-3 disabled:cursor-not-allowed disabled:opacity-70"
+                    :disabled="saving"
+                >
+                    <span x-show="!saving">Dry run sync</span>
+                    <span x-show="saving" x-cloak>Running…</span>
+                </button>
             </form>
-            <form method="POST" action="{{ route('admin.clients.sync-entra', $client) }}" onsubmit="return confirm('Run Entra sync now? Users no longer licensed (and not shared mailboxes) will be deactivated.');">
+            <form
+                method="POST"
+                action="{{ route('admin.clients.sync-entra', $client) }}"
+                x-data="{ saving: false }"
+                x-on:submit="if (confirm('Run Entra sync now? Users no longer licensed (and not shared mailboxes) will be deactivated.')) { saving = true; return true; } return false;"
+            >
                 @csrf
-                <button type="submit" class="cta-btn text-sm px-6 py-3">Sync now</button>
+                <button
+                    type="submit"
+                    class="cta-btn text-sm px-6 py-3 disabled:cursor-not-allowed disabled:opacity-70"
+                    :disabled="saving"
+                >
+                    <span x-show="!saving">Sync now</span>
+                    <span x-show="saving" x-cloak>Syncing…</span>
+                </button>
             </form>
         </div>
     @else

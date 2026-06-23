@@ -15,11 +15,11 @@ class UpdateClientOnboardingRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'checkpoints' => ['required', 'array'],
+            'checkpoints' => ['present', 'array'],
         ];
 
         foreach (ClientOnboardingService::MANUAL_CHECKPOINTS as $key) {
-            $rules["checkpoints.{$key}"] = ['boolean'];
+            $rules["checkpoints.{$key}"] = ['sometimes', 'boolean'];
         }
 
         return $rules;
@@ -27,12 +27,20 @@ class UpdateClientOnboardingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $checkpoints = [];
+        $submitted = $this->input('checkpoints', []);
 
-        foreach (ClientOnboardingService::MANUAL_CHECKPOINTS as $key) {
-            $checkpoints[$key] = $this->boolean("checkpoints.{$key}");
+        if (! is_array($submitted)) {
+            return;
         }
 
-        $this->merge(['checkpoints' => $checkpoints]);
+        $normalized = [];
+
+        foreach ($submitted as $key => $value) {
+            if (in_array($key, ClientOnboardingService::MANUAL_CHECKPOINTS, true)) {
+                $normalized[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        $this->merge(['checkpoints' => $normalized]);
     }
 }

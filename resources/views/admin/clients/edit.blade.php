@@ -1,9 +1,25 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Edit Client — '.$client->name])
 
+    @if($errors->any())
+        <x-alert type="error" class="mb-6">
+            <p class="font-semibold">Could not save — fix the following:</p>
+            <ul class="mt-2 list-disc pl-5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </x-alert>
+    @endif
+
     <div class="grid gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] max-w-7xl">
         <x-card>
-            <form method="POST" action="{{ route('admin.clients.update', $client) }}">
+            <form
+                method="POST"
+                action="{{ route('admin.clients.update', $client) }}"
+                x-data="{ saving: false }"
+                x-on:submit="saving = true"
+            >
                 @csrf @method('PUT')
                 @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $client->name])
                 @include('admin.partials.form-field', [
@@ -30,7 +46,14 @@
                     </div>
                 @endif
                 <div class="flex gap-3 mt-6">
-                    <button type="submit" class="cta-btn text-sm px-6 py-3">Update</button>
+                    <button
+                        type="submit"
+                        class="cta-btn text-sm px-6 py-3 disabled:cursor-not-allowed disabled:opacity-70"
+                        :disabled="saving"
+                    >
+                        <span x-show="!saving">Update</span>
+                        <span x-show="saving" x-cloak>Saving…</span>
+                    </button>
                     <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
                 </div>
             </form>
