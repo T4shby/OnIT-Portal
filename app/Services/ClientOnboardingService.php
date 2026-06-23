@@ -43,6 +43,7 @@ class ClientOnboardingService
      *     instructions: list<string>,
      *     complete: bool,
      *     manual: bool,
+     *     auto_detected: bool,
      *     blocked: bool,
      * }>
      */
@@ -55,10 +56,14 @@ class ClientOnboardingService
         $clientExists = $client->exists;
         $superopsLinked = filled($client->superops_account_id);
         $pax8Configured = ! $client->pax8_sso_enabled || filled($client->pax8_company_id);
-        $entraIdsSaved = filled($client->entra_tenant_id);
+        $entraTenantSaved = filled($client->entra_tenant_id);
+        $entraGroupSaved = filled($client->entra_group_id);
         $syncConfigured = $client->hasEntraSyncConfigured();
         $syncRun = $client->entra_synced_at !== null;
         $syncEnabledGlobally = (bool) config('services.entra_sync.enabled');
+
+        $entraGroupComplete = $entraGroupSaved || (bool) ($checklist['entra_group_created'] ?? false);
+        $adminConsentComplete = (bool) ($checklist['entra_admin_consent_granted'] ?? false) || $syncRun;
 
         return [
             [
@@ -72,6 +77,7 @@ class ClientOnboardingService
                 ],
                 'complete' => $clientExists,
                 'manual' => false,
+                'auto_detected' => $clientExists,
                 'blocked' => false,
             ],
             [
@@ -86,6 +92,7 @@ class ClientOnboardingService
                 ],
                 'complete' => $superopsLinked,
                 'manual' => false,
+                'auto_detected' => $superopsLinked,
                 'blocked' => ! $clientExists,
             ],
             [
@@ -99,6 +106,7 @@ class ClientOnboardingService
                 ],
                 'complete' => $pax8Configured,
                 'manual' => false,
+                'auto_detected' => $pax8Configured,
                 'blocked' => ! $clientExists,
             ],
             [
@@ -109,10 +117,12 @@ class ClientOnboardingService
                     'In the customer Entra tenant: Entra ID → Groups → New group.',
                     'Name: '.$groupName,
                     'Add all users who need portal + SuperOps access.',
-                    'Copy Tenant ID and group Object ID into the fields on the left.',
+                    'Paste the group Object ID into Entra group ID on the left and click Update.',
+                    'Paste the tenant ID into Entra tenant ID on the left (needed for later steps).',
                 ],
-                'complete' => (bool) ($checklist['entra_group_created'] ?? false) || $entraIdsSaved,
+                'complete' => $entraGroupComplete,
                 'manual' => true,
+                'auto_detected' => $entraGroupSaved,
                 'blocked' => ! $superopsLinked,
             ],
             [
@@ -127,7 +137,8 @@ class ClientOnboardingService
                 ],
                 'complete' => (bool) ($checklist['superops_scim_configured'] ?? false),
                 'manual' => true,
-                'blocked' => ! $entraIdsSaved,
+                'auto_detected' => false,
+                'blocked' => ! $entraTenantSaved,
             ],
             [
                 'key' => 'entra_admin_consent_granted',
@@ -135,12 +146,13 @@ class ClientOnboardingService
                 'who' => 'M365 admin',
                 'instructions' => array_values(array_filter([
                     'Open the consent link below as Global Admin in the customer tenant.',
-                    'Accept permissions so the portal can read the security group.',
+                    'Accept permissions so the portal can read the customer tenant.',
                     $consentUrl ? null : 'Save the Entra tenant ID on the left to generate the consent link.',
                 ])),
-                'complete' => (bool) ($checklist['entra_admin_consent_granted'] ?? false),
+                'complete' => $adminConsentComplete,
                 'manual' => true,
-                'blocked' => ! $entraIdsSaved,
+                'auto_detected' => $syncRun,
+                'blocked' => ! $entraTenantSaved,
             ],
             [
                 'key' => 'superops_client_sso_configured',
@@ -154,6 +166,7 @@ class ClientOnboardingService
                 ],
                 'complete' => (bool) ($checklist['superops_client_sso_configured'] ?? false),
                 'manual' => true,
+                'auto_detected' => false,
                 'blocked' => ! $superopsLinked,
             ],
             [
@@ -161,12 +174,13 @@ class ClientOnboardingService
                 'title' => 'Enable portal sync',
                 'who' => 'You',
                 'instructions' => array_values(array_filter([
-                    'On the left: paste Entra tenant ID + group ID, enable Entra sync, save.',
+                    'On the left: paste Entra tenant ID, enable Entra sync, then click Update.',
                     $syncEnabledGlobally ? null : 'Set ENTRA_SYNC_ENABLED=true in server .env first.',
                 ])),
                 'complete' => $syncConfigured,
                 'manual' => false,
-                'blocked' => ! $entraIdsSaved,
+                'auto_detected' => $syncConfigured,
+                'blocked' => ! $entraTenantSaved,
             ],
             [
                 'key' => 'portal_sync_run',
@@ -178,6 +192,7 @@ class ClientOnboardingService
                 ],
                 'complete' => $syncRun,
                 'manual' => false,
+                'auto_detected' => $syncRun,
                 'blocked' => ! $syncConfigured || ! $syncEnabledGlobally,
             ],
             [
@@ -191,6 +206,7 @@ class ClientOnboardingService
                 ],
                 'complete' => (bool) ($checklist['login_tested'] ?? false),
                 'manual' => true,
+                'auto_detected' => false,
                 'blocked' => ! $syncRun,
             ],
             [
@@ -202,6 +218,7 @@ class ClientOnboardingService
                 ],
                 'complete' => (bool) ($checklist['handed_off'] ?? false),
                 'manual' => true,
+                'auto_detected' => false,
                 'blocked' => ! ($checklist['login_tested'] ?? false),
             ],
         ];

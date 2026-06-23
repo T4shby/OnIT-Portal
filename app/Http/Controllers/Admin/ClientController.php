@@ -81,7 +81,7 @@ class ClientController extends Controller
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         return redirect()->route('admin.clients.edit', $client)
-            ->with('success', 'Client created. Use the setup guide on the right to finish onboarding.');
+            ->with('success', 'Client saved. Use Update on the left to change fields; the setup guide on the right tracks progress.');
     }
 
     public function edit(Client $client): View

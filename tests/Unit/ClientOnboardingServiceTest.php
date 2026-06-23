@@ -67,6 +67,46 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertTrue($stepsWith->firstWhere('key', 'pax8_linked')['complete']);
     }
 
+    public function test_tenant_id_alone_does_not_complete_security_group_step(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_group_id' => null,
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'entra_group_created');
+
+        $this->assertFalse($step['complete']);
+        $this->assertFalse($step['auto_detected']);
+    }
+
+    public function test_group_id_auto_completes_security_group_step(): void
+    {
+        $client = Client::factory()->create([
+            'entra_group_id' => '22222222-2222-2222-2222-222222222222',
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'entra_group_created');
+
+        $this->assertTrue($step['complete']);
+        $this->assertTrue($step['auto_detected']);
+    }
+
+    public function test_successful_sync_auto_completes_admin_consent_step(): void
+    {
+        $client = Client::factory()->create([
+            'entra_synced_at' => now(),
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'entra_admin_consent_granted');
+
+        $this->assertTrue($step['complete']);
+        $this->assertTrue($step['auto_detected']);
+    }
+
     public function test_field_helps_include_entra_ids(): void
     {
         $helps = app(ClientOnboardingService::class)->fieldHelps();

@@ -1,5 +1,5 @@
 <x-admin-layout>
-    @include('admin.partials.header', ['title' => 'Edit Client'])
+    @include('admin.partials.header', ['title' => 'Edit Client — '.$client->name])
 
     <div class="grid gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] max-w-7xl">
         <x-card>

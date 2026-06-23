@@ -99,13 +99,18 @@
                     </p>
                 @endif
 
-                @if(($showCheckboxes ?? false) && $step['manual'] && ! $isBlocked)
+                @if($isDone && ($step['auto_detected'] ?? false))
+                    <p class="onboarding-guide__note portal-body-muted text-sm">
+                        Completed automatically from saved client details.
+                    </p>
+                @endif
+
+                @if(($showCheckboxes ?? false) && $step['manual'] && ! $isBlocked && ! $isDone)
                     <label class="onboarding-guide__check">
                         <input
                             type="checkbox"
                             name="checkpoints[{{ $step['key'] }}]"
                             value="1"
-                            @checked($client->onboarding_checklist[$step['key']] ?? false)
                             class="border-onit-border bg-onit-surface text-onit focus:ring-onit"
                         >
                         <span>Mark this step complete</span>

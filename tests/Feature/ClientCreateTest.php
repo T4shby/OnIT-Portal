@@ -40,4 +40,18 @@ class ClientCreateTest extends TestCase
         $response->assertSee('setup checklist opens on the next screen', false);
         $response->assertDontSee('Save checklist', false);
     }
+
+    public function test_edit_page_uses_update_not_create(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client));
+
+        $response->assertOk();
+        $response->assertSee('Edit Client — Ductec LTD', false);
+        $response->assertSee('Update', false);
+        $response->assertDontSee('>Create<', false);
+    }
 }

@@ -90,9 +90,9 @@ If you have GDAP on the customer tenant, you can do the M365 steps yourself. Oth
 | **Pax8 Company ID** | Optional — only if they use the Pax8 licensing tile |
 | **Pax8 access enabled** | ✓ if using Pax8 |
 
-5. Click **Create** — you are taken straight to **Edit** and the setup checklist appears on the right.
+5. Click **Create** once — you land on **Edit Client** with an **Update** button (not Create again). The setup checklist appears on the right.
 
-**Done when:** client exists and SuperOps Account ID is saved (step 2 on the checklist).
+**Done when:** client exists and SuperOps Account ID is saved (checklist step 2).
 
 ---
 

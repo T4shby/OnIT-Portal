@@ -22,10 +22,30 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 | Page | What you see |
 |------|----------------|
-| **Add Client** | Form only — fill in details and click **Create** |
-| **Edit Client** (opens automatically after Create) | Form on the left + **setup checklist** on the right |
+| **Add Client** | Form only — fill in details and click **Create** once |
+| **Edit Client** (opens after Create) | Form on the left (**Update** saves fields) + setup checklist on the right |
 
-The checklist does not appear until the client is saved. **Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Manual M365 steps are ticked on the right, then **Save checklist**.
+The checklist does not appear until the client is saved. After Create you land on **Edit** — there is no second Create step.
+
+### Auto vs manual checklist steps
+
+| Step | Completes automatically when… | Manual tick only if… |
+|------|------------------------------|----------------------|
+| Portal client record | Client exists (you are on Edit) | — |
+| SuperOps linked | `SuperOps Account ID` saved | — |
+| Pax8 linked (optional) | Pax8 off, or company ID saved | — |
+| M365 security group | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
+| SuperOps SCIM | — | Done in SuperOps + customer Entra |
+| Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
+| SuperOps Client SSO (SAML) | — | SAML app configured in customer Entra |
+| Enable portal sync | Tenant ID saved + Entra sync enabled | — |
+| Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
+| Test sign-in | — | You tested in incognito |
+| Hand off | — | Customer notified |
+
+**Rule:** If a step shows **Done**, you will not see “Mark this step complete” for it. Saving tenant ID alone does **not** complete the security group step — paste **Entra group ID** or tick manually.
+
+**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 
 ---
 
