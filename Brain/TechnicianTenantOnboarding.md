@@ -2,7 +2,7 @@
 
 **Full guide for new technicians:** [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — start there if you have never used this app.
 
-**In-app wizard:** **Admin → Clients → Edit** — setup checklist, admin consent URL, dry-run sync, and sync now on the right.
+**In-app wizard:** **Admin → Clients → Edit** — setup checklist and admin consent URL on the **right**; **Dry run sync** / **Sync now** on the **left** (Microsoft Entra sync section). On **Add Client**, the guide is preview-only until you save.
 
 | URL | What |
 |-----|------|
@@ -25,6 +25,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-06-16 | Preview guide on Add Client; sync buttons documented on left |
 | 2026-06-23 | Point to NewCustomerTenantSetup.md; tenant-wide sync + M365 directory |
 | 2026-06-19 | In-app setup wizard on client edit page |
 | 2026-06-16 | Initial guide |

@@ -49,7 +49,7 @@ Read these documents before changing application code. **Update Brain in the sam
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
-| Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients/{id}/edit` |
+| Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
@@ -68,6 +68,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-16 | Onboarding UX: Add Client shows preview guide; Pax8 checklist step; docs aligned (sync left, checklist right) |
 | 2026-06-23 | [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — full new-customer guide; tenant sync + M365 directory |
 | 2026-06-22 | SuperOps Technician SSO guide + ADR-013 update — [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) |
 | 2026-06-19 | SuperOps technician SSO launch for team — [SuperOpsIntegration.md](SuperOpsIntegration.md) |

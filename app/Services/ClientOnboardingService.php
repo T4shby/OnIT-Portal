@@ -52,7 +52,9 @@ class ClientOnboardingService
         $consentUrl = $this->adminConsentUrl($client);
         $groupName = 'On IT Portal - '.$client->name;
 
+        $clientExists = $client->exists;
         $superopsLinked = filled($client->superops_account_id);
+        $pax8Configured = ! $client->pax8_sso_enabled || filled($client->pax8_company_id);
         $entraIdsSaved = filled($client->entra_tenant_id);
         $syncConfigured = $client->hasEntraSyncConfigured();
         $syncRun = $client->entra_synced_at !== null;
@@ -65,8 +67,9 @@ class ClientOnboardingService
                 'who' => 'You',
                 'instructions' => [
                     'Open the SuperOps MSP console → Clients → select this customer.',
-                    'Copy the Account ID into the field on the left and save.',
-                    'Confirm requesters exist with correct work emails (SCIM will manage them after step 4).',
+                    'Copy the Account ID from the URL (e.g. portal.onit.ltd/#/client/3425667307281944576/detail).',
+                    'Paste into the field on the left and click Create or Update.',
+                    'Confirm requesters exist with correct work emails (SCIM will manage them after step 5).',
                 ],
                 'complete' => $superopsLinked,
                 'manual' => false,
@@ -77,12 +80,25 @@ class ClientOnboardingService
                 'title' => 'Portal client record',
                 'who' => 'You',
                 'instructions' => [
-                    'Client name should match SuperOps.',
-                    'Enable SuperOps SSO and set Active.',
+                    'On Add Client: fill name, SuperOps ID, and SSO flags, then click Create.',
+                    'On Edit: client name should match SuperOps; keep SuperOps SSO and Active enabled.',
                 ],
-                'complete' => true,
+                'complete' => $clientExists,
                 'manual' => false,
                 'blocked' => false,
+            ],
+            [
+                'key' => 'pax8_linked',
+                'title' => 'Link Pax8 company (optional)',
+                'who' => 'You',
+                'instructions' => [
+                    'Skip if this client does not use the Pax8 licensing tile.',
+                    'Pax8 partner portal → Companies → open customer → copy company UUID from the URL.',
+                    'Paste Pax8 Company ID on the left, enable Pax8 access, and save.',
+                ],
+                'complete' => $pax8Configured,
+                'manual' => false,
+                'blocked' => ! $clientExists,
             ],
             [
                 'key' => 'entra_group_created',

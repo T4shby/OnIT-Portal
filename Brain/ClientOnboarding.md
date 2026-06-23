@@ -2,7 +2,7 @@
 
 Use this when onboarding a **new client organisation** or a **new user**. It lists every system and what to configure in each.
 
-> **Start here in the app:** **Admin → Clients → Add Client**, then **Edit** — the **Client setup** panel on the right has step-by-step instructions, admin consent URL, checkpoints, and sync buttons. Backup text: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
+> **Start here in the app:** **Admin → Clients → Add Client**, then **Edit** — the **Client setup** guide on the **right** tracks progress (manual checkboxes, admin consent URL). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync. On **Add Client**, the guide is preview-only until you click **Create**. Backup text: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
 
 **Related docs (read once for platform setup):**
 
@@ -15,6 +15,17 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 | [OperatorRunbook.md](OperatorRunbook.md) | Phase A test, day-to-day ops |
 | [Authentication.md](Authentication.md) | Portal OAuth (app #1) |
 | [Deployment.md](Deployment.md) | Production Plesk |
+
+---
+
+## In-app wizard behaviour
+
+| Page | Checklist | Form fields |
+|------|-----------|-------------|
+| **Add Client** | Preview list only — statuses do not update while you type | Left column — click **Create** to save |
+| **Edit Client** | Live progress, manual tick boxes, **Save checklist** | Left column — **Update** saves IDs and sync settings |
+
+Steps marked **Blocked** mean a prior step must be **saved** first (e.g. Entra tenant ID before portal sync). **Pax8** is optional — the checklist marks it done when Pax8 access is off or a company ID is saved.
 
 ---
 

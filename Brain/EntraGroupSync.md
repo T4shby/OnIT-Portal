@@ -1,13 +1,13 @@
-# Entra group sync — Sync 2 (portal only)
+# Entra tenant sync — Sync 2 (portal only)
 
-Sync **portal users** from a Microsoft Entra security group. Part of the **two-sync** model — see [AccessAndSync.md](AccessAndSync.md).
+Sync **portal users** from a customer's Microsoft Entra tenant. Part of the **two-sync** model — see [AccessAndSync.md](AccessAndSync.md).
 
 | Sync | What | Doc |
 |---|---|---|
 | **1** | M365 → SuperOps requesters (SCIM) | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | **2** | M365 → Portal users (this doc) | `portal:sync-entra-users` |
 
-**Code branch:** `feature/entra-group-sync`
+**Scope:** All **licensed** M365 users and **shared mailboxes** in the customer tenant. `entra_group_id` is **optional** for portal sync (still used for SCIM group assignment in SuperOps).
 
 ---
 
@@ -39,57 +39,37 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 
 | Action | Behaviour |
 |---|---|
-| User **in** the group | Create or update portal user (`client_user`, active if `accountEnabled` in Entra) |
-| User **removed** from group | Deactivate portal user (`is_active=false`) if provisioned by sync |
+| **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, display `Name (User)`) |
+| **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, display `Name (Shared Mailbox)`) — cannot sign in |
+| User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
 | User **disabled** in Entra | Portal user set inactive |
-| **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped even if in the group |
+| **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps requesters** | **Not handled here** — use [SuperOpsEntraSync.md](SuperOpsEntraSync.md) SCIM |
 
-Use the **same** security group for both syncs. M365 is the source of truth.
+Use security group `On IT Portal - {Company}` for **SuperOps SCIM** assignment. Portal sync reads the **whole tenant** — group ID on the client record is optional.
 
 ---
 
-## Deploy to server (required before sync works in production)
+## Deploy to server (production)
 
-Production (`app.onit.ltd`) is on **`main`**. This feature is on **`feature/entra-group-sync`**. Until you deploy that branch, sync code and admin buttons **do not exist on the server**.
+Feature is on **`main`**. After pulling code:
 
-### Option A — test on the feature branch first (recommended)
+```bash
+cd /var/www/vhosts/onit.ltd/app.onit.ltd
+export PATH="/opt/plesk/php/8.3/bin:$PATH"
+export COMPOSER_ALLOW_SUPERUSER=1
+rm -f public/hot
+git pull origin main
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:clear
+php artisan view:clear
+php artisan optimize
+```
 
-1. **Locally:** commit and push your branch (if not already):
-   ```bash
-   git push origin feature/entra-group-sync
-   ```
-2. **Plesk / SSH** on the server:
-   ```bash
-   cd /var/www/vhosts/onit.ltd/app.onit.ltd   # your actual path
-   git fetch origin
-   git checkout feature/entra-group-sync
-   git pull origin feature/entra-group-sync
-   composer install --no-dev --optimize-autoloader
-   php artisan migrate --force
-   php artisan config:clear
-   php artisan optimize
-   ```
-3. Edit server `.env` (see [Step 4](#step-4-server-env) below).
-4. Test sync. When happy, merge to `main` and repeat with `git checkout main && git pull`.
+Edit server `.env` (see [Step 4](#step-4-server-env) below). Set `ENTRA_SYNC_ENABLED=true`.
 
-### Option B — merge to main first, then deploy
-
-1. Merge `feature/entra-group-sync` → `main` on GitHub.
-2. On server:
-   ```bash
-   cd /var/www/vhosts/onit.ltd/app.onit.ltd
-   git pull origin main
-   composer install --no-dev --optimize-autoloader
-   php artisan migrate --force
-   php artisan config:clear
-   php artisan optimize
-   ```
-3. Edit `.env` as below.
-
-**You do not need a separate git repo.** Normal pull on the app path is enough. Plesk "Pull → Deploy" works if that is how you usually deploy.
-
-**Cron:** `schedule:run` every minute should already be set ([Deployment.md](Deployment.md)). Sync runs **hourly** when `ENTRA_SYNC_ENABLED=true`.
+**Cron:** `schedule:run` every minute ([Deployment.md](Deployment.md)). Sync runs **hourly** when enabled.
 
 ---
 
@@ -102,8 +82,10 @@ Do this in **your** Entra tenant (where the app registration lives — On IT Tec
 3. **API permissions** → **Add a permission**
 4. **Microsoft Graph** → **Application permissions** (not Delegated)
 5. Add:
-   - `GroupMember.Read.All`
    - `User.Read.All`
+   - `LicenseAssignment.Read.All`
+   - `MailboxSettings.Read`
+   - `Group.Read.All`
 6. **Add permissions**
 7. **Grant admin consent for On IT Technology Partners** (green tick on your home tenant)
 
@@ -112,7 +94,7 @@ You should now see **two types** of permissions on the app:
 | Type | Examples | Used for |
 |---|---|---|
 | Delegated | `openid`, `User.Read` | User login (unchanged) |
-| Application | `GroupMember.Read.All`, `User.Read.All` | Background sync job |
+| Application | `User.Read.All`, `LicenseAssignment.Read.All`, `MailboxSettings.Read`, `Group.Read.All` | Background sync + M365 directory |
 
 ---
 
@@ -157,15 +139,16 @@ Repeat for each of your 60 clients (or during each client onboarding).
 
 ## Step 3: Configure the client in the portal
 
-**Admin → Clients → Edit** — the setup checklist on the right walks through every step. On the left:
+1. **Admin → Clients → Add Client** — fill SuperOps ID, optional Pax8, then **Create**.
+2. **Admin → Clients → Edit** — the **Client setup** checklist on the **right** tracks progress. **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
 
 | Field | Value |
 |---|---|
-| Entra tenant ID | Customer tenant GUID |
-| Entra group ID | Security group object ID |
+| Entra tenant ID | Customer tenant GUID (required for sync) |
+| Entra group ID | Optional — SCIM group reference; portal sync does not require it |
 | Entra sync enabled | ✓ |
 
-Save. Use **Dry run sync** and **Sync now** on the left, or tick steps in the checklist panel.
+Save with **Update**. Use **Dry run sync** and **Sync now** on the left, or tick manual steps on the right and **Save checklist**.
 
 ---
 
