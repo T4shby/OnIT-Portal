@@ -163,6 +163,21 @@ Used for "what we help with" type content inside benefit cards:
  
 ---
  
+## Client setup manual (onboarding checklist)
+ 
+Used inside `.onboarding-guide__panel` on **Admin → Clients → Edit**. Structured like an install manual — not a flat bullet list.
+ 
+| Block | CSS | Purpose |
+|-------|-----|---------|
+| Important | `.onboarding-manual__callout` | One-app-only, consent vs login, etc. |
+| Before you start | `.onboarding-manual__prerequisites` | Prerequisites (not numbered) |
+| Part A / B / C | `.onboarding-manual__section` + `.onboarding-manual__steps` | Numbered steps per section (counter resets each part) |
+| Check your work | `.onboarding-manual__verify` | Verification checklist |
+ 
+Rendered by `resources/views/admin/clients/_onboarding-manual.blade.php`. Data from `App\Services\OnboardingManual`.
+ 
+---
+ 
 ## Agenda / How It Works List
  
 Numbered steps with orange left-border on hover. Used for process flows and step-by-step sections.

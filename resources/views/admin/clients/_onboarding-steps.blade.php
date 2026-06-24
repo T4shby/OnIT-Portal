@@ -61,11 +61,10 @@
                 x-cloak
                 class="onboarding-guide__panel"
             >
-                <ul class="support-list">
-                    @foreach($step['instructions'] as $instruction)
-                        <li>{{ $instruction }}</li>
-                    @endforeach
-                </ul>
+                @include('admin.clients._onboarding-manual', [
+                    'guide' => $step['guide'] ?? null,
+                    'instructions' => $step['instructions'] ?? [],
+                ])
 
                 @if($step['key'] === 'entra_group_created' && ! $isDone && ! $isBlocked)
                     <p class="onboarding-guide__note portal-body-muted text-sm">

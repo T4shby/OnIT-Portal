@@ -162,7 +162,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 ## Step 3: Configure the client in the portal
 
 1. **Admin → Clients → Add Client** — fill SuperOps ID, optional Pax8, then **Create**.
-2. **Admin → Clients → Edit** — the **Client setup** checklist on the **right** tracks progress. **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
+2. **Admin → Clients → Edit** — the **Client setup** checklist on the **right** tracks progress (install-manual: prerequisites, numbered parts, verification). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
 
 | Field | Value |
 |---|---|

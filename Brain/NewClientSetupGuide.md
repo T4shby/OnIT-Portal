@@ -1,6 +1,6 @@
 # New Client Setup Guide (start to finish)
 
-> **Primary workflow:** **Admin → Clients → Add Client → Edit** — use the in-app **Client setup** wizard (checklist, consent URL, sync). This document is the long-form backup.
+> **Primary workflow:** **Admin → Clients → Add Client → Edit** — use the in-app **Client setup** wizard (11-step checklist, install-manual format, consent URL on step 05, sync on left). This document is the long-form backup.
 
 Follow this document top to bottom when onboarding a **real customer** onto the On IT Portal. Tick each box as you go.
 

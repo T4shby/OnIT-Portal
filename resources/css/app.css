@@ -436,6 +436,73 @@
         @apply mt-6 flex cursor-pointer items-center gap-3 border border-onit-border bg-onit-ink/50 px-4 py-3 text-sm text-white/85;
     }
 
+    .onboarding-manual {
+        @apply space-y-8;
+    }
+
+    .onboarding-manual__label {
+        @apply portal-label mb-2;
+    }
+
+    .onboarding-manual__hint {
+        @apply mb-3;
+    }
+
+    .onboarding-manual__prerequisites {
+        @apply border border-white/10 bg-white/[0.03] px-4 py-4;
+    }
+
+    .onboarding-manual__prereq-list {
+        @apply space-y-2 text-sm text-white/80;
+    }
+
+    .onboarding-manual__prereq-list li {
+        @apply relative pl-5;
+    }
+
+    .onboarding-manual__prereq-list li::before {
+        content: '—';
+        @apply absolute left-0 text-onit;
+    }
+
+    .onboarding-manual__callout {
+        @apply border border-onit/30 bg-onit/10 px-4 py-4;
+    }
+
+    .onboarding-manual__notes {
+        @apply space-y-2 text-sm text-white/85;
+    }
+
+    .onboarding-manual__section + .onboarding-manual__section {
+        @apply border-t border-white/[0.06] pt-8;
+    }
+
+    .onboarding-manual__where {
+        @apply mb-4;
+    }
+
+    .onboarding-manual__steps {
+        @apply space-y-3 counter-reset onboarding-step;
+    }
+
+    .onboarding-manual__step {
+        @apply relative pl-9 text-sm leading-relaxed text-white/85;
+        counter-increment: onboarding-step;
+    }
+
+    .onboarding-manual__step::before {
+        content: counter(onboarding-step);
+        @apply absolute left-0 top-0 flex h-6 w-6 items-center justify-center bg-onit font-condensed text-xs font-bold text-black;
+    }
+
+    .onboarding-manual__verify {
+        @apply border border-onit/25 bg-onit/5 px-4 py-4;
+    }
+
+    .onboarding-manual__steps--verify .onboarding-manual__step::before {
+        @apply bg-onit/20 text-onit;
+    }
+
     .field-help {
         @apply relative shrink-0;
     }

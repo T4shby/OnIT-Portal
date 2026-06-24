@@ -107,7 +107,8 @@ Rules: white line first, orange last, left-aligned, orange rule above.
 | `.admin-input` | - | Form fields on dark |
 | `.form-card` | Same | Login panel |
 | `.onboarding-guide` | FAQ accordion + agenda list | Client setup guide ([design/components.md](design/components.md)) |
-| `.support-list` | Same | Bulleted instructions in cards and onboarding |
+| `.onboarding-manual` | Install-manual blocks | Prerequisites, numbered parts, verify section in checklist |
+| `.support-list` | Same | Bulleted instructions in cards (legacy / field help) |
 | `.agenda-title` | Same | Step titles in onboarding guide |
 
 ---

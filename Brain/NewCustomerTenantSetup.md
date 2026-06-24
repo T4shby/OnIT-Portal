@@ -34,7 +34,7 @@ This guide is **only for each new customer tenant**.
 1. **Work email must match everywhere** — same address in M365, SuperOps, and the portal.  
 2. **Microsoft 365 is the source of truth** — disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
 3. **Use a private/incognito browser for testing** — do not test with `tom.ashby@onit.ltd` (that is a technician account).  
-4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (checklist, admin consent URL). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
+4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (install-manual format: **Before you start**, numbered parts, **Check your work**; admin consent URL on step 05). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
 
 ---
 
@@ -117,7 +117,7 @@ These steps happen in the **customer's** Microsoft Entra tenant — **not** On I
 
 ### 3b — Admin consent (customer tenant)
 
-1. **Admin → Clients → Edit** → checklist step **06** — open the consent URL.  
+1. **Admin → Clients → Edit** → checklist step **05** — open the consent URL.  
 2. Sign in as **customer** Global Admin (or GDAP).  
 3. Click **Accept**.
 
@@ -139,7 +139,7 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 
 **Default:** one non-gallery app `SuperOps - {Company}` — **not** two separate apps.
 
-**SCIM (checklist step 05):**
+**SCIM (checklist step 06):**
 
 1. SuperOps → **Integrations → Microsoft Entra ID → Generate Tokens** → this client.  
 2. Customer Entra → **Enterprise applications → New application** → `SuperOps - {Company}`.  

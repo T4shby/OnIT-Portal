@@ -2,7 +2,9 @@
 
 **Full guide for new technicians:** [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — start there if you have never used this app.
 
-**In-app wizard:** **Add Client** = form only. After **Create**, **Edit** opens with the setup checklist on the **right**; **Dry run sync** / **Sync now** on the **left**.
+**In-app wizard:** **Add Client** = form only. After **Create**, **Edit** opens with the setup checklist on the **right** (11 steps, install-manual format); **Dry run sync** / **Sync now** on the **left**.
+
+**Checklist order:** 01 portal record → 02 SuperOps → 03 Pax8 (optional) → 04 security group → **05 admin consent** → **06 SCIM** → **07 Client SSO** → 08 enable sync → 09 run sync → 10 test → 11 handoff.
 
 | URL | What |
 |-----|------|
@@ -27,6 +29,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-06-24 | Install-manual checklist format; step numbers 05–07 aligned |
 | 2026-06-16 | Preview guide on Add Client; sync buttons documented on left |
 | 2026-06-23 | Point to NewCustomerTenantSetup.md; tenant-wide sync + M365 directory |
 | 2026-06-19 | In-app setup wizard on client edit page |
