@@ -449,11 +449,11 @@
     }
 
     .onboarding-manual__hint {
-        @apply mb-4 text-sm leading-relaxed text-white/65;
+        @apply mb-4 text-sm leading-relaxed text-white/60;
     }
 
     .onboarding-manual__prerequisites {
-        @apply border border-white/15 bg-white/[0.04] px-5 py-5;
+        @apply border border-white/10 bg-white/[0.04] px-5 py-5;
     }
 
     .onboarding-manual__prereq-list {
@@ -482,7 +482,7 @@
     }
 
     .onboarding-manual__section {
-        @apply border border-white/12 bg-onit-ink/40 px-5 py-5;
+        @apply border border-white/10 bg-onit-ink/40 px-5 py-5;
     }
 
     .onboarding-manual__section + .onboarding-manual__section {
@@ -514,7 +514,8 @@
     }
 
     .onboarding-manual__steps {
-        @apply counter-reset onboarding-step overflow-hidden rounded border border-white/10;
+        @apply overflow-hidden rounded border border-white/10;
+        counter-reset: onboarding-step;
     }
 
     .onboarding-manual__step {
