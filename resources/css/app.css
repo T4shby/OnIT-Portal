@@ -414,7 +414,7 @@
     }
 
     .onboarding-guide__panel {
-        @apply border-t border-white/[0.05] pb-8 pl-6 pr-4 pt-2;
+        @apply border-t border-white/[0.05] pb-10 pl-4 pr-4 pt-5 sm:pl-6 sm:pr-6;
         margin-left: 3.75rem;
     }
 
@@ -437,70 +437,126 @@
     }
 
     .onboarding-manual {
-        @apply space-y-8;
+        @apply space-y-6;
     }
 
-    .onboarding-manual__label {
-        @apply portal-label mb-2;
+    .onboarding-manual__block-title {
+        @apply mb-4 border-b-2 border-onit pb-2 font-condensed text-sm font-extrabold uppercase tracking-widest text-white;
+    }
+
+    .onboarding-manual__block-title--muted {
+        @apply border-white/25 text-onit;
     }
 
     .onboarding-manual__hint {
-        @apply mb-3;
+        @apply mb-4 text-sm leading-relaxed text-white/65;
     }
 
     .onboarding-manual__prerequisites {
-        @apply border border-white/10 bg-white/[0.03] px-4 py-4;
+        @apply border border-white/15 bg-white/[0.04] px-5 py-5;
     }
 
     .onboarding-manual__prereq-list {
-        @apply space-y-2 text-sm text-white/80;
+        @apply space-y-3 text-sm leading-relaxed text-white/85;
     }
 
     .onboarding-manual__prereq-list li {
-        @apply relative pl-5;
+        @apply relative border-b border-white/[0.06] pb-3 pl-6 last:border-b-0 last:pb-0;
     }
 
     .onboarding-manual__prereq-list li::before {
         content: '—';
-        @apply absolute left-0 text-onit;
+        @apply absolute left-0 top-0 font-bold text-onit;
     }
 
     .onboarding-manual__callout {
-        @apply border border-onit/30 bg-onit/10 px-4 py-4;
+        @apply border-2 border-onit/40 bg-onit/10 px-5 py-5;
     }
 
     .onboarding-manual__notes {
-        @apply space-y-2 text-sm text-white/85;
+        @apply space-y-3 text-sm leading-relaxed text-white/90;
+    }
+
+    .onboarding-manual__notes li {
+        @apply border-b border-onit/20 pb-3 last:border-b-0 last:pb-0;
+    }
+
+    .onboarding-manual__section {
+        @apply border border-white/12 bg-onit-ink/40 px-5 py-5;
     }
 
     .onboarding-manual__section + .onboarding-manual__section {
-        @apply border-t border-white/[0.06] pt-8;
+        @apply mt-6 border-t-0;
+    }
+
+    .onboarding-manual__section-header {
+        @apply mb-4 space-y-2;
+    }
+
+    .onboarding-manual__part-badge {
+        @apply inline-block bg-onit px-2.5 py-1 font-condensed text-[0.65rem] font-extrabold uppercase tracking-[0.2em] text-black;
+    }
+
+    .onboarding-manual__section-title {
+        @apply text-base font-bold leading-snug text-white underline decoration-onit decoration-2 underline-offset-[6px];
     }
 
     .onboarding-manual__where {
-        @apply mb-4;
+        @apply mb-5 border-l-4 border-onit bg-white/[0.05] px-4 py-3;
+    }
+
+    .onboarding-manual__where-label {
+        @apply mb-1 block font-condensed text-[0.65rem] font-bold uppercase tracking-[0.18em] text-onit;
+    }
+
+    .onboarding-manual__where-value {
+        @apply block text-sm font-semibold leading-relaxed text-white/90 break-all;
     }
 
     .onboarding-manual__steps {
-        @apply space-y-3 counter-reset onboarding-step;
+        @apply counter-reset onboarding-step overflow-hidden rounded border border-white/10;
     }
 
     .onboarding-manual__step {
-        @apply relative pl-9 text-sm leading-relaxed text-white/85;
+        @apply relative border-b border-white/[0.08] py-4 pl-14 pr-3 text-sm leading-relaxed text-white/90 last:border-b-0;
         counter-increment: onboarding-step;
     }
 
     .onboarding-manual__step::before {
         content: counter(onboarding-step);
-        @apply absolute left-0 top-0 flex h-6 w-6 items-center justify-center bg-onit font-condensed text-xs font-bold text-black;
+        @apply absolute left-3 top-4 flex h-7 w-7 items-center justify-center bg-onit font-condensed text-sm font-extrabold text-black;
+    }
+
+    .onboarding-manual__path {
+        @apply font-semibold text-white;
+    }
+
+    .onboarding-manual__arrow {
+        @apply px-0.5 font-normal text-onit;
+    }
+
+    .onboarding-manual__term {
+        @apply font-bold text-onit underline decoration-onit/50 underline-offset-2;
+    }
+
+    .onboarding-manual__name {
+        @apply font-bold text-white;
+    }
+
+    .onboarding-manual__emph {
+        @apply font-bold text-white;
+    }
+
+    .onboarding-manual__link {
+        @apply font-medium text-onit underline decoration-onit/60 underline-offset-2 hover:text-white;
     }
 
     .onboarding-manual__verify {
-        @apply border border-onit/25 bg-onit/5 px-4 py-4;
+        @apply border-2 border-onit/30 bg-onit/5 px-5 py-5;
     }
 
     .onboarding-manual__steps--verify .onboarding-manual__step::before {
-        @apply bg-onit/20 text-onit;
+        @apply bg-onit/25 text-onit ring-1 ring-onit/40;
     }
 
     .field-help {
