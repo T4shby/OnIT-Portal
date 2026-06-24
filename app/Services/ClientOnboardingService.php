@@ -67,7 +67,6 @@ class ClientOnboardingService
         $checklist = $client->onboarding_checklist ?? [];
         $groupName = 'On IT Portal - '.$client->name;
 
-        $clientExists = $client->exists;
         $superopsLinked = filled($client->superops_account_id);
         $pax8Configured = ! $client->pax8_sso_enabled || filled($client->pax8_company_id);
         $entraTenantSaved = filled($client->entra_tenant_id);
@@ -79,25 +78,8 @@ class ClientOnboardingService
         $entraGroupComplete = $entraGroupSaved || (bool) ($checklist['entra_group_created'] ?? false);
         $adminConsentComplete = (bool) ($checklist['entra_admin_consent_granted'] ?? false) || $syncRun;
 
+        // Checklist is only shown on Edit (after Create). No "create client" step — you cannot reach this UI without one.
         return [
-            $this->withManual([
-                'key' => 'portal_client_created',
-                'title' => 'Portal client record',
-                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
-                'complete' => $clientExists,
-                'manual' => false,
-                'auto_detected' => $clientExists,
-                'blocked' => false,
-            ], OnboardingManual::simple(
-                'https://app.onit.ltd — Admin → Clients',
-                [
-                    'Click Create client for a new customer, or open Edit for an existing one.',
-                    'Enter the client name exactly as it appears in SuperOps.',
-                    'On the left: tick SuperOps SSO and Active.',
-                    'Click Save client.',
-                ],
-                sectionTitle: 'Create the client record',
-            )),
             $this->withManual([
                 'key' => 'superops_linked',
                 'title' => 'Link SuperOps client',
@@ -105,7 +87,7 @@ class ClientOnboardingService
                 'complete' => $superopsLinked,
                 'manual' => false,
                 'auto_detected' => $superopsLinked,
-                'blocked' => ! $clientExists,
+                'blocked' => false,
             ], OnboardingManual::build(
                 sections: [
                     OnboardingManual::section(
@@ -137,7 +119,7 @@ class ClientOnboardingService
                 'complete' => $pax8Configured,
                 'manual' => false,
                 'auto_detected' => $pax8Configured,
-                'blocked' => ! $clientExists,
+                'blocked' => false,
             ], OnboardingManual::build(
                 prerequisites: [
                     'Skip this entire step if the client does not use the Pax8 licensing tile on the dashboard.',
@@ -298,7 +280,7 @@ class ClientOnboardingService
             notes: [
                 'This step is Microsoft only — not Sign in with Microsoft on app.onit.ltd.',
                 'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
-                'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 05 ticks automatically.',
+                'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 04 ticks automatically.',
                 'This grants OnIT Portal for Portals these Application permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All.',
                 'Re-consent even if you consented before — new permissions (especially GroupMember.ReadWrite.All) are not included in old consent.',
             ],
@@ -684,7 +666,7 @@ class ClientOnboardingService
             ],
             'entra_sync_enabled' => [
                 'Where: this page. Turn on after Entra tenant ID is saved.',
-                'Requires admin consent (step 05) before Sync now will succeed.',
+                'Requires admin consent (step 04) before Sync now will succeed.',
                 'Syncs licensed users + shared mailboxes; maintains SuperOps group when group ID is set.',
                 'Use Dry run sync, then Sync now, on the left.',
             ],

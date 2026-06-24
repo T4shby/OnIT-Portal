@@ -4,7 +4,7 @@
     <div class="max-w-2xl">
         <p class="portal-body-muted mb-6 max-w-prose text-sm leading-relaxed">
             Enter the client details below and click <strong class="text-white/80">Create</strong>.
-            The setup checklist opens on the next screen so you can track SuperOps, Pax8, and Microsoft 365 steps.
+            You land on <strong class="text-white/80">Edit Client</strong> next — the <strong class="text-white/80">Client setup guide</strong> on the right starts at step 01 (Link SuperOps), not here.
         </p>
 
         <x-card>

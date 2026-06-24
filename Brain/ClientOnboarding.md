@@ -28,7 +28,7 @@ Every step is performed by **On IT technicians**. The label shows **where** you 
 | **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
 | **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, admin consent, Client SSO |
 
-If you do not have GDAP on a tenant, send the customer admin the consent URL from **checklist step 05** — the checklist owner is still On IT until handed off.
+If you do not have GDAP on a tenant, send the customer admin the consent URL from **checklist step 04** — the checklist owner is still On IT until handed off.
 
 Same playbook for every client: **Admin → Clients → Add → Edit** → work the checklist → next client.
 
@@ -39,7 +39,7 @@ Same playbook for every client: **Admin → Clients → Add → Edit** → work 
 | **Add Client** | Form only — fill in details and click **Create** once |
 | **Edit Client** (opens after Create) | Form on the left (**Update** saves fields) + setup checklist on the right |
 
-The checklist does not appear until the client is saved. After Create you land on **Edit** — there is no second Create step.
+The checklist does not appear until the client is saved. **Add Client** (form only) → **Create** → **Edit Client** opens with this guide on the right. There is no “create client” step in the checklist — you cannot see it without already having a client record.
 
 ### In-app instruction format (checklist right column)
 
@@ -54,37 +54,37 @@ Each step uses an **install-manual** layout (not a flat bullet list):
 
 Full click-by-click text lives in the app; Brain docs are reference copies — keep step numbers aligned with the checklist below.
 
-### Checklist steps (01–11)
+### Checklist steps (01–10, Edit page only)
 
 | # | Step | Who |
 |---|------|-----|
-| 01 | Portal client record | On IT technician (portal / SuperOps) |
-| 02 | Link SuperOps client | On IT technician (portal / SuperOps) |
-| 03 | Link Pax8 company (optional) | On IT technician (portal / SuperOps) |
-| 04 | M365 security group (SuperOps) | On IT technician (customer Entra / GDAP) |
-| 05 | Portal Graph admin consent | On IT technician (customer Entra / GDAP) |
-| 06 | SuperOps SCIM (requesters) | On IT technician (customer Entra / GDAP) |
-| 07 | SuperOps Client SSO (SAML) | On IT technician (customer Entra / GDAP) |
-| 08 | Enable portal sync | On IT technician (portal / SuperOps) |
-| 09 | Run portal sync | On IT technician (portal / SuperOps) |
-| 10 | Test sign-in | On IT technician (portal / SuperOps) |
-| 11 | Hand off to customer | On IT technician (portal / SuperOps) |
+| 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
+| 02 | Link Pax8 company (optional) | On IT technician (portal / SuperOps) |
+| 03 | M365 security group (SuperOps) | On IT technician (customer Entra / GDAP) |
+| 04 | Portal Graph admin consent | On IT technician (customer Entra / GDAP) |
+| 05 | SuperOps SCIM (requesters) | On IT technician (customer Entra / GDAP) |
+| 06 | SuperOps Client SSO (SAML) | On IT technician (customer Entra / GDAP) |
+| 07 | Enable portal sync | On IT technician (portal / SuperOps) |
+| 08 | Run portal sync | On IT technician (portal / SuperOps) |
+| 09 | Test sign-in | On IT technician (portal / SuperOps) |
+| 10 | Hand off to customer | On IT technician (portal / SuperOps) |
+
+**Before step 01:** **Admin → Clients → Add Client** — fill the form and click **Create** (not part of the numbered checklist).
 
 ### Auto vs manual checklist steps
 
 | Step | Completes automatically when… | Manual tick only if… |
 |------|------------------------------|----------------------|
-| 01 Portal client record | Client exists (you are on Edit) | — |
-| 02 SuperOps linked | `SuperOps Account ID` saved | — |
-| 03 Pax8 linked (optional) | Pax8 off, or company ID saved | — |
-| 04 M365 security group (SuperOps) | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
-| 05 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
-| 06 SuperOps SCIM | — | Done in SuperOps + customer Entra |
-| 07 SuperOps Client SSO (SAML) | — | SAML configured on same Entra app |
-| 08 Enable portal sync | Tenant ID saved + Entra sync enabled | — |
-| 09 Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
-| 10 Test sign-in | — | You tested in incognito |
-| 11 Hand off | — | Customer notified |
+| 01 SuperOps linked | `SuperOps Account ID` saved | — |
+| 02 Pax8 linked (optional) | Pax8 off, or company ID saved | — |
+| 03 M365 security group (SuperOps) | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
+| 04 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
+| 05 SuperOps SCIM | — | Done in SuperOps + customer Entra |
+| 06 SuperOps Client SSO (SAML) | — | SAML configured on same Entra app |
+| 07 Enable portal sync | Tenant ID saved + Entra sync enabled | — |
+| 08 Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
+| 09 Test sign-in | — | You tested in incognito |
+| 10 Hand off | — | Customer notified |
 
 **Rule:** Portal sync reads the **whole tenant** and **maintains** the SuperOps SCIM security group when `entra_group_id` is set. SuperOps SCIM provisions **group members only** — existing requesters match by email.
 

@@ -23,8 +23,8 @@
         </p>
         <p class="portal-body-muted mt-4 max-w-prose text-sm leading-relaxed">
             <strong class="text-white/80">Order for this client:</strong>
-            Portal record (01) → SuperOps link (02) → Pax8 if used (03) → M365 group (04) → Admin consent (05) →
-            SuperOps SCIM (06) → SuperOps SAML (07) → Enable sync (08) → Dry run / Sync now (09) → Test sign-in (10) → Hand off (11).
+            SuperOps link (01) → Pax8 if used (02) → M365 group (03) → Admin consent (04) →
+            SuperOps SCIM (05) → SuperOps SAML (06) → Enable sync (07) → Dry run / Sync now (08) → Test sign-in (09) → Hand off (10).
         </p>
         <p class="portal-body-muted mt-4 max-w-prose text-sm leading-relaxed">
             <strong class="text-white/80">Saving data:</strong>

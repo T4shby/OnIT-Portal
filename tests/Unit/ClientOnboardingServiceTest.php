@@ -18,7 +18,8 @@ class ClientOnboardingServiceTest extends TestCase
         $keys = collect(app(ClientOnboardingService::class)->steps($client))->pluck('key');
 
         $this->assertFalse($keys->contains('platform_graph_permissions'));
-        $this->assertSame(11, $keys->count());
+        $this->assertFalse($keys->contains('portal_client_created'));
+        $this->assertSame(10, $keys->count());
     }
 
     public function test_run_sync_step_includes_server_deploy_commands(): void
@@ -69,16 +70,16 @@ class ClientOnboardingServiceTest extends TestCase
         $progress = app(ClientOnboardingService::class)->progress($client);
 
         $this->assertGreaterThanOrEqual(6, $progress['complete']);
-        $this->assertSame(11, $progress['total']);
+        $this->assertSame(10, $progress['total']);
     }
 
-    public function test_unsaved_client_does_not_mark_portal_record_complete(): void
+    public function test_unsaved_client_does_not_mark_superops_linked_complete(): void
     {
         $client = new Client(['name' => 'Draft Co']);
 
         $steps = collect(app(ClientOnboardingService::class)->steps($client));
 
-        $this->assertFalse($steps->firstWhere('key', 'portal_client_created')['complete']);
+        $this->assertFalse($steps->firstWhere('key', 'superops_linked')['complete']);
     }
 
     public function test_pax8_step_complete_when_disabled_or_company_id_set(): void

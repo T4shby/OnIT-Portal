@@ -37,17 +37,17 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 
 | Checklist step | Primary system | URL / location |
 |----------------|----------------|----------------|
-| 01 Portal client record | **Portal** | https://app.onit.ltd — Admin → Clients → Edit |
-| 02 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
-| 03 Pax8 (optional) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
-| 04 Security group | **Azure** (customer tenant) | portal.azure.com — customer directory |
-| 05 Admin consent | **Azure** (customer tenant) | Consent URL on portal checklist → Microsoft login |
-| 06 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
-| 07 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 06 |
-| 08 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
-| 09 Run sync | **Portal** | Dry run sync / Sync now buttons on left |
-| 10 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
-| 11 Hand off | **Email/ticket** | Tell customer the portal URL |
+| — | **Portal** (before checklist) | Admin → Clients → **Add Client** → Create → Edit opens |
+| 01 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
+| 02 Pax8 (optional) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
+| 03 Security group | **Azure** (customer tenant) | portal.azure.com — customer directory |
+| 04 Admin consent | **Azure** (customer tenant) | Consent URL on portal checklist → Microsoft login |
+| 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
+| 06 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 05 |
+| 07 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
+| 08 Run sync | **Portal** | Dry run sync / Sync now buttons on left |
+| 09 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
+| 10 Hand off | **Email/ticket** | Tell customer the portal URL |
 
 **Once per platform (not per client):** Graph permissions on **OnIT Portal for Portals** in **On IT** tenant — Step 0 below.
 
@@ -95,9 +95,9 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **1** | Portal | Client record, SuperOps Account ID |
 | **2** | Customer tenant | Create **empty** security group → copy Object ID |
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
-| **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **05**) |
-| **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **06**) |
-| **6** | Same app | Add SAML (Client SSO) — do **not** create a second app (checklist step **07**) |
+| **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
+| **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
+| **6** | Same app | Add SAML (Client SSO) — do **not** create a second app (checklist step **06**) |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
@@ -190,13 +190,13 @@ Click **Save client**.
 
 ---
 
-## Step 4 — Admin consent (customer tenant) — checklist **05**
+## Step 4 — Admin consent (customer tenant) — checklist **04**
 
 Must be done in the **customer** tenant as Global Admin (or GDAP with consent rights).
 
 ### Option A — Link from portal checklist
 
-1. **Admin → Clients → Edit** → checklist **Step 05 — Portal Graph admin consent**
+1. **Admin → Clients → Edit** → checklist **Step 04 — Portal Graph admin consent**
 2. Open the consent URL (or send to customer admin)
 3. Confirm the sign-in page shows the **customer** tenant name (not On IT)
 4. Review permissions → **Accept**
@@ -220,7 +220,7 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={P
 
 ---
 
-## Step 5–6 — One SuperOps Entra app (SCIM + SAML) — checklist **06** + **07**
+## Step 5–6 — One SuperOps Entra app (SCIM + SAML) — checklist **05** + **06**
 
 App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 
@@ -264,7 +264,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 
 ---
 
-## Step 7 — Portal sync — checklist **08** + **09**
+## Step 7 — Portal sync — checklist **07** + **08**
 
 ### Server deploy (after `git pull`)
 
