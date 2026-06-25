@@ -6,14 +6,30 @@ use App\Enums\EntraIdentityType;
 
 class EntraSyncDisplayName
 {
-    public static function format(?string $displayName, EntraIdentityType $identityType, ?string $emailFallback = null): string
+    public static function stripSuffix(?string $displayName): string
     {
-        $base = trim((string) preg_replace('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', '', $displayName ?? ''));
+        return trim((string) preg_replace('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', '', $displayName ?? ''));
+    }
 
-        if ($base === '') {
-            $base = $emailFallback !== null ? (string) str($emailFallback)->before('@') : 'Unknown';
+    public static function baseName(?string $displayName, ?string $emailFallback = null): string
+    {
+        $base = self::stripSuffix($displayName);
+
+        if ($base !== '') {
+            return $base;
         }
 
-        return $base.' ('.$identityType->displaySuffix().')';
+        return $emailFallback !== null ? (string) str($emailFallback)->before('@') : 'Unknown';
+    }
+
+    /** Portal / M365 directory label — does not write to Entra displayName. */
+    public static function format(?string $displayName, EntraIdentityType $identityType, ?string $emailFallback = null): string
+    {
+        return self::baseName($displayName, $emailFallback).' ('.$identityType->displaySuffix().')';
+    }
+
+    public static function hasSuperOpsSuffix(?string $displayName): bool
+    {
+        return (bool) preg_match('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', (string) $displayName);
     }
 }

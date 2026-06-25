@@ -389,6 +389,31 @@ class MicrosoftGraphClient
         );
     }
 
+    public function setSuperOpsNameExtensionAttribute(string $tenantId, string $userId, string $hint): void
+    {
+        $attributeNumber = (int) config('services.entra_sync.superops_name_extension_attribute', 1);
+
+        if ($attributeNumber < 1 || $attributeNumber > 15) {
+            throw new RuntimeException('ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE must be between 1 and 15.');
+        }
+
+        $key = 'extensionAttribute'.$attributeNumber;
+
+        $response = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/users/{$userId}", [
+            'onPremisesExtensionAttributes' => [
+                $key => $hint,
+            ],
+        ]);
+
+        if ($response->status() === 204) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph update SuperOps name hint failed: '.$response->status().' '.$response->body()
+        );
+    }
+
     private function request(string $tenantId, bool $refreshToken = false): PendingRequest
     {
         return Http::acceptJson()

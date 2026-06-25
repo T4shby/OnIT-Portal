@@ -293,7 +293,7 @@ Optional PHP-FPM reload (Plesk): **Domains → onit.ltd → PHP Settings** or `s
 ```env
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
-ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true
+ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1
 MICROSOFT_CLIENT_ID=<OnIT Portal for Portals client ID>
 MICROSOFT_CLIENT_SECRET=<secret>
 ```
@@ -329,7 +329,7 @@ php artisan portal:sync-entra-users --client={id}
 |---|--------|-----------|
 | 1 | Entra group members | **Groups → On IT Portal - {Company} → Members** lists licensed users + shared mailboxes without manual adds |
 | 2 | SCIM logs | **Enterprise app → Provisioning → Provisioning logs** — users synced, no errors |
-| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; emails match |
+| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User)` or `(Shared Mailbox)`; emails match |
 | 4 | SAML login | Incognito → `app.onit.ltd` → SuperOps tile → Microsoft sign-in with `@customerdomain` |
 | 5 | Joiner | New licensed user → after sync + SCIM cycle → in group, portal, SuperOps |
 | 6 | Leaver | Licence removed → portal user deactivated; removed from group → SCIM deprovisions |
@@ -373,7 +373,7 @@ php artisan portal:sync-entra-users --client={id}
 | SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
 | SuperOps Entra app ID | Enterprise app Object ID in portal (e.g. `22561b4e-a748-48d2-81a5-f4744812e6f2`) |
 | Entra ID tier | Free — use `entra_superops_app_id`; portal assigns users + sets display names |
-| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` |
+| Requester name format | `Name (User)` or `Name (Shared Mailbox)` in SuperOps only — via SCIM attribute mapping |
 
 Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
 

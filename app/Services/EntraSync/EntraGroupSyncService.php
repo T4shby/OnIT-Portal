@@ -52,7 +52,7 @@ class EntraGroupSyncService
         $groupMembersRemoved = 0;
         $superOpsAppUsersAssigned = 0;
         $superOpsAppUsersRemoved = 0;
-        $displayNamesUpdated = 0;
+        $superOpsNameHintsUpdated = 0;
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
@@ -83,25 +83,23 @@ class EntraGroupSyncService
                 $graphUser['accountEnabled'],
             );
 
-            $name = EntraSyncDisplayName::format(
-                $graphUser['displayName'],
-                $identityType,
-                $email,
-            );
+            $name = EntraSyncDisplayName::baseName($graphUser['displayName'], $email);
 
-            if ($this->shouldUpdateEntraDisplayNames()) {
-                $currentDisplayName = trim((string) ($graphUser['displayName'] ?? ''));
+            if ($this->shouldSetSuperOpsNameHint()) {
+                $hint = $identityType->superOpsNameHint();
 
-                if ($currentDisplayName !== $name) {
-                    if ($dryRun) {
-                        $displayNamesUpdated++;
-                    } else {
-                        try {
-                            $this->graph->updateUserDisplayName((string) $client->entra_tenant_id, $graphUser['id'], $name);
-                            $displayNamesUpdated++;
-                        } catch (Throwable $e) {
-                            $errors[] = "Failed to update displayName for {$email}: {$e->getMessage()}";
-                        }
+                if ($dryRun) {
+                    $superOpsNameHintsUpdated++;
+                } else {
+                    try {
+                        $this->graph->setSuperOpsNameExtensionAttribute(
+                            (string) $client->entra_tenant_id,
+                            $graphUser['id'],
+                            $hint,
+                        );
+                        $superOpsNameHintsUpdated++;
+                    } catch (Throwable $e) {
+                        $errors[] = "Failed to set SuperOps name hint for {$email}: {$e->getMessage()}";
                     }
                 }
             }
@@ -207,14 +205,65 @@ class EntraGroupSyncService
             $groupMembersRemoved,
             $superOpsAppUsersAssigned,
             $superOpsAppUsersRemoved,
-            $displayNamesUpdated,
+            $superOpsNameHintsUpdated,
             $errors,
         );
     }
 
-    private function shouldUpdateEntraDisplayNames(): bool
+    /**
+     * Strip mistaken (User) / (Shared Mailbox) suffixes from Entra displayName in the customer tenant.
+     *
+     * @return array{reverted: int, errors: list<string>}
+     */
+    public function revertEntraDisplayNames(Client $client, bool $dryRun = false): array
     {
-        return (bool) config('services.entra_sync.update_display_names');
+        if (! $client->hasEntraSyncConfigured()) {
+            return ['reverted' => 0, 'errors' => ['Client does not have Entra sync configured.']];
+        }
+
+        if (! $this->graph->isConfigured()) {
+            return ['reverted' => 0, 'errors' => ['Microsoft Graph credentials are not configured.']];
+        }
+
+        $tenantId = (string) $client->entra_tenant_id;
+        $reverted = 0;
+        $errors = [];
+
+        try {
+            $graphUsers = $this->graph->listSyncEligibleUsers($tenantId);
+        } catch (Throwable $e) {
+            return ['reverted' => 0, 'errors' => [$e->getMessage()]];
+        }
+
+        foreach ($graphUsers as $graphUser) {
+            $current = trim((string) ($graphUser['displayName'] ?? ''));
+
+            if (! EntraSyncDisplayName::hasSuperOpsSuffix($current)) {
+                continue;
+            }
+
+            $restored = EntraSyncDisplayName::baseName($current);
+
+            if ($dryRun) {
+                $reverted++;
+
+                continue;
+            }
+
+            try {
+                $this->graph->updateUserDisplayName($tenantId, $graphUser['id'], $restored);
+                $reverted++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to revert displayName for {$graphUser['id']}: {$e->getMessage()}";
+            }
+        }
+
+        return ['reverted' => $reverted, 'errors' => $errors];
+    }
+
+    private function shouldSetSuperOpsNameHint(): bool
+    {
+        return (int) config('services.entra_sync.superops_name_extension_attribute', 1) > 0;
     }
 
     private function shouldAssignToSuperOpsApp(EntraIdentityType $identityType, bool $accountEnabled): bool

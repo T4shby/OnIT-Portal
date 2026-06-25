@@ -278,13 +278,13 @@ New client field `entra_superops_app_id` (enterprise app Object ID). Application
 
 ## ADR-020
 
-Date: 2026-06-25
+Date: 2026-06-25 (revised 2026-06-25)
 
 Decision:
-SuperOps requester names use `Name (User Mailbox)` or `Name (Shared Mailbox)`. Portal sync patches Entra `displayName` via `User.ReadWrite.All` (`ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true` default). SuperOps SCIM reads `displayName` — portal does not rename requesters via SuperOps API.
+SuperOps requester names use `Name (User)` or `Name (Shared Mailbox)` **only in SuperOps**. Portal sync writes `User` or `Shared Mailbox` to `extensionAttribute1` via `User.ReadWrite.All`. Entra SCIM attribute mapping expression joins that hint with the real M365 `displayName`. **Do not patch Entra `displayName`.**
 
 Reason:
-SCIM provisions the Entra `displayName` field. Plain names (e.g. `Phil Cooper`) do not meet On IT naming convention. Shared mailboxes must appear in SuperOps with the correct label and be in SCIM app scope.
+Patching `displayName` polluted M365 Admin Center Active users. SCIM can map a custom expression without changing the tenant directory.
 
 Consequences:
-Seventh Application permission `User.ReadWrite.All` + customer re-consent. Sync output includes `Entra display names updated N`. Existing requesters update after portal sync + SCIM cycle (or Provision on demand). Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+`ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE` (default `1`). One-time SCIM attribute mapping per customer SuperOps app. `portal:revert-entra-display-names` restores mistaken suffixes. Sync output includes `SuperOps name hints updated N`. Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).

@@ -29,7 +29,7 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 
 | System | Uses the group? |
 |---|---|
-| **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set. On **Entra ID Free**, **assigns** licensed users + shared mailboxes to the SuperOps enterprise app when `entra_superops_app_id` is set. **Updates Entra `displayName`** to `Name (User Mailbox)` or `Name (Shared Mailbox)` for SuperOps SCIM |
+| **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set. On **Entra ID Free**, **assigns** licensed users + shared mailboxes to the SuperOps enterprise app when `entra_superops_app_id` is set. **Sets `extensionAttribute1`** for SuperOps SCIM requester naming (does not change M365 `displayName`) |
 | **SuperOps SCIM** | **Yes** — provisions users assigned to the enterprise app (via group on P1, or direct app assignment on Free) |
 | **SuperOps Client SSO (SAML)** | **Yes** — assign the same group to the SAML app |
 
@@ -62,7 +62,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Security group, SCIM, consent, Client SSO | On IT technician (customer Entra / GDAP) |
 | Portal users (licensed + shared mailboxes) | **Automatic** — whole tenant |
 | SuperOps requesters | **Automatic** — SCIM for users in app scope (group or direct assignment) |
-| SuperOps requester **names** | **Automatic** — portal sets Entra `displayName` → SCIM provisions `Name (User Mailbox)` or `Name (Shared Mailbox)` |
+| SuperOps requester **names** | **Automatic** — portal sets `extensionAttribute1` → SCIM expression provisions `Name (User)` or `Name (Shared Mailbox)` |
 
 ---
 
@@ -74,7 +74,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Do I add everyone to the group for the portal? | **No** — only for SuperOps SCIM / SSO |
 | Auto-create portal users? | **Yes** — hourly `portal:sync-entra-users` |
 | Auto-create SuperOps requesters? | **Yes** — SCIM for users in app scope |
-| What are requesters called in SuperOps? | `Name (User Mailbox)` or `Name (Shared Mailbox)` — set on Entra `displayName` by portal sync, picked up by SCIM |
+| What are requesters called in SuperOps? | `Name (User)` or `Name (Shared Mailbox)` — SCIM attribute mapping on the SuperOps app; M365 display names stay plain |
 | Requester still shows plain name (e.g. `Phil Cooper`)? | Run portal **Sync now** (updates Entra), then wait for SCIM cycle or **Provision on demand** — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
 | Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
@@ -113,7 +113,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 | `entra_superops_app_id` on clients (Entra ID Free — auto-assign users to SCIM app) | ✅ |
 | Auto-assign SuperOps enterprise app users via `AppRoleAssignment.ReadWrite.All` (licensed + shared mailboxes) | ✅ |
 | Entra `displayName` sync for SuperOps labels via `User.ReadWrite.All` | ✅ |
-| `ENTRA_SYNC_UPDATE_DISPLAY_NAMES` (default true) | ✅ |
+| `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE` (default 1) | ✅ |
 | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP` (default true) | ✅ |
 | Auto-maintain SCIM group via `GroupMember.ReadWrite.All` | ✅ |
 | `portal:sync-entra-users` | ✅ Tenant-wide |

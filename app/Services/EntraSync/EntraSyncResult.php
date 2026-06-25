@@ -13,7 +13,7 @@ class EntraSyncResult
         public readonly int $groupMembersRemoved = 0,
         public readonly int $superOpsAppUsersAssigned = 0,
         public readonly int $superOpsAppUsersRemoved = 0,
-        public readonly int $displayNamesUpdated = 0,
+        public readonly int $superOpsNameHintsUpdated = 0,
         public readonly array $errors = [],
     ) {}
 
@@ -27,7 +27,7 @@ class EntraSyncResult
         return $this->created + $this->updated + $this->deactivated
             + $this->groupMembersAdded + $this->groupMembersRemoved
             + $this->superOpsAppUsersAssigned + $this->superOpsAppUsersRemoved
-            + $this->displayNamesUpdated;
+            + $this->superOpsNameHintsUpdated;
     }
 
     public function summary(bool $dryRun = false): string
@@ -59,8 +59,8 @@ class EntraSyncResult
             );
         }
 
-        if ($this->displayNamesUpdated > 0) {
-            $parts .= sprintf('; Entra display names updated %d', $this->displayNamesUpdated);
+        if ($this->superOpsNameHintsUpdated > 0) {
+            $parts .= sprintf('; SuperOps name hints updated %d', $this->superOpsNameHintsUpdated);
         }
 
         return $parts.'.';

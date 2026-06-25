@@ -61,6 +61,14 @@ class SyncEntraGroupUsers extends Command
                 $this->line("  SuperOps group: +{$result->groupMembersAdded} / -{$result->groupMembersRemoved} members");
             }
 
+            if ($result->superOpsAppUsersAssigned > 0 || $result->superOpsAppUsersRemoved > 0) {
+                $this->line("  SuperOps app: +{$result->superOpsAppUsersAssigned} / -{$result->superOpsAppUsersRemoved} users");
+            }
+
+            if ($result->superOpsNameHintsUpdated > 0) {
+                $this->line("  SuperOps name hints updated: {$result->superOpsNameHintsUpdated}");
+            }
+
             foreach ($result->errors as $error) {
                 $this->warn('  '.$error);
             }

@@ -93,7 +93,7 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 | User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
 
-**Requester name format:** Portal sync sets Entra `displayName` to `Name (User Mailbox)` or `Name (Shared Mailbox)` before SCIM runs. Existing plain names (e.g. `Phil Cooper`) are updated on the next portal sync; SuperOps updates on the next SCIM cycle (or use **Provision on demand** in Entra).
+**Requester name format:** SuperOps SCIM maps a **custom attribute** — not Entra `displayName`. Portal sync writes `User` or `Shared Mailbox` to `extensionAttribute1` (configurable). Entra provisioning expression joins that hint with the real M365 display name so requesters show `Phil Cooper (User)` or `Accounts (Shared Mailbox)` **only in SuperOps**. M365 Active users keep plain names.
 
 Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by SCIM — not duplicated.
 
@@ -101,28 +101,40 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 ## Requester display names
 
-SuperOps SCIM reads **`displayName`** from the Entra user object. The portal does **not** call the SuperOps API to rename requesters.
+**Never patch Entra `displayName`.** SuperOps requester labels use SCIM attribute mapping on the SuperOps enterprise app.
 
-| Identity in M365 | Entra `displayName` (set by portal sync) | SuperOps requester name |
+| Identity in M365 | Entra `displayName` | SuperOps requester name (after SCIM) |
 |---|---|---|
-| Licensed user | `Phil Cooper (User Mailbox)` | Same after SCIM cycle |
-| Shared mailbox | `Accounts (Shared Mailbox)` | Same after SCIM cycle |
+| Licensed user | `Phil Cooper` (unchanged) | `Phil Cooper (User)` |
+| Shared mailbox | `Accounts` (unchanged) | `Accounts (Shared Mailbox)` |
 
 ### How it works
 
 ```
 portal:sync-entra-users
-  → PATCH Entra user displayName (User.ReadWrite.All)
+  → PATCH onPremisesExtensionAttributes.extensionAttribute1 = "User" | "Shared Mailbox"
   → user in SuperOps SCIM group + app assignment
 Entra provisioning (SCIM, must be ON)
-  → SuperOps requester created/updated with displayName
+  → displayName expression: Join([displayName], " (", [extensionAttribute1], ")")
+  → SuperOps requester created/updated with formatted name
 ```
+
+### Entra SCIM attribute mapping (one-time per customer)
+
+In **Entra → Enterprise applications → SuperOps - {Company} → Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users**:
+
+| Attribute | Mapping type | Expression / source |
+|---|---|---|
+| `displayName` | Expression | `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))` |
+| `extensionAttribute1` | Direct | `extensionAttribute1` (optional — only if you need it in SuperOps) |
+
+Save mapping, then run **Provision on demand** or wait for the next SCIM cycle.
 
 ### Graph permissions required (portal OAuth app)
 
 | Permission | Purpose |
 |---|---|
-| `User.ReadWrite.All` | Set `displayName` to `(User Mailbox)` / `(Shared Mailbox)` suffix |
+| `User.ReadWrite.All` | Set `extensionAttribute1` SuperOps name hint; revert mistaken displayName suffixes |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `GroupMember.ReadWrite.All` | Auto-fill SuperOps SCIM security group |
 
@@ -138,22 +150,27 @@ Re-consent in **each customer tenant** after adding permissions.
 ### Server `.env`
 
 ```env
-ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true   # default — set false only to stop patching Entra displayName
+ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1   # default — extensionAttribute1
 ```
 
-### Fix existing plain names (e.g. Ductec pilot)
+Set to `0` to stop writing SuperOps name hints (requesters fall back to plain M365 displayName).
 
-1. Add `User.ReadWrite.All` to portal app → re-consent in customer tenant
-2. **Admin → Clients → Edit → Sync now** — expect `Entra display names updated N`
-3. Entra → SuperOps app → **Provisioning must be ON**
-4. Wait for SCIM cycle (~40 min) or **Provision on demand** per user
-5. Verify SuperOps → Clients → Requesters shows `(User Mailbox)` / `(Shared Mailbox)`
+### Fix mistaken M365 display names (e.g. Ductec)
+
+If a previous sync incorrectly appended `(User Mailbox)` to Entra `displayName`:
+
+```bash
+php artisan portal:revert-entra-display-names --client={id} --dry-run
+php artisan portal:revert-entra-display-names --client={id}
+```
+
+Then configure SCIM attribute mapping above and run **Sync now** so extension attributes are set.
 
 ### Who is in scope
 
 | Type | Portal user | SuperOps group | SuperOps app (Free) | SuperOps requester name |
 |---|---|---|---|---|
-| Licensed active user | ✅ can sign in | ✅ | ✅ | `(User Mailbox)` |
+| Licensed active user | ✅ can sign in | ✅ | ✅ | `(User)` |
 | Shared mailbox | ✅ directory only | ✅ | ✅ | `(Shared Mailbox)` |
 | Disabled licensed user | ❌ inactive | ❌ removed from group | ❌ removed from app | SCIM deprovisions |
 

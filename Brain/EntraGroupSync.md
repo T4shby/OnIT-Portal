@@ -39,14 +39,14 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 
 | Action | Behaviour |
 |---|---|
-| **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, display `Name (User Mailbox)`) |
+| **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, plain M365 name) |
 | **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, display `Name (Shared Mailbox)`) — cannot sign in |
 | User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
 | User **disabled** in Entra | Portal user set inactive |
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
 | **SuperOps enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users **and shared mailboxes** on the SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) |
-| **SuperOps requester display names** | Sync updates Entra `displayName` to `Name (User Mailbox)` or `Name (Shared Mailbox)` via `User.ReadWrite.All` — SCIM provisions the same label into SuperOps |
+| **SuperOps requester display names** | Sync sets `extensionAttribute1` to `User` or `Shared Mailbox` — SCIM expression maps to `Name (User)` / `Name (Shared Mailbox)` in SuperOps only |
 | **SuperOps requesters** | Provisioned by SCIM from app assignment (direct users or group members) — portal does not call the SuperOps API |
 
 Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
@@ -186,13 +186,13 @@ Add or set on the server (then `php artisan config:clear`):
 ```env
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
-ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true
+ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1
 
 MICROSOFT_CLIENT_ID=your-portal-app-client-id
 MICROSOFT_CLIENT_SECRET=your-portal-app-secret
 ```
 
-`ENTRA_SYNC_UPDATE_DISPLAY_NAMES=false` stops patching Entra `displayName` (not recommended — SuperOps requesters will show plain names).
+Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps name hints (requesters fall back to plain M365 names).
 
 SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md) for requester naming.
 
@@ -260,7 +260,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | User not in SuperOps | Group not filled / not assigned to SCIM app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md). On Entra ID Free: set `entra_superops_app_id` and re-consent with `AppRoleAssignment.ReadWrite.All` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
-| No `Entra display names updated` line | Names already correct, or `ENTRA_SYNC_UPDATE_DISPLAY_NAMES=false` |
+| No `SuperOps name hints updated` line | Hints already set, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |
 | displayName update 403 | Missing `User.ReadWrite.All` or customer consent — re-consent |
 | App role assignment 403 after re-consent | Stale Graph token cached up to 50 min — run `php artisan cache:clear` then sync again (portal auto-retries from next deploy) |
 | SuperOps requester plain name | Run portal sync first, then SCIM cycle — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
