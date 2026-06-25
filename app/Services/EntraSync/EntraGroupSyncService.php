@@ -52,6 +52,7 @@ class EntraGroupSyncService
         $groupMembersRemoved = 0;
         $superOpsAppUsersAssigned = 0;
         $superOpsAppUsersRemoved = 0;
+        $displayNamesUpdated = 0;
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
@@ -73,7 +74,7 @@ class EntraGroupSyncService
             $activeEmails[] = $email;
             $desiredGroupMemberIds[] = $graphUser['id'];
 
-            if ($identityType === EntraIdentityType::User && $graphUser['accountEnabled']) {
+            if ($this->shouldAssignToSuperOpsApp($identityType, $graphUser['accountEnabled'])) {
                 $desiredSuperOpsAppUserIds[] = $graphUser['id'];
             }
 
@@ -87,6 +88,23 @@ class EntraGroupSyncService
                 $identityType,
                 $email,
             );
+
+            if ($this->shouldUpdateEntraDisplayNames()) {
+                $currentDisplayName = trim((string) ($graphUser['displayName'] ?? ''));
+
+                if ($currentDisplayName !== $name) {
+                    if ($dryRun) {
+                        $displayNamesUpdated++;
+                    } else {
+                        try {
+                            $this->graph->updateUserDisplayName((string) $client->entra_tenant_id, $graphUser['id'], $name);
+                            $displayNamesUpdated++;
+                        } catch (Throwable $e) {
+                            $errors[] = "Failed to update displayName for {$email}: {$e->getMessage()}";
+                        }
+                    }
+                }
+            }
 
             $existing = User::query()
                 ->whereRaw('LOWER(email) = ?', [$email])
@@ -189,8 +207,20 @@ class EntraGroupSyncService
             $groupMembersRemoved,
             $superOpsAppUsersAssigned,
             $superOpsAppUsersRemoved,
+            $displayNamesUpdated,
             $errors,
         );
+    }
+
+    private function shouldUpdateEntraDisplayNames(): bool
+    {
+        return (bool) config('services.entra_sync.update_display_names');
+    }
+
+    private function shouldAssignToSuperOpsApp(EntraIdentityType $identityType, bool $accountEnabled): bool
+    {
+        return $identityType === EntraIdentityType::SharedMailbox
+            || ($identityType === EntraIdentityType::User && $accountEnabled);
     }
 
     private function shouldMaintainSuperOpsAppUsers(Client $client): bool

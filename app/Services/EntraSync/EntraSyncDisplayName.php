@@ -8,7 +8,7 @@ class EntraSyncDisplayName
 {
     public static function format(?string $displayName, EntraIdentityType $identityType, ?string $emailFallback = null): string
     {
-        $base = trim((string) preg_replace('/\s+\((User|Shared Mailbox)\)$/i', '', $displayName ?? ''));
+        $base = trim((string) preg_replace('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', '', $displayName ?? ''));
 
         if ($base === '') {
             $base = $emailFallback !== null ? (string) str($emailFallback)->before('@') : 'Unknown';

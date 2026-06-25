@@ -129,6 +129,7 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | Search for | Tick this permission | Description shown |
 |------------|----------------------|-------------------|
 | `User.Read.All` | **User.Read.All** | Read all users' full profiles |
+| `User.ReadWrite` | **User.ReadWrite.All** | Update displayName for SuperOps requester labels |
 | `LicenseAssignment` | **LicenseAssignment.Read.All** | Read all license assignments |
 | `MailboxSettings` | **MailboxSettings.Read** | Read all user mailbox settings |
 | `Group.Read` | **Group.Read.All** | Read all groups |
@@ -145,17 +146,17 @@ All **Application** rows must show:
 
 - **Status:** green tick — **Granted for On IT Technology Partners LTD**
 
-Expected **10** Microsoft Graph permissions total:
+Expected **11** Microsoft Graph permissions total:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (6):** User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All
+**Application (7):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`
 
 This happened on first deploy (June 2026). **Fix:**
 
 1. **Refresh the browser page** (F5)
-2. Confirm all six Application permissions still appear in the table
+2. Confirm all seven Application permissions still appear in the table
 3. Click **Grant admin consent for On IT Technology Partners LTD** again
 
 That was enough — no manifest edit, no PowerShell. If it still fails after refresh, wait 2–3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
@@ -318,7 +319,7 @@ php artisan portal:sync-entra-users --client={id}
 |---|--------|-----------|
 | 1 | Entra group members | **Groups → On IT Portal - {Company} → Members** lists licensed users + shared mailboxes without manual adds |
 | 2 | SCIM logs | **Enterprise app → Provisioning → Provisioning logs** — users synced, no errors |
-| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — emails match; existing requesters not duplicated |
+| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; emails match |
 | 4 | SAML login | Incognito → `app.onit.ltd` → SuperOps tile → Microsoft sign-in with `@customerdomain` |
 | 5 | Joiner | New licensed user → after sync + SCIM cycle → in group, portal, SuperOps |
 | 6 | Leaver | Licence removed → portal user deactivated; removed from group → SCIM deprovisions |

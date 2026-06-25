@@ -10,7 +10,7 @@ enum EntraIdentityType: string
     public function displaySuffix(): string
     {
         return match ($this) {
-            self::User => 'User',
+            self::User => 'User Mailbox',
             self::SharedMailbox => 'Shared Mailbox',
         };
     }

@@ -61,7 +61,7 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(2, $result->created);
         $this->assertDatabaseHas('users', [
             'email' => 'jane@acme.com',
-            'name' => 'Jane Smith (User)',
+            'name' => 'Jane Smith (User Mailbox)',
             'client_id' => $client->id,
             'entra_identity_type' => EntraIdentityType::User->value,
             'portal_login_enabled' => true,
@@ -182,7 +182,7 @@ class EntraGroupSyncServiceTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'disabled@acme.com',
-            'name' => 'Disabled User (User)',
+            'name' => 'Disabled User (User Mailbox)',
             'is_active' => false,
             'portal_login_enabled' => false,
         ]);
@@ -331,7 +331,7 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(2, $result->created);
     }
 
-    public function test_shared_mailboxes_are_not_assigned_to_superops_enterprise_app(): void
+    public function test_shared_mailboxes_are_assigned_to_superops_enterprise_app(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
         $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
@@ -359,15 +359,44 @@ class EntraGroupSyncServiceTest extends TestCase
 
         $result = app(EntraGroupSyncService::class)->syncClient($client);
 
-        $this->assertSame(0, $result->superOpsAppUsersAssigned);
+        $this->assertSame(1, $result->superOpsAppUsersAssigned);
         $this->assertSame(0, $result->superOpsAppUsersRemoved);
+    }
+
+    public function test_sync_updates_entra_display_names_for_superops_scim(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'phil@acme.com',
+                'userPrincipalName' => 'phil@acme.com',
+                'displayName' => 'Phil Cooper',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(1, $result->displayNamesUpdated);
+        $this->assertDatabaseHas('users', [
+            'email' => 'phil@acme.com',
+            'name' => 'Phil Cooper (User Mailbox)',
+        ]);
     }
 
     public function test_display_name_formatter_strips_existing_suffix(): void
     {
         $this->assertSame(
             'Jane Smith (Shared Mailbox)',
-            EntraSyncDisplayName::format('Jane Smith (User)', EntraIdentityType::SharedMailbox),
+            EntraSyncDisplayName::format('Jane Smith (User Mailbox)', EntraIdentityType::SharedMailbox),
         );
     }
 
@@ -446,6 +475,10 @@ class EntraGroupSyncServiceTest extends TestCase
                 $appAssignments[$userId] = 'assignment-'.$userId;
 
                 return Http::response(null, 201);
+            }
+
+            if ($request->method() === 'PATCH' && preg_match('#/users/([0-9a-f-]+)$#', $url, $matches)) {
+                return Http::response(null, 204);
             }
 
             if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/users?')) {

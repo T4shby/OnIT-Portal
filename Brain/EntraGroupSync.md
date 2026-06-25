@@ -39,13 +39,14 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 
 | Action | Behaviour |
 |---|---|
-| **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, display `Name (User)`) |
+| **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, display `Name (User Mailbox)`) |
 | **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, display `Name (Shared Mailbox)`) — cannot sign in |
 | User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
 | User **disabled** in Entra | Portal user set inactive |
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
-| **SuperOps enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users on the SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) — workaround when groups cannot be assigned to apps |
+| **SuperOps enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users **and shared mailboxes** on the SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) |
+| **SuperOps requester display names** | Sync updates Entra `displayName` to `Name (User Mailbox)` or `Name (Shared Mailbox)` via `User.ReadWrite.All` — SCIM provisions the same label into SuperOps |
 | **SuperOps requesters** | Provisioned by SCIM from app assignment (direct users or group members) — portal does not call the SuperOps API |
 
 Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
@@ -90,8 +91,9 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 
 1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
 2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
-3. Add all six Application permissions:
+3. Add all seven Application permissions:
    - `User.Read.All`
+   - `User.ReadWrite.All`
    - `LicenseAssignment.Read.All`
    - `MailboxSettings.Read`
    - `Group.Read.All`
@@ -104,7 +106,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 | Type | Permissions | Status |
 |------|-------------|--------|
 | Delegated (4) | email, openid, profile, User.Read | Granted |
-| Application (6) | User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All | Granted |
+| Application (7) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All | Granted |
 
 ### Consent error fix
 
@@ -209,7 +211,8 @@ php artisan portal:sync-entra-users --client={id}
 Check **Admin → Users**. Expect licensed users + shared mailboxes from the **whole tenant**. Sync output may show:
 
 - `SuperOps group: +N / -M members` when `entra_group_id` is set
-- `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (Entra ID Free)
+- `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
+- `Entra display names updated N` when names need the SuperOps suffix
 
 ---
 

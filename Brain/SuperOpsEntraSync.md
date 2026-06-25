@@ -89,9 +89,11 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 
 | Event in M365 | SuperOps |
 |---|---|
-| User added to group | Requester created (or updated) |
-| User removed from group | Requester deprovisioned |
+| User added to group / app scope | Requester created (or updated) with `displayName` from Entra |
+| User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
+
+**Requester name format:** Portal sync sets Entra `displayName` to `Name (User Mailbox)` or `Name (Shared Mailbox)` before SCIM runs. Existing plain names (e.g. `Phil Cooper`) are updated on the next portal sync; SuperOps updates on the next SCIM cycle (or use **Provision on demand** in Entra).
 
 Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by SCIM — not duplicated.
 

@@ -82,7 +82,7 @@ class ClientEntraSyncTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('users', [
             'email' => 'jane@acme.com',
-            'name' => 'Jane Smith (User)',
+            'name' => 'Jane Smith (User Mailbox)',
             'client_id' => $client->id,
             'provisioned_by' => UserProvisionSource::EntraSync->value,
         ]);

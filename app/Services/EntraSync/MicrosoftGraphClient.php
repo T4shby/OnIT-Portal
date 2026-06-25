@@ -376,6 +376,22 @@ class MicrosoftGraphClient
         );
     }
 
+    public function updateUserDisplayName(string $tenantId, string $userId, string $displayName): void
+    {
+        $response = $this->request($tenantId)
+            ->patch("https://graph.microsoft.com/v1.0/users/{$userId}", [
+                'displayName' => $displayName,
+            ]);
+
+        if ($response->status() === 204) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph update user displayName failed: '.$response->status().' '.$response->body()
+        );
+    }
+
     private function request(string $tenantId): PendingRequest
     {
         return Http::acceptJson()

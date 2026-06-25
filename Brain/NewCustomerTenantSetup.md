@@ -177,7 +177,7 @@ Click **Update** (main form) to save.
 
 Reads the **whole customer tenant** and creates/updates portal users for:
 
-- Every **licensed** M365 user → `Jane Smith (User)` — can sign in to portal  
+- Every **licensed** M365 user → `Jane Smith (User Mailbox)` — can sign in to portal  
 - Every **shared mailbox** → `Accounts (Shared Mailbox)` — **cannot** sign in (for directory + SuperOps only)
 
 Runs **hourly** automatically. You can run it manually now:

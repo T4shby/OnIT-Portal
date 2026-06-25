@@ -70,6 +70,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-25 | SuperOps requester names `(User Mailbox)` / `(Shared Mailbox)` via Entra displayName sync; shared mailboxes on app assign |
 | 2026-06-25 | Entra ID Free: `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` — portal auto-assigns SuperOps app users |
 | 2026-06-25 | SCIM setup: Bearer authentication + Entra ID Free workaround in checklist and Brain |
 | 2026-06-24 | In-app checklist install-manual format (`OnboardingManual`); Brain docs step numbers aligned (05 consent, 06 SCIM, 07 SAML) |

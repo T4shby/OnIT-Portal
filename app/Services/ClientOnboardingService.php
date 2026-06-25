@@ -281,7 +281,8 @@ class ClientOnboardingService
                 'This step is Microsoft only — not Sign in with Microsoft on app.onit.ltd.',
                 'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
                 'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 04 ticks automatically.',
-                'This grants OnIT Portal for Portals these Application permissions: User.Read.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All.',
+                'This grants OnIT Portal for Portals these Application permissions: User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All.',
+                'User.ReadWrite.All updates Entra displayName to Name (User Mailbox) or Name (Shared Mailbox) so SuperOps SCIM provisions requesters with the correct label.',
                 'Re-consent even if you consented before — new permissions (especially GroupMember.ReadWrite.All) are not included in old consent.',
             ],
             sections: [
@@ -389,7 +390,8 @@ class ClientOnboardingService
                         'Click Dry run sync first. Read the green or red message at the top of the page.',
                         'Expect: Created / Updated / Deactivated counts for portal users.',
                         'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
-                        'Expect: SuperOps app: +N / -0 users when SuperOps Entra app ID is set (Entra ID Free — auto-assigns users to the SCIM app).',
+                        'Expect: SuperOps app: +N / -0 users when SuperOps Entra app ID is set (licensed users + shared mailboxes on Entra ID Free).',
+                        'Expect: Entra display names updated N when names need (User Mailbox) or (Shared Mailbox) suffix for SuperOps SCIM.',
                         'If there is no SuperOps group line: Entra group ID is empty — go back to M365 security group step.',
                         'If errors mention 403 or group: admin consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
                         'If errors mention app assignment: add AppRoleAssignment.ReadWrite.All to the portal app and re-consent in the customer tenant.',
@@ -406,7 +408,7 @@ class ClientOnboardingService
                 ),
             ]),
             verify: [
-                'Admin → Users — filter by this client — licensed users appear with names like Jane Smith (User).',
+                'Admin → Users — filter by this client — licensed users appear with names like Jane Smith (User Mailbox).',
                 'Customer Entra → Groups → On IT Portal - {Company} → Members — populated without manual adds.',
                 'Entra ID Free: SuperOps enterprise app → Users and groups — licensed users assigned automatically after Sync now (no manual adds).',
                 'SuperOps → Clients → Requesters — emails match (after SCIM cycle from SuperOps SCIM step).',
