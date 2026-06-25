@@ -65,10 +65,11 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 2. Non-gallery: `SuperOps - {Company}` → Create
 3. **Provisioning** → Automatic
 4. **Admin credentials:** Authentication method = **Bearer authentication** (default — do not change). **Tenant URL** = from SuperOps. **Secret token** = SuperOps Auth Token → **Test connection** → Save
-5. **Users and groups:**
+5. **App role (Entra ID Free — required for portal sync to assign users):** **App registrations** → SuperOps app → **App roles** → **Create app role** if none exists: Display name `User`, Users/Groups, **Value** `User`, **Description** `Default access for SCIM users`, Enable → Save. Skip if an enabled User role already exists.
+6. **Users and groups:**
    - **Entra ID P1:** assign security group `On IT Portal - {Company}` once (portal sync keeps it filled)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps → Overview → portal field; portal sync assigns licensed users automatically
-6. Start provisioning
+7. Start provisioning
 
 #### 2c. Same app — Client SSO (SAML)
 
@@ -203,7 +204,8 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | Security group `On IT Portal - {Company}` in customer Entra |
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
-| ☐ | Assign security group to SCIM app **or** set `entra_superops_app_id` on portal (Entra ID Free) |
+| ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
+| ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
 | ☐ | SuperOps Client SSO configured (SAML) |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
@@ -220,7 +222,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
 | Requester name is plain (no suffix) | Portal sync not run yet, or `User.ReadWrite.All` missing — run **Sync now**, re-consent, wait for SCIM or **Provision on demand** |
-| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set **SuperOps Application (client) ID** on the portal client (App registrations → Overview — not Object ID). Add `Application.Read.All`, `AppRoleAssignment.ReadWrite.All`, re-consent in customer tenant |
+| `Permission being assigned was not found` | App role missing or **Value** blank on SuperOps app | App registrations → App roles → User, Value `User`, Enable |
 
 ---
 

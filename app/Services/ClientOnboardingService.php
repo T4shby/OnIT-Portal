@@ -397,7 +397,7 @@ class ClientOnboardingService
                         'If errors mention 403 or group: admin consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
                         'If errors mention app assignment: add AppRoleAssignment.ReadWrite.All to the portal app and re-consent in the customer tenant.',
                         'If errors mention Could not resolve or Application.Read.All: add Application.Read.All to the portal app in the On IT tenant, re-consent in the customer tenant, php artisan cache:clear, sync again.',
-                        'If errors mention app role or Permission being assigned was not found: App registrations → SuperOps app → App roles → Create app role (Display name User, Users/Groups) → Save → Sync now.',
+                        'If errors mention app role or Permission being assigned was not found: App registrations → SuperOps app → App roles → User role with Value User (not blank) → Save → Sync now.',
                         'Click Sync now to apply changes.',
                     ],
                 ),
@@ -463,7 +463,7 @@ class ClientOnboardingService
                         'Tenant URL: paste from SuperOps (not the customer Azure tenant URL).',
                         'Secret Token: paste Auth Token from SuperOps (same value — different label).',
                         'Click Test Connection — must succeed → Save.',
-                        'App registrations → '.$appName.' → App roles → Create app role: Display name User, Allowed member types Users/Groups, Enable → Save (required for portal sync to assign users on Entra ID Free).',
+                        'App registrations → '.$appName.' → App roles → Create app role if none exists: Display name User, Allowed member types Users/Groups, Value User, Description Default access for SCIM users, Enable → Save (required for portal sync on Entra ID Free).',
                     ],
                 ),
                 OnboardingManual::section(

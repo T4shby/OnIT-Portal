@@ -240,10 +240,19 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 2. **Create your own application** → non-gallery → name `SuperOps - {Company}` → **Create**
 3. **Provisioning** → **Provisioning** → Mode: **Automatic**
 4. **Admin Credentials:** Authentication method = **Bearer authentication** (default). **Tenant URL** + **Secret Token** (Auth Token) from SuperOps → **Test Connection** → must succeed → **Save**
-5. **Users and groups:**
+5. **App role (required on Entra ID Free — portal sync assigns users via Graph):**
+   - **App registrations** → open the SuperOps app (same name, e.g. `OnIT X Superops` or `SuperOps - {Company}`)
+   - **App roles** → if no enabled role exists, **Create app role**:
+     - **Display name:** `User`
+     - **Allowed member types:** Users/Groups
+     - **Value:** `User` (required — do not leave blank)
+     - **Description:** `Default access for SCIM users` (required)
+     - **Enable this app role:** ✓ → **Save**
+   - If a **User** role already exists: open it → confirm **Value** is set (e.g. `User`) and the role is **enabled** — do not create a duplicate
+6. **Users and groups:**
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
-6. **Provisioning → Start provisioning** (or wait for cycle)
+7. **Provisioning → Start provisioning** (or wait for cycle)
 
 ### 6 — SAML on the **same** app (do not create a second app)
 
@@ -349,7 +358,7 @@ php artisan portal:sync-entra-users --client={id}
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
 | Requester plain name (no suffix) | SCIM attribute mapping not configured | Set displayName expression on SuperOps app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
-| `Permission being assigned was not found on application` | SuperOps app has no **App role** | App registrations → SuperOps → **App roles** → Create (Display name User, Users/Groups, Enable) → Save → Sync now |
+| `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
 | Wrong tenant on consent page | Signed into On IT instead of customer | Directory picker top-right |
@@ -387,7 +396,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
-| 2026-06-25 | Application (client) ID for `entra_superops_app_id`; `Application.Read.All`; SCIM naming via extensionAttribute — not displayName |
+| 2026-06-25 | SuperOps App role step (Value `User`) for Entra ID Free; Application (client) ID on portal |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |
 | 2026-06-19 | Auto-maintain group via `GroupMember.ReadWrite.All`; single SuperOps app SCIM+SAML; consent refresh fix documented |
 | 2026-06-19 | Full click-by-click runbook for re-do from scratch |
