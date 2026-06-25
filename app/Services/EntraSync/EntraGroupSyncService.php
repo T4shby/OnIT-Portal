@@ -196,6 +196,16 @@ class EntraGroupSyncService
             $errors = array_merge($errors, $appErrors);
         }
 
+        $superOpsUsersProvisioned = 0;
+
+        if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
+            [$superOpsUsersProvisioned, $provisionErrors] = $this->triggerSuperOpsScimProvision(
+                $client,
+                $desiredSuperOpsAppUserIds,
+            );
+            $errors = array_merge($errors, $provisionErrors);
+        }
+
         return new EntraSyncResult(
             $created,
             $updated,
@@ -206,6 +216,7 @@ class EntraGroupSyncService
             $superOpsAppUsersAssigned,
             $superOpsAppUsersRemoved,
             $superOpsNameHintsUpdated,
+            $superOpsUsersProvisioned,
             $errors,
         );
     }
@@ -275,6 +286,57 @@ class EntraGroupSyncService
     private function shouldMaintainSuperOpsAppUsers(Client $client): bool
     {
         return filled($client->entra_superops_app_id);
+    }
+
+    private function shouldTriggerSuperOpsScimProvision(Client $client): bool
+    {
+        return config('services.entra_sync.superops_provision_on_demand')
+            && filled($client->entra_superops_app_id);
+    }
+
+    /**
+     * Push updated SuperOps requester names via Entra SCIM provision-on-demand (Graph).
+     *
+     * @param  list<string>  $userIds
+     * @return array{0: int, 1: list<string>}
+     */
+    private function triggerSuperOpsScimProvision(Client $client, array $userIds): array
+    {
+        $userIds = array_values(array_unique($userIds));
+
+        if ($userIds === []) {
+            return [0, []];
+        }
+
+        $tenantId = (string) $client->entra_tenant_id;
+        $configuredId = (string) $client->entra_superops_app_id;
+
+        try {
+            $servicePrincipalId = $this->graph->resolveEnterpriseServicePrincipalId($tenantId, $configuredId);
+            $context = $this->graph->resolveSuperOpsScimProvisioningContext($tenantId, $servicePrincipalId);
+            $provisioned = $this->graph->provisionUsersOnDemand(
+                $tenantId,
+                $servicePrincipalId,
+                $context['jobId'],
+                $context['userRuleId'],
+                $userIds,
+            );
+
+            Log::info('SuperOps SCIM provision on demand completed', [
+                'client_id' => $client->id,
+                'provisioned' => $provisioned,
+            ]);
+
+            return [$provisioned, []];
+        } catch (Throwable $e) {
+            Log::error('SuperOps SCIM provision on demand failed', [
+                'client_id' => $client->id,
+                'configured_id' => $configuredId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [0, ['SuperOps SCIM provision on demand failed: '.$e->getMessage()]];
+        }
     }
 
     private function shouldMaintainSuperOpsGroup(Client $client): bool

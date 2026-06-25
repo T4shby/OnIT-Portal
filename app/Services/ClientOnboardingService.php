@@ -467,20 +467,34 @@ class ClientOnboardingService
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part C — Assign access and start provisioning',
+                    'Part C — SCIM displayName mapping (SuperOps requester names)',
+                    'https://portal.azure.com — '.$appName.' → Provisioning',
+                    [
+                        'Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users.',
+                        'Edit the displayName row → Mapping type: Expression (not Direct).',
+                        'Expression: IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))',
+                        'Target attribute: displayName → OK → Save at the top of the mapping page.',
+                        'Wrong: Mapping type Direct with the expression in Default value if null — that does not work.',
+                        'Portal Sync now sets extensionAttribute1 and triggers SCIM provision-on-demand to SuperOps (not M365).',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Part D — Assign access and start provisioning',
                     'https://portal.azure.com — '.$appName,
                     [
                         'App registrations → '.$appName.' (or your SuperOps app name) → Overview → copy Application (client) ID → paste into SuperOps Application (client) ID on the portal. Do not use Object ID on that page. Required on Entra ID Free.',
                         'Entra ID P1 (preferred): Users and groups → Add user/group → Groups tab → select '.$groupName.' → Assign. Portal sync keeps group membership updated — assign the group once only.',
-                        'Entra ID Free: skip Users and groups in Azure — portal sync assigns licensed users to this app on each Sync now / hourly run.',
+                        'Entra ID Free: skip manual Users and groups if portal sync assigns users — or assign '.$groupName.' group to the app.',
                         'Provisioning → Start provisioning (or wait for the next cycle).',
+                        'After portal Sync now: requester names update in SuperOps automatically — no manual Provision on demand.',
                     ],
                 ),
             ],
             verify: [
+                'Entra → '.$appName.' → Provisioning → Attribute mapping → displayName uses Expression (not Direct).',
                 'Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
                 'Entra ID Free: '.$appName.' → Users and groups shows licensed users after portal Sync now (no manual assignment).',
-                'SuperOps → Clients → '.$clientName.' → Requesters — existing emails updated; no duplicate rows.',
+                'SuperOps → Clients → '.$clientName.' → Requesters — names like Joanne Munns (User); emails match; no duplicate rows.',
             ],
         );
     }

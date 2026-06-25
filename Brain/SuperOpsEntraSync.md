@@ -122,14 +122,37 @@ Entra provisioning (SCIM, must be ON)
 
 ### Entra SCIM attribute mapping (one-time per customer)
 
-In **Entra → Enterprise applications → SuperOps - {Company} → Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users**:
+**Required** so SuperOps requesters show `Joanne Munns (User)` / `Accounts (Shared Mailbox)` while M365 display names stay plain. Portal sync only writes `extensionAttribute1`; **SCIM** sends the formatted name to SuperOps.
 
-| Attribute | Mapping type | Expression / source |
+**Where:** Entra → Enterprise applications → **SuperOps - {Company}** (or OnIT X Superops) → **Provisioning** → **Edit attribute mapping** → **Provision Microsoft Entra ID Users**
+
+**Edit the `displayName` row:**
+
+| Field | Value |
+|---|---|
+| **Mapping type** | **Expression** (not Direct) |
+| **Expression** | `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))` |
+| **Target attribute** | `displayName` |
+| **Apply this mapping** | Always |
+
+Click **OK** → **Save** at the top of the attribute mapping page.
+
+**Common mistake:** Mapping type **Direct** with the expression in **Default value if null** does **not** work — the expression must be in the **Expression** field with Mapping type **Expression**.
+
+**After saving:**
+
+1. **Admin → Clients → Edit → Sync now** (sets `extensionAttribute1` and triggers SCIM provision-on-demand via Graph — banner: `SuperOps name hints updated N; SuperOps SCIM provisioned N`)
+2. **SuperOps → Clients → Requesters** — names show `(User)` or `(Shared Mailbox)`; M365 Admin Center stays plain
+
+No manual **Provision on demand** in Entra — portal sync does it automatically when **SuperOps Application (client) ID** is set on the client.
+
+Optional row (only if you need the hint in SuperOps):
+
+| Attribute | Mapping type | Source |
 |---|---|---|
-| `displayName` | Expression | `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))` |
-| `extensionAttribute1` | Direct | `extensionAttribute1` (optional — only if you need it in SuperOps) |
+| `extensionAttribute1` | Direct | `extensionAttribute1` |
 
-Save mapping, then run **Provision on demand** or wait for the next SCIM cycle.
+Save mapping, then run **Sync now** on the portal (triggers SCIM provision-on-demand automatically).
 
 ### Graph permissions required (portal OAuth app)
 
@@ -138,6 +161,7 @@ Save mapping, then run **Provision on demand** or wait for the next SCIM cycle.
 | `User.ReadWrite.All` | Set `extensionAttribute1` SuperOps name hint; revert mistaken displayName suffixes |
 | `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
+| `Synchronization.ReadWrite.All` | Trigger SCIM provision-on-demand after portal Sync now |
 | `GroupMember.ReadWrite.All` | Auto-fill SuperOps SCIM security group |
 
 Re-consent in **each customer tenant** after adding permissions.
@@ -205,6 +229,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
+| ☐ | Provisioning → attribute mapping → **displayName** = **Expression** + IIF extensionAttribute1 formula |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
 | ☐ | SuperOps Client SSO configured (SAML) |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
@@ -221,7 +246,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
-| Requester name is plain (no suffix) | Portal sync not run yet, or SCIM attribute mapping missing — run **Sync now**, configure displayName expression, wait for SCIM or **Provision on demand** |
+| Requester name is plain (no suffix) | Portal sync not run yet, or SCIM attribute mapping missing — run **Sync now**, configure displayName expression; confirm `Synchronization.ReadWrite.All` is consented |
 | “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 

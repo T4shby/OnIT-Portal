@@ -576,6 +576,189 @@ class MicrosoftGraphClient
         );
     }
 
+    /**
+     * Resolve the SCIM synchronization job and user rule for provision-on-demand.
+     *
+     * @return array{jobId: string, userRuleId: string}
+     */
+    public function resolveSuperOpsScimProvisioningContext(string $tenantId, string $servicePrincipalId): array
+    {
+        $cacheKey = 'entra_scim_provision_ctx.'.$tenantId.'.'.$servicePrincipalId;
+
+        return Cache::remember($cacheKey, now()->addDay(), function () use ($tenantId, $servicePrincipalId) {
+            $jobsResponse = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
+            );
+
+            if ($jobsResponse->status() === 403) {
+                throw new RuntimeException(
+                    'Microsoft Graph cannot read SuperOps provisioning jobs — Synchronization.ReadWrite.All is missing or not consented. '
+                    .'Add Synchronization.ReadWrite.All to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant (checklist step 04), then php artisan cache:clear and sync again.'
+                );
+            }
+
+            if ($jobsResponse->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph synchronization jobs request failed: '.$jobsResponse->status().' '.$jobsResponse->body()
+                );
+            }
+
+            $jobs = $jobsResponse->json('value') ?? [];
+
+            if ($jobs === []) {
+                throw new RuntimeException(
+                    'No SCIM provisioning job found on the SuperOps enterprise app. '
+                    .'In Entra → Provisioning → set mode to Automatic, test connection, save, then start provisioning.'
+                );
+            }
+
+            $jobId = $this->pickSynchronizationJobId($jobs);
+
+            $schemaResponse = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/schema",
+            );
+
+            if ($schemaResponse->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph synchronization schema request failed: '.$schemaResponse->status().' '.$schemaResponse->body()
+                );
+            }
+
+            $userRuleId = $this->pickUserSynchronizationRuleId($schemaResponse->json('synchronizationRules') ?? []);
+
+            if ($userRuleId === null) {
+                throw new RuntimeException(
+                    'Could not find a User synchronization rule on the SuperOps SCIM job. '
+                    .'Confirm provisioning is configured and attribute mapping includes displayName.'
+                );
+            }
+
+            return [
+                'jobId' => $jobId,
+                'userRuleId' => $userRuleId,
+            ];
+        });
+    }
+
+    /**
+     * @param  list<string>  $userIds
+     */
+    public function provisionUsersOnDemand(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $jobId,
+        string $ruleId,
+        array $userIds,
+    ): int {
+        $userIds = array_values(array_unique(array_filter($userIds)));
+
+        if ($userIds === []) {
+            return 0;
+        }
+
+        $provisioned = 0;
+
+        foreach (array_chunk($userIds, 10) as $index => $chunk) {
+            if ($index > 0) {
+                usleep(2_100_000);
+            }
+
+            $subjects = array_map(
+                static fn (string $userId): array => [
+                    'objectId' => $userId,
+                    'objectTypeName' => 'User',
+                ],
+                $chunk,
+            );
+
+            $response = $this->request($tenantId)->post(
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/provisionOnDemand",
+                [
+                    'parameters' => [
+                        [
+                            'ruleId' => $ruleId,
+                            'subjects' => $subjects,
+                        ],
+                    ],
+                ],
+            );
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph SuperOps provision on demand failed: '.$response->status().' '.$response->body()
+                );
+            }
+
+            $provisioned += count($chunk);
+        }
+
+        return $provisioned;
+    }
+
+    public function clearSuperOpsScimProvisioningContextCache(string $tenantId, string $servicePrincipalId): void
+    {
+        Cache::forget('entra_scim_provision_ctx.'.$tenantId.'.'.$servicePrincipalId);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $jobs
+     */
+    private function pickSynchronizationJobId(array $jobs): string
+    {
+        foreach ($jobs as $job) {
+            $state = strtolower((string) ($job['status']['state'] ?? ''));
+
+            if (in_array($state, ['active', 'paused', 'quarantine'], true) && ! empty($job['id'])) {
+                return (string) $job['id'];
+            }
+        }
+
+        return (string) ($jobs[0]['id'] ?? '');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rules
+     */
+    private function pickUserSynchronizationRuleId(array $rules): ?string
+    {
+        $bestRuleId = null;
+        $bestScore = PHP_INT_MIN;
+
+        foreach ($rules as $rule) {
+            $ruleId = trim((string) ($rule['id'] ?? ''));
+
+            if ($ruleId === '') {
+                continue;
+            }
+
+            foreach ($rule['objectMappings'] ?? [] as $mapping) {
+                if (strcasecmp((string) ($mapping['sourceObjectName'] ?? ''), 'User') !== 0) {
+                    continue;
+                }
+
+                $sourceDirectory = strtolower((string) ($rule['sourceDirectoryName'] ?? ''));
+                $score = 0;
+
+                if (str_contains($sourceDirectory, 'azure') || str_contains($sourceDirectory, 'entra')) {
+                    $score += 10;
+                }
+
+                if (($mapping['enabled'] ?? true) !== false) {
+                    $score += 5;
+                }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestRuleId = $ruleId;
+                }
+            }
+        }
+
+        return $bestRuleId;
+    }
+
     public function setSuperOpsNameExtensionAttribute(string $tenantId, string $userId, string $hint): void
     {
         $attributeNumber = (int) config('services.entra_sync.superops_name_extension_attribute', 1);

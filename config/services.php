@@ -89,6 +89,7 @@ return [
         'directory_cache_minutes' => env('ENTRA_DIRECTORY_CACHE_MINUTES', 15),
         'maintain_superops_group' => env('ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP', true),
         'superops_name_extension_attribute' => (int) env('ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE', 1),
+        'superops_provision_on_demand' => env('ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND', true),
     ],
 
 ];

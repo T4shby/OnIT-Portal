@@ -129,13 +129,14 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | Search for | Tick this permission | Description shown |
 |------------|----------------------|-------------------|
 | `User.Read.All` | **User.Read.All** | Read all users' full profiles |
-| `User.ReadWrite` | **User.ReadWrite.All** | Update displayName for SuperOps requester labels |
+| `User.ReadWrite` | **User.ReadWrite.All** | Set `extensionAttribute1` SuperOps name hints |
 | `LicenseAssignment` | **LicenseAssignment.Read.All** | Read all license assignments |
 | `MailboxSettings` | **MailboxSettings.Read** | Read all user mailbox settings |
 | `Group.Read` | **Group.Read.All** | Read all groups |
 | `GroupMember` | **GroupMember.ReadWrite.All** | Read and write all group memberships |
 | `AppRoleAssignment` | **AppRoleAssignment.ReadWrite.All** | Assign users to SuperOps enterprise app on Entra ID Free |
 | `Application.Read` | **Application.Read.All** | Resolve SuperOps Application (client) ID → enterprise app during sync |
+| `Synchronization.ReadWrite` | **Synchronization.ReadWrite.All** | Trigger SCIM provision-on-demand when portal Sync now runs |
 
 5. Click **Add permissions** at the bottom of the panel
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
@@ -147,17 +148,17 @@ All **Application** rows must show:
 
 - **Status:** green tick — **Granted for On IT Technology Partners LTD**
 
-Expected **12** Microsoft Graph permissions total:
+Expected **13** Microsoft Graph permissions total:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (8):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All
+**Application (9):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`
 
 This happened on first deploy (June 2026). **Fix:**
 
 1. **Refresh the browser page** (F5)
-2. Confirm all **eight** Application permissions still appear in the table
+2. Confirm all **nine** Application permissions still appear in the table
 3. Click **Grant admin consent for On IT Technology Partners LTD** again
 
 That was enough — no manifest edit, no PowerShell. If it still fails after refresh, wait 2–3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
@@ -250,10 +251,17 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
      - **Enable this app role:** ✓ → **Save**
    - If a **User** role already exists: open it → confirm **Value** is set (e.g. `User`) and the role is **enabled**
    - **Remove duplicate roles with blank Value** (keep one role with Value `User`, e.g. "Default access for SCIM users") — portal sync picks the role with Value `User`, not `msiam_access`
-6. **Users and groups:**
+6. **SCIM displayName mapping (SuperOps requester names — required):**
+   - **Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users**
+   - Edit **displayName** → **Mapping type: Expression** (not Direct)
+   - **Expression:** `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))`
+   - **Target attribute:** `displayName` → **OK** → **Save** (top of mapping page)
+   - Do **not** put the expression in "Default value if null" on a Direct mapping — it will not run
+7. **Users and groups:**
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
 7. **Provisioning → Start provisioning** (or wait for cycle)
+8. **Portal Sync now** → expect `SuperOps name hints updated N; SuperOps SCIM provisioned N` — requesters show `(User)` / `(Shared Mailbox)` in SuperOps only
 
 ### 6 — SAML on the **same** app (do not create a second app)
 
@@ -357,7 +365,7 @@ php artisan portal:sync-entra-users --client={id}
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
-| Requester plain name (no suffix) | SCIM attribute mapping not configured | Set displayName expression on SuperOps app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
+| Requester plain name (no suffix) | SCIM displayName mapping wrong or missing | Mapping type must be **Expression** — see [SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer); then **Sync now** (auto provision-on-demand) |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |

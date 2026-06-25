@@ -145,8 +145,9 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 2. Customer Entra → **Enterprise applications → New application** → `SuperOps - {Company}`.  
 3. **Provisioning → Automatic** → Authentication method: **Bearer authentication** → Tenant URL + Secret Token (Auth Token) from SuperOps → **Test connection** → Save.  
 4. **App role (Entra ID Free):** App registrations → SuperOps app → **App roles** → Create if missing: Display name `User`, Users/Groups, **Value** `User`, **Description** `Default access for SCIM users`, Enable → Save.  
-5. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
-6. Start provisioning.
+5. **SCIM displayName mapping (required for `(User)` / `(Shared Mailbox)` in SuperOps):** Provisioning → Edit attribute mapping → Users → edit **displayName** → **Mapping type: Expression** → paste: `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))` → Save. Not Direct + Default value if null.  
+6. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
+7. Start provisioning. **Portal Sync now** pushes formatted names to SuperOps automatically.
 
 **SAML (checklist step 06) — same app, do not create a second:**
 

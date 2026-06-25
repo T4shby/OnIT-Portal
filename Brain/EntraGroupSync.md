@@ -91,7 +91,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 
 1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
 2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
-3. Add all eight Application permissions:
+3. Add all nine Application permissions:
    - `User.Read.All`
    - `User.ReadWrite.All`
    - `LicenseAssignment.Read.All`
@@ -100,6 +100,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
    - `GroupMember.ReadWrite.All`
    - `AppRoleAssignment.ReadWrite.All`
    - `Application.Read.All`
+   - `Synchronization.ReadWrite.All`
 4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
 ### Expected result
@@ -107,7 +108,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 | Type | Permissions | Status |
 |------|-------------|--------|
 | Delegated (4) | email, openid, profile, User.Read | Granted |
-| Application (8) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All | Granted |
+| Application (9) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All | Granted |
 
 ### Consent error fix
 
@@ -216,7 +217,8 @@ Check **Admin → Users**. Expect licensed users + shared mailboxes from the **w
 
 - `SuperOps group: +N / -M members` when `entra_group_id` is set
 - `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
-- `Entra display names updated N` when names need the SuperOps suffix
+- `SuperOps name hints updated N` when `extensionAttribute1` is written
+- `SuperOps SCIM provisioned N` when SCIM provision-on-demand runs (requires `Synchronization.ReadWrite.All` + SuperOps Application (client) ID on client)
 
 ---
 

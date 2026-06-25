@@ -426,6 +426,46 @@ class EntraGroupSyncServiceTest extends TestCase
         ]);
     }
 
+    public function test_sync_triggers_superops_scim_provision_on_demand(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_superops_app_id' => $servicePrincipalId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+                'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => [
+                    'mail' => 'bob@acme.com',
+                    'userPrincipalName' => 'bob@acme.com',
+                    'displayName' => 'Bob Jones',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+            ],
+            servicePrincipalId: $servicePrincipalId,
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(2, $result->superOpsUsersProvisioned);
+        $this->assertSame([], $result->errors);
+    }
+
     public function test_revert_entra_display_names_strips_mistaken_suffixes(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
@@ -593,6 +633,42 @@ class EntraGroupSyncServiceTest extends TestCase
                 $appAssignments[$userId] = 'assignment-'.$userId;
 
                 return Http::response(null, 201);
+            }
+
+            if ($servicePrincipalId && $request->method() === 'GET' && preg_match(
+                "#/servicePrincipals/{$servicePrincipalId}/synchronization/jobs$#",
+                $url,
+            )) {
+                return Http::response([
+                    'value' => [
+                        [
+                            'id' => 'job-11111111-1111-1111-1111-111111111111',
+                            'status' => ['state' => 'Active'],
+                        ],
+                    ],
+                ]);
+            }
+
+            if ($servicePrincipalId && $request->method() === 'GET' && str_contains($url, '/synchronization/jobs/job-11111111-1111-1111-1111-111111111111/schema')) {
+                return Http::response([
+                    'synchronizationRules' => [
+                        [
+                            'id' => 'rule-22222222-2222-2222-2222-222222222222',
+                            'sourceDirectoryName' => 'Azure Active Directory',
+                            'objectMappings' => [
+                                [
+                                    'sourceObjectName' => 'User',
+                                    'targetObjectName' => 'User',
+                                    'enabled' => true,
+                                ],
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            if ($servicePrincipalId && $request->method() === 'POST' && str_contains($url, '/provisionOnDemand')) {
+                return Http::response(['value' => []]);
             }
 
             if ($request->method() === 'PATCH' && preg_match('#/users/([0-9a-f-]+)$#', $url, $matches)) {
