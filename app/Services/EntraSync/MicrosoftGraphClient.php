@@ -394,6 +394,15 @@ class MicrosoftGraphClient
             $response = $this->graphGet($tenantId, $url, $url === "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo" ? $query : []);
 
             if ($response->failed()) {
+                if ($response->status() === 403) {
+                    throw new RuntimeException(
+                        'Microsoft Graph app role assignments request failed: 403. '
+                        .'Use the enterprise application Object ID (App registrations → SuperOps → "Managed application in local directory" → Overview → Object ID) — '
+                        .'not the App registration Object ID (ae87d204-… on the registration Overview). '
+                        .'Also confirm AppRoleAssignment.ReadWrite.All is granted for the customer tenant on OnIT Portal for Portals.'
+                    );
+                }
+
                 throw new RuntimeException(
                     'Microsoft Graph app role assignments request failed: '.$response->status().' '.$response->body()
                 );
