@@ -86,7 +86,13 @@ class EntraGroupSyncService
             $name = EntraSyncDisplayName::baseName($graphUser['displayName'], $email);
 
             if ($this->shouldSetSuperOpsNameHint()) {
-                $hint = $identityType->superOpsNameHint();
+                $superOpsFamilyName = EntraSyncDisplayName::formatSuperOpsFamilyName(
+                    $graphUser['surname'] ?? null,
+                    $graphUser['givenName'] ?? null,
+                    $graphUser['displayName'],
+                    $identityType,
+                    $email,
+                );
 
                 if ($dryRun) {
                     $superOpsNameHintsUpdated++;
@@ -95,11 +101,11 @@ class EntraGroupSyncService
                         $this->graph->setSuperOpsNameExtensionAttribute(
                             (string) $client->entra_tenant_id,
                             $graphUser['id'],
-                            $hint,
+                            $superOpsFamilyName,
                         );
                         $superOpsNameHintsUpdated++;
                     } catch (Throwable $e) {
-                        $errors[] = "Failed to set SuperOps name label for {$email}: {$e->getMessage()}";
+                        $errors[] = "Failed to set SuperOps last name for {$email}: {$e->getMessage()}";
                     }
                 }
             }

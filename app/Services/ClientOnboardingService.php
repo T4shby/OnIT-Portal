@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Client;
-use App\Services\EntraSync\EntraSyncDisplayName;
 
 class ClientOnboardingService
 {
@@ -474,9 +473,10 @@ class ClientOnboardingService
                     [
                         'Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users.',
                         'name.givenName → Direct → givenName → Always.',
-                        'name.familyName → Expression → '.EntraSyncDisplayName::superOpsFamilyNameScimExpression().' → Always → Save.',
-                        'Remove Join(...) on displayName or name.formatted — garbled names.',
-                        'Portal Sync now writes User Mailbox / Shared Mailbox to extensionAttribute1; SCIM updates Last name.',
+                        'name.familyName → Direct → extensionAttribute1 → Default if null [surname] → Always.',
+                        'name.formatted → Direct → displayName → Always → Save.',
+                        'No Expression needed — portal writes Munns (User Mailbox) to extensionAttribute1.',
+                        'Portal Sync now updates extensionAttribute1 and triggers SCIM provision-on-demand.',
                     ],
                 ),
                 OnboardingManual::section(
@@ -492,7 +492,7 @@ class ClientOnboardingService
                 ),
             ],
             verify: [
-                'Entra → '.$appName.' → Attribute mapping → name.familyName uses Expression on extensionAttribute1.',
+                'Entra → '.$appName.' → Attribute mapping → name.familyName Direct from extensionAttribute1.',
                 'Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
                 'Entra ID Free: '.$appName.' → Users and groups shows licensed users after portal Sync now (no manual assignment).',
                 'SuperOps → Clients → '.$clientName.' → Requesters — Last name shows (User Mailbox) or (Shared Mailbox).',

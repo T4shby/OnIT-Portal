@@ -62,7 +62,7 @@ class EntraSyncResult
         }
 
         if ($this->superOpsNameHintsUpdated > 0) {
-            $parts .= sprintf('; SuperOps name labels updated %d', $this->superOpsNameHintsUpdated);
+            $parts .= sprintf('; SuperOps last names updated %d', $this->superOpsNameHintsUpdated);
         }
 
         if ($this->superOpsUsersProvisioned > 0) {

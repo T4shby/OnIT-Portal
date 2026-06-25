@@ -251,10 +251,10 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
      - **Enable this app role:** ✓ → **Save**
    - If a **User** role already exists: open it → confirm **Value** is set (e.g. `User`) and the role is **enabled**
    - **Remove duplicate roles with blank Value** (keep one role with Value `User`, e.g. "Default access for SCIM users") — portal sync picks the role with Value `User`, not `msiam_access`
-6. **SCIM name mapping (SuperOps requester names — required):**
+6. **SCIM name mapping (all Direct — no Expression):**
    - **name.givenName** → Direct → `givenName`
-   - **name.familyName** → Expression → `IIF(IsNullOrEmpty([extensionAttribute1]), [surname], IIF(IsNullOrEmpty([surname]), Join([givenName], " (", [extensionAttribute1], ")"), Join([surname], " (", [extensionAttribute1], ")")))`
-   - Remove wrong Join on displayName/name.formatted
+   - **name.familyName** → Direct → `extensionAttribute1` → Default if null `[surname]`
+   - **name.formatted** → Direct → `displayName`
    - Do **not** put the expression in "Default value if null" on a Direct mapping — it will not run
 7. **Users and groups:**
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)

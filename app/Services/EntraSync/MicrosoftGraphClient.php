@@ -68,7 +68,7 @@ class MicrosoftGraphClient
         $url = 'https://graph.microsoft.com/v1.0/users';
         $query = [
             '$filter' => "userType eq 'Member'",
-            '$select' => 'id,mail,userPrincipalName,displayName,accountEnabled',
+            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled',
             '$top' => 999,
         ];
 
@@ -90,6 +90,8 @@ class MicrosoftGraphClient
                     'mail' => $user['mail'] ?? null,
                     'userPrincipalName' => $user['userPrincipalName'] ?? null,
                     'displayName' => $user['displayName'] ?? null,
+                    'givenName' => $user['givenName'] ?? null,
+                    'surname' => $user['surname'] ?? null,
                     'accountEnabled' => (bool) ($user['accountEnabled'] ?? true),
                 ];
             }

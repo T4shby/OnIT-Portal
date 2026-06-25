@@ -46,7 +46,7 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
 | **SuperOps enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users **and shared mailboxes** on the SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) |
-| **SuperOps requester display names** | Sync writes `User Mailbox` / `Shared Mailbox` to `extensionAttribute1` — SCIM appends to **Last name** (`name.familyName`) |
+| **SuperOps requester display names** | Sync writes full last name to `extensionAttribute1` (e.g. `Munns (User Mailbox)`) — SCIM **Direct** on `name.familyName` |
 | **SuperOps requesters** | Provisioned by SCIM from app assignment (direct users or group members) — portal does not call the SuperOps API |
 
 Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
@@ -217,7 +217,7 @@ Check **Admin → Users**. Expect licensed users + shared mailboxes from the **w
 
 - `SuperOps group: +N / -M members` when `entra_group_id` is set
 - `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
-- `SuperOps name labels updated N` when `User Mailbox` / `Shared Mailbox` written to `extensionAttribute1`
+- `SuperOps last names updated N` when full last name written to `extensionAttribute1`
 - `SuperOps SCIM provisioned N` when SCIM provision-on-demand runs (requires `Synchronization.ReadWrite.All` + SuperOps Application (client) ID on client)
 
 ---

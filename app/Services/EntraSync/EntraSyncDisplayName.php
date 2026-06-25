@@ -28,16 +28,34 @@ class EntraSyncDisplayName
         return self::baseName($displayName, $emailFallback).' ('.$identityType->displaySuffix().')';
     }
 
+    /**
+     * SuperOps SCIM last name — e.g. Munns (User Mailbox) or Accounts (Shared Mailbox).
+     */
+    public static function formatSuperOpsFamilyName(
+        ?string $surname,
+        ?string $givenName,
+        ?string $displayName,
+        EntraIdentityType $identityType,
+        ?string $emailFallback = null,
+    ): string {
+        $suffix = $identityType->displaySuffix();
+        $familyBase = trim((string) $surname);
+
+        if ($familyBase === '') {
+            $familyBase = trim((string) $givenName);
+        }
+
+        if ($familyBase === '') {
+            $familyBase = self::baseName($displayName, $emailFallback);
+        } else {
+            $familyBase = self::stripSuffix($familyBase);
+        }
+
+        return $familyBase.' ('.$suffix.')';
+    }
+
     public static function hasSuperOpsSuffix(?string $displayName): bool
     {
         return (bool) preg_match('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', (string) $displayName);
-    }
-
-    /**
-     * Entra SCIM expression for name.familyName — appends extensionAttribute1 to surname (or givenName if no surname).
-     */
-    public static function superOpsFamilyNameScimExpression(): string
-    {
-        return 'IIF(IsNullOrEmpty([extensionAttribute1]), [surname], IIF(IsNullOrEmpty([surname]), Join([givenName], " (", [extensionAttribute1], ")"), Join([surname], " (", [extensionAttribute1], ")")))';
     }
 }

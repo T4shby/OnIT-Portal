@@ -66,7 +66,7 @@ class SyncEntraGroupUsers extends Command
             }
 
             if ($result->superOpsNameHintsUpdated > 0) {
-                $this->line("  SuperOps name labels updated: {$result->superOpsNameHintsUpdated}");
+                $this->line("  SuperOps last names updated: {$result->superOpsNameHintsUpdated}");
             }
 
             foreach ($result->errors as $error) {

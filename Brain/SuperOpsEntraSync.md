@@ -94,7 +94,7 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 | User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
 
-**Requester name format:** Portal writes `User Mailbox` or `Shared Mailbox` to `extensionAttribute1`. Entra SCIM appends that to **Last name** (`name.familyName`). **M365 `displayName` is never changed.** SuperOps shows e.g. First `Hannah`, Last `Munns (User Mailbox)`.
+**Requester name format:** Portal writes the full **Last name** to `extensionAttribute1` (e.g. `Munns (User Mailbox)`). Entra SCIM maps it **Direct** to `name.familyName`. First name stays plain via `givenName`.
 
 Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by SCIM — not duplicated.
 
@@ -102,60 +102,34 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 ## Requester display names
 
-**Never patch Entra `displayName`.** SuperOps **Last name** gets the suffix via SCIM `name.familyName` Expression.
+**Never patch Entra `displayName`.** Portal builds the full **Last name**; Entra passes it through with **Direct** mappings only.
 
 ### Where the suffix is added
 
 | Step | System | What happens |
 |---|---|---|
-| 1 | **Portal** | Writes `User Mailbox` or `Shared Mailbox` to `extensionAttribute1` |
-| 2 | **Entra SCIM** | `name.givenName` ← `givenName`. `name.familyName` ← `surname` + ` (extensionAttribute1)` |
-| 3 | **SuperOps** | First `Hannah`, Last `Munns (User Mailbox)` |
+| 1 | **Portal** | `formatSuperOpsFamilyName()` → `Munns (User Mailbox)` or `Accounts (Shared Mailbox)` |
+| 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` |
+| 3 | **Entra SCIM** | `name.familyName` **Direct** ← `extensionAttribute1` (fallback `[surname]`) |
+| 4 | **SuperOps** | First `Hannah`, Last `Munns (User Mailbox)` |
 
-| Identity in M365 | SuperOps First / Last |
-|---|---|
-| Licensed user | `Hannah` / `Munns (User Mailbox)` |
-| Shared mailbox (no surname) | `Accounts` / `Accounts (Shared Mailbox)` |
+### Entra SCIM attribute mapping — Direct only (no Expression)
 
-### How it works
+| Target | Mapping type | Source | Default if null |
+|---|---|---|---|
+| `name.givenName` | Direct | `givenName` | — |
+| `name.familyName` | Direct | `extensionAttribute1` | `[surname]` |
+| `name.formatted` | Direct | `displayName` | — |
 
-```
-portal:sync-entra-users → extensionAttribute1 = "User Mailbox" | "Shared Mailbox"
-Entra SCIM → name.familyName Expression appends label to surname
-SuperOps → Last name field shows suffix
-```
+**Remove** any Expression on `name.familyName` — portal already sends the full last name.
 
-### Entra SCIM attribute mapping (one-time per customer)
-
-**Where:** Entra → **OnIT X Superops** → **Provisioning** → **Edit attribute mapping** → **Provision Microsoft Entra ID Users**
-
-**`name.givenName`:**
-
-| Field | Value |
-|---|---|
-| Mapping type | **Direct** |
-| Source | `givenName` |
-| Target | `name.givenName` |
-| Apply | Always |
-
-**`name.familyName`:**
-
-| Field | Value |
-|---|---|
-| Mapping type | **Expression** |
-| Expression | `IIF(IsNullOrEmpty([extensionAttribute1]), [surname], IIF(IsNullOrEmpty([surname]), Join([givenName], " (", [extensionAttribute1], ")"), Join([surname], " (", [extensionAttribute1], ")")))` |
-| Target | `name.familyName` |
-| Apply | Always |
-
-**Remove** wrong `displayName` / `name.formatted` Join expressions (cause garbled names).
-
-**Save** → **Sync now** on portal (`SuperOps name labels updated N; SuperOps SCIM provisioned N`).
+**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provisioned N`).
 
 ### Graph permissions required (portal OAuth app)
 
 | Permission | Purpose |
 |---|---|
-| `User.ReadWrite.All` | Write `User Mailbox` / `Shared Mailbox` to `extensionAttribute1`; revert mistaken displayName suffixes |
+| `User.ReadWrite.All` | Write SuperOps last name (e.g. `Munns (User Mailbox)`) to `extensionAttribute1` |
 | `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `Synchronization.ReadWrite.All` | Trigger SCIM provision-on-demand after portal Sync now |
@@ -226,7 +200,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
-| ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Expression + extensionAttribute1 |
+| ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
 | ☐ | SuperOps Client SSO configured (SAML) |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
@@ -243,8 +217,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
-| Requester last name plain (no suffix) | `name.familyName` Expression missing | Map familyName Expression; Sync now |
-| Garbled name e.g. `(AccountsShared MailboxAccounts)` | Wrong Join on displayName/name.formatted | Remove; use **name.familyName** Expression only |
+| Requester last name plain | `name.familyName` not Direct from extensionAttribute1 | Direct map; Sync now |
 | “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 
