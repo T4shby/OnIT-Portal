@@ -492,6 +492,14 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame([], $result['errors']);
     }
 
+    public function test_super_ops_family_name_scim_expression_appends_suffix_to_surname(): void
+    {
+        $expression = EntraSyncDisplayName::superOpsFamilyNameScimExpression();
+
+        $this->assertStringContainsString('[surname]', $expression);
+        $this->assertStringContainsString('[extensionAttribute1]', $expression);
+    }
+
     public function test_display_name_formatter_strips_existing_suffix(): void
     {
         $this->assertSame(

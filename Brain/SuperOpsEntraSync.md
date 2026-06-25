@@ -94,7 +94,7 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 | User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
 
-**Requester name format:** Portal sync writes the **full formatted name** to `extensionAttribute1` (e.g. `Phil Cooper (User Mailbox)` or `Accounts (Shared Mailbox)`). Entra SCIM maps `name.formatted` **Direct** from that attribute. **M365 `displayName` is never changed.** SuperOps requesters show the suffix; M365 Admin Center stays plain.
+**Requester name format:** Portal writes `User Mailbox` or `Shared Mailbox` to `extensionAttribute1`. Entra SCIM appends that to **Last name** (`name.familyName`). **M365 `displayName` is never changed.** SuperOps shows e.g. First `Hannah`, Last `Munns (User Mailbox)`.
 
 Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by SCIM — not duplicated.
 
@@ -102,76 +102,60 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 ## Requester display names
 
-**Never patch Entra `displayName`.** SuperOps requester labels use `extensionAttribute1` + SCIM `name.formatted` mapping.
+**Never patch Entra `displayName`.** SuperOps **Last name** gets the suffix via SCIM `name.familyName` Expression.
 
-### Where `(User Mailbox)` / `(Shared Mailbox)` is added
+### Where the suffix is added
 
 | Step | System | What happens |
 |---|---|---|
-| 1 | **Portal** (`EntraSyncDisplayName::format()`) | Builds `Hannah Munns (User Mailbox)` or `Accounts (Shared Mailbox)` from M365 name + identity type (licensed user vs shared mailbox) |
-| 2 | **Portal** (Graph `User.ReadWrite.All`) | Writes that string to Entra `extensionAttribute1` — **not** M365 `displayName` |
-| 3 | **Entra SCIM** | Maps `name.formatted` **Direct** from `extensionAttribute1` |
-| 4 | **SuperOps** | Requester list shows the suffixed name |
+| 1 | **Portal** | Writes `User Mailbox` or `Shared Mailbox` to `extensionAttribute1` |
+| 2 | **Entra SCIM** | `name.givenName` ← `givenName`. `name.familyName` ← `surname` + ` (extensionAttribute1)` |
+| 3 | **SuperOps** | First `Hannah`, Last `Munns (User Mailbox)` |
 
-Code: `app/Enums/EntraIdentityType.php` (suffix strings), `app/Services/EntraSync/EntraSyncDisplayName.php` (format), `app/Services/EntraSync/EntraGroupSyncService.php` (sync loop).
-
-| Identity in M365 | Entra `displayName` | SuperOps requester name (after SCIM) |
-|---|---|---|
-| Licensed user | `Phil Cooper` (unchanged) | `Phil Cooper (User Mailbox)` |
-| Shared mailbox | `Accounts` (unchanged) | `Accounts (Shared Mailbox)` |
+| Identity in M365 | SuperOps First / Last |
+|---|---|
+| Licensed user | `Hannah` / `Munns (User Mailbox)` |
+| Shared mailbox (no surname) | `Accounts` / `Accounts (Shared Mailbox)` |
 
 ### How it works
 
 ```
-portal:sync-entra-users
-  → PATCH extensionAttribute1 = "Phil Cooper (User Mailbox)" | "Accounts (Shared Mailbox)"
-  → user in SuperOps SCIM group + app assignment
-Entra provisioning (SCIM, must be ON)
-  → name.formatted Direct from extensionAttribute1 (fallback displayName)
-  → SuperOps requester created/updated with formatted name
+portal:sync-entra-users → extensionAttribute1 = "User Mailbox" | "Shared Mailbox"
+Entra SCIM → name.familyName Expression appends label to surname
+SuperOps → Last name field shows suffix
 ```
 
 ### Entra SCIM attribute mapping (one-time per customer)
 
-**Required** so SuperOps requesters show `Joanne Munns (User Mailbox)` / `Accounts (Shared Mailbox)` while M365 display names stay plain. **Portal sync writes the full formatted name** to `extensionAttribute1`; Entra SCIM passes it through — **no Join expression**.
+**Where:** Entra → **OnIT X Superops** → **Provisioning** → **Edit attribute mapping** → **Provision Microsoft Entra ID Users**
 
-**Where:** Entra → Enterprise applications → **SuperOps - {Company}** (or OnIT X Superops) → **Provisioning** → **Edit attribute mapping** → **Provision Microsoft Entra ID Users**
-
-**Fix `name.formatted` (SuperOps displays this):**
+**`name.givenName`:**
 
 | Field | Value |
 |---|---|
-| **Mapping type** | **Direct** |
-| **Source attribute** | `extensionAttribute1` |
-| **Default value if null** | `[displayName]` |
-| **Target attribute** | `name.formatted` |
-| **Apply this mapping** | Always |
+| Mapping type | **Direct** |
+| Source | `givenName` |
+| Target | `name.givenName` |
+| Apply | Always |
 
-**Fix `displayName` — remove any Expression mapping:**
+**`name.familyName`:**
 
 | Field | Value |
 |---|---|
-| **Mapping type** | **Direct** |
-| **Source attribute** | `displayName` |
-| **Target attribute** | `displayName` |
-| **Apply this mapping** | Always |
+| Mapping type | **Expression** |
+| Expression | `IIF(IsNullOrEmpty([extensionAttribute1]), [surname], IIF(IsNullOrEmpty([surname]), Join([givenName], " (", [extensionAttribute1], ")"), Join([surname], " (", [extensionAttribute1], ")")))` |
+| Target | `name.familyName` |
+| Apply | Always |
 
-Click **OK** → **Save** at the top of the mapping page.
+**Remove** wrong `displayName` / `name.formatted` Join expressions (cause garbled names).
 
-**Delete or overwrite** any Expression on `displayName` or `name.formatted` that uses `Join(...)` — wrong expressions cause garbled names like `(AccountsShared MailboxAccounts)` or `(Hannah MunnsUserHannah Munns)`.
-
-**After saving:**
-
-1. **Admin → Clients → Edit → Sync now** (writes full names to `extensionAttribute1` + SCIM provision-on-demand — banner: `SuperOps SCIM names updated N; SuperOps SCIM provisioned N`)
-2. **SuperOps → Clients → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; M365 Admin Center stays plain
-
-No manual **Provision on demand** in Entra — portal sync does it automatically when **SuperOps Application (client) ID** is set on the client.
+**Save** → **Sync now** on portal (`SuperOps name labels updated N; SuperOps SCIM provisioned N`).
 
 ### Graph permissions required (portal OAuth app)
 
 | Permission | Purpose |
 |---|---|
-| `User.ReadWrite.All` | Write full SuperOps SCIM name to `extensionAttribute1`; revert mistaken displayName suffixes |
+| `User.ReadWrite.All` | Write `User Mailbox` / `Shared Mailbox` to `extensionAttribute1`; revert mistaken displayName suffixes |
 | `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `Synchronization.ReadWrite.All` | Trigger SCIM provision-on-demand after portal Sync now |
@@ -192,7 +176,7 @@ Re-consent in **each customer tenant** after adding permissions.
 ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1   # default — extensionAttribute1
 ```
 
-Set to `0` to stop writing SuperOps SCIM names to `extensionAttribute1` (requesters fall back to plain M365 `displayName` via SCIM default).
+Set to `0` to stop writing SuperOps name labels to `extensionAttribute1` (last names stay plain in SuperOps).
 
 ### Fix mistaken M365 display names (e.g. Ductec)
 
@@ -209,8 +193,8 @@ Then configure SCIM attribute mapping above and run **Sync now** so extension at
 
 | Type | Portal user | SuperOps group | SuperOps app (Free) | SuperOps requester name |
 |---|---|---|---|---|
-| Licensed active user | ✅ can sign in | ✅ | ✅ | `Name (User Mailbox)` |
-| Shared mailbox | ✅ directory only | ✅ | ✅ | `Name (Shared Mailbox)` |
+| Licensed active user | ✅ can sign in | ✅ | ✅ | Last name `Munns (User Mailbox)` |
+| Shared mailbox | ✅ directory only | ✅ | ✅ | Last name `Accounts (Shared Mailbox)` |
 | Disabled licensed user | ❌ inactive | ❌ removed from group | ❌ removed from app | SCIM deprovisions |
 
 ---
@@ -242,7 +226,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
-| ☐ | Provisioning → attribute mapping → **name.formatted** Direct from **extensionAttribute1** (default `[displayName]`) |
+| ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Expression + extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
 | ☐ | SuperOps Client SSO configured (SAML) |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
@@ -259,8 +243,8 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
-| Requester name is plain (no suffix) | `name.formatted` not mapped from `extensionAttribute1`, or sync not run | **name.formatted** Direct ← extensionAttribute1; **Sync now**; confirm `Synchronization.ReadWrite.All` consented |
-| Garbled name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Remove Expression; use **Direct** mapping only — see [attribute mapping](#entra-scim-attribute-mapping-one-time-per-customer) |
+| Requester last name plain (no suffix) | `name.familyName` Expression missing | Map familyName Expression; Sync now |
+| Garbled name e.g. `(AccountsShared MailboxAccounts)` | Wrong Join on displayName/name.formatted | Remove; use **name.familyName** Expression only |
 | “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 

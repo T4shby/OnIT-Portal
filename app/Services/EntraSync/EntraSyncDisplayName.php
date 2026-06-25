@@ -32,4 +32,12 @@ class EntraSyncDisplayName
     {
         return (bool) preg_match('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', (string) $displayName);
     }
+
+    /**
+     * Entra SCIM expression for name.familyName — appends extensionAttribute1 to surname (or givenName if no surname).
+     */
+    public static function superOpsFamilyNameScimExpression(): string
+    {
+        return 'IIF(IsNullOrEmpty([extensionAttribute1]), [surname], IIF(IsNullOrEmpty([surname]), Join([givenName], " (", [extensionAttribute1], ")"), Join([surname], " (", [extensionAttribute1], ")")))';
+    }
 }

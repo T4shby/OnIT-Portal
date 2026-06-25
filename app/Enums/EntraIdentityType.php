@@ -15,7 +15,7 @@ enum EntraIdentityType: string
         };
     }
 
-    /** @deprecated Portal writes the full SuperOps SCIM name via EntraSyncDisplayName::format() */
+    /** Suffix hint written to extensionAttribute1 — Entra SCIM appends this to last name in SuperOps. */
     public function superOpsNameHint(): string
     {
         return $this->displaySuffix();

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Client;
+use App\Services\EntraSync\EntraSyncDisplayName;
 
 class ClientOnboardingService
 {
@@ -283,7 +284,7 @@ class ClientOnboardingService
                 'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 04 ticks automatically.',
                 'This grants OnIT Portal for Portals these Application permissions: User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All.',
                 'Application.Read.All resolves SuperOps Application (client) ID to the enterprise app during sync — required when using client ID on Entra ID Free.',
-                'User.ReadWrite.All writes full SuperOps SCIM name to extensionAttribute1 (e.g. Joanne Munns (User Mailbox)) — M365 display names are never changed.',
+                'User.ReadWrite.All writes User Mailbox / Shared Mailbox to extensionAttribute1 — Entra SCIM appends to SuperOps Last name.',
                 'Synchronization.ReadWrite.All triggers SCIM provision-on-demand when you click Sync now.',
                 'Re-consent even if you consented before — new permissions (especially GroupMember.ReadWrite.All) are not included in old consent.',
             ],
@@ -393,7 +394,7 @@ class ClientOnboardingService
                         'Expect: Created / Updated / Deactivated counts for portal users.',
                         'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
                         'Expect: SuperOps app: +N / -0 users when SuperOps Application (client) ID is set (licensed users + shared mailboxes on Entra ID Free).',
-                        'Expect: SuperOps SCIM names updated N (full name written to extensionAttribute1).',
+                        'Expect: SuperOps name labels updated N (User Mailbox / Shared Mailbox in extensionAttribute1).',
                         'If there is no SuperOps group line: Entra group ID is empty — go back to M365 security group step.',
                         'If errors mention 403 or group: admin consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
                         'If errors mention app assignment: add AppRoleAssignment.ReadWrite.All to the portal app and re-consent in the customer tenant.',
@@ -472,10 +473,10 @@ class ClientOnboardingService
                     'https://portal.azure.com — '.$appName.' → Provisioning',
                     [
                         'Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users.',
-                        'name.formatted → Mapping type Direct → Source extensionAttribute1 → Default if null [displayName] → Always.',
-                        'displayName → Mapping type Direct → Source displayName → Always → Save.',
-                        'Remove any Join(...) Expression on displayName or name.formatted — causes garbled (AccountsShared MailboxAccounts).',
-                        'Portal Sync now writes full names to extensionAttribute1 and triggers SCIM provision-on-demand.',
+                        'name.givenName → Direct → givenName → Always.',
+                        'name.familyName → Expression → '.EntraSyncDisplayName::superOpsFamilyNameScimExpression().' → Always → Save.',
+                        'Remove Join(...) on displayName or name.formatted — garbled names.',
+                        'Portal Sync now writes User Mailbox / Shared Mailbox to extensionAttribute1; SCIM updates Last name.',
                     ],
                 ),
                 OnboardingManual::section(
@@ -491,10 +492,10 @@ class ClientOnboardingService
                 ),
             ],
             verify: [
-                'Entra → '.$appName.' → Provisioning → Attribute mapping → name.formatted Direct from extensionAttribute1.',
+                'Entra → '.$appName.' → Attribute mapping → name.familyName uses Expression on extensionAttribute1.',
                 'Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
                 'Entra ID Free: '.$appName.' → Users and groups shows licensed users after portal Sync now (no manual assignment).',
-                'SuperOps → Clients → '.$clientName.' → Requesters — names like Joanne Munns (User Mailbox); emails match; no duplicate rows.',
+                'SuperOps → Clients → '.$clientName.' → Requesters — Last name shows (User Mailbox) or (Shared Mailbox).',
             ],
         );
     }
