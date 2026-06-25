@@ -377,7 +377,7 @@ class MicrosoftGraphClient
         }
 
         throw new RuntimeException(
-            'Could not resolve SuperOps enterprise app in this tenant. Open App registrations → your SuperOps app → click "Managed application in local directory" → Overview → Object ID — paste that GUID into SuperOps Entra App ID on the client (not the App registration Object ID).'
+            'Could not resolve SuperOps enterprise app in this tenant. Paste the Application (client) ID from App registrations → SuperOps → Overview (not the Object ID on that page).'
         );
     }
 
@@ -397,8 +397,7 @@ class MicrosoftGraphClient
                 if ($response->status() === 403) {
                     throw new RuntimeException(
                         'Microsoft Graph app role assignments request failed: 403. '
-                        .'Use the enterprise application Object ID (App registrations → SuperOps → "Managed application in local directory" → Overview → Object ID) — '
-                        .'not the App registration Object ID (ae87d204-… on the registration Overview). '
+                        .'Paste the SuperOps Application (client) ID from App registrations → Overview — not the Object ID on that page. '
                         .'Also confirm AppRoleAssignment.ReadWrite.All is granted for the customer tenant on OnIT Portal for Portals.'
                     );
                 }

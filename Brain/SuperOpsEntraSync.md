@@ -145,7 +145,7 @@ Re-consent in **each customer tenant** after adding permissions.
 | Field | Purpose |
 |---|---|
 | `entra_group_id` | Security group Object ID — portal auto-fills members |
-| `entra_superops_app_id` | SuperOps enterprise app Object ID — **required on Entra ID Free** when groups cannot be assigned to apps |
+| `entra_superops_app_id` | SuperOps **Application (client) ID** from App registrations → Overview — **not** the Object ID on that page. Required on **Entra ID Free**. |
 
 ### Server `.env`
 

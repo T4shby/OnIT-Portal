@@ -3,7 +3,7 @@
 @endphp
 
 <p class="mt-6 mb-2 portal-label">Microsoft Entra sync</p>
-<p class="mb-4 portal-body-muted text-xs">Licensed M365 users and shared mailboxes in the customer tenant are synced automatically. Portal user names match M365 (no suffix). The M365 directory view shows <strong class="text-white/70">(User)</strong> or <strong class="text-white/70">(Shared Mailbox)</strong> for clarity. SuperOps requesters get the same suffix via SCIM attribute mapping — not by changing M365 display names. Shared mailboxes cannot sign in to the portal but are synced to SuperOps. On <strong class="text-white/70">Entra ID Free</strong>, set SuperOps Entra app ID so sync assigns users to the SCIM app. Click <strong class="text-white/70">Help</strong> next to any field for step-by-step instructions.</p>
+<p class="mb-4 portal-body-muted text-xs">Licensed M365 users and shared mailboxes in the customer tenant are synced automatically. Portal user names match M365 (no suffix). The M365 directory view shows <strong class="text-white/70">(User)</strong> or <strong class="text-white/70">(Shared Mailbox)</strong> for clarity. SuperOps requesters get the same suffix via SCIM attribute mapping — not by changing M365 display names. Shared mailboxes cannot sign in to the portal but are synced to SuperOps. On <strong class="text-white/70">Entra ID Free</strong>, paste the SuperOps <strong class="text-white/70">Application (client) ID</strong> below so sync assigns users to the SCIM app. Click <strong class="text-white/70">Help</strong> next to any field for step-by-step instructions.</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra tenant ID',
@@ -20,11 +20,18 @@
 ])
 
 @include('admin.partials.form-field', [
-    'label' => 'SuperOps Entra app ID (Entra ID Free)',
+    'label' => 'SuperOps Application (client) ID (Entra ID Free)',
     'name' => 'entra_superops_app_id',
     'value' => $client->entra_superops_app_id ?? '',
     'help' => $fieldHelps['entra_superops_app_id'],
 ])
+
+<p class="mb-4 -mt-2 portal-body-muted text-xs">
+    <strong class="text-white/70">Paste the Application (client) ID</strong> from
+    <strong class="text-white/70">App registrations → your SuperOps app → Overview</strong>
+    (e.g. <code class="text-white/60">8c46a344-a010-4c78-99b9-df8b9caaba2f</code>).
+    Do <strong class="text-white/70">not</strong> use the <strong class="text-white/70">Object ID</strong> on that same page — that causes a 403.
+</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra sync enabled',

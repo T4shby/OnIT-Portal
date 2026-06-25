@@ -321,7 +321,7 @@ class ClientOnboardingService
                 [
                     'Entra tenant ID: customer tenant GUID (customer Entra → Overview → Tenant ID).',
                     'Entra group ID: Object ID of the empty security group from the M365 security group step.',
-                    'SuperOps Entra app ID: required on Entra ID Free — Object ID of the SuperOps enterprise app (see SuperOps SCIM step Part C). Leave empty when the security group is assigned to the app (Entra ID P1).',
+                    'SuperOps Application (client) ID: required on Entra ID Free — App registrations → SuperOps app → Overview → Application (client) ID (not Object ID). Leave empty when the security group is assigned to the app (Entra ID P1).',
                     'Tick Entra sync enabled.',
                     'Click Save client.',
                 ],
@@ -390,7 +390,7 @@ class ClientOnboardingService
                         'Click Dry run sync first. Read the green or red message at the top of the page.',
                         'Expect: Created / Updated / Deactivated counts for portal users.',
                         'Expect: SuperOps group: +N / -0 members (N = licensed users + shared mailboxes) when Entra group ID is set.',
-                        'Expect: SuperOps app: +N / -0 users when SuperOps Entra app ID is set (licensed users + shared mailboxes on Entra ID Free).',
+                        'Expect: SuperOps app: +N / -0 users when SuperOps Application (client) ID is set (licensed users + shared mailboxes on Entra ID Free).',
                         'Expect: SuperOps name hints updated N (extensionAttribute1) for SCIM requester naming.',
                         'If there is no SuperOps group line: Entra group ID is empty — go back to M365 security group step.',
                         'If errors mention 403 or group: admin consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
@@ -435,7 +435,7 @@ class ClientOnboardingService
                 'One Entra app only: '.$appName.' — SCIM in this step, SAML in SuperOps Client SSO step on the same app. Do not create a second app.',
                 'Authentication method on the provisioning screen must be Bearer authentication (Azure default).',
                 'Entra ID P1: assign security group '.$groupName.' to this app once — portal sync keeps the group filled.',
-                'Entra ID Free: you cannot assign groups to enterprise apps. Do not add users manually in Azure — copy the app Object ID to SuperOps Entra app ID on the portal and portal sync assigns users automatically.',
+                'Entra ID Free: you cannot assign groups to enterprise apps. Do not add users manually in Azure — copy the SuperOps Application (client) ID to the portal field and sync assigns users automatically.',
                 'Tick Mark this step complete on this page when done.',
             ],
             sections: [
@@ -466,7 +466,7 @@ class ClientOnboardingService
                     'Part C — Assign access and start provisioning',
                     'https://portal.azure.com — '.$appName,
                     [
-                        'Copy Object ID from '.$appName.' → Overview → paste into SuperOps Entra app ID on the portal (left column, Microsoft Entra sync). Required on Entra ID Free.',
+                        'App registrations → '.$appName.' (or your SuperOps app name) → Overview → copy Application (client) ID → paste into SuperOps Application (client) ID on the portal. Do not use Object ID on that page. Required on Entra ID Free.',
                         'Entra ID P1 (preferred): Users and groups → Add user/group → Groups tab → select '.$groupName.' → Assign. Portal sync keeps group membership updated — assign the group once only.',
                         'Entra ID Free: skip Users and groups in Azure — portal sync assigns licensed users to this app on each Sync now / hourly run.',
                         'Provisioning → Start provisioning (or wait for the next cycle).',
@@ -678,16 +678,17 @@ class ClientOnboardingService
                 'Required for SuperOps SCIM group membership (portal maintains this automatically).',
             ],
             'entra_superops_app_id' => [
-                'Where: customer Entra → App registrations → SuperOps app → click "Managed application in local directory" → Overview → Object ID.',
-                'Use the enterprise application Object ID — not the App registration Object ID on the registration Overview page.',
-                'You can also paste the Application (client) ID — sync will resolve the enterprise app automatically.',
+                'Recommended: customer Entra → App registrations → your SuperOps app → Overview → Application (client) ID.',
+                'Example: 8c46a344-a010-4c78-99b9-df8b9caaba2f — paste that GUID here. Sync resolves the enterprise app automatically.',
+                'Do not paste Object ID from the same Overview page — that is the App registration Object ID and causes Graph 403 errors.',
+                'Alternative: Enterprise applications → SuperOps app → Overview → Object ID (managed application — different GUID).',
                 'Required on Entra ID Free when Azure blocks group assignment to enterprise apps.',
                 'Leave empty on Entra ID P1 when the security group is assigned to the SuperOps app instead.',
             ],
             'entra_sync_enabled' => [
                 'Where: this page. Turn on after Entra tenant ID is saved.',
                 'Requires admin consent (step 04) before Sync now will succeed.',
-                'Syncs licensed users + shared mailboxes; maintains SuperOps group; assigns SuperOps app users when SuperOps Entra app ID is set.',
+                'Syncs licensed users + shared mailboxes; maintains SuperOps group; assigns SuperOps app users when SuperOps Application (client) ID is set.',
                 'Use Dry run sync, then Sync now, on the left.',
             ],
         ];
