@@ -272,7 +272,8 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | App role assignment 403 after re-consent | Stale Graph token cached up to 50 min — run `php artisan cache:clear` then sync again (portal auto-retries from next deploy) |
 | SuperOps requester plain name | Run portal sync first, then check Entra **Provisioning logs** for **Update** per user — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
 | `extensionAttribute1` correct but SuperOps plain; logs show few Updates | Re-run **Sync now** (portal provisions one user per call). Or **Provision on demand** in Entra for one user to confirm mapping |
-| “Groups are not available for assignment” in Azure | Entra ID Free — do **not** assign users manually; set `entra_superops_app_id` on client and run Sync now |
+| Sync already running | Another UI sync or cron job holds the client lock | Wait and retry; lock expires after `ENTRA_SYNC_LOCK_SECONDS` (default 600) |
+| Rate limited on Sync now | More than 2 sync requests per minute per client | Wait 60s — `throttle:entra-sync` on admin route |
 
 ---
 

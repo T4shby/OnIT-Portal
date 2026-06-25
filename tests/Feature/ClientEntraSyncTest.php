@@ -106,6 +106,48 @@ class ClientEntraSyncTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_account_manager_cannot_sync_unassigned_client(): void
+    {
+        $assigned = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_sync_enabled' => true,
+        ]);
+        $other = Client::factory()->create([
+            'entra_tenant_id' => '22222222-2222-2222-2222-222222222222',
+            'entra_sync_enabled' => true,
+        ]);
+
+        $manager = User::factory()->create(['role' => UserRole::AccountManager]);
+        $manager->assignedClients()->attach($assigned);
+
+        $response = $this->actingAs($manager)
+            ->post(route('admin.clients.sync-entra', $other));
+
+        $response->assertForbidden();
+    }
+
+    public function test_inactive_client_user_cannot_sign_in_via_microsoft_oauth(): void
+    {
+        $client = Client::factory()->create(['is_active' => false]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'staff@acme.com',
+            'role' => UserRole::ClientUser,
+            'is_active' => true,
+            'portal_login_enabled' => true,
+            'entra_object_id' => 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+        ]);
+
+        $this->mockMicrosoftSocialiteUser('staff@acme.com', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee');
+
+        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code']));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'organisation'));
+        $this->assertGuest();
+    }
+
     public function test_sync_returns_error_when_globally_disabled(): void
     {
         config(['services.entra_sync.enabled' => false]);
@@ -154,7 +196,7 @@ class ClientEntraSyncTest extends TestCase
         $response = $this->get(route('auth.microsoft.callback', [
             'admin_consent' => 'True',
             'tenant' => $client->entra_tenant_id,
-            'state' => 'client-'.$client->id,
+            'state' => \App\Support\AdminConsentState::encode($client->id),
         ]));
 
         $response->assertOk();

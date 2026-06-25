@@ -158,11 +158,14 @@ class ClientController extends Controller
                 'updated' => $result->updated,
                 'deactivated' => $result->deactivated,
                 'skipped' => $result->skipped,
+                'warnings' => count($result->errors),
             ],
             clientId: $client->id,
         );
 
-        return back()->with('success', ucfirst($message));
+        $flashKey = $result->hasWarnings() ? 'warning' : 'success';
+
+        return back()->with($flashKey, ucfirst($message));
     }
 
     public function updateOnboarding(UpdateClientOnboardingRequest $request, Client $client): RedirectResponse

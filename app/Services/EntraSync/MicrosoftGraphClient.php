@@ -661,7 +661,7 @@ class MicrosoftGraphClient
         }
 
         $batchSize = max(1, (int) config('services.entra_sync.superops_provision_batch_size', 1));
-        $intervalUs = max(0, (int) config('services.entra_sync.superops_provision_interval_us', 1_500_000));
+        $intervalUs = max(0, (int) config('services.entra_sync.superops_provision_interval_us', 2_100_000));
         $provisioned = 0;
 
         foreach (array_chunk($userIds, $batchSize) as $index => $chunk) {
@@ -677,16 +677,12 @@ class MicrosoftGraphClient
                 $chunk,
             );
 
-            $response = $this->request($tenantId)->post(
-                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/provisionOnDemand",
-                [
-                    'parameters' => [
-                        [
-                            'ruleId' => $ruleId,
-                            'subjects' => $subjects,
-                        ],
-                    ],
-                ],
+            $response = $this->postProvisionOnDemand(
+                $tenantId,
+                $servicePrincipalId,
+                $jobId,
+                $ruleId,
+                $subjects,
             );
 
             if ($response->failed()) {
@@ -695,10 +691,62 @@ class MicrosoftGraphClient
                 );
             }
 
-            $provisioned += count($chunk);
+            $provisioned += $this->countProvisionOnDemandSubjects($response, count($chunk));
         }
 
         return $provisioned;
+    }
+
+    /**
+     * @param  list<array{objectId: string, objectTypeName: string}>  $subjects
+     */
+    private function postProvisionOnDemand(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $jobId,
+        string $ruleId,
+        array $subjects,
+    ): Response {
+        $url = "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/provisionOnDemand";
+        $payload = [
+            'parameters' => [
+                [
+                    'ruleId' => $ruleId,
+                    'subjects' => $subjects,
+                ],
+            ],
+        ];
+
+        $maxAttempts = max(1, (int) config('services.entra_sync.superops_provision_max_attempts', 3));
+        $response = $this->request($tenantId)->post($url, $payload);
+
+        for ($attempt = 2; $attempt <= $maxAttempts && $response->status() === 429; $attempt++) {
+            usleep(2_100_000 * ($attempt - 1));
+            $response = $this->request($tenantId)->post($url, $payload);
+        }
+
+        return $response;
+    }
+
+    private function countProvisionOnDemandSubjects(Response $response, int $requested): int
+    {
+        $results = $response->json('value');
+
+        if (! is_array($results) || $results === []) {
+            return $requested;
+        }
+
+        $accepted = 0;
+
+        foreach ($results as $result) {
+            $state = strtolower((string) ($result['state'] ?? ''));
+
+            if ($state !== '' && ! in_array($state, ['skipped', 'failed', 'quarantine'], true)) {
+                $accepted++;
+            }
+        }
+
+        return $accepted > 0 ? $accepted : $requested;
     }
 
     public function clearSuperOpsScimProvisioningContextCache(string $tenantId, string $servicePrincipalId): void

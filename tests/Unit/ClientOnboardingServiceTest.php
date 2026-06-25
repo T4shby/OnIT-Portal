@@ -53,7 +53,7 @@ class ClientOnboardingServiceTest extends TestCase
         );
         $this->assertSame('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', $query['client_id']);
         $this->assertSame(config('services.azure.redirect'), $query['redirect_uri']);
-        $this->assertSame('client-'.$client->id, $query['state']);
+        $this->assertSame(\App\Support\AdminConsentState::encode($client->id), $query['state']);
     }
 
     public function test_progress_counts_auto_completed_steps(): void

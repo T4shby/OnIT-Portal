@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.microsoft-365');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
+                ->middleware('throttle:entra-sync')
                 ->name('clients.sync-entra');
             Route::put('clients/{client}/onboarding', [ClientController::class, 'updateOnboarding'])
                 ->name('clients.onboarding.update');

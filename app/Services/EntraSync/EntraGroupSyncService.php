@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Services\ExternalServicesService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -33,6 +34,34 @@ class EntraGroupSyncService
             return new EntraSyncResult(errors: ['Microsoft Graph credentials are not configured.']);
         }
 
+        $lock = null;
+
+        if (! $dryRun) {
+            $lock = Cache::lock(
+                'entra_sync.client.'.$client->id,
+                (int) config('services.entra_sync.lock_seconds', 600),
+            );
+
+            if (! $lock->get()) {
+                return new EntraSyncResult(errors: [
+                    'Entra sync is already running for this client. Wait for it to finish and try again.',
+                ]);
+            }
+        }
+
+        if (! app()->runningInConsole()) {
+            set_time_limit((int) config('services.entra_sync.web_max_execution_seconds', 300));
+        }
+
+        try {
+            return $this->performSyncClient($client, $dryRun);
+        } finally {
+            $lock?->release();
+        }
+    }
+
+    private function performSyncClient(Client $client, bool $dryRun): EntraSyncResult
+    {
         try {
             $graphUsers = $this->graph->listSyncEligibleUsers($client->entra_tenant_id);
         } catch (Throwable $e) {
@@ -179,9 +208,6 @@ class EntraGroupSyncService
                     'entra_synced_at' => now(),
                 ]);
             }
-
-            $client->update(['entra_synced_at' => now()]);
-            $this->portalLinks->clearCache($client->id);
         }
 
         if ($this->shouldMaintainSuperOpsGroup($client)) {
@@ -218,6 +244,11 @@ class EntraGroupSyncService
                 $desiredSuperOpsAppUserIds,
             );
             $errors = array_merge($errors, $provisionErrors);
+        }
+
+        if (! $dryRun) {
+            $client->update(['entra_synced_at' => now()]);
+            $this->portalLinks->clearCache($client->id);
         }
 
         return new EntraSyncResult(

@@ -34,7 +34,7 @@ class ClientOnboardingService
         }
 
         $redirectUri = config('services.azure.redirect');
-        $state = $client->exists ? 'client-'.$client->id : null;
+        $state = $client->exists ? \App\Support\AdminConsentState::encode($client->id) : null;
 
         $query = http_build_query(array_filter([
             'client_id' => $appClientId,

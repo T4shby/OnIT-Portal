@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-25 | Security/reliability: signed admin consent state, block login for inactive clients, sync lock + throttle, partial-sync warnings, cron non-zero exit |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand + delay; spinner/status banner; Brain docs + ADR-020 aligned on name.familyName |
 | 2026-06-25 | Sync now / dry run: spinner + status banner on Edit client while Entra sync runs |
 | 2026-06-25 | Entra ID Free: `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` — portal auto-assigns SuperOps app users |

@@ -37,6 +37,8 @@ class SyncEntraGroupUsers extends Command
             return self::SUCCESS;
         }
 
+        $hadFailure = false;
+
         foreach ($results as $id => $entry) {
             /** @var EntraSyncResult $result */
             $result = $entry['result'];
@@ -44,7 +46,9 @@ class SyncEntraGroupUsers extends Command
             $this->newLine();
             $this->info("Client: {$entry['client']} (#{$id})");
 
-            if ($result->hasErrors() && $result->totalChanged() === 0 && $result->skipped === 0) {
+            if ($result->failed()) {
+                $hadFailure = true;
+
                 foreach ($result->errors as $error) {
                     $this->error('  '.$error);
                 }
@@ -69,12 +73,24 @@ class SyncEntraGroupUsers extends Command
                 $this->line("  SuperOps last names updated: {$result->superOpsNameHintsUpdated}");
             }
 
+            if ($result->superOpsUsersProvisioned > 0) {
+                $this->line("  SuperOps SCIM provision triggered: {$result->superOpsUsersProvisioned}");
+            }
+
             foreach ($result->errors as $error) {
+                $hadFailure = true;
                 $this->warn('  '.$error);
             }
         }
 
         $this->newLine();
+
+        if ($hadFailure) {
+            $this->error('Entra sync finished with errors.');
+
+            return self::FAILURE;
+        }
+
         $this->info('Entra sync finished.');
 
         return self::SUCCESS;

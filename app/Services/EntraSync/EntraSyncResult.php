@@ -79,4 +79,9 @@ class EntraSyncResult
     {
         return $this->hasErrors() && $this->totalChanged() === 0 && $this->skipped === 0;
     }
+
+    public function hasWarnings(): bool
+    {
+        return $this->hasErrors() && ! $this->failed();
+    }
 }

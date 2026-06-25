@@ -127,6 +127,13 @@ class MicrosoftAuthController extends Controller
                 ->with('error', 'This account cannot sign in to the portal. Shared mailboxes are synced for support records only — please use your personal work account.');
         }
 
+        $user->loadMissing('client');
+
+        if ($user->client_id && $user->client && ! $user->client->is_active) {
+            return redirect()->route('login')
+                ->with('error', 'Your organisation is not active on the portal. Please contact your administrator.');
+        }
+
         $user->update([
             'entra_object_id' => $microsoftUser->getId(),
             'name' => $microsoftUser->getName() ?? $user->name,
@@ -192,13 +199,9 @@ class MicrosoftAuthController extends Controller
 
     private function clientFromAdminConsentState(mixed $state): ?Client
     {
-        if (! is_string($state) || ! str_starts_with($state, 'client-')) {
-            return null;
-        }
+        $clientId = \App\Support\AdminConsentState::decode(is_string($state) ? $state : null);
 
-        $clientId = (int) substr($state, 7);
-
-        return $clientId > 0 ? Client::find($clientId) : null;
+        return $clientId ? Client::find($clientId) : null;
     }
 
     private function azureDriver(): Provider
