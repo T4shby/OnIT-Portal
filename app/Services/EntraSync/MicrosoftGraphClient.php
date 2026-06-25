@@ -4,8 +4,10 @@ namespace App\Services\EntraSync;
 
 use App\Enums\EntraIdentityType;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -169,19 +171,23 @@ class MicrosoftGraphClient
 
     public function getMailboxUserPurpose(string $tenantId, string $userId): ?string
     {
-        $response = $this->request($tenantId)
-            ->get("https://graph.microsoft.com/v1.0/users/{$userId}/mailboxSettings", [
-                '$select' => 'userPurpose',
-            ]);
+        $url = "https://graph.microsoft.com/v1.0/users/{$userId}/mailboxSettings";
+        $query = ['$select' => 'userPurpose'];
+
+        $response = $this->graphGetWithTransientRetry($tenantId, $url, $query);
 
         if ($response->status() === 404) {
             return null;
         }
 
         if ($response->failed()) {
-            throw new RuntimeException(
-                'Microsoft Graph mailboxSettings failed for user '.$userId.': '.$response->status().' '.$response->body()
-            );
+            Log::warning('Microsoft Graph mailboxSettings failed; treating user as non-shared mailbox', [
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'status' => $response->status(),
+            ]);
+
+            return null;
         }
 
         $purpose = $response->json('userPurpose');
@@ -610,7 +616,27 @@ class MicrosoftGraphClient
     /**
      * @param  array<string, mixed>  $query
      */
-    private function graphGet(string $tenantId, string $url, array $query = []): \Illuminate\Http\Client\Response
+    private function graphGetWithTransientRetry(string $tenantId, string $url, array $query = [], int $maxAttempts = 3): Response
+    {
+        $response = $this->graphGet($tenantId, $url, $query);
+
+        for ($attempt = 2; $attempt <= $maxAttempts && $this->shouldRetryTransientGraphError($response); $attempt++) {
+            usleep(500_000 * ($attempt - 1));
+            $response = $this->graphGet($tenantId, $url, $query);
+        }
+
+        return $response;
+    }
+
+    private function shouldRetryTransientGraphError(Response $response): bool
+    {
+        return in_array($response->status(), [429, 502, 503, 504], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function graphGet(string $tenantId, string $url, array $query = []): Response
     {
         $response = $this->request($tenantId)->get($url, $query);
 
