@@ -91,7 +91,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 
 1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
 2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
-3. Add all seven Application permissions:
+3. Add all eight Application permissions:
    - `User.Read.All`
    - `User.ReadWrite.All`
    - `LicenseAssignment.Read.All`
@@ -99,6 +99,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
    - `Group.Read.All`
    - `GroupMember.ReadWrite.All`
    - `AppRoleAssignment.ReadWrite.All`
+   - `Application.Read.All`
 4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
 ### Expected result
@@ -106,7 +107,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 | Type | Permissions | Status |
 |------|-------------|--------|
 | Delegated (4) | email, openid, profile, User.Read | Granted |
-| Application (7) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All | Granted |
+| Application (8) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All | Granted |
 
 ### Consent error fix
 
@@ -172,7 +173,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 |---|---|
 | Entra tenant ID | Customer tenant GUID (required for sync) |
 | Entra group ID | Security group Object ID — portal auto-fills members |
-| SuperOps Entra app ID | Enterprise app Object ID — **required on Entra ID Free**; portal auto-assigns licensed users + shared mailboxes to SCIM app |
+| SuperOps Application (client) ID | App registrations → SuperOps → Overview → **Application (client) ID** — **required on Entra ID Free** |
 | Entra sync enabled | ✓ |
 
 Save with **Update**. Use **Dry run sync** and **Sync now** on the left, or tick manual steps on the right and **Save checklist**.
@@ -257,7 +258,8 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | Buttons missing on client edit | Branch not deployed; run `migrate`; save tenant + group + sync enabled |
 | Email belongs to another client | Duplicate email across clients; resolve manually |
 | User not in portal after sync | Unlicensed (and not shared mailbox), no valid mail/UPN, or sync not enabled |
-| User not in SuperOps | Group not filled / not assigned to SCIM app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md). On Entra ID Free: set `entra_superops_app_id` and re-consent with `AppRoleAssignment.ReadWrite.All` |
+| Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID (Object ID instead of client ID) | Add `Application.Read.All` in On IT tenant; re-consent customer; paste Application (client) ID |
+| App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
 | No `SuperOps name hints updated` line | Hints already set, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |

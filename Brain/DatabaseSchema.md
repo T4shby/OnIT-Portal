@@ -4,7 +4,7 @@
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (SuperOps enterprise app Object ID — Entra ID Free SCIM app assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
+`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (SuperOps **Application (client) ID** — Entra ID Free SCIM app assignment; sync resolves to enterprise app), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
 
 ### users
 

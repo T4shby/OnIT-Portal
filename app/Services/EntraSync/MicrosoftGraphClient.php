@@ -332,20 +332,19 @@ class MicrosoftGraphClient
 
         $byAppIdResponse = $this->graphGet(
             $tenantId,
-            'https://graph.microsoft.com/v1.0/servicePrincipals',
-            [
-                '$filter' => "appId eq '{$idOrAppId}'",
-                '$select' => 'id,displayName,appId',
-                '$top' => 1,
-            ],
+            "https://graph.microsoft.com/v1.0/servicePrincipals(appId='{$idOrAppId}')",
+            ['$select' => 'id,displayName,appId'],
         );
 
         if ($byAppIdResponse->successful()) {
-            $match = $byAppIdResponse->json('value.0.id');
+            return (string) $byAppIdResponse->json('id');
+        }
 
-            if (filled($match)) {
-                return (string) $match;
-            }
+        if ($byAppIdResponse->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot resolve SuperOps app by Application (client) ID — Application.Read.All is missing or not consented. '
+                .'Add Application.Read.All to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant (checklist step 04), then php artisan cache:clear and sync again.'
+            );
         }
 
         $applicationResponse = $this->graphGet(
@@ -359,25 +358,19 @@ class MicrosoftGraphClient
 
             $fromRegistrationResponse = $this->graphGet(
                 $tenantId,
-                'https://graph.microsoft.com/v1.0/servicePrincipals',
-                [
-                    '$filter' => "appId eq '{$appId}'",
-                    '$select' => 'id,displayName,appId',
-                    '$top' => 1,
-                ],
+                "https://graph.microsoft.com/v1.0/servicePrincipals(appId='{$appId}')",
+                ['$select' => 'id,displayName,appId'],
             );
 
             if ($fromRegistrationResponse->successful()) {
-                $match = $fromRegistrationResponse->json('value.0.id');
-
-                if (filled($match)) {
-                    return (string) $match;
-                }
+                return (string) $fromRegistrationResponse->json('id');
             }
         }
 
         throw new RuntimeException(
-            'Could not resolve SuperOps enterprise app in this tenant. Paste the Application (client) ID from App registrations → SuperOps → Overview (not the Object ID on that page).'
+            'Could not resolve SuperOps enterprise app in this tenant. '
+            .'Paste Application (client) ID from App registrations → SuperOps → Overview (not Object ID). '
+            .'If the client ID is correct, add Application.Read.All to the portal app and re-consent in the customer tenant.'
         );
     }
 

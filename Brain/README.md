@@ -50,7 +50,7 @@ Read these documents before changing application code. **Update Brain in the sam
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
-| Entra ID Free SuperOps app assign | `entra_superops_app_id` on client + `AppRoleAssignment.ReadWrite.All` |
+| Entra ID Free SuperOps app assign | `entra_superops_app_id` (Application client ID) + `Application.Read.All` + `AppRoleAssignment.ReadWrite.All` |
 | SuperOps requester display names | `EntraSyncDisplayName.php`, `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE`, SCIM mapping — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
 | Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |

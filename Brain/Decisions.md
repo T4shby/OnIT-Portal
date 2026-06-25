@@ -272,7 +272,7 @@ Reason:
 Microsoft blocks assigning security groups to enterprise applications on Entra ID Free. SCIM only provisions users assigned to the app. Manual per-user assignment in Azure does not scale; portal sync already runs hourly with Graph access.
 
 Consequences:
-New client field `entra_superops_app_id` (enterprise app Object ID). Application permission `AppRoleAssignment.ReadWrite.All` on portal OAuth app + customer re-consent. P1 clients leave field empty and assign the security group once in Azure UI.
+New client field `entra_superops_app_id` stores SuperOps **Application (client) ID** (resolved to enterprise app via `Application.Read.All`). Application permissions include `AppRoleAssignment.ReadWrite.All` + customer re-consent.
 
 ---
 

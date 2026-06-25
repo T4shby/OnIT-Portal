@@ -67,7 +67,7 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 4. **Admin credentials:** Authentication method = **Bearer authentication** (default — do not change). **Tenant URL** = from SuperOps. **Secret token** = SuperOps Auth Token → **Test connection** → Save
 5. **Users and groups:**
    - **Entra ID P1:** assign security group `On IT Portal - {Company}` once (portal sync keeps it filled)
-   - **Entra ID Free:** copy enterprise app **Object ID** → portal **SuperOps Entra app ID**; portal sync assigns licensed users automatically
+   - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps → Overview → portal field; portal sync assigns licensed users automatically
 6. Start provisioning
 
 #### 2c. Same app — Client SSO (SAML)
@@ -135,6 +135,7 @@ Save mapping, then run **Provision on demand** or wait for the next SCIM cycle.
 | Permission | Purpose |
 |---|---|
 | `User.ReadWrite.All` | Set `extensionAttribute1` SuperOps name hint; revert mistaken displayName suffixes |
+| `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `GroupMember.ReadWrite.All` | Auto-fill SuperOps SCIM security group |
 
@@ -219,7 +220,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
 | Requester name is plain (no suffix) | Portal sync not run yet, or `User.ReadWrite.All` missing — run **Sync now**, re-consent, wait for SCIM or **Provision on demand** |
-| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set `entra_superops_app_id` on the portal client (enterprise app Object ID). Portal sync assigns licensed users + shared mailboxes via Graph — do not add users manually in Azure. Add `AppRoleAssignment.ReadWrite.All` + `User.ReadWrite.All` to portal app and re-consent in customer tenant |
+| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set **SuperOps Application (client) ID** on the portal client (App registrations → Overview — not Object ID). Add `Application.Read.All`, `AppRoleAssignment.ReadWrite.All`, re-consent in customer tenant |
 
 ---
 

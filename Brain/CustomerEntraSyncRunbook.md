@@ -134,7 +134,8 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | `MailboxSettings` | **MailboxSettings.Read** | Read all user mailbox settings |
 | `Group.Read` | **Group.Read.All** | Read all groups |
 | `GroupMember` | **GroupMember.ReadWrite.All** | Read and write all group memberships |
-| `AppRoleAssignment` | **AppRoleAssignment.ReadWrite.All** | Manage app role assignments (Entra ID Free — auto-assign SuperOps app users) |
+| `AppRoleAssignment` | **AppRoleAssignment.ReadWrite.All** | Assign users to SuperOps enterprise app on Entra ID Free |
+| `Application.Read` | **Application.Read.All** | Resolve SuperOps Application (client) ID → enterprise app during sync |
 
 5. Click **Add permissions** at the bottom of the panel
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
@@ -146,17 +147,17 @@ All **Application** rows must show:
 
 - **Status:** green tick — **Granted for On IT Technology Partners LTD**
 
-Expected **11** Microsoft Graph permissions total:
+Expected **12** Microsoft Graph permissions total:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (7):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All
+**Application (8):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`
 
 This happened on first deploy (June 2026). **Fix:**
 
 1. **Refresh the browser page** (F5)
-2. Confirm all seven Application permissions still appear in the table
+2. Confirm all **eight** Application permissions still appear in the table
 3. Click **Grant admin consent for On IT Technology Partners LTD** again
 
 That was enough — no manifest edit, no PowerShell. If it still fails after refresh, wait 2–3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
@@ -186,6 +187,7 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 |-------|--------|
 | Entra Tenant ID | Customer tenant GUID |
 | Entra Group ID | Group Object ID from step 2 |
+| SuperOps Application (client) ID | App registrations → SuperOps app → Overview → **Application (client) ID** — **not** Object ID. Required on Entra ID Free. |
 | Entra sync enabled | ✓ |
 
 Click **Save client**.
@@ -218,7 +220,7 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={P
 1. **Microsoft Entra ID** → **Enterprise applications** → search **OnIT Portal for Portals** (or **On IT Portal**)
 2. **Permissions** → all Application permissions show **Granted**
 
-**Re-consent** if you added `GroupMember.ReadWrite.All` after an earlier consent — old consent does not include new permissions.
+**Re-consent** if you added permissions after an earlier consent — old consent does not include new permissions (e.g. `Application.Read.All`, `AppRoleAssignment.ReadWrite.All`).
 
 ---
 
@@ -240,7 +242,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 4. **Admin Credentials:** Authentication method = **Bearer authentication** (default). **Tenant URL** + **Secret Token** (Auth Token) from SuperOps → **Test Connection** → must succeed → **Save**
 5. **Users and groups:**
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
-   - **Entra ID Free:** copy enterprise app **Object ID** → portal client **SuperOps Entra app ID** — portal sync assigns licensed users; do not add users manually in Azure
+   - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
 6. **Provisioning → Start provisioning** (or wait for cycle)
 
 ### 6 — SAML on the **same** app (do not create a second app)
@@ -304,14 +306,14 @@ MICROSOFT_CLIENT_SECRET=<secret>
 |---|---|
 | Entra tenant ID | Customer tenant GUID |
 | Entra group ID | `On IT Portal - Ductec LTD` group Object ID |
-| SuperOps Entra app ID | Enterprise app Object ID (e.g. `OnIT X Superops`) — **required on Entra ID Free** |
+| SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` — **required on Entra ID Free** |
 | Entra sync enabled | ✓ |
 
 ### Run sync in portal UI
 
 1. **Admin → Clients → Edit**
-2. Confirm tenant ID, group ID, **SuperOps Entra app ID** (Free tier), sync enabled
-3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `Entra display names updated N`
+2. Confirm tenant ID, group ID, **SuperOps Application (client) ID** (Free tier), sync enabled
+3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps name hints updated N`
 4. **Sync now**
 
 ### CLI alternative
@@ -344,9 +346,10 @@ php artisan portal:sync-entra-users --client={id}
 | No `SuperOps group` line in sync output | `Entra group ID` empty | Paste group Object ID → Save client |
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
-| Requesters not in SuperOps | App not in scope; **provisioning off**; missing `entra_superops_app_id` on Free | Step 5b — turn provisioning **ON**; set app ID; Sync now |
-| Requester plain name (no suffix) | Entra `displayName` not patched yet | Add `User.ReadWrite.All`, re-consent, **Sync now**, wait for SCIM — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
-| App role assignment 403 after re-consent | Run `php artisan cache:clear` — Graph tokens cache ~50 min without new permissions |
+| Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
+| Requester plain name (no suffix) | SCIM attribute mapping not configured | Set displayName expression on SuperOps app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
+| Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
+| App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
 | Wrong tenant on consent page | Signed into On IT instead of customer | Directory picker top-right |
 
@@ -371,8 +374,8 @@ php artisan portal:sync-entra-users --client={id}
 | Entra Tenant ID | On client record in portal |
 | Group name | `On IT Portal - Ductec LTD` |
 | SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
-| SuperOps Entra app ID | Enterprise app Object ID in portal (e.g. `22561b4e-a748-48d2-81a5-f4744812e6f2`) |
-| Entra ID tier | Free — use `entra_superops_app_id`; portal assigns users + sets display names |
+| SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` (App registrations → OnIT X Superops → Overview) |
+| Entra ID tier | Free — portal assigns users via Application (client) ID + `Application.Read.All` |
 | Requester name format | `Name (User)` or `Name (Shared Mailbox)` in SuperOps only — via SCIM attribute mapping |
 
 Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
@@ -383,7 +386,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
-| 2026-06-25 | Requester naming, `entra_superops_app_id`, `User.ReadWrite.All`, `ENTRA_SYNC_UPDATE_DISPLAY_NAMES` |
+| 2026-06-25 | Application (client) ID for `entra_superops_app_id`; `Application.Read.All`; SCIM naming via extensionAttribute — not displayName |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |
 | 2026-06-19 | Auto-maintain group via `GroupMember.ReadWrite.All`; single SuperOps app SCIM+SAML; consent refresh fix documented |
 | 2026-06-19 | Full click-by-click runbook for re-do from scratch |

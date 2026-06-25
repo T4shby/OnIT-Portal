@@ -363,6 +363,40 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(0, $result->superOpsAppUsersRemoved);
     }
 
+    public function test_sync_resolves_superops_application_client_id_to_enterprise_app(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $applicationClientId = '8c46a344-a010-4c78-99b9-df8b9caaba2f';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_superops_app_id' => $applicationClientId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+            ],
+            servicePrincipalId: $servicePrincipalId,
+            applicationClientId: $applicationClientId,
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(1, $result->superOpsAppUsersAssigned);
+        $this->assertSame(1, $result->created);
+    }
+
     public function test_sync_sets_super_ops_name_extension_attribute(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
@@ -437,6 +471,7 @@ class EntraGroupSyncServiceTest extends TestCase
         array $initialGroupMembers = [],
         ?string $servicePrincipalId = null,
         array $initialAppAssignedUsers = [],
+        ?string $applicationClientId = null,
     ): void {
         $list = [];
         $groupMembers = $initialGroupMembers;
@@ -456,11 +491,23 @@ class EntraGroupSyncServiceTest extends TestCase
             ];
         }
 
-        Http::fake(function ($request) use ($tenantId, $usersById, $list, $groupId, &$groupMembers, $servicePrincipalId, &$appAssignments) {
+        Http::fake(function ($request) use ($tenantId, $usersById, $list, $groupId, &$groupMembers, $servicePrincipalId, &$appAssignments, $applicationClientId) {
             $url = $request->url();
 
             if ($url === "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token") {
                 return Http::response(['access_token' => 'fake-token', 'expires_in' => 3600]);
+            }
+
+            if ($applicationClientId && $request->method() === 'GET' && $url === "https://graph.microsoft.com/v1.0/servicePrincipals/{$applicationClientId}") {
+                return Http::response(['error' => ['code' => 'Request_ResourceNotFound']], 404);
+            }
+
+            if ($applicationClientId && $servicePrincipalId && $request->method() === 'GET' && str_contains($url, "servicePrincipals(appId='{$applicationClientId}')")) {
+                return Http::response([
+                    'id' => $servicePrincipalId,
+                    'displayName' => 'OnIT X Superops',
+                    'appId' => $applicationClientId,
+                ]);
             }
 
             if ($servicePrincipalId && $request->method() === 'GET' && preg_match(

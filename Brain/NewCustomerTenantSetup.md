@@ -144,7 +144,7 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 1. SuperOps → **Integrations → Microsoft Entra ID → Generate Tokens** → this client.  
 2. Customer Entra → **Enterprise applications → New application** → `SuperOps - {Company}`.  
 3. **Provisioning → Automatic** → Authentication method: **Bearer authentication** → Tenant URL + Secret Token (Auth Token) from SuperOps → **Test connection** → Save.  
-4. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy app Object ID to portal **SuperOps Entra app ID** (portal sync assigns users).  
+4. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
 5. Start provisioning.
 
 **SAML (checklist step 06) — same app, do not create a second:**
@@ -169,7 +169,7 @@ Back on **https://app.onit.ltd → Admin → Clients → Edit** for this custome
 |-------|--------|
 | **Entra tenant ID** | Customer tenant GUID from Part 3a |
 | **Entra group ID** | Group Object ID — portal auto-fills licensed users + shared mailboxes |
-| **SuperOps Entra app ID** | Enterprise app Object ID — **required on Entra ID Free** (when Azure blocks group assignment) |
+| **SuperOps Application (client) ID** | App registrations → SuperOps → Overview → Application (client) ID — **required on Entra ID Free** |
 | **Entra sync enabled** | ✓ Tick |
 
 Click **Update** (main form) to save.
