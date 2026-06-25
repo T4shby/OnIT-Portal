@@ -780,7 +780,7 @@ class MicrosoftGraphClient
         }
 
         throw new RuntimeException(
-            'Microsoft Graph update SuperOps name hint failed: '.$response->status().' '.$response->body()
+            'Microsoft Graph update SuperOps SCIM name failed: '.$response->status().' '.$response->body()
         );
     }
 

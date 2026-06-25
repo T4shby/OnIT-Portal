@@ -15,7 +15,7 @@
 
 **Portal sync (automatic):** Whole tenant — licensed users + shared mailboxes → portal users. **No group membership required for portal.**
 
-**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` — portal **auto-fills** members (licensed users + shared mailboxes). On **Entra ID Free**, set **SuperOps Application (client) ID** on the client — portal assigns the same scope to the SCIM app. Requester names: `Name (User)` or `Name (Shared Mailbox)` via **`extensionAttribute1` + SCIM displayName Expression** (not M365 `displayName`). One Entra app for SCIM + SAML.
+**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` — portal **auto-fills** members (licensed users + shared mailboxes). On **Entra ID Free**, set **SuperOps Application (client) ID** on the client — portal assigns the same scope to the SCIM app. Requester names: `Name (User Mailbox)` or `Name (Shared Mailbox)` — portal writes full name to **`extensionAttribute1`**; Entra SCIM maps **`name.formatted` Direct** (not M365 `displayName`). One Entra app for SCIM + SAML.
 
 **Full runbook:** [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 

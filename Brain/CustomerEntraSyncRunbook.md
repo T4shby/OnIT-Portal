@@ -129,7 +129,7 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | Search for | Tick this permission | Description shown |
 |------------|----------------------|-------------------|
 | `User.Read.All` | **User.Read.All** | Read all users' full profiles |
-| `User.ReadWrite` | **User.ReadWrite.All** | Set `extensionAttribute1` SuperOps name hints |
+| `User.ReadWrite` | **User.ReadWrite.All** | Write full SuperOps SCIM name to `extensionAttribute1` |
 | `LicenseAssignment` | **LicenseAssignment.Read.All** | Read all license assignments |
 | `MailboxSettings` | **MailboxSettings.Read** | Read all user mailbox settings |
 | `Group.Read` | **Group.Read.All** | Read all groups |
@@ -261,7 +261,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
 7. **Provisioning → Start provisioning** (or wait for cycle)
-8. **Portal Sync now** → expect `SuperOps name hints updated N; SuperOps SCIM provisioned N` — requesters show `(User)` / `(Shared Mailbox)` in SuperOps only
+8. **Portal Sync now** → expect `SuperOps SCIM names updated N; SuperOps SCIM provisioned N` — requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
 
 ### 6 — SAML on the **same** app (do not create a second app)
 
@@ -331,7 +331,7 @@ MICROSOFT_CLIENT_SECRET=<secret>
 
 1. **Admin → Clients → Edit**
 2. Confirm tenant ID, group ID, **SuperOps Application (client) ID** (Free tier), sync enabled
-3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps name hints updated N`
+3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps SCIM names updated N`
 4. **Sync now**
 
 ### CLI alternative
@@ -349,7 +349,7 @@ php artisan portal:sync-entra-users --client={id}
 |---|--------|-----------|
 | 1 | Entra group members | **Groups → On IT Portal - {Company} → Members** lists licensed users + shared mailboxes without manual adds |
 | 2 | SCIM logs | **Enterprise app → Provisioning → Provisioning logs** — users synced, no errors |
-| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User)` or `(Shared Mailbox)`; emails match |
+| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; emails match |
 | 4 | SAML login | Incognito → `app.onit.ltd` → SuperOps tile → Microsoft sign-in with `@customerdomain` |
 | 5 | Joiner | New licensed user → after sync + SCIM cycle → in group, portal, SuperOps |
 | 6 | Leaver | Licence removed → portal user deactivated; removed from group → SCIM deprovisions |
@@ -396,7 +396,7 @@ php artisan portal:sync-entra-users --client={id}
 | SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
 | SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` (App registrations → OnIT X Superops → Overview) |
 | Entra ID tier | Free — portal assigns users via Application (client) ID + `Application.Read.All` |
-| Requester name format | `Name (User)` or `Name (Shared Mailbox)` in SuperOps only — via SCIM attribute mapping |
+| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` in SuperOps only — portal → `extensionAttribute1` → SCIM `name.formatted` Direct |
 
 Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
 

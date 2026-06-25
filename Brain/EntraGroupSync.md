@@ -46,7 +46,7 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
 | **SuperOps enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users **and shared mailboxes** on the SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) |
-| **SuperOps requester display names** | Sync sets `extensionAttribute1` to `User` or `Shared Mailbox` — SCIM expression maps to `Name (User)` / `Name (Shared Mailbox)` in SuperOps only |
+| **SuperOps requester display names** | Sync writes full name to `extensionAttribute1` (e.g. `Jane Smith (User Mailbox)`) via `EntraSyncDisplayName::format()` — SCIM passes through on `name.formatted` |
 | **SuperOps requesters** | Provisioned by SCIM from app assignment (direct users or group members) — portal does not call the SuperOps API |
 
 Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
@@ -194,7 +194,7 @@ MICROSOFT_CLIENT_ID=your-portal-app-client-id
 MICROSOFT_CLIENT_SECRET=your-portal-app-secret
 ```
 
-Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps name hints (requesters fall back to plain M365 names).
+Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps SCIM names to `extensionAttribute1` (requesters fall back to plain M365 names).
 
 SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md) for requester naming.
 
@@ -265,7 +265,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
-| No `SuperOps name hints updated` line | Hints already set, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |
+| No `SuperOps SCIM names updated` line | Names already current, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |
 | displayName update 403 | Missing `User.ReadWrite.All` or customer consent — re-consent |
 | App role assignment 403 after re-consent | Stale Graph token cached up to 50 min — run `php artisan cache:clear` then sync again (portal auto-retries from next deploy) |
 | SuperOps requester plain name | Run portal sync first, then SCIM cycle — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
@@ -287,5 +287,5 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 
 | Date | Change |
 |---|---|
-| 2026-06-25 | `(User Mailbox)` suffix; `User.ReadWrite.All` displayName sync; `entra_superops_app_id`; shared mailboxes on app assign |
+| 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.formatted` mapping; `entra_superops_app_id`; shared mailboxes on app assign |
 | 2026-06-19 | Tenant-wide sync; auto-maintain SuperOps group |

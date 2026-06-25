@@ -12,7 +12,7 @@ class RevertEntraDisplayNamesCommand extends Command
                             {--client= : Revert display names for a single client by ID}
                             {--dry-run : Show how many names would be restored without writing to Entra}';
 
-    protected $description = 'Strip (User) / (Shared Mailbox) from M365 display names only — does not delete or disable any users';
+    protected $description = 'Strip (User Mailbox) / (Shared Mailbox) from M365 display names only — does not delete or disable any users';
 
     public function handle(EntraGroupSyncService $sync): int
     {
@@ -49,7 +49,7 @@ class RevertEntraDisplayNamesCommand extends Command
 
         if ($result['reverted'] > 0 && ! $dryRun) {
             $this->newLine();
-            $this->comment('M365 display names restored — no users were deleted or disabled. Run sync + SCIM mapping so SuperOps shows (User) / (Shared Mailbox) only there.');
+            $this->comment('M365 display names restored — no users were deleted or disabled. Run Sync now so SuperOps shows (User Mailbox) / (Shared Mailbox) only there.');
         }
 
         return $result['errors'] !== [] && $result['reverted'] === 0 ? self::FAILURE : self::SUCCESS;

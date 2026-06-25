@@ -199,9 +199,10 @@ php artisan portal:sync-entra-users --client={id}
 4. Sync output should include:
    - **`SuperOps group: +N / -M members`** when **Entra group ID** is set
    - **`SuperOps app: +N / -M users`** when **SuperOps Entra app ID** is set (Entra ID Free)
-   - **`Entra display names updated N`** when names need the SuperOps suffix
+   - **`SuperOps SCIM names updated N`** when full formatted names written to `extensionAttribute1`
+   - **`SuperOps SCIM provisioned N`** when provision-on-demand runs (requires `Synchronization.ReadWrite.All`)
 5. In customer Entra → **Groups → On IT Portal - {Company} → Members** — users appear without manual adds.
-6. **SuperOps requesters** update on the next SCIM cycle with the same names — provisioning must be **ON**. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+6. **SuperOps requesters** update after **Sync now** (SCIM provision-on-demand) with `(User Mailbox)` / `(Shared Mailbox)` names — provisioning must be **ON**. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
 
 Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 

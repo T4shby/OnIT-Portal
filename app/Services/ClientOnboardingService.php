@@ -281,9 +281,10 @@ class ClientOnboardingService
                 'This step is Microsoft only — not Sign in with Microsoft on app.onit.ltd.',
                 'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
                 'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 04 ticks automatically.',
-                'This grants OnIT Portal for Portals these Application permissions: User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All.',
+                'This grants OnIT Portal for Portals these Application permissions: User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All.',
                 'Application.Read.All resolves SuperOps Application (client) ID to the enterprise app during sync — required when using client ID on Entra ID Free.',
-                'User.ReadWrite.All sets extensionAttribute1 (User / Shared Mailbox) for SuperOps SCIM naming — M365 display names are never changed.',
+                'User.ReadWrite.All writes full SuperOps SCIM name to extensionAttribute1 (e.g. Joanne Munns (User Mailbox)) — M365 display names are never changed.',
+                'Synchronization.ReadWrite.All triggers SCIM provision-on-demand when you click Sync now.',
                 'Re-consent even if you consented before — new permissions (especially GroupMember.ReadWrite.All) are not included in old consent.',
             ],
             sections: [
@@ -467,7 +468,7 @@ class ClientOnboardingService
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part C — SCIM displayName mapping (SuperOps requester names)',
+                    'Part C — SCIM name mapping (SuperOps requester names)',
                     'https://portal.azure.com — '.$appName.' → Provisioning',
                     [
                         'Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users.',
@@ -490,7 +491,7 @@ class ClientOnboardingService
                 ),
             ],
             verify: [
-                'Entra → '.$appName.' → Provisioning → Attribute mapping → displayName uses Expression (not Direct).',
+                'Entra → '.$appName.' → Provisioning → Attribute mapping → name.formatted Direct from extensionAttribute1.',
                 'Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
                 'Entra ID Free: '.$appName.' → Users and groups shows licensed users after portal Sync now (no manual assignment).',
                 'SuperOps → Clients → '.$clientName.' → Requesters — names like Joanne Munns (User Mailbox); emails match; no duplicate rows.',
@@ -705,7 +706,7 @@ class ClientOnboardingService
             'entra_sync_enabled' => [
                 'Where: this page. Turn on after Entra tenant ID is saved.',
                 'Requires admin consent (step 04) before Sync now will succeed.',
-                'Syncs licensed users + shared mailboxes; maintains SuperOps group; assigns SuperOps app users when SuperOps Application (client) ID is set.',
+                'Syncs licensed users + shared mailboxes; writes SuperOps SCIM names to extensionAttribute1; maintains SuperOps group; assigns SuperOps app users; triggers SCIM provision-on-demand on Sync now.',
                 'Use Dry run sync, then Sync now, on the left.',
             ],
         ];

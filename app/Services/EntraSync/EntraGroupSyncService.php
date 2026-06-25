@@ -226,7 +226,7 @@ class EntraGroupSyncService
     }
 
     /**
-     * Strip mistaken (User) / (Shared Mailbox) suffixes from Entra displayName in the customer tenant.
+     * Strip mistaken (User Mailbox) / (Shared Mailbox) suffixes from Entra displayName in the customer tenant.
      *
      * @return array{reverted: int, errors: list<string>}
      */
