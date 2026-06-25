@@ -431,37 +431,79 @@ class MicrosoftGraphClient
         }
 
         $appRoles = $response->json('appRoles') ?? [];
-        $fallbackRoleId = null;
+        $selectedRoleId = $this->pickBestAssignableAppRoleId($appRoles);
+
+        if ($selectedRoleId !== null) {
+            return $selectedRoleId;
+        }
+
+        throw new RuntimeException(
+            'SuperOps enterprise app has no assignable app role. One-time fix in customer Entra: '
+            .'App registrations → your SuperOps app → App roles → Create app role → Display name User → '
+            .'Value User → Allowed member types Users/Groups → Enable → Save. Remove duplicate roles with blank Value. Then Sync now.'
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $appRoles
+     */
+    private function pickBestAssignableAppRoleId(array $appRoles): ?string
+    {
+        $bestRoleId = null;
+        $bestScore = PHP_INT_MIN;
 
         foreach ($appRoles as $role) {
             if (! ($role['isEnabled'] ?? false)) {
                 continue;
             }
 
-            $allowedMembers = $role['allowedMemberTypes'] ?? [];
-
-            if (! in_array('User', $allowedMembers, true)) {
+            if (! in_array('User', $role['allowedMemberTypes'] ?? [], true)) {
                 continue;
             }
 
             $roleId = (string) ($role['id'] ?? '');
 
-            if ($roleId === self::DEFAULT_APP_ROLE_ID) {
-                return self::DEFAULT_APP_ROLE_ID;
+            if ($roleId === '') {
+                continue;
             }
 
-            $fallbackRoleId ??= $roleId;
+            $value = trim((string) ($role['value'] ?? ''));
+            $displayName = strtolower((string) ($role['displayName'] ?? ''));
+            $description = strtolower((string) ($role['description'] ?? ''));
+
+            if ($displayName === 'msiam_access' || $value === 'msiam_access') {
+                continue;
+            }
+
+            $score = 0;
+
+            if ($value !== '') {
+                $score += 10;
+            }
+
+            if ($value === 'User') {
+                $score += 25;
+            }
+
+            if (str_contains($displayName, 'scim') || str_contains($description, 'scim')) {
+                $score += 15;
+            }
+
+            if ($roleId === self::DEFAULT_APP_ROLE_ID) {
+                $score += 5;
+            }
+
+            if ($value === '' && $displayName === 'user') {
+                $score -= 10;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestRoleId = $roleId;
+            }
         }
 
-        if ($fallbackRoleId !== null && $fallbackRoleId !== '') {
-            return $fallbackRoleId;
-        }
-
-        throw new RuntimeException(
-            'SuperOps enterprise app has no assignable app role. One-time fix in customer Entra: '
-            .'App registrations → your SuperOps app → App roles → Create app role → Display name User → '
-            .'Allowed member types Users/Groups → Enable this app role → Save. Then Sync now again.'
-        );
+        return $bestRoleId;
     }
 
     public function assignUserToEnterpriseApp(

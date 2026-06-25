@@ -509,8 +509,17 @@ class EntraGroupSyncServiceTest extends TestCase
                     'appId' => $applicationClientId,
                     'appRoles' => [
                         [
-                            'id' => '00000000-0000-0000-0000-000000000000',
+                            'id' => '18d11111-1111-1111-1111-111111111111',
                             'displayName' => 'User',
+                            'value' => '',
+                            'isEnabled' => true,
+                            'allowedMemberTypes' => ['User'],
+                        ],
+                        [
+                            'id' => '1a682222-2222-2222-2222-222222222222',
+                            'displayName' => 'Default access for SCIM users',
+                            'value' => 'User',
+                            'description' => 'Default access for SCIM user provisioning',
                             'isEnabled' => true,
                             'allowedMemberTypes' => ['User'],
                         ],
@@ -528,8 +537,17 @@ class EntraGroupSyncServiceTest extends TestCase
                     'appId' => $applicationClientId ?? '8c46a344-a010-4c78-99b9-df8b9caaba2f',
                     'appRoles' => [
                         [
-                            'id' => '00000000-0000-0000-0000-000000000000',
+                            'id' => '18d11111-1111-1111-1111-111111111111',
                             'displayName' => 'User',
+                            'value' => '',
+                            'isEnabled' => true,
+                            'allowedMemberTypes' => ['User'],
+                        ],
+                        [
+                            'id' => '1a682222-2222-2222-2222-222222222222',
+                            'displayName' => 'Default access for SCIM users',
+                            'value' => 'User',
+                            'description' => 'Default access for SCIM user provisioning',
                             'isEnabled' => true,
                             'allowedMemberTypes' => ['User'],
                         ],
