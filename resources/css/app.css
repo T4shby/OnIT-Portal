@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+
     html {
         -webkit-text-size-adjust: 100%;
     }
@@ -131,6 +135,13 @@
         @apply bg-onit-hover;
         box-shadow: 0 0 28px 4px rgba(255, 112, 0, 0.28);
         transform: translateY(-2px);
+    }
+
+    .cta-btn:disabled,
+    .cta-btn-ghost:disabled {
+        @apply cursor-wait opacity-70;
+        transform: none;
+        box-shadow: none;
     }
 
     .cta-btn-ghost {

@@ -281,10 +281,10 @@ New client field `entra_superops_app_id` stores SuperOps **Application (client) 
 Date: 2026-06-25 (revised 2026-06-25)
 
 Decision:
-SuperOps requester names use `Name (User Mailbox)` or `Name (Shared Mailbox)` **only in SuperOps**. Portal sync writes the **full formatted name** to `extensionAttribute1` via `User.ReadWrite.All` and `EntraSyncDisplayName::format()`. Entra SCIM maps `name.formatted` **Direct** from that attribute. **Do not patch Entra `displayName`.**
+SuperOps requester names use `Name (User Mailbox)` or `Name (Shared Mailbox)` **only in SuperOps**. Portal sync writes the **last name with suffix** to `extensionAttribute1` via `User.ReadWrite.All` and `EntraSyncDisplayName::formatSuperOpsFamilyName()`. Entra SCIM maps **name.familyName** **Direct** from that attribute (`name.formatted` stays Direct from `displayName`). **Do not patch Entra `displayName`.**
 
 Reason:
-Patching `displayName` polluted M365 Admin Center Active users. SCIM can map a custom expression without changing the tenant directory.
+Patching `displayName` polluted M365 Admin Center Active users. SCIM can carry the suffix via `extensionAttribute1` without changing the tenant directory.
 
 Consequences:
-`ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE` (default `1`). One-time SCIM **Direct** mapping on `name.formatted` per customer SuperOps app. `portal:revert-entra-display-names` restores mistaken M365 suffixes. Sync output includes `SuperOps SCIM names updated N` and `SuperOps SCIM provisioned N`. Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+`ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE` (default `1`). One-time SCIM **Direct** mapping: **name.familyName** ← extensionAttribute1 per customer SuperOps app. `portal:revert-entra-display-names` restores mistaken M365 suffixes. Sync output: `SuperOps last names updated N` and `SuperOps SCIM provision requested for N user(s)` (one Entra provision-on-demand call per user). Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).

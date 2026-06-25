@@ -205,6 +205,14 @@ class EntraGroupSyncService
         $superOpsUsersProvisioned = 0;
 
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
+            if ($superOpsNameHintsUpdated > 0) {
+                $delaySeconds = max(0, (int) config('services.entra_sync.superops_provision_delay_after_names_seconds', 3));
+
+                if ($delaySeconds > 0) {
+                    sleep($delaySeconds);
+                }
+            }
+
             [$superOpsUsersProvisioned, $provisionErrors] = $this->triggerSuperOpsScimProvision(
                 $client,
                 $desiredSuperOpsAppUserIds,

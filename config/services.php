@@ -90,6 +90,12 @@ return [
         'maintain_superops_group' => env('ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP', true),
         'superops_name_extension_attribute' => (int) env('ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE', 1),
         'superops_provision_on_demand' => env('ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND', true),
+        // Seconds to wait after writing extensionAttribute1 before SCIM provision-on-demand (Entra replication).
+        'superops_provision_delay_after_names_seconds' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS', 3),
+        // Entra UI provisions one user at a time; batching often skips extensionAttribute1 updates.
+        'superops_provision_batch_size' => max(1, (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_BATCH_SIZE', 1)),
+        // Microseconds between provision-on-demand API calls (default 1.5s).
+        'superops_provision_interval_us' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US', 1_500_000),
     ],
 
 ];

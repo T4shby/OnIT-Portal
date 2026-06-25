@@ -66,7 +66,10 @@ class EntraSyncResult
         }
 
         if ($this->superOpsUsersProvisioned > 0) {
-            $parts .= sprintf('; SuperOps SCIM provisioned %d', $this->superOpsUsersProvisioned);
+            $parts .= sprintf(
+                '; SuperOps SCIM provision requested for %d user(s) — check Entra provisioning logs',
+                $this->superOpsUsersProvisioned,
+            );
         }
 
         return $parts.'.';

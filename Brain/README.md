@@ -51,7 +51,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
 | Entra ID Free SuperOps app assign | `entra_superops_app_id` (Application client ID) + `Application.Read.All` + `AppRoleAssignment.ReadWrite.All` |
-| SuperOps requester display names | `EntraSyncDisplayName::format()` → `extensionAttribute1`; SCIM `name.formatted` Direct — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
+| SuperOps requester display names | `EntraSyncDisplayName::formatSuperOpsFamilyName()` → `extensionAttribute1`; SCIM **name.familyName** Direct — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
 | Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
@@ -71,8 +71,8 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
-| 2026-06-25 | Brain docs: Entra ID Free SCIM, requester naming `(User Mailbox)` / `(Shared Mailbox)`, Graph permissions, ADR-019/020 |
-| 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.formatted` mapping; provision-on-demand on Sync now |
+| 2026-06-25 | Sync now: per-user SCIM provision-on-demand + delay; spinner/status banner; Brain docs + ADR-020 aligned on name.familyName |
+| 2026-06-25 | Sync now / dry run: spinner + status banner on Edit client while Entra sync runs |
 | 2026-06-25 | Entra ID Free: `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` — portal auto-assigns SuperOps app users |
 | 2026-06-25 | SCIM setup: Bearer authentication + Entra ID Free workaround in checklist and Brain |
 | 2026-06-24 | In-app checklist install-manual format (`OnboardingManual`); Brain docs step numbers aligned (05 consent, 06 SCIM, 07 SAML) |

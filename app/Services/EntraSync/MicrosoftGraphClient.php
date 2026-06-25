@@ -660,11 +660,13 @@ class MicrosoftGraphClient
             return 0;
         }
 
+        $batchSize = max(1, (int) config('services.entra_sync.superops_provision_batch_size', 1));
+        $intervalUs = max(0, (int) config('services.entra_sync.superops_provision_interval_us', 1_500_000));
         $provisioned = 0;
 
-        foreach (array_chunk($userIds, 10) as $index => $chunk) {
-            if ($index > 0) {
-                usleep(2_100_000);
+        foreach (array_chunk($userIds, $batchSize) as $index => $chunk) {
+            if ($index > 0 && $intervalUs > 0) {
+                usleep($intervalUs);
             }
 
             $subjects = array_map(

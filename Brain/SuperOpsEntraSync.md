@@ -90,7 +90,7 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 
 | Event in M365 | SuperOps |
 |---|---|
-| User added to group / app scope | Requester created (or updated) with `name.formatted` from `extensionAttribute1` |
+| User added to group / app scope | Requester created (or updated) with **name.familyName** from `extensionAttribute1` |
 | User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
 
@@ -123,7 +123,7 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 **Remove** any Expression on `name.familyName` — portal already sends the full last name.
 
-**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provisioned N`).
+**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)`). Portal triggers Entra **provision on demand once per user** (same as the Entra UI) after a short delay so `extensionAttribute1` replicates — check **Provisioning logs** for each Update. While sync runs, the button shows **Syncing…** with a spinner; large tenants may take several minutes.
 
 ### Graph permissions required (portal OAuth app)
 
@@ -148,9 +148,13 @@ Re-consent in **each customer tenant** after adding permissions.
 
 ```env
 ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1   # default — extensionAttribute1
+ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND=true     # default — trigger SCIM after sync
+ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS=3  # wait after writing extensionAttribute1 (Entra replication)
+ENTRA_SYNC_SUPEROPS_PROVISION_BATCH_SIZE=1       # one user per provision-on-demand call (matches Entra UI)
+ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US=1500000  # 1.5s between calls (~35s for 22 users)
 ```
 
-Set to `0` to stop writing SuperOps name labels to `extensionAttribute1` (last names stay plain in SuperOps).
+Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps name labels to `extensionAttribute1` (last names stay plain in SuperOps).
 
 ### Fix mistaken M365 display names (e.g. Ductec)
 
@@ -218,6 +222,8 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
 | Requester last name plain | `name.familyName` not Direct from extensionAttribute1 | Direct map; Sync now |
+| `extensionAttribute1` set but SuperOps name still plain | Entra **Provisioning logs** — if user has no **Update** entry, SCIM did not run for them. Portal **Sync now** triggers provision-on-demand **one user per call** (same as Entra UI). Manual test: **Provision on demand** → pick user → confirm `name.familyName` exports. |
+| Sync banner says provision requested for N but logs show fewer Updates | Normal until Entra finishes — wait 1–2 min and refresh logs; re-run **Sync now** if needed |
 | “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 
@@ -227,7 +233,8 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 
 | Date | Change |
 |------|--------|
-| 2026-06-25 | Portal writes full SCIM name to `extensionAttribute1`; Direct `name.formatted` mapping; provision-on-demand on Sync now |
+| 2026-06-25 | Sync now: provision-on-demand **one user per API call** + delay after `extensionAttribute1`; spinner/status banner on Edit client |
+| 2026-06-25 | Portal writes full SCIM name to `extensionAttribute1`; Direct `name.familyName` mapping; provision-on-demand on Sync now |
 | 2026-06-25 | Requester display names: `(User Mailbox)` / `(Shared Mailbox)` — not via Entra `displayName` |
 | 2026-06-25 | Entra ID Free: portal auto-assigns users via `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` |
 | 2026-06-25 | Bearer authentication on SCIM admin credentials |

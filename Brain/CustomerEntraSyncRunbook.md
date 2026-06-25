@@ -45,7 +45,7 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
 | 06 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 05 |
 | 07 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
-| 08 Run sync | **Portal** | Dry run sync / Sync now buttons on left |
+| 08 Run sync | **Portal** | Dry run sync / Sync now (spinner + status banner while running) |
 | 09 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
 | 10 Hand off | **Email/ticket** | Tell customer the portal URL |
 
@@ -260,7 +260,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
 7. **Provisioning → Start provisioning** (or wait for cycle)
-8. **Portal Sync now** → expect `SuperOps SCIM names updated N; SuperOps SCIM provisioned N` — requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
+8. **Portal Sync now** → expect `SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)` — confirm **Update** per user in Entra **Provisioning logs**; requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
 
 ### 6 — SAML on the **same** app (do not create a second app)
 
@@ -330,8 +330,8 @@ MICROSOFT_CLIENT_SECRET=<secret>
 
 1. **Admin → Clients → Edit**
 2. Confirm tenant ID, group ID, **SuperOps Application (client) ID** (Free tier), sync enabled
-3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps SCIM names updated N`
-4. **Sync now**
+3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps last names updated N`
+4. **Sync now** — button shows **Syncing…** and a status line while Graph + SCIM run (several minutes for ~20+ users — one provision-on-demand call per user); wait for the green banner, then check Entra **Provisioning logs** for **Update** entries
 
 ### CLI alternative
 
@@ -365,7 +365,8 @@ php artisan portal:sync-entra-users --client={id}
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
 | Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
-| Requester plain name (no suffix) | `name.formatted` not mapped from extensionAttribute1 | Direct map **name.formatted** ← extensionAttribute1; Sync now |
+| Requester plain name (no suffix) | `name.familyName` not Direct from `extensionAttribute1` | Direct map **name.familyName** ← extensionAttribute1 (default `[surname]`); Sync now |
+| `extensionAttribute1` set (e.g. `Munns (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
@@ -395,7 +396,7 @@ php artisan portal:sync-entra-users --client={id}
 | SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
 | SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` (App registrations → OnIT X Superops → Overview) |
 | Entra ID tier | Free — portal assigns users via Application (client) ID + `Application.Read.All` |
-| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` in SuperOps only — portal → `extensionAttribute1` → SCIM `name.formatted` Direct |
+| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` in SuperOps only — portal → `extensionAttribute1` → SCIM **name.familyName** Direct |
 
 Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
 
@@ -405,6 +406,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-06-25 | Sync now: per-user SCIM provision-on-demand; troubleshooting for plain names when extensionAttribute1 set |
 | 2026-06-25 | SuperOps App role step (Value `User`) for Entra ID Free; Application (client) ID on portal |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |
 | 2026-06-19 | Auto-maintain group via `GroupMember.ReadWrite.All`; single SuperOps app SCIM+SAML; consent refresh fix documented |

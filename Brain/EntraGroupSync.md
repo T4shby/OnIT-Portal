@@ -206,6 +206,8 @@ SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [
 
 **Clients → Edit client → Dry run sync** → check counts → **Sync now**
 
+While sync runs, the button shows **Syncing…** with a spinner and a status banner appears — keep the page open until the green result banner loads. SCIM provision-on-demand runs **one user at a time** (~1.5s per user after a 3s delay for `extensionAttribute1` replication) — a 22-user tenant takes **~1 minute** for the SCIM phase alone.
+
 ### CLI (SSH)
 
 ```bash
@@ -218,7 +220,7 @@ Check **Admin → Users**. Expect licensed users + shared mailboxes from the **w
 - `SuperOps group: +N / -M members` when `entra_group_id` is set
 - `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
 - `SuperOps last names updated N` when full last name written to `extensionAttribute1`
-- `SuperOps SCIM provisioned N` when SCIM provision-on-demand runs (requires `Synchronization.ReadWrite.All` + SuperOps Application (client) ID on client)
+- `SuperOps SCIM provision requested for N user(s)` — one Entra provision-on-demand call per user (matches Entra UI); confirm Updates in **Provisioning logs**
 
 ---
 
@@ -265,10 +267,11 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
-| No `SuperOps SCIM names updated` line | Names already current, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |
+| No `SuperOps last names updated` line | Names already current, or `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` |
 | displayName update 403 | Missing `User.ReadWrite.All` or customer consent — re-consent |
 | App role assignment 403 after re-consent | Stale Graph token cached up to 50 min — run `php artisan cache:clear` then sync again (portal auto-retries from next deploy) |
-| SuperOps requester plain name | Run portal sync first, then SCIM cycle — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
+| SuperOps requester plain name | Run portal sync first, then check Entra **Provisioning logs** for **Update** per user — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
+| `extensionAttribute1` correct but SuperOps plain; logs show few Updates | Re-run **Sync now** (portal provisions one user per call). Or **Provision on demand** in Entra for one user to confirm mapping |
 | “Groups are not available for assignment” in Azure | Entra ID Free — do **not** assign users manually; set `entra_superops_app_id` on client and run Sync now |
 
 ---
@@ -287,5 +290,6 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 
 | Date | Change |
 |---|---|
-| 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.formatted` mapping; `entra_superops_app_id`; shared mailboxes on app assign |
+| 2026-06-25 | Sync now: per-user SCIM provision-on-demand + loading UI; banner text clarifies provision **requested** vs completed |
+| 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.familyName` mapping; `entra_superops_app_id`; shared mailboxes on app assign |
 | 2026-06-19 | Tenant-wide sync; auto-maintain SuperOps group |

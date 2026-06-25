@@ -88,7 +88,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 
 **Rule:** Portal sync reads the **whole tenant**, **maintains** the SuperOps SCIM security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **writes the full SuperOps last name** to `extensionAttribute1` (e.g. `Munns (User Mailbox)`) — **not** M365 `displayName`. Entra SCIM maps `name.familyName` **Direct** from `extensionAttribute1`. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer).
 
-**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
+**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. **Sync now** shows a spinner and status banner while running (do not close the page; SCIM phase is ~1.5s per user). Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 
 ---
 

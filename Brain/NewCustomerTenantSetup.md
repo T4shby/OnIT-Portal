@@ -34,7 +34,7 @@ This guide is **only for each new customer tenant**.
 1. **Work email must match everywhere** — same address in M365, SuperOps, and the portal.  
 2. **Microsoft 365 is the source of truth** — disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
 3. **Use a private/incognito browser for testing** — do not test with `tom.ashby@onit.ltd` (that is a technician account).  
-4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (install-manual format: **Before you start**, numbered parts, **Check your work**; admin consent URL on step 04). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync.
+4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (install-manual format: **Before you start**, numbered parts, **Check your work**; admin consent URL on step 04). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync (spinner + status banner while running).
 
 ---
 
@@ -199,10 +199,10 @@ php artisan portal:sync-entra-users --client={id}
 4. Sync output should include:
    - **`SuperOps group: +N / -M members`** when **Entra group ID** is set
    - **`SuperOps app: +N / -M users`** when **SuperOps Entra app ID** is set (Entra ID Free)
-   - **`SuperOps SCIM names updated N`** when full formatted names written to `extensionAttribute1`
-   - **`SuperOps SCIM provisioned N`** when provision-on-demand runs (requires `Synchronization.ReadWrite.All`)
+   - **`SuperOps last names updated N`** when last names written to `extensionAttribute1`
+   - **`SuperOps SCIM provision requested for N user(s)`** when provision-on-demand runs (one call per user; confirm in Entra **Provisioning logs**)
 5. In customer Entra → **Groups → On IT Portal - {Company} → Members** — users appear without manual adds.
-6. **SuperOps requesters** update after **Sync now** (SCIM provision-on-demand) with `(User Mailbox)` / `(Shared Mailbox)` names — provisioning must be **ON**. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+6. **SuperOps requesters** update after **Sync now** (SCIM provision-on-demand, one user per call) with `(User Mailbox)` / `(Shared Mailbox)` names — provisioning must be **ON**. Allow several minutes for large tenants. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
 
 Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 

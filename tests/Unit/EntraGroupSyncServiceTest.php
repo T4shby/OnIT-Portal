@@ -428,6 +428,11 @@ class EntraGroupSyncServiceTest extends TestCase
 
     public function test_sync_triggers_superops_scim_provision_on_demand(): void
     {
+        config([
+            'services.entra_sync.superops_provision_delay_after_names_seconds' => 0,
+            'services.entra_sync.superops_provision_interval_us' => 0,
+        ]);
+
         $tenantId = '11111111-1111-1111-1111-111111111111';
         $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
 
