@@ -507,6 +507,14 @@ class EntraGroupSyncServiceTest extends TestCase
                     'id' => $servicePrincipalId,
                     'displayName' => 'OnIT X Superops',
                     'appId' => $applicationClientId,
+                    'appRoles' => [
+                        [
+                            'id' => '00000000-0000-0000-0000-000000000000',
+                            'displayName' => 'User',
+                            'isEnabled' => true,
+                            'allowedMemberTypes' => ['User'],
+                        ],
+                    ],
                 ]);
             }
 
@@ -517,7 +525,15 @@ class EntraGroupSyncServiceTest extends TestCase
                 return Http::response([
                     'id' => $servicePrincipalId,
                     'displayName' => 'SuperOps',
-                    'appId' => '8c46a344-a010-4c78-99b9-df8b9caaba2f',
+                    'appId' => $applicationClientId ?? '8c46a344-a010-4c78-99b9-df8b9caaba2f',
+                    'appRoles' => [
+                        [
+                            'id' => '00000000-0000-0000-0000-000000000000',
+                            'displayName' => 'User',
+                            'isEnabled' => true,
+                            'allowedMemberTypes' => ['User'],
+                        ],
+                    ],
                 ]);
             }
 

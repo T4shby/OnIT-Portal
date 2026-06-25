@@ -349,6 +349,7 @@ php artisan portal:sync-entra-users --client={id}
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
 | Requester plain name (no suffix) | SCIM attribute mapping not configured | Set displayName expression on SuperOps app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
+| `Permission being assigned was not found on application` | SuperOps app has no **App role** | App registrations → SuperOps → **App roles** → Create (Display name User, Users/Groups, Enable) → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
 | Wrong tenant on consent page | Signed into On IT instead of customer | Directory picker top-right |

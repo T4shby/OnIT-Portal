@@ -259,6 +259,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | Email belongs to another client | Duplicate email across clients; resolve manually |
 | User not in portal after sync | Unlicensed (and not shared mailbox), no valid mail/UPN, or sync not enabled |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID (Object ID instead of client ID) | Add `Application.Read.All` in On IT tenant; re-consent customer; paste Application (client) ID |
+| `Permission being assigned was not found` | No app role on SuperOps app | App registrations → SuperOps → App roles → Create User role → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |

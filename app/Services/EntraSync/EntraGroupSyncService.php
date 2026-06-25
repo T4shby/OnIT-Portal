@@ -365,6 +365,7 @@ class EntraGroupSyncService
             }
 
             $currentAssignments = $this->graph->listAppAssignedUsers($tenantId, $servicePrincipalId);
+            $appRoleId = $this->graph->resolveAssignableAppRoleId($tenantId, $servicePrincipalId);
         } catch (Throwable $e) {
             Log::error('Entra SuperOps app assignment read failed', [
                 'client_id' => $client->id,
@@ -392,7 +393,7 @@ class EntraGroupSyncService
 
         foreach ($toAssign as $userId) {
             try {
-                $this->graph->assignUserToEnterpriseApp($tenantId, $servicePrincipalId, $userId);
+                $this->graph->assignUserToEnterpriseApp($tenantId, $servicePrincipalId, $userId, $appRoleId);
                 $assigned++;
             } catch (Throwable $e) {
                 $errors[] = "Failed to assign {$userId} to SuperOps app: {$e->getMessage()}";

@@ -416,12 +416,64 @@ class MicrosoftGraphClient
         return $assignments;
     }
 
-    public function assignUserToEnterpriseApp(string $tenantId, string $servicePrincipalId, string $userId): void
+    public function resolveAssignableAppRoleId(string $tenantId, string $servicePrincipalId): string
     {
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
+            ['$select' => 'appRoles,displayName'],
+        );
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph could not read SuperOps app roles: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $appRoles = $response->json('appRoles') ?? [];
+        $fallbackRoleId = null;
+
+        foreach ($appRoles as $role) {
+            if (! ($role['isEnabled'] ?? false)) {
+                continue;
+            }
+
+            $allowedMembers = $role['allowedMemberTypes'] ?? [];
+
+            if (! in_array('User', $allowedMembers, true)) {
+                continue;
+            }
+
+            $roleId = (string) ($role['id'] ?? '');
+
+            if ($roleId === self::DEFAULT_APP_ROLE_ID) {
+                return self::DEFAULT_APP_ROLE_ID;
+            }
+
+            $fallbackRoleId ??= $roleId;
+        }
+
+        if ($fallbackRoleId !== null && $fallbackRoleId !== '') {
+            return $fallbackRoleId;
+        }
+
+        throw new RuntimeException(
+            'SuperOps enterprise app has no assignable app role. One-time fix in customer Entra: '
+            .'App registrations → your SuperOps app → App roles → Create app role → Display name User → '
+            .'Allowed member types Users/Groups → Enable this app role → Save. Then Sync now again.'
+        );
+    }
+
+    public function assignUserToEnterpriseApp(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $userId,
+        string $appRoleId,
+    ): void {
         $response = $this->graphPost($tenantId, "https://graph.microsoft.com/v1.0/users/{$userId}/appRoleAssignments", [
             'principalId' => $userId,
             'resourceId' => $servicePrincipalId,
-            'appRoleId' => self::DEFAULT_APP_ROLE_ID,
+            'appRoleId' => $appRoleId,
         ]);
 
         if ($response->status() === 201) {
@@ -430,6 +482,13 @@ class MicrosoftGraphClient
 
         if ($response->status() === 400 && str_contains($response->body(), 'Permission being assigned already exists')) {
             return;
+        }
+
+        if ($response->status() === 400 && str_contains($response->body(), 'Permission being assigned was not found on application')) {
+            throw new RuntimeException(
+                'Microsoft Graph assign user to enterprise app failed: 400 — no matching app role on the SuperOps app. '
+                .'Create an app role on App registrations → SuperOps → App roles (Display name User, Users/Groups), then sync again.'
+            );
         }
 
         throw new RuntimeException(
