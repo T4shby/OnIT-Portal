@@ -217,7 +217,7 @@ Check **Admin → Users**. Expect licensed users + shared mailboxes from the **w
 
 - `SuperOps group: +N / -M members` when `entra_group_id` is set
 - `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
-- `SuperOps name hints updated N` when `extensionAttribute1` is written
+- `SuperOps SCIM names updated N` when full formatted names are written to `extensionAttribute1`
 - `SuperOps SCIM provisioned N` when SCIM provision-on-demand runs (requires `Synchronization.ReadWrite.All` + SuperOps Application (client) ID on client)
 
 ---

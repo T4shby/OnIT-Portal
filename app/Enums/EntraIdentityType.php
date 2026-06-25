@@ -15,7 +15,7 @@ enum EntraIdentityType: string
         };
     }
 
-    /** Value written to extensionAttribute1 for SuperOps SCIM expression mapping only. */
+    /** @deprecated Portal writes the full SuperOps SCIM name via EntraSyncDisplayName::format() */
     public function superOpsNameHint(): string
     {
         return $this->displaySuffix();

@@ -86,7 +86,11 @@ class EntraGroupSyncService
             $name = EntraSyncDisplayName::baseName($graphUser['displayName'], $email);
 
             if ($this->shouldSetSuperOpsNameHint()) {
-                $hint = $identityType->superOpsNameHint();
+                $superOpsScimName = EntraSyncDisplayName::format(
+                    $graphUser['displayName'],
+                    $identityType,
+                    $email,
+                );
 
                 if ($dryRun) {
                     $superOpsNameHintsUpdated++;
@@ -95,11 +99,11 @@ class EntraGroupSyncService
                         $this->graph->setSuperOpsNameExtensionAttribute(
                             (string) $client->entra_tenant_id,
                             $graphUser['id'],
-                            $hint,
+                            $superOpsScimName,
                         );
                         $superOpsNameHintsUpdated++;
                     } catch (Throwable $e) {
-                        $errors[] = "Failed to set SuperOps name hint for {$email}: {$e->getMessage()}";
+                        $errors[] = "Failed to set SuperOps SCIM name for {$email}: {$e->getMessage()}";
                     }
                 }
             }

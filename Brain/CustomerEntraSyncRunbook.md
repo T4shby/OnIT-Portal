@@ -251,12 +251,11 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
      - **Enable this app role:** ✓ → **Save**
    - If a **User** role already exists: open it → confirm **Value** is set (e.g. `User`) and the role is **enabled**
    - **Remove duplicate roles with blank Value** (keep one role with Value `User`, e.g. "Default access for SCIM users") — portal sync picks the role with Value `User`, not `msiam_access`
-6. **SCIM displayName mapping (SuperOps requester names — required):**
+6. **SCIM name mapping (SuperOps requester names — required):**
    - **Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users**
-   - Expression (both rows): `IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))`
-   - **`name.formatted`** → Mapping type **Expression** → paste expression → Always
-   - **`displayName`** → Mapping type **Expression** → same expression → Always → **Save**
-   - Do **not** use `Join("(", [displayName], [extensionAttribute1], [displayName], ")")` — causes `(NameUserName)` garbling
+   - **`name.formatted`** → Direct → Source **extensionAttribute1** → Default if null `[displayName]` → Always
+   - **`displayName`** → Direct → Source **displayName** → Always → **Save**
+   - **Remove** any Join/Expression mapping — garbled names like `(AccountsShared MailboxAccounts)`
    - Do **not** put the expression in "Default value if null" on a Direct mapping — it will not run
 7. **Users and groups:**
    - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
@@ -366,8 +365,8 @@ php artisan portal:sync-entra-users --client={id}
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
-| Garbled SuperOps name e.g. `(Hannah MunnsUserHannah Munns)` | Wrong Join expression in Entra attribute mapping | Fix to `Join([displayName], " (", [extensionAttribute1], ")")` on **name.formatted** and **displayName**; Sync now |
-| Requester plain name (no suffix) | SCIM mapping missing or only displayName mapped | Map **name.formatted** + **displayName** as Expression — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer); Sync now |
+| Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
+| Requester plain name (no suffix) | `name.formatted` not mapped from extensionAttribute1 | Direct map **name.formatted** ← extensionAttribute1; Sync now |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |

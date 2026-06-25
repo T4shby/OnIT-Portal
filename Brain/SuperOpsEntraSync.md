@@ -113,62 +113,54 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 ```
 portal:sync-entra-users
-  → PATCH onPremisesExtensionAttributes.extensionAttribute1 = "User Mailbox" | "Shared Mailbox"
+  → PATCH extensionAttribute1 = "Phil Cooper (User Mailbox)" | "Accounts (Shared Mailbox)"
   → user in SuperOps SCIM group + app assignment
 Entra provisioning (SCIM, must be ON)
-  → displayName expression: Join([displayName], " (", [extensionAttribute1], ")")
+  → name.formatted Direct from extensionAttribute1 (fallback displayName)
   → SuperOps requester created/updated with formatted name
 ```
 
 ### Entra SCIM attribute mapping (one-time per customer)
 
-**Required** so SuperOps requesters show `Joanne Munns (User Mailbox)` / `Accounts (Shared Mailbox)` while M365 display names stay plain. Portal sync only writes `extensionAttribute1`; **SCIM** sends the formatted name to SuperOps.
+**Required** so SuperOps requesters show `Joanne Munns (User Mailbox)` / `Accounts (Shared Mailbox)` while M365 display names stay plain. **Portal sync writes the full formatted name** to `extensionAttribute1`; Entra SCIM passes it through — **no Join expression**.
 
 **Where:** Entra → Enterprise applications → **SuperOps - {Company}** (or OnIT X Superops) → **Provisioning** → **Edit attribute mapping** → **Provision Microsoft Entra ID Users**
 
-**Expression (copy exactly):**
+**Fix `name.formatted` (SuperOps displays this):**
 
-```
-IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))
-```
-
-**Map two target attributes** (SuperOps displays `name.formatted` in the UI; both should use the same expression):
-
-| Target attribute | Mapping type | Expression |
-|---|---|---|
-| **`name.formatted`** | **Expression** | *(paste expression above)* |
-| **`displayName`** | **Expression** | *(paste expression above)* |
-
-For each row: **Apply this mapping** → Always → **OK** → **Save** at the top of the mapping page.
-
-**Common mistakes:**
-
-| Wrong | Result |
+| Field | Value |
 |---|---|
-| Mapping type **Direct** with expression in **Default value if null** | Expression never runs |
-| `Join("(", [displayName], [extensionAttribute1], [displayName], ")")` or similar | Garbled names like `(Hannah MunnsUserHannah Munns)` |
-| Only `displayName` mapped, not `name.formatted` | SuperOps shows plain name; provisioning log shows wrong field |
+| **Mapping type** | **Direct** |
+| **Source attribute** | `extensionAttribute1` |
+| **Default value if null** | `[displayName]` |
+| **Target attribute** | `name.formatted` |
+| **Apply this mapping** | Always |
+
+**Fix `displayName` — remove any Expression mapping:**
+
+| Field | Value |
+|---|---|
+| **Mapping type** | **Direct** |
+| **Source attribute** | `displayName` |
+| **Target attribute** | `displayName` |
+| **Apply this mapping** | Always |
+
+Click **OK** → **Save** at the top of the mapping page.
+
+**Delete or overwrite** any Expression on `displayName` or `name.formatted` that uses `Join(...)` — wrong expressions cause garbled names like `(AccountsShared MailboxAccounts)` or `(Hannah MunnsUserHannah Munns)`.
 
 **After saving:**
 
-1. **Admin → Clients → Edit → Sync now** (sets `extensionAttribute1` and triggers SCIM provision-on-demand via Graph — banner: `SuperOps name hints updated N; SuperOps SCIM provisioned N`)
+1. **Admin → Clients → Edit → Sync now** (writes full names to `extensionAttribute1` + SCIM provision-on-demand — banner: `SuperOps SCIM names updated N; SuperOps SCIM provisioned N`)
 2. **SuperOps → Clients → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; M365 Admin Center stays plain
 
 No manual **Provision on demand** in Entra — portal sync does it automatically when **SuperOps Application (client) ID** is set on the client.
-
-Optional row (only if you need the hint in SuperOps):
-
-| Attribute | Mapping type | Source |
-|---|---|---|
-| `extensionAttribute1` | Direct | `extensionAttribute1` |
-
-Save mapping, then run **Sync now** on the portal (triggers SCIM provision-on-demand automatically).
 
 ### Graph permissions required (portal OAuth app)
 
 | Permission | Purpose |
 |---|---|
-| `User.ReadWrite.All` | Set `extensionAttribute1` SuperOps name hint; revert mistaken displayName suffixes |
+| `User.ReadWrite.All` | Write full SuperOps SCIM name to `extensionAttribute1`; revert mistaken displayName suffixes |
 | `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `Synchronization.ReadWrite.All` | Trigger SCIM provision-on-demand after portal Sync now |
