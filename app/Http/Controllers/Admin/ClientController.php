@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
+use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
+use App\Services\EntraSync\EntraSyncResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -133,8 +136,35 @@ class ClientController extends Controller
         $this->authorize('update', $client);
 
         $dryRun = request()->boolean('dry_run');
-        $result = $sync->syncClient($client, $dryRun);
 
+        if ($dryRun) {
+            return $this->finishEntraSyncResponse($client, $sync->syncClient($client, true), dryRun: true);
+        }
+
+        $lock = Cache::lock(
+            'entra_sync.client.'.$client->id,
+            (int) config('services.entra_sync.lock_seconds', 600),
+        );
+
+        if (! $lock->get()) {
+            return back()->with(
+                'error',
+                'Entra sync is already running for this client. Wait 1–2 minutes and refresh, or run: php artisan portal:release-entra-sync-lock '.$client->id,
+            );
+        }
+
+        $lock->release();
+
+        SyncEntraClientJob::dispatch($client->id)->afterResponse();
+
+        return back()->with(
+            'success',
+            'Entra sync started in the background. Refresh this page in 1–2 minutes to see Last synced update. Check Entra provisioning logs for each user.',
+        );
+    }
+
+    private function finishEntraSyncResponse(Client $client, EntraSyncResult $result, bool $dryRun): RedirectResponse
+    {
         if ($result->failed()) {
             return back()->with('error', $result->errors[0] ?? 'Entra sync failed.');
         }

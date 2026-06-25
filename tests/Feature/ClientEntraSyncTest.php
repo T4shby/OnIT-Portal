@@ -79,7 +79,13 @@ class ClientEntraSyncTest extends TestCase
             ->post(route('admin.clients.sync-entra', $client));
 
         $response->assertRedirect();
-        $response->assertSessionHas('success');
+        $response->assertSessionHas(
+            'success',
+            fn (string $message) => str_contains($message, 'background'),
+        );
+
+        $this->app->terminate();
+
         $this->assertDatabaseHas('users', [
             'email' => 'jane@acme.com',
             'name' => 'Jane Smith',

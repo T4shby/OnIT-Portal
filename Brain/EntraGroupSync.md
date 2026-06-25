@@ -206,7 +206,9 @@ SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [
 
 **Clients → Edit client → Dry run sync** → check counts → **Sync now**
 
-While sync runs, the button shows **Syncing…** with a spinner and a status banner appears — keep the page open until the green result banner loads. SCIM provision-on-demand runs **one user at a time** (~1.5s per user after a 3s delay for `extensionAttribute1` replication) — a 22-user tenant takes **~1 minute** for the SCIM phase alone.
+While sync runs, **Sync now** returns immediately and the sync continues **in the background** (avoids nginx 504). Refresh the page in 1–2 minutes for **Last synced**. **Dry run** still runs inline.
+
+If a sync is stuck after a timeout: `php artisan portal:release-entra-sync-lock {client-id}`
 
 ### CLI (SSH)
 

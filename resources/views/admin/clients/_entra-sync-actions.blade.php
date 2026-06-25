@@ -64,7 +64,7 @@
                     method="POST"
                     action="{{ route('admin.clients.sync-entra', $client) }}"
                     data-confirm="Run Entra sync now? Users no longer licensed (and not shared mailboxes) will be deactivated."
-                    @submit="startSync($event, 'live', 'Syncing with Microsoft Entra… updating portal users, group, SuperOps last names, and SCIM (one user at a time). Large tenants can take several minutes — keep this page open.')"
+                    @submit="startSync($event, 'live', 'Starting Entra sync in the background… you will be redirected shortly.')"
                 >
                     @csrf
                     <button
