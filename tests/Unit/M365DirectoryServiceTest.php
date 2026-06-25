@@ -59,11 +59,11 @@ class M365DirectoryServiceTest extends TestCase
         $first = $service->snapshot($client);
         $cached = $service->snapshot($client);
 
-        $this->assertSame('First User (User)', $first->people->first()['displayName']);
-        $this->assertSame('First User (User)', $cached->people->first()['displayName']);
+        $this->assertSame('First User (User Mailbox)', $first->people->first()['displayName']);
+        $this->assertSame('First User (User Mailbox)', $cached->people->first()['displayName']);
 
         $refreshed = $service->snapshot($client, refresh: true);
 
-        $this->assertSame('Second User (User)', $refreshed->people->first()['displayName']);
+        $this->assertSame('Second User (User Mailbox)', $refreshed->people->first()['displayName']);
     }
 }

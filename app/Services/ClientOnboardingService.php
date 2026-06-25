@@ -471,10 +471,11 @@ class ClientOnboardingService
                     'https://portal.azure.com — '.$appName.' → Provisioning',
                     [
                         'Provisioning → Edit attribute mapping → Provision Microsoft Entra ID Users.',
-                        'Edit the displayName row → Mapping type: Expression (not Direct).',
-                        'Expression: IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))',
-                        'Target attribute: displayName → OK → Save at the top of the mapping page.',
-                        'Wrong: Mapping type Direct with the expression in Default value if null — that does not work.',
+                        'Expression (copy exactly): IIF(IsNullOrEmpty([extensionAttribute1]), [displayName], Join([displayName], " (", [extensionAttribute1], ")"))',
+                        'Map name.formatted → Mapping type Expression → paste expression → Always.',
+                        'Map displayName → Mapping type Expression → same expression → Always → Save.',
+                        'Wrong: Join("(", [displayName], [extensionAttribute1], [displayName], ")") — causes garbled (NameUserName).',
+                        'Wrong: Mapping type Direct with expression in Default value if null.',
                         'Portal Sync now sets extensionAttribute1 and triggers SCIM provision-on-demand to SuperOps (not M365).',
                     ],
                 ),
@@ -494,7 +495,7 @@ class ClientOnboardingService
                 'Entra → '.$appName.' → Provisioning → Attribute mapping → displayName uses Expression (not Direct).',
                 'Entra → '.$appName.' → Provisioning → Provisioning logs — users appear after a few minutes.',
                 'Entra ID Free: '.$appName.' → Users and groups shows licensed users after portal Sync now (no manual assignment).',
-                'SuperOps → Clients → '.$clientName.' → Requesters — names like Joanne Munns (User); emails match; no duplicate rows.',
+                'SuperOps → Clients → '.$clientName.' → Requesters — names like Joanne Munns (User Mailbox); emails match; no duplicate rows.',
             ],
         );
     }

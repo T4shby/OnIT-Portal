@@ -496,7 +496,7 @@ class EntraGroupSyncServiceTest extends TestCase
     {
         $this->assertSame(
             'Jane Smith (Shared Mailbox)',
-            EntraSyncDisplayName::format('Jane Smith (User)', EntraIdentityType::SharedMailbox),
+            EntraSyncDisplayName::format('Jane Smith (User Mailbox)', EntraIdentityType::SharedMailbox),
         );
     }
 

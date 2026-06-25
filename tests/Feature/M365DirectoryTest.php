@@ -63,7 +63,7 @@ class M365DirectoryTest extends TestCase
         $response = $this->actingAs($admin)->get(route('microsoft-365.directory'));
 
         $response->assertOk();
-        $response->assertSee('Jane Smith (User)');
+        $response->assertSee('Jane Smith (User Mailbox)');
         $response->assertSee('All Staff');
         $response->assertSee('Distribution list');
     }
