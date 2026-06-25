@@ -18,9 +18,9 @@ class OnboardingStepFormatterTest extends TestCase
 
     public function test_formats_leading_label_when_no_menu_path(): void
     {
-        $html = OnboardingStepFormatter::rich('Admin Credentials: Tenant URL = from SuperOps; Secret Token = Auth Token from SuperOps.');
+        $html = OnboardingStepFormatter::rich('Authentication method: Bearer authentication (leave selected — do not change).');
 
         $this->assertStringContainsString('onboarding-manual__term', $html);
-        $this->assertStringContainsString('Admin Credentials:', $html);
+        $this->assertStringContainsString('Bearer authentication', $html);
     }
 }

@@ -74,6 +74,7 @@ class ClientController extends Controller
             'pax8_sso_enabled' => $request->boolean('pax8_sso_enabled'),
             'entra_tenant_id' => $request->entra_tenant_id,
             'entra_group_id' => $request->entra_group_id,
+            'entra_superops_app_id' => $request->entra_superops_app_id,
             'entra_sync_enabled' => $request->boolean('entra_sync_enabled'),
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -107,6 +108,7 @@ class ClientController extends Controller
             'pax8_sso_enabled' => $request->boolean('pax8_sso_enabled'),
             'entra_tenant_id' => $request->entra_tenant_id,
             'entra_group_id' => $request->entra_group_id,
+            'entra_superops_app_id' => $request->entra_superops_app_id,
             'entra_sync_enabled' => $request->boolean('entra_sync_enabled'),
             'is_active' => $request->boolean('is_active'),
         ]);

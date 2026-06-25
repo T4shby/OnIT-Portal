@@ -4,7 +4,7 @@
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
+`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id`, `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
 
 ### users
 
@@ -34,6 +34,7 @@ Standard Laravel / audit tables.
 - `2026_06_12_130600_add_remember_token_to_users_table.php`
 - `2026_06_16_100000_add_entra_group_sync.php`
 - `2026_06_19_100000_add_client_onboarding_checklist.php`
+- `2026_06_25_100000_add_entra_superops_app_id_to_clients.php`
 
 ## Tenant Rules
 

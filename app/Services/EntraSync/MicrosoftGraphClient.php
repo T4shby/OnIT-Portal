@@ -11,6 +11,8 @@ use RuntimeException;
 
 class MicrosoftGraphClient
 {
+    private const DEFAULT_APP_ROLE_ID = '00000000-0000-0000-0000-000000000000';
+
     public function isConfigured(): bool
     {
         return filled(config('services.entra_sync.client_id'))
@@ -297,6 +299,80 @@ class MicrosoftGraphClient
 
         throw new RuntimeException(
             'Microsoft Graph remove group member failed: '.$response->status().' '.$response->body()
+        );
+    }
+
+    /**
+     * @return array<string, string> userId => appRoleAssignmentId
+     */
+    public function listAppAssignedUsers(string $tenantId, string $servicePrincipalId): array
+    {
+        $assignments = [];
+        $url = "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo";
+        $query = ['$top' => 999];
+
+        while ($url) {
+            $response = $this->request($tenantId)
+                ->get($url, $url === "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo" ? $query : []);
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph app role assignments request failed: '.$response->status().' '.$response->body()
+                );
+            }
+
+            $data = $response->json();
+
+            foreach ($data['value'] ?? [] as $assignment) {
+                if (($assignment['principalType'] ?? '') !== 'User' || empty($assignment['principalId'])) {
+                    continue;
+                }
+
+                $assignments[(string) $assignment['principalId']] = (string) $assignment['id'];
+            }
+
+            $url = $data['@odata.nextLink'] ?? null;
+        }
+
+        return $assignments;
+    }
+
+    public function assignUserToEnterpriseApp(string $tenantId, string $servicePrincipalId, string $userId): void
+    {
+        $response = $this->request($tenantId)
+            ->post("https://graph.microsoft.com/v1.0/users/{$userId}/appRoleAssignments", [
+                'principalId' => $userId,
+                'resourceId' => $servicePrincipalId,
+                'appRoleId' => self::DEFAULT_APP_ROLE_ID,
+            ]);
+
+        if ($response->status() === 201) {
+            return;
+        }
+
+        if ($response->status() === 400 && str_contains($response->body(), 'Permission being assigned already exists')) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph assign user to enterprise app failed: '.$response->status().' '.$response->body()
+        );
+    }
+
+    public function removeUserFromEnterpriseApp(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $appRoleAssignmentId,
+    ): void {
+        $response = $this->request($tenantId)
+            ->delete("https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo/{$appRoleAssignmentId}");
+
+        if ($response->status() === 204 || $response->status() === 404) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph remove user from enterprise app failed: '.$response->status().' '.$response->body()
         );
     }
 

@@ -11,6 +11,8 @@ class EntraSyncResult
         public readonly int $skipped = 0,
         public readonly int $groupMembersAdded = 0,
         public readonly int $groupMembersRemoved = 0,
+        public readonly int $superOpsAppUsersAssigned = 0,
+        public readonly int $superOpsAppUsersRemoved = 0,
         public readonly array $errors = [],
     ) {}
 
@@ -22,7 +24,8 @@ class EntraSyncResult
     public function totalChanged(): int
     {
         return $this->created + $this->updated + $this->deactivated
-            + $this->groupMembersAdded + $this->groupMembersRemoved;
+            + $this->groupMembersAdded + $this->groupMembersRemoved
+            + $this->superOpsAppUsersAssigned + $this->superOpsAppUsersRemoved;
     }
 
     public function summary(bool $dryRun = false): string
@@ -43,6 +46,14 @@ class EntraSyncResult
                 '; SuperOps group +%d / -%d members',
                 $this->groupMembersAdded,
                 $this->groupMembersRemoved,
+            );
+        }
+
+        if ($this->superOpsAppUsersAssigned > 0 || $this->superOpsAppUsersRemoved > 0) {
+            $parts .= sprintf(
+                '; SuperOps app +%d / -%d users',
+                $this->superOpsAppUsersAssigned,
+                $this->superOpsAppUsersRemoved,
             );
         }
 

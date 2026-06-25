@@ -21,6 +21,7 @@ class StoreClientRequest extends FormRequest
             'pax8_sso_enabled' => ['boolean'],
             'entra_tenant_id' => ['nullable', 'uuid'],
             'entra_group_id' => ['nullable', 'uuid'],
+            'entra_superops_app_id' => ['nullable', 'uuid'],
             'entra_sync_enabled' => ['boolean'],
             'is_active' => ['boolean'],
         ];
@@ -30,7 +31,7 @@ class StoreClientRequest extends FormRequest
     {
         $trimmed = [];
 
-        foreach (['entra_tenant_id', 'entra_group_id', 'pax8_company_id', 'superops_account_id'] as $field) {
+        foreach (['entra_tenant_id', 'entra_group_id', 'entra_superops_app_id', 'pax8_company_id', 'superops_account_id'] as $field) {
             $value = $this->input($field);
 
             if (is_string($value)) {

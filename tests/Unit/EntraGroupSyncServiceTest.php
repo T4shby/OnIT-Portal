@@ -285,6 +285,84 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(0, $result->groupMembersRemoved);
     }
 
+    public function test_sync_assigns_users_to_superops_enterprise_app_on_entra_id_free(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_superops_app_id' => $servicePrincipalId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+                'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => [
+                    'mail' => 'bob@acme.com',
+                    'userPrincipalName' => 'bob@acme.com',
+                    'displayName' => 'Bob Jones',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+            ],
+            $groupId,
+            [],
+            $servicePrincipalId,
+            ['cccccccc-cccc-cccc-cccc-cccccccccccc'],
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(2, $result->superOpsAppUsersAssigned);
+        $this->assertSame(1, $result->superOpsAppUsersRemoved);
+        $this->assertSame(2, $result->created);
+    }
+
+    public function test_shared_mailboxes_are_not_assigned_to_superops_enterprise_app(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_superops_app_id' => $servicePrincipalId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'dddddddd-dddd-dddd-dddd-dddddddddddd' => [
+                    'mail' => 'accounts@acme.com',
+                    'userPrincipalName' => 'accounts@acme.com',
+                    'displayName' => 'Accounts',
+                    'accountEnabled' => false,
+                    'licensed' => false,
+                    'mailboxPurpose' => 'shared',
+                ],
+            ],
+            servicePrincipalId: $servicePrincipalId,
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->superOpsAppUsersAssigned);
+        $this->assertSame(0, $result->superOpsAppUsersRemoved);
+    }
+
     public function test_display_name_formatter_strips_existing_suffix(): void
     {
         $this->assertSame(
@@ -302,9 +380,16 @@ class EntraGroupSyncServiceTest extends TestCase
         array $usersById,
         ?string $groupId = null,
         array $initialGroupMembers = [],
+        ?string $servicePrincipalId = null,
+        array $initialAppAssignedUsers = [],
     ): void {
         $list = [];
         $groupMembers = $initialGroupMembers;
+        $appAssignments = [];
+
+        foreach ($initialAppAssignedUsers as $userId) {
+            $appAssignments[$userId] = 'assignment-'.$userId;
+        }
 
         foreach ($usersById as $id => $user) {
             $list[] = [
@@ -316,11 +401,51 @@ class EntraGroupSyncServiceTest extends TestCase
             ];
         }
 
-        Http::fake(function ($request) use ($tenantId, $usersById, $list, $groupId, &$groupMembers) {
+        Http::fake(function ($request) use ($tenantId, $usersById, $list, $groupId, &$groupMembers, $servicePrincipalId, &$appAssignments) {
             $url = $request->url();
 
             if ($url === "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token") {
                 return Http::response(['access_token' => 'fake-token', 'expires_in' => 3600]);
+            }
+
+            if ($servicePrincipalId && str_contains($url, "/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo")) {
+                if ($request->method() === 'GET') {
+                    return Http::response([
+                        'value' => array_map(
+                            static fn (string $userId, string $assignmentId): array => [
+                                'id' => $assignmentId,
+                                'principalId' => $userId,
+                                'principalType' => 'User',
+                            ],
+                            array_keys($appAssignments),
+                            array_values($appAssignments),
+                        ),
+                    ]);
+                }
+
+                if ($request->method() === 'DELETE' && preg_match(
+                    "#/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo/(.+)$#",
+                    $url,
+                    $matches,
+                )) {
+                    $appAssignments = array_filter(
+                        $appAssignments,
+                        static fn (string $assignmentId): bool => $assignmentId !== $matches[1],
+                    );
+
+                    return Http::response(null, 204);
+                }
+            }
+
+            if ($servicePrincipalId && $request->method() === 'POST' && preg_match(
+                '#/users/([0-9a-f-]+)/appRoleAssignments$#',
+                $url,
+                $matches,
+            )) {
+                $userId = $matches[1];
+                $appAssignments[$userId] = 'assignment-'.$userId;
+
+                return Http::response(null, 201);
             }
 
             if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/users?')) {

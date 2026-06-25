@@ -63,9 +63,12 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 1. **Entra ID → Enterprise applications → New application**
 2. Non-gallery: `SuperOps - {Company}` → Create
-3. **Provisioning** → Automatic → Tenant URL + Secret Token from SuperOps → **Test connection** → Save
-4. **Users and groups** → assign `On IT Portal - {Company}` (empty group — portal sync fills it)
-5. Start provisioning
+3. **Provisioning** → Automatic
+4. **Admin credentials:** Authentication method = **Bearer authentication** (default — do not change). **Tenant URL** = from SuperOps. **Secret token** = SuperOps Auth Token → **Test connection** → Save
+5. **Users and groups:**
+   - **Entra ID P1:** assign security group `On IT Portal - {Company}` once (portal sync keeps it filled)
+   - **Entra ID Free:** copy enterprise app **Object ID** → portal **SuperOps Entra app ID**; portal sync assigns licensed users automatically
+6. Start provisioning
 
 #### 2c. Same app — Client SSO (SAML)
 
@@ -120,7 +123,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | Security group `On IT Portal - {Company}` in customer Entra |
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
-| ☐ | Assign security group to SCIM app |
+| ☐ | Assign security group to SCIM app **or** set `entra_superops_app_id` on portal (Entra ID Free) |
 | ☐ | SuperOps Client SSO configured (SAML) |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
@@ -134,7 +137,8 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Requester not in SuperOps | SCIM app group assignment; provisioning logs in Entra |
 | Requester not in portal | Portal sync (`portal:sync-entra-users`); client Entra fields |
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
-| SCIM test connection fails | Tenant URL and token from correct SuperOps client row |
+| SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
+| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set `entra_superops_app_id` on the portal client (enterprise app Object ID). Portal sync assigns users via Graph — do not add users manually in Azure. Add `AppRoleAssignment.ReadWrite.All` to portal app and re-consent in customer tenant |
 
 ---
 
@@ -142,5 +146,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 
 | Date | Change |
 |------|--------|
+| 2026-06-25 | Entra ID Free: portal auto-assigns users via `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` |
+| 2026-06-25 | Bearer authentication on SCIM admin credentials |
 | 2026-06-19 | Auto-maintain group; single app SCIM+SAML default; link to [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-06-19 | Document two-sync model; SuperOps SCIM per client (Ductec, On IT) |

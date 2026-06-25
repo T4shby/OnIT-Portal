@@ -29,7 +29,7 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 
 | System | Uses the group? |
 |---|---|
-| **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set — adds licensed users + shared mailboxes, removes leavers. Portal user discovery still reads the whole tenant. |
+| **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set. On **Entra ID Free**, also **assigns users** to the SuperOps enterprise app when `entra_superops_app_id` is set |
 | **SuperOps SCIM** | **Yes** — only group members are provisioned as requesters |
 | **SuperOps Client SSO (SAML)** | **Yes** — assign the same group to the SAML app |
 
@@ -44,7 +44,8 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 
 | Situation | What to do |
 |---|---|
-| **Default (recommended)** | Empty Assigned group + `entra_group_id` — portal maintains membership |
+| **Entra ID P1** | Empty Assigned group + `entra_group_id` — portal maintains membership; assign group to SuperOps app once in Azure |
+| **Entra ID Free** | Same group auto-fill + set `entra_superops_app_id` — portal assigns licensed users to SuperOps app (no manual Azure assignment) |
 | **Client already has requesters in SuperOps** | Leave them; SCIM matches by email when they enter the group |
 | **Entra ID P1+ dynamic group** | Optional alternative — set `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` so portal does not fight the dynamic rule |
 | **One admin only in group** | ❌ Does not sync other staff — group must contain (or auto-include) everyone SCIM should provision |
@@ -106,6 +107,8 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 |---|---|
 | `entra_tenant_id` on clients (required for sync) | ✅ |
 | `entra_group_id` on clients (required for auto SuperOps group maintain) | ✅ |
+| `entra_superops_app_id` on clients (Entra ID Free — auto-assign users to SCIM app) | ✅ |
+| Auto-assign SuperOps enterprise app users via `AppRoleAssignment.ReadWrite.All` | ✅ |
 | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP` (default true) | ✅ |
 | Auto-maintain SCIM group via `GroupMember.ReadWrite.All` | ✅ |
 | `portal:sync-entra-users` | ✅ Tenant-wide |
@@ -128,6 +131,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 
 | Date | Change |
 |---|---|
+| 2026-06-25 | Entra ID Free workaround: portal assigns users to SuperOps enterprise app via `entra_superops_app_id` |
 | 2026-06-19 | Auto-maintain group; single SuperOps app; [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-06-16 | Clarify portal = whole tenant; group = SuperOps SCIM/SSO only (not portal scope) |
 | 2026-06-19 | Two-sync model documented |

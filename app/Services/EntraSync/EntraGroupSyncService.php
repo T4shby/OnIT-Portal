@@ -50,13 +50,13 @@ class EntraGroupSyncService
         $skipped = 0;
         $groupMembersAdded = 0;
         $groupMembersRemoved = 0;
+        $superOpsAppUsersAssigned = 0;
+        $superOpsAppUsersRemoved = 0;
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
-        $desiredGroupMemberIds = array_map(
-            static fn (array $graphUser): string => $graphUser['id'],
-            $graphUsers,
-        );
+        $desiredGroupMemberIds = [];
+        $desiredSuperOpsAppUserIds = [];
 
         foreach ($graphUsers as $graphUser) {
             $email = $this->resolveEmail($graphUser);
@@ -71,6 +71,11 @@ class EntraGroupSyncService
             $identityType = $graphUser['identityType'];
             $activeObjectIds[] = $graphUser['id'];
             $activeEmails[] = $email;
+            $desiredGroupMemberIds[] = $graphUser['id'];
+
+            if ($identityType === EntraIdentityType::User && $graphUser['accountEnabled']) {
+                $desiredSuperOpsAppUserIds[] = $graphUser['id'];
+            }
 
             [$shouldBeActive, $portalLoginEnabled] = $this->resolveAccountFlags(
                 $identityType,
@@ -166,6 +171,15 @@ class EntraGroupSyncService
             $errors = array_merge($errors, $groupErrors);
         }
 
+        if ($this->shouldMaintainSuperOpsAppUsers($client)) {
+            [$superOpsAppUsersAssigned, $superOpsAppUsersRemoved, $appErrors] = $this->syncSuperOpsAppUserAssignments(
+                $client,
+                $desiredSuperOpsAppUserIds,
+                $dryRun,
+            );
+            $errors = array_merge($errors, $appErrors);
+        }
+
         return new EntraSyncResult(
             $created,
             $updated,
@@ -173,8 +187,15 @@ class EntraGroupSyncService
             $skipped,
             $groupMembersAdded,
             $groupMembersRemoved,
+            $superOpsAppUsersAssigned,
+            $superOpsAppUsersRemoved,
             $errors,
         );
+    }
+
+    private function shouldMaintainSuperOpsAppUsers(Client $client): bool
+    {
+        return filled($client->entra_superops_app_id);
     }
 
     private function shouldMaintainSuperOpsGroup(Client $client): bool
@@ -239,6 +260,71 @@ class EntraGroupSyncService
         }
 
         return [$added, $removed, $errors];
+    }
+
+    /**
+     * Assign licensed active users directly to the SuperOps enterprise app (Entra ID Free workaround).
+     * When the customer cannot assign security groups to enterprise apps, SCIM only provisions assigned users.
+     *
+     * @param  list<string>  $desiredUserIds
+     * @return array{0: int, 1: int, 2: list<string>}
+     */
+    private function syncSuperOpsAppUserAssignments(Client $client, array $desiredUserIds, bool $dryRun): array
+    {
+        $tenantId = (string) $client->entra_tenant_id;
+        $servicePrincipalId = (string) $client->entra_superops_app_id;
+
+        try {
+            $currentAssignments = $this->graph->listAppAssignedUsers($tenantId, $servicePrincipalId);
+        } catch (Throwable $e) {
+            Log::error('Entra SuperOps app assignment read failed', [
+                'client_id' => $client->id,
+                'service_principal_id' => $servicePrincipalId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [0, 0, ['SuperOps app user sync failed: '.$e->getMessage()]];
+        }
+
+        $desired = array_values(array_unique($desiredUserIds));
+        $currentUserIds = array_keys($currentAssignments);
+
+        $toAssign = array_values(array_diff($desired, $currentUserIds));
+        $toRemove = array_values(array_diff($currentUserIds, $desired));
+
+        if ($dryRun) {
+            return [count($toAssign), count($toRemove), []];
+        }
+
+        $assigned = 0;
+        $removed = 0;
+        $errors = [];
+
+        foreach ($toAssign as $userId) {
+            try {
+                $this->graph->assignUserToEnterpriseApp($tenantId, $servicePrincipalId, $userId);
+                $assigned++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to assign {$userId} to SuperOps app: {$e->getMessage()}";
+            }
+        }
+
+        foreach ($toRemove as $userId) {
+            $assignmentId = $currentAssignments[$userId] ?? null;
+
+            if ($assignmentId === null) {
+                continue;
+            }
+
+            try {
+                $this->graph->removeUserFromEnterpriseApp($tenantId, $servicePrincipalId, $assignmentId);
+                $removed++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to remove {$userId} from SuperOps app: {$e->getMessage()}";
+            }
+        }
+
+        return [$assigned, $removed, $errors];
     }
 
     /**

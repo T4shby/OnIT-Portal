@@ -258,3 +258,18 @@ Manual group membership and separate SCIM/SSO apps do not scale to ~100 MSP clie
 
 Consequences:
 `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true` (default). Onboarding checklist and [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) document order of operations, consent refresh fix, and validation steps. Legacy: dynamic groups (`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false`) or two-app fallback if single-app fails.
+
+---
+
+## ADR-019
+
+Date: 2026-06-25
+
+Decision:
+On **Entra ID Free** (no group assignment to enterprise apps), portal sync assigns licensed users directly to the customer's SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) when `clients.entra_superops_app_id` is set. Group membership is still auto-maintained for documentation and future P1 upgrade.
+
+Reason:
+Microsoft blocks assigning security groups to enterprise applications on Entra ID Free. SCIM only provisions users assigned to the app. Manual per-user assignment in Azure does not scale; portal sync already runs hourly with Graph access.
+
+Consequences:
+New client field `entra_superops_app_id` (enterprise app Object ID). Sixth Application permission `AppRoleAssignment.ReadWrite.All` on portal OAuth app + customer re-consent. P1 clients leave field empty and assign the security group once in Azure UI.

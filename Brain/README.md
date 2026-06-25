@@ -50,6 +50,7 @@ Read these documents before changing application code. **Update Brain in the sam
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
+| Entra ID Free SuperOps app assign | `entra_superops_app_id` on client + `AppRoleAssignment.ReadWrite.All` |
 | Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
@@ -69,6 +70,8 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-25 | Entra ID Free: `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` — portal auto-assigns SuperOps app users |
+| 2026-06-25 | SCIM setup: Bearer authentication + Entra ID Free workaround in checklist and Brain |
 | 2026-06-24 | In-app checklist install-manual format (`OnboardingManual`); Brain docs step numbers aligned (05 consent, 06 SCIM, 07 SAML) |
 | 2026-06-16 | MSP role labels on checklist (On IT technician — portal vs customer Entra) |
 | 2026-06-23 | [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) — full new-customer guide; tenant sync + M365 directory |

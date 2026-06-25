@@ -20,6 +20,7 @@ class Client extends Model
         'pax8_sso_enabled',
         'entra_tenant_id',
         'entra_group_id',
+        'entra_superops_app_id',
         'entra_sync_enabled',
         'entra_synced_at',
         'onboarding_checklist',
