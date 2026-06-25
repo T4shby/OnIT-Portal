@@ -262,6 +262,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
 | No `Entra display names updated` line | Names already correct, or `ENTRA_SYNC_UPDATE_DISPLAY_NAMES=false` |
 | displayName update 403 | Missing `User.ReadWrite.All` or customer consent — re-consent |
+| App role assignment 403 after re-consent | Stale Graph token cached up to 50 min — run `php artisan cache:clear` then sync again (portal auto-retries from next deploy) |
 | SuperOps requester plain name | Run portal sync first, then SCIM cycle — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
 | “Groups are not available for assignment” in Azure | Entra ID Free — do **not** assign users manually; set `entra_superops_app_id` on client and run Sync now |
 

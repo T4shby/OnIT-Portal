@@ -312,8 +312,7 @@ class MicrosoftGraphClient
         $query = ['$top' => 999];
 
         while ($url) {
-            $response = $this->request($tenantId)
-                ->get($url, $url === "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo" ? $query : []);
+            $response = $this->graphGet($tenantId, $url, $url === "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo" ? $query : []);
 
             if ($response->failed()) {
                 throw new RuntimeException(
@@ -339,12 +338,11 @@ class MicrosoftGraphClient
 
     public function assignUserToEnterpriseApp(string $tenantId, string $servicePrincipalId, string $userId): void
     {
-        $response = $this->request($tenantId)
-            ->post("https://graph.microsoft.com/v1.0/users/{$userId}/appRoleAssignments", [
-                'principalId' => $userId,
-                'resourceId' => $servicePrincipalId,
-                'appRoleId' => self::DEFAULT_APP_ROLE_ID,
-            ]);
+        $response = $this->graphPost($tenantId, "https://graph.microsoft.com/v1.0/users/{$userId}/appRoleAssignments", [
+            'principalId' => $userId,
+            'resourceId' => $servicePrincipalId,
+            'appRoleId' => self::DEFAULT_APP_ROLE_ID,
+        ]);
 
         if ($response->status() === 201) {
             return;
@@ -378,10 +376,9 @@ class MicrosoftGraphClient
 
     public function updateUserDisplayName(string $tenantId, string $userId, string $displayName): void
     {
-        $response = $this->request($tenantId)
-            ->patch("https://graph.microsoft.com/v1.0/users/{$userId}", [
-                'displayName' => $displayName,
-            ]);
+        $response = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/users/{$userId}", [
+            'displayName' => $displayName,
+        ]);
 
         if ($response->status() === 204) {
             return;
@@ -392,15 +389,72 @@ class MicrosoftGraphClient
         );
     }
 
-    private function request(string $tenantId): PendingRequest
+    private function request(string $tenantId, bool $refreshToken = false): PendingRequest
     {
         return Http::acceptJson()
-            ->withToken($this->accessToken($tenantId))
+            ->withToken($this->accessToken($tenantId, $refreshToken))
             ->timeout(30);
     }
 
-    private function accessToken(string $tenantId): string
+    public function clearAccessTokenCache(string $tenantId): void
     {
+        Cache::forget('entra_graph_token.'.$tenantId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function graphGet(string $tenantId, string $url, array $query = []): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request($tenantId)->get($url, $query);
+
+        if ($this->shouldRefreshTokenOnResponse($response)) {
+            $response = $this->request($tenantId, refreshToken: true)->get($url, $query);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function graphPost(string $tenantId, string $url, array $data = []): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request($tenantId)->post($url, $data);
+
+        if ($this->shouldRefreshTokenOnResponse($response)) {
+            $response = $this->request($tenantId, refreshToken: true)->post($url, $data);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function graphPatch(string $tenantId, string $url, array $data = []): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request($tenantId)->patch($url, $data);
+
+        if ($this->shouldRefreshTokenOnResponse($response)) {
+            $response = $this->request($tenantId, refreshToken: true)->patch($url, $data);
+        }
+
+        return $response;
+    }
+
+    private function shouldRefreshTokenOnResponse(\Illuminate\Http\Client\Response $response): bool
+    {
+        return $response->status() === 403
+            && str_contains($response->body(), 'Authorization_RequestDenied');
+    }
+
+    private function accessToken(string $tenantId, bool $refresh = false): string
+    {
+        if ($refresh) {
+            Cache::forget('entra_graph_token.'.$tenantId);
+        }
+
         return Cache::remember(
             'entra_graph_token.'.$tenantId,
             now()->addMinutes(50),

@@ -346,7 +346,7 @@ php artisan portal:sync-entra-users --client={id}
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing `entra_superops_app_id` on Free | Step 5b — turn provisioning **ON**; set app ID; Sync now |
 | Requester plain name (no suffix) | Entra `displayName` not patched yet | Add `User.ReadWrite.All`, re-consent, **Sync now**, wait for SCIM — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
-| displayName update 403 | Missing `User.ReadWrite.All` | Step 0 + step 4 (re-consent) |
+| App role assignment 403 after re-consent | Run `php artisan cache:clear` — Graph tokens cache ~50 min without new permissions |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
 | Wrong tenant on consent page | Signed into On IT instead of customer | Directory picker top-right |
 
