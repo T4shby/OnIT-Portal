@@ -274,3 +274,12 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 - [SuperOpsEntraSync.md](SuperOpsEntraSync.md) — Sync 1 (SCIM requesters)
 - [Deployment.md](Deployment.md) — Plesk deploy and updates
 - `app/Services/EntraSync/EntraGroupSyncService.php`
+
+---
+
+## Change log
+
+| Date | Change |
+|---|---|
+| 2026-06-25 | `(User Mailbox)` suffix; `User.ReadWrite.All` displayName sync; `entra_superops_app_id`; shared mailboxes on app assign |
+| 2026-06-19 | Tenant-wide sync; auto-maintain SuperOps group |
