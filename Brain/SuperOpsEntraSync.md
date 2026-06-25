@@ -221,8 +221,9 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
 | Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
-| Requester name is plain (no suffix) | Portal sync not run yet, or `User.ReadWrite.All` missing — run **Sync now**, re-consent, wait for SCIM or **Provision on demand** |
-| `Permission being assigned was not found` | App role missing or **Value** blank on SuperOps app | App registrations → App roles → User, Value `User`, Enable |
+| Requester name is plain (no suffix) | Portal sync not run yet, or SCIM attribute mapping missing — run **Sync now**, configure displayName expression, wait for SCIM or **Provision on demand** |
+| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
+| `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 
 ---
 
