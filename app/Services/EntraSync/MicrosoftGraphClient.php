@@ -303,6 +303,85 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Resolve the enterprise application (service principal) Object ID in the customer tenant.
+     * Accepts service principal ID, app registration Object ID, or application (client) ID.
+     */
+    public function resolveEnterpriseServicePrincipalId(string $tenantId, string $idOrAppId): string
+    {
+        $idOrAppId = trim($idOrAppId);
+
+        if ($idOrAppId === '') {
+            throw new RuntimeException('SuperOps Entra app ID is empty.');
+        }
+
+        $servicePrincipalResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$idOrAppId}",
+            ['$select' => 'id,displayName,appId'],
+        );
+
+        if ($servicePrincipalResponse->successful()) {
+            return (string) $servicePrincipalResponse->json('id');
+        }
+
+        if (! in_array($servicePrincipalResponse->status(), [403, 404], true)) {
+            throw new RuntimeException(
+                'Microsoft Graph service principal lookup failed: '.$servicePrincipalResponse->status().' '.$servicePrincipalResponse->body()
+            );
+        }
+
+        $byAppIdResponse = $this->graphGet(
+            $tenantId,
+            'https://graph.microsoft.com/v1.0/servicePrincipals',
+            [
+                '$filter' => "appId eq '{$idOrAppId}'",
+                '$select' => 'id,displayName,appId',
+                '$top' => 1,
+            ],
+        );
+
+        if ($byAppIdResponse->successful()) {
+            $match = $byAppIdResponse->json('value.0.id');
+
+            if (filled($match)) {
+                return (string) $match;
+            }
+        }
+
+        $applicationResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/applications/{$idOrAppId}",
+            ['$select' => 'id,appId,displayName'],
+        );
+
+        if ($applicationResponse->successful()) {
+            $appId = (string) $applicationResponse->json('appId');
+
+            $fromRegistrationResponse = $this->graphGet(
+                $tenantId,
+                'https://graph.microsoft.com/v1.0/servicePrincipals',
+                [
+                    '$filter' => "appId eq '{$appId}'",
+                    '$select' => 'id,displayName,appId',
+                    '$top' => 1,
+                ],
+            );
+
+            if ($fromRegistrationResponse->successful()) {
+                $match = $fromRegistrationResponse->json('value.0.id');
+
+                if (filled($match)) {
+                    return (string) $match;
+                }
+            }
+        }
+
+        throw new RuntimeException(
+            'Could not resolve SuperOps enterprise app in this tenant. Open App registrations → your SuperOps app → click "Managed application in local directory" → Overview → Object ID — paste that GUID into SuperOps Entra App ID on the client (not the App registration Object ID).'
+        );
+    }
+
+    /**
      * @return array<string, string> userId => appRoleAssignmentId
      */
     public function listAppAssignedUsers(string $tenantId, string $servicePrincipalId): array

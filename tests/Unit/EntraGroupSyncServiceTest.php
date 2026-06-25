@@ -463,6 +463,17 @@ class EntraGroupSyncServiceTest extends TestCase
                 return Http::response(['access_token' => 'fake-token', 'expires_in' => 3600]);
             }
 
+            if ($servicePrincipalId && $request->method() === 'GET' && preg_match(
+                "#/servicePrincipals/{$servicePrincipalId}(\\?|$)#",
+                $url,
+            ) && ! str_contains($url, '/appRoleAssignedTo')) {
+                return Http::response([
+                    'id' => $servicePrincipalId,
+                    'displayName' => 'SuperOps',
+                    'appId' => '8c46a344-a010-4c78-99b9-df8b9caaba2f',
+                ]);
+            }
+
             if ($servicePrincipalId && str_contains($url, "/servicePrincipals/{$servicePrincipalId}/appRoleAssignedTo")) {
                 if ($request->method() === 'GET') {
                     return Http::response([

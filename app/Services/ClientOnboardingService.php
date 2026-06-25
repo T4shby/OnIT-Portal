@@ -678,9 +678,10 @@ class ClientOnboardingService
                 'Required for SuperOps SCIM group membership (portal maintains this automatically).',
             ],
             'entra_superops_app_id' => [
-                'Where: customer Entra → Enterprise applications → your SuperOps app → Overview → Object ID.',
+                'Where: customer Entra → App registrations → SuperOps app → click "Managed application in local directory" → Overview → Object ID.',
+                'Use the enterprise application Object ID — not the App registration Object ID on the registration Overview page.',
+                'You can also paste the Application (client) ID — sync will resolve the enterprise app automatically.',
                 'Required on Entra ID Free when Azure blocks group assignment to enterprise apps.',
-                'Portal sync assigns licensed users to this app on each run — do not add users manually in Azure.',
                 'Leave empty on Entra ID P1 when the security group is assigned to the SuperOps app instead.',
             ],
             'entra_sync_enabled' => [

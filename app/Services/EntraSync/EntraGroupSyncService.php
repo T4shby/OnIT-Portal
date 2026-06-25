@@ -351,14 +351,25 @@ class EntraGroupSyncService
     private function syncSuperOpsAppUserAssignments(Client $client, array $desiredUserIds, bool $dryRun): array
     {
         $tenantId = (string) $client->entra_tenant_id;
-        $servicePrincipalId = (string) $client->entra_superops_app_id;
+        $configuredId = (string) $client->entra_superops_app_id;
 
         try {
+            $servicePrincipalId = $this->graph->resolveEnterpriseServicePrincipalId($tenantId, $configuredId);
+
+            if ($servicePrincipalId !== $configuredId) {
+                Log::info('Resolved SuperOps enterprise app service principal ID', [
+                    'client_id' => $client->id,
+                    'configured_id' => $configuredId,
+                    'service_principal_id' => $servicePrincipalId,
+                ]);
+            }
+
             $currentAssignments = $this->graph->listAppAssignedUsers($tenantId, $servicePrincipalId);
         } catch (Throwable $e) {
             Log::error('Entra SuperOps app assignment read failed', [
                 'client_id' => $client->id,
-                'service_principal_id' => $servicePrincipalId,
+                'configured_id' => $configuredId,
+                'tenant_id' => $tenantId,
                 'error' => $e->getMessage(),
             ]);
 
