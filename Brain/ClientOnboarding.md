@@ -86,7 +86,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 09 Test sign-in | — | You tested in incognito |
 | 10 Hand off | — | Customer notified |
 
-**Rule:** Portal sync reads the **whole tenant** and **maintains** the SuperOps SCIM security group when `entra_group_id` is set. SuperOps SCIM provisions **group members only** — existing requesters match by email.
+**Rule:** Portal sync reads the **whole tenant**, **maintains** the SuperOps SCIM security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **sets Entra `displayName`** to `Name (User Mailbox)` or `Name (Shared Mailbox)` for SuperOps SCIM. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
 
 **Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 

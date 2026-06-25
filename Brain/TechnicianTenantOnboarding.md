@@ -15,7 +15,7 @@
 
 **Portal sync (automatic):** Whole tenant — licensed users + shared mailboxes → portal users. **No group membership required for portal.**
 
-**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` — portal **auto-fills** members when `entra_group_id` is set. One Entra app `SuperOps - {Company}` for SCIM + SAML.
+**SuperOps sync (SCIM):** Security group `On IT Portal - {Company}` — portal **auto-fills** members (licensed users + shared mailboxes). On **Entra ID Free**, set **SuperOps Entra app ID** on the client — portal assigns the same scope to the SCIM app. Requester names: `Name (User Mailbox)` or `Name (Shared Mailbox)` via Entra `displayName` → SCIM. One Entra app for SCIM + SAML.
 
 **Full runbook:** [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
@@ -30,6 +30,7 @@
 | Date | Change |
 |------|--------|
 | 2026-06-24 | Install-manual checklist format; step numbers 05–07 aligned |
+| 2026-06-25 | SuperOps requester naming + `entra_superops_app_id` on Entra ID Free documented |
 | 2026-06-16 | Preview guide on Add Client; sync buttons documented on left |
 | 2026-06-23 | Point to NewCustomerTenantSetup.md; tenant-wide sync + M365 directory |
 | 2026-06-19 | In-app setup wizard on client edit page |

@@ -172,7 +172,7 @@ Repeat for each of your 60 clients (or during each client onboarding).
 |---|---|
 | Entra tenant ID | Customer tenant GUID (required for sync) |
 | Entra group ID | Security group Object ID — portal auto-fills members |
-| SuperOps Entra app ID | Enterprise app Object ID — **required on Entra ID Free**; portal auto-assigns licensed users to SCIM app |
+| SuperOps Entra app ID | Enterprise app Object ID — **required on Entra ID Free**; portal auto-assigns licensed users + shared mailboxes to SCIM app |
 | Entra sync enabled | ✓ |
 
 Save with **Update**. Use **Dry run sync** and **Sync now** on the left, or tick manual steps on the right and **Save checklist**.
@@ -186,12 +186,15 @@ Add or set on the server (then `php artisan config:clear`):
 ```env
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
+ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true
 
 MICROSOFT_CLIENT_ID=your-portal-app-client-id
 MICROSOFT_CLIENT_SECRET=your-portal-app-secret
 ```
 
-SuperOps requesters use **SCIM** — no portal env vars for that. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md).
+`ENTRA_SYNC_UPDATE_DISPLAY_NAMES=false` stops patching Entra `displayName` (not recommended — SuperOps requesters will show plain names).
+
+SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md) for requester naming.
 
 ---
 
@@ -257,6 +260,9 @@ php artisan portal:sync-entra-users --client=4 --dry-run
 | User not in SuperOps | Group not filled / not assigned to SCIM app — [SuperOpsEntraSync.md](SuperOpsEntraSync.md). On Entra ID Free: set `entra_superops_app_id` and re-consent with `AppRoleAssignment.ReadWrite.All` |
 | No `SuperOps group` in sync output | `entra_group_id` empty on client record |
 | No `SuperOps app` in sync output | `entra_superops_app_id` empty — only needed on Entra ID Free |
+| No `Entra display names updated` line | Names already correct, or `ENTRA_SYNC_UPDATE_DISPLAY_NAMES=false` |
+| displayName update 403 | Missing `User.ReadWrite.All` or customer consent — re-consent |
+| SuperOps requester plain name | Run portal sync first, then SCIM cycle — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
 | “Groups are not available for assignment” in Azure | Entra ID Free — do **not** assign users manually; set `entra_superops_app_id` on client and run Sync now |
 
 ---

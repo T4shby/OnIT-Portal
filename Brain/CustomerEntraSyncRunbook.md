@@ -293,15 +293,25 @@ Optional PHP-FPM reload (Plesk): **Domains → onit.ltd → PHP Settings** or `s
 ```env
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
+ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true
 MICROSOFT_CLIENT_ID=<OnIT Portal for Portals client ID>
 MICROSOFT_CLIENT_SECRET=<secret>
 ```
 
+### Portal client fields (Edit → Microsoft Entra sync)
+
+| Field | Ductec example |
+|---|---|
+| Entra tenant ID | Customer tenant GUID |
+| Entra group ID | `On IT Portal - Ductec LTD` group Object ID |
+| SuperOps Entra app ID | Enterprise app Object ID (e.g. `OnIT X Superops`) — **required on Entra ID Free** |
+| Entra sync enabled | ✓ |
+
 ### Run sync in portal UI
 
 1. **Admin → Clients → Edit**
-2. Confirm tenant ID, group ID, sync enabled
-3. **Dry run sync** — expect user counts and `SuperOps group: +N / -0 members`
+2. Confirm tenant ID, group ID, **SuperOps Entra app ID** (Free tier), sync enabled
+3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `Entra display names updated N`
 4. **Sync now**
 
 ### CLI alternative
@@ -334,7 +344,9 @@ php artisan portal:sync-entra-users --client={id}
 | No `SuperOps group` line in sync output | `Entra group ID` empty | Paste group Object ID → Save client |
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
-| Requesters not in SuperOps | Group not assigned to SCIM app; provisioning off | Step 5b |
+| Requesters not in SuperOps | App not in scope; **provisioning off**; missing `entra_superops_app_id` on Free | Step 5b — turn provisioning **ON**; set app ID; Sync now |
+| Requester plain name (no suffix) | Entra `displayName` not patched yet | Add `User.ReadWrite.All`, re-consent, **Sync now**, wait for SCIM — [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names) |
+| displayName update 403 | Missing `User.ReadWrite.All` | Step 0 + step 4 (re-consent) |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
 | Wrong tenant on consent page | Signed into On IT instead of customer | Directory picker top-right |
 
@@ -358,10 +370,12 @@ php artisan portal:sync-entra-users --client={id}
 | SuperOps Account ID | `3425667307281944576` (verify in SuperOps URL) |
 | Entra Tenant ID | On client record in portal |
 | Group name | `On IT Portal - Ductec LTD` |
-| SuperOps app name | `SuperOps - Ductec LTD` |
-| Entra ID tier | Free (Assigned groups only — portal auto-maintain handles membership) |
+| SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
+| SuperOps Entra app ID | Enterprise app Object ID in portal (e.g. `22561b4e-a748-48d2-81a5-f4744812e6f2`) |
+| Entra ID tier | Free — use `entra_superops_app_id`; portal assigns users + sets display names |
+| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` |
 
-Existing SuperOps requesters: leave them; SCIM matches by email.
+Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
 
 ---
 
@@ -369,6 +383,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email.
 
 | Date | Change |
 |------|--------|
+| 2026-06-25 | Requester naming, `entra_superops_app_id`, `User.ReadWrite.All`, `ENTRA_SYNC_UPDATE_DISPLAY_NAMES` |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |
 | 2026-06-19 | Auto-maintain group via `GroupMember.ReadWrite.All`; single SuperOps app SCIM+SAML; consent refresh fix documented |
 | 2026-06-19 | Full click-by-click runbook for re-do from scratch |

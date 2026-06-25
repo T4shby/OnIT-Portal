@@ -32,7 +32,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Quick pointer** to in-app wizard |
 | [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) | **New customer tenant — full technician guide (start here)** |
 | [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
-| [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps Entra SCIM per client** |
+| [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps SCIM** — Bearer auth, Entra ID Free, requester names `(User Mailbox)` / `(Shared Mailbox)` |
 | [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
 | [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete re-do guide — permissions, group, SCIM, SAML, deploy, troubleshooting** |
 | [PortalLinks.md](PortalLinks.md) | Link types and resolution |
@@ -51,6 +51,7 @@ Read these documents before changing application code. **Update Brain in the sam
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
 | Entra ID Free SuperOps app assign | `entra_superops_app_id` on client + `AppRoleAssignment.ReadWrite.All` |
+| SuperOps requester display names | `EntraSyncDisplayName.php`, `ENTRA_SYNC_UPDATE_DISPLAY_NAMES`, `User.ReadWrite.All` — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
 | Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
@@ -70,6 +71,7 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-06-25 | Brain docs: Entra ID Free SCIM, requester naming `(User Mailbox)` / `(Shared Mailbox)`, Graph permissions, ADR-019/020 |
 | 2026-06-25 | SuperOps requester names `(User Mailbox)` / `(Shared Mailbox)` via Entra displayName sync; shared mailboxes on app assign |
 | 2026-06-25 | Entra ID Free: `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` — portal auto-assigns SuperOps app users |
 | 2026-06-25 | SCIM setup: Bearer authentication + Entra ID Free workaround in checklist and Brain |

@@ -266,10 +266,25 @@ Consequences:
 Date: 2026-06-25
 
 Decision:
-On **Entra ID Free** (no group assignment to enterprise apps), portal sync assigns licensed users directly to the customer's SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) when `clients.entra_superops_app_id` is set. Group membership is still auto-maintained for documentation and future P1 upgrade.
+On **Entra ID Free** (no group assignment to enterprise apps), portal sync assigns licensed users **and shared mailboxes** directly to the customer's SuperOps enterprise app via Graph (`AppRoleAssignment.ReadWrite.All`) when `clients.entra_superops_app_id` is set. Group membership is still auto-maintained for documentation and future P1 upgrade.
 
 Reason:
 Microsoft blocks assigning security groups to enterprise applications on Entra ID Free. SCIM only provisions users assigned to the app. Manual per-user assignment in Azure does not scale; portal sync already runs hourly with Graph access.
 
 Consequences:
-New client field `entra_superops_app_id` (enterprise app Object ID). Sixth Application permission `AppRoleAssignment.ReadWrite.All` on portal OAuth app + customer re-consent. P1 clients leave field empty and assign the security group once in Azure UI.
+New client field `entra_superops_app_id` (enterprise app Object ID). Application permission `AppRoleAssignment.ReadWrite.All` on portal OAuth app + customer re-consent. P1 clients leave field empty and assign the security group once in Azure UI.
+
+---
+
+## ADR-020
+
+Date: 2026-06-25
+
+Decision:
+SuperOps requester names use `Name (User Mailbox)` or `Name (Shared Mailbox)`. Portal sync patches Entra `displayName` via `User.ReadWrite.All` (`ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true` default). SuperOps SCIM reads `displayName` — portal does not rename requesters via SuperOps API.
+
+Reason:
+SCIM provisions the Entra `displayName` field. Plain names (e.g. `Phil Cooper`) do not meet On IT naming convention. Shared mailboxes must appear in SuperOps with the correct label and be in SCIM app scope.
+
+Consequences:
+Seventh Application permission `User.ReadWrite.All` + customer re-consent. Sync output includes `Entra display names updated N`. Existing requesters update after portal sync + SCIM cycle (or Provision on demand). Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).

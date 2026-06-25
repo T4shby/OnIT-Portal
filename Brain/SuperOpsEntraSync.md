@@ -99,6 +99,66 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 ---
 
+## Requester display names
+
+SuperOps SCIM reads **`displayName`** from the Entra user object. The portal does **not** call the SuperOps API to rename requesters.
+
+| Identity in M365 | Entra `displayName` (set by portal sync) | SuperOps requester name |
+|---|---|---|
+| Licensed user | `Phil Cooper (User Mailbox)` | Same after SCIM cycle |
+| Shared mailbox | `Accounts (Shared Mailbox)` | Same after SCIM cycle |
+
+### How it works
+
+```
+portal:sync-entra-users
+  → PATCH Entra user displayName (User.ReadWrite.All)
+  → user in SuperOps SCIM group + app assignment
+Entra provisioning (SCIM, must be ON)
+  → SuperOps requester created/updated with displayName
+```
+
+### Graph permissions required (portal OAuth app)
+
+| Permission | Purpose |
+|---|---|
+| `User.ReadWrite.All` | Set `displayName` to `(User Mailbox)` / `(Shared Mailbox)` suffix |
+| `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
+| `GroupMember.ReadWrite.All` | Auto-fill SuperOps SCIM security group |
+
+Re-consent in **each customer tenant** after adding permissions.
+
+### Portal client fields
+
+| Field | Purpose |
+|---|---|
+| `entra_group_id` | Security group Object ID — portal auto-fills members |
+| `entra_superops_app_id` | SuperOps enterprise app Object ID — **required on Entra ID Free** when groups cannot be assigned to apps |
+
+### Server `.env`
+
+```env
+ENTRA_SYNC_UPDATE_DISPLAY_NAMES=true   # default — set false only to stop patching Entra displayName
+```
+
+### Fix existing plain names (e.g. Ductec pilot)
+
+1. Add `User.ReadWrite.All` to portal app → re-consent in customer tenant
+2. **Admin → Clients → Edit → Sync now** — expect `Entra display names updated N`
+3. Entra → SuperOps app → **Provisioning must be ON**
+4. Wait for SCIM cycle (~40 min) or **Provision on demand** per user
+5. Verify SuperOps → Clients → Requesters shows `(User Mailbox)` / `(Shared Mailbox)`
+
+### Who is in scope
+
+| Type | Portal user | SuperOps group | SuperOps app (Free) | SuperOps requester name |
+|---|---|---|---|---|
+| Licensed active user | ✅ can sign in | ✅ | ✅ | `(User Mailbox)` |
+| Shared mailbox | ✅ directory only | ✅ | ✅ | `(Shared Mailbox)` |
+| Disabled licensed user | ❌ inactive | ❌ removed from group | ❌ removed from app | SCIM deprovisions |
+
+---
+
 ## What SCIM does not handle
 
 | System | Handled by |
@@ -140,7 +200,9 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | Requester not in portal | Portal sync (`portal:sync-entra-users`); client Entra fields |
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
-| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set `entra_superops_app_id` on the portal client (enterprise app Object ID). Portal sync assigns users via Graph — do not add users manually in Azure. Add `AppRoleAssignment.ReadWrite.All` to portal app and re-consent in customer tenant |
+| Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
+| Requester name is plain (no suffix) | Portal sync not run yet, or `User.ReadWrite.All` missing — run **Sync now**, re-consent, wait for SCIM or **Provision on demand** |
+| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — set `entra_superops_app_id` on the portal client (enterprise app Object ID). Portal sync assigns licensed users + shared mailboxes via Graph — do not add users manually in Azure. Add `AppRoleAssignment.ReadWrite.All` + `User.ReadWrite.All` to portal app and re-consent in customer tenant |
 
 ---
 
@@ -148,6 +210,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 
 | Date | Change |
 |------|--------|
+| 2026-06-25 | Requester display names: `(User Mailbox)` / `(Shared Mailbox)` via Entra displayName sync |
 | 2026-06-25 | Entra ID Free: portal auto-assigns users via `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` |
 | 2026-06-25 | Bearer authentication on SCIM admin credentials |
 | 2026-06-19 | Auto-maintain group; single app SCIM+SAML default; link to [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |

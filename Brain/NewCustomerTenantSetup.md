@@ -168,7 +168,8 @@ Back on **https://app.onit.ltd → Admin → Clients → Edit** for this custome
 | Field | Value |
 |-------|--------|
 | **Entra tenant ID** | Customer tenant GUID from Part 3a |
-| **Entra group ID** | Group Object ID — **required** for auto SuperOps group membership |
+| **Entra group ID** | Group Object ID — portal auto-fills licensed users + shared mailboxes |
+| **SuperOps Entra app ID** | Enterprise app Object ID — **required on Entra ID Free** (when Azure blocks group assignment) |
 | **Entra sync enabled** | ✓ Tick |
 
 Click **Update** (main form) to save.
@@ -192,13 +193,17 @@ php artisan portal:sync-entra-users --client={id} --dry-run
 php artisan portal:sync-entra-users --client={id}
 ```
 
-3. Go to **Admin → Users** — filter mentally by client; confirm expected people exist with correct emails.
-4. Sync output should include **`SuperOps group: +N / -M members`** when **Entra group ID** is set.
+3. Go to **Admin → Users** — filter mentally by client; confirm expected people exist with correct emails and `(User Mailbox)` / `(Shared Mailbox)` suffixes.
+4. Sync output should include:
+   - **`SuperOps group: +N / -M members`** when **Entra group ID** is set
+   - **`SuperOps app: +N / -M users`** when **SuperOps Entra app ID** is set (Entra ID Free)
+   - **`Entra display names updated N`** when names need the SuperOps suffix
 5. In customer Entra → **Groups → On IT Portal - {Company} → Members** — users appear without manual adds.
+6. **SuperOps requesters** update on the next SCIM cycle with the same names — provisioning must be **ON**. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
 
 Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
-**Done when:** licensed users in portal; group members populated; SCIM logs show provisioning.
+**Done when:** licensed users + shared mailboxes in portal; group populated; SCIM logs clean; SuperOps requesters show `(User Mailbox)` / `(Shared Mailbox)`.
 
 ---
 
