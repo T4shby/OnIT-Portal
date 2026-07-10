@@ -5,8 +5,8 @@
 
     @include('admin.partials.header', ['title' => 'Edit user'])
 
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.users.update', $user) }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.users.update', $user) }}">
             @csrf @method('PUT')
             <input type="hidden" name="client_id" value="{{ $user->client_id }}">
             @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $user->name])
@@ -24,7 +24,7 @@
                 </select>
             </div>
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $user->is_active])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Update</button>
                 <a href="{{ route('admin.clients.users.index', $user->client) }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
             </div>

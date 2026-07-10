@@ -40,7 +40,7 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 | Action | Behaviour |
 |---|---|
 | **Licensed** M365 user in tenant | Create or update portal user (`client_user`, `portal_login_enabled=true`, plain M365 name) |
-| **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, display `Name (Shared Mailbox)`) — cannot sign in |
+| **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, plain M365 name) — `(Shared Mailbox)` suffix goes to `extensionAttribute1` for SuperOps only |
 | User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
 | User **disabled** in Entra | Portal user set inactive |
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |

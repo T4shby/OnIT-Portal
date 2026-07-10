@@ -1,6 +1,10 @@
-@props(['label', 'name', 'type' => 'text', 'required' => false, 'value' => '', 'help' => null])
+@props(['label', 'name', 'type' => 'text', 'required' => false, 'value' => '', 'help' => null, 'fullWidth' => false])
 
-<div class="mb-4">
+@php
+    $spanFull = $fullWidth || $type === 'textarea';
+@endphp
+
+<div @class(['mb-4', 'admin-form-span-full' => $spanFull])>
     @if($type !== 'checkbox')
         <div class="mb-2 flex items-center justify-between gap-2">
             <label for="{{ $name }}" class="portal-label">

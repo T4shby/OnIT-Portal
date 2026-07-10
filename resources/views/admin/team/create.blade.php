@@ -5,13 +5,13 @@
 
     @include('admin.partials.header', ['title' => 'Add team member'])
 
-    <x-card class="max-w-xl">
+    <x-card class="w-full">
         <p class="portal-body-muted mb-6 text-sm">
             Add an On IT {{ strtolower($organisationName) }} colleague who will use the admin portal.
             This is separate from customer users at each client company.
         </p>
 
-        <form method="POST" action="{{ route('admin.team.store') }}">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.team.store') }}">
             @csrf
             @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true])
             @include('admin.partials.form-field', ['label' => 'Email', 'name' => 'email', 'type' => 'email', 'required' => true])
@@ -24,7 +24,7 @@
                 </select>
                 <p class="mt-1 text-xs text-slate-500">Super Admin has full access. Account Manager can manage assigned client companies.</p>
             </div>
-            <div class="mb-4" id="assigned-clients-field">
+            <div class="mb-4 admin-form-span-full" id="assigned-clients-field">
                 <label class="block text-sm font-medium text-slate-700 mb-1">Assigned clients</label>
                 <p class="mb-2 text-xs text-slate-500">Select which client companies this account manager can manage.</p>
                 @foreach($clients as $client)
@@ -37,7 +37,7 @@
                 @endforeach
             </div>
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Add team member</button>
                 <a href="{{ route('admin.team.index') }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
             </div>

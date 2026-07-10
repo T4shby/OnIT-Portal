@@ -1,7 +1,7 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Add Notice'])
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.notices.store') }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.notices.store') }}">
             @csrf
             <div class="mb-4">
                 <label for="client_id" class="portal-label mb-2 block">Client <span class="text-onit">*</span></label>
@@ -16,7 +16,7 @@
             @include('admin.partials.form-field', ['label' => 'Published At', 'name' => 'published_at', 'type' => 'datetime-local'])
             @include('admin.partials.form-field', ['label' => 'Expires At', 'name' => 'expires_at', 'type' => 'datetime-local'])
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="cta-btn text-sm px-6 py-3">Create</button>
                 <a href="{{ route('admin.notices.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
             </div>

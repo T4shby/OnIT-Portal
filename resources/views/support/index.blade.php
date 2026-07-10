@@ -1,11 +1,11 @@
 <x-app-layout>
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900">Support</h1>
-      <p class="text-slate-500 mt-1">Your tickets. Powered by SuperOps.</p>
+      <h1 class="section-heading-white !text-2xl">Support</h1>
+      <p class="portal-body-muted mt-1">Your tickets. Powered by SuperOps.</p>
     </div>
     @if($user->client_id && $apiConfigured)
-      <a href="{{ route('support.create') }}" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">New request</a>
+      <a href="{{ route('support.create') }}" class="cta-btn w-full justify-center text-sm sm:w-auto">New request</a>
     @endif
   </div>
 
@@ -16,29 +16,31 @@
   @elseif($tickets->isEmpty())
     <x-card><x-empty-state title="No tickets" description="Create a request when you need help." /></x-card>
   @else
-    <x-card class="overflow-hidden p-0">
-      <table class="min-w-full divide-y divide-slate-200">
-        <thead class="bg-slate-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Subject</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Updated</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200">
-          @foreach($tickets as $ticket)
-            <tr class="hover:bg-slate-50">
-              <td class="px-6 py-4 text-sm font-medium text-onit">
-                <a href="{{ route('support.show', $ticket['ticketId']) }}">#{{ $ticket['displayId'] ?? $ticket['ticketId'] }}</a>
-              </td>
-              <td class="px-6 py-4 text-sm">{{ $ticket['subject'] ?? '-' }}</td>
-              <td class="px-6 py-4 text-sm"><x-badge variant="info">{{ is_array($ticket['status'] ?? null) ? ($ticket['status']['name'] ?? 'Open') : ($ticket['status'] ?? 'Open') }}</x-badge></td>
-              <td class="px-6 py-4 text-sm text-slate-500">{{ isset($ticket['updatedTime']) ? \Carbon\Carbon::parse($ticket['updatedTime'])->format('d M Y') : '-' }}</td>
+    <x-card class="p-0">
+      <div class="portal-table-wrap">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-b border-white/10">
+              <th class="whitespace-nowrap px-3 py-3 text-left font-condensed text-xs font-bold uppercase tracking-wider text-onit sm:px-6">ID</th>
+              <th class="whitespace-nowrap px-3 py-3 text-left font-condensed text-xs font-bold uppercase tracking-wider text-onit sm:px-6">Subject</th>
+              <th class="whitespace-nowrap px-3 py-3 text-left font-condensed text-xs font-bold uppercase tracking-wider text-onit sm:px-6">Status</th>
+              <th class="whitespace-nowrap px-3 py-3 text-left font-condensed text-xs font-bold uppercase tracking-wider text-onit sm:px-6">Updated</th>
             </tr>
-          @endforeach
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @foreach($tickets as $ticket)
+              <tr class="border-t border-white/5 transition-colors hover:bg-white/[0.02]">
+                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-onit sm:px-6">
+                  <a href="{{ route('support.show', $ticket['ticketId']) }}" class="hover:underline">#{{ $ticket['displayId'] ?? $ticket['ticketId'] }}</a>
+                </td>
+                <td class="px-3 py-4 text-sm text-white/80 sm:px-6">{{ $ticket['subject'] ?? '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm sm:px-6"><x-badge variant="info">{{ is_array($ticket['status'] ?? null) ? ($ticket['status']['name'] ?? 'Open') : ($ticket['status'] ?? 'Open') }}</x-badge></td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-white/50 sm:px-6">{{ isset($ticket['updatedTime']) ? \Carbon\Carbon::parse($ticket['updatedTime'])->format('d M Y') : '-' }}</td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
     </x-card>
   @endif
 </x-app-layout>

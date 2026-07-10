@@ -11,12 +11,15 @@ See also: [AccessAndSync.md](AccessAndSync.md) | [EntraGroupSync.md](EntraGroupS
 ```
 Customer M365 tenant
         │
-        ├──► SuperOps SCIM          security group members  →  SuperOps requesters
+        ├──► SuperOps SCIM
+        │         P1: group assigned to app once → requesters follow group membership
+        │         Free: users assigned to app by portal sync → requesters follow app users
         │
         └──► Portal Entra sync      whole tenant (licensed + shared mailboxes)  →  portal users
+                  also maintains security group membership when entra_group_id is set
 ```
 
-**Portal does not use the security group.** The group controls **SuperOps SCIM** and **Client SSO** assignment only.
+**Portal does not read the group for user discovery.** The group is **maintained** by portal sync and controls **SuperOps SCIM on P1** (assign group to app once). On **Free**, SCIM scope comes from **SuperOps app users** assigned by the portal.
 
 ---
 
@@ -32,7 +35,7 @@ Used for **SuperOps SCIM and Client SSO** — portal sync **maintains membership
 2. Create security group: `On IT Portal - {Company}` — type **Security**, membership **Assigned**
 3. **Leave the group empty** — `portal:sync-entra-users` adds licensed users and shared mailboxes via Microsoft Graph (same scope as portal users)
 4. Copy **Object ID** → **Entra group ID** on the portal client record
-5. Assign this group to the SuperOps Entra app once (SCIM + SAML on the same app — see below)
+5. **Entra ID P1 only:** assign this group to the SuperOps Entra app once (SCIM + SAML on the same app — see below). **Entra ID Free:** do **not** assign the group in Azure — paste **SuperOps Application (client) ID** on the portal (checklist step 05).
 
 ### 1b — Legacy / optional alternatives
 

@@ -45,7 +45,7 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
 | 06 Client SSO (SAML) | **SuperOps** + **Azure** (customer) | Same Entra app as step 05 |
 | 07 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
-| 08 Run sync | **Portal** | Dry run sync / Sync now (spinner + status banner while running) |
+| 08 Run sync | **Portal** | **Dry run** = inline count banner. **Sync now** = background job — refresh for **Last synced** |
 | 09 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
 | 10 Hand off | **Email/ticket** | Tell customer the portal URL |
 
@@ -61,7 +61,7 @@ Per **customer** M365 tenant:
 |---|--------|-------------|---------------------|
 | 1 | Empty security group `On IT Portal - {Company}` | On IT technician (GDAP) | **None** — portal sync fills members |
 | 2 | One Entra enterprise app `SuperOps - {Company}` | On IT technician | **None** — SCIM + SAML on same app |
-| 3 | Group assigned to that app **once** | On IT technician | **None** |
+| 3 | SuperOps app scope | On IT technician | **P1:** assign group to app once in Azure. **Free:** paste Application (client) ID on portal — portal assigns users on sync |
 | 4 | Portal client record (tenant ID, group ID, sync on) | On IT technician (portal) | Dry run → Sync now |
 
 **Separate (On IT tenant, once per platform):** app registration **OnIT Portal for Portals** (OAuth login + Graph sync). Consented into each customer tenant.
@@ -80,7 +80,8 @@ Customer M365 tenant
         │         writes group membership → SuperOps SCIM group
         │
         └──► SuperOps SCIM (Entra native)
-                  group members only → SuperOps requesters
+                  P1: group members on app  →  SuperOps requesters
+                  Free: app-assigned users  →  SuperOps requesters
 ```
 
 The **group** exists because Entra SCIM only provisions users **assigned to the enterprise app** (directly or via group). SuperOps SCIM does not talk to our portal. Portal auto-maintain removes manual membership work.
@@ -331,7 +332,7 @@ MICROSOFT_CLIENT_SECRET=<secret>
 1. **Admin → Clients → Edit**
 2. Confirm tenant ID, group ID, **SuperOps Application (client) ID** (Free tier), sync enabled
 3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps last names updated N`
-4. **Sync now** — button shows **Syncing…** and a status line while Graph + SCIM run (several minutes for ~20+ users — one provision-on-demand call per user); wait for the green banner, then check Entra **Provisioning logs** for **Update** entries
+4. **Sync now** — starts sync **in the background** after redirect (safe to close the browser). Refresh Edit to see **Last synced**. For a live count summary in the terminal, use `php artisan portal:sync-entra-users --client={id}`. Check Entra **Provisioning logs** for **Update** entries after sync completes.
 
 ### CLI alternative
 

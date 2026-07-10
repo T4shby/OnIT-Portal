@@ -6,6 +6,6 @@
     </div>
   </div>
   @if(isset($action))
-    <div>{!! $action !!}</div>
+    <div class="admin-header-actions">{!! $action !!}</div>
   @endif
 </div>

@@ -1,4 +1,4 @@
-<div class="client-create-intro mb-8 space-y-6">
+<div class="client-create-intro">
     <div class="client-create-intro__phase client-create-intro__phase--current">
         <p class="client-create-intro__badge">Step 1 of 2</p>
         <h2 class="client-create-intro__title">Add the client record</h2>

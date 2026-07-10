@@ -32,7 +32,8 @@
                                 @if($user->assignedClients->isEmpty())
                                     <span class="portal-body-muted text-sm">None assigned</span>
                                 @else
-                                    <span class="text-sm">{{ $user->assignedClients->sortBy('name')->pluck('name')->join(', ') }}</span>
+                                    @php $clientNames = $user->assignedClients->sortBy('name')->pluck('name')->join(', '); @endphp
+                                    <span class="block max-w-[12rem] truncate text-sm sm:max-w-xs lg:max-w-md" title="{{ $clientNames }}">{{ $clientNames }}</span>
                                 @endif
                             @else
                                 <span class="portal-body-muted text-sm">—</span>

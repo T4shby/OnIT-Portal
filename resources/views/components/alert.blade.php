@@ -12,6 +12,6 @@ $classes = match($type) {
 <div {{ $attributes->merge(['class' => "border p-4 {$classes}"]) }} x-data="{ show: true }" x-show="show">
     <div class="flex items-start justify-between gap-4">
         <p class="text-sm font-light">{{ $slot }}</p>
-        <button type="button" @click="show = false" class="text-current opacity-60 hover:opacity-100" aria-label="Dismiss">&times;</button>
+        <button type="button" @click="show = false" class="touch-target shrink-0 text-current opacity-60 hover:opacity-100" aria-label="Dismiss">&times;</button>
     </div>
 </div>

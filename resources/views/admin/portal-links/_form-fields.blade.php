@@ -2,10 +2,10 @@
     $link = $portalLink ?? null;
     $selectedType = old('link_type', $link?->link_type?->value ?? 'external');
 @endphp
-<div x-data="{ linkType: '{{ $selectedType }}' }">
+<div x-data="{ linkType: '{{ $selectedType }}' }" class="admin-form-grid">
     @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $link?->name])
     @include('admin.partials.form-field', ['label' => 'Description', 'name' => 'description', 'type' => 'textarea', 'value' => $link?->description])
-    <div class="mb-4">
+    <div class="mb-4 admin-form-span-full">
         <label for="link_type" class="block text-sm font-medium text-slate-700 mb-1">Link type</label>
         <select name="link_type" id="link_type" x-model="linkType" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit">
             @foreach($linkTypes as $type)
@@ -13,7 +13,7 @@
             @endforeach
         </select>
     </div>
-    <div x-show="linkType === 'external'" x-cloak>
+    <div x-show="linkType === 'external'" x-cloak class="admin-form-span-full">
         @include('admin.partials.form-field', ['label' => 'URL', 'name' => 'url', 'type' => 'url', 'required' => true, 'value' => $link?->url])
     </div>
     @include('admin.partials.form-field', ['label' => 'Icon', 'name' => 'icon', 'value' => $link?->icon ?? 'link'])

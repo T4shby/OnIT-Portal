@@ -1,8 +1,8 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Settings'])
 
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.settings.update') }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.settings.update') }}">
             @csrf @method('PUT')
             @foreach($settings as $index => $setting)
                 <input type="hidden" name="settings[{{ $index }}][key]" value="{{ $setting->key }}">
@@ -12,7 +12,7 @@
                     'value' => $setting->value,
                 ])
             @endforeach
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="cta-btn text-sm px-6 py-3">Save Settings</button>
             </div>
         </form>

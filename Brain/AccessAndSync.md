@@ -8,7 +8,8 @@
 Customer M365 tenant
         │
         ├──► Sync 1: SuperOps SCIM
-        │         Security group members only  →  SuperOps requesters
+        │         P1: security group → SuperOps app  →  requesters
+        │         Free: app-assigned users (portal assigns via Graph)  →  requesters
         │
         └──► Sync 2: Portal Entra sync
                   Whole tenant (licensed users + shared mailboxes)  →  portal users
@@ -31,7 +32,7 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 |---|---|
 | **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set. On **Entra ID Free**, **assigns** licensed users + shared mailboxes to the SuperOps enterprise app when `entra_superops_app_id` is set. **Writes SuperOps last name** to `extensionAttribute1` (does not change M365 `displayName`). **Triggers SCIM provision-on-demand once per user** on Sync now |
 | **SuperOps SCIM** | **Yes** — provisions users assigned to the enterprise app (via group on P1, or direct app assignment on Free) |
-| **SuperOps Client SSO (SAML)** | **Yes** — assign the same group to the SAML app |
+| **SuperOps Client SSO (SAML)** | **P1:** assign the same security group to the app once. **Free:** portal assigns users to the same app (SCIM + SAML share one app) |
 
 ### Group membership — automatic
 
@@ -48,7 +49,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | **Entra ID Free** | Same group auto-fill + set `entra_superops_app_id` — portal assigns **licensed users + shared mailboxes** to SuperOps app (no manual Azure assignment) |
 | **Client already has requesters in SuperOps** | Leave them; SCIM matches by email when they enter the group |
 | **Entra ID P1+ dynamic group** | Optional alternative — set `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` so portal does not fight the dynamic rule |
-| **One admin only in group** | ❌ Does not sync other staff — group must contain (or auto-include) everyone SCIM should provision |
+| **One admin only in group before first sync** | On P1, SCIM only sees group members — run **Sync now** so portal fills the group. On Free, portal also assigns the SuperOps app on sync |
 
 **SuperOps Import** is OK for initial CSV load; SCIM handles ongoing changes.
 

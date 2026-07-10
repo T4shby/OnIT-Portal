@@ -1,7 +1,7 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Add Opportunity'])
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.opportunities.store') }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.opportunities.store') }}">
             @csrf
             <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 mb-1">Client</label>
@@ -32,7 +32,7 @@
             </div>
             @include('admin.partials.form-field', ['label' => 'Display Order', 'name' => 'display_order', 'type' => 'number', 'value' => 0])
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg text-sm font-medium">Create</button>
                 <a href="{{ route('admin.opportunities.index') }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
             </div>

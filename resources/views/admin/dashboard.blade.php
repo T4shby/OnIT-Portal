@@ -1,7 +1,7 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Admin Dashboard'])
 
-    <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+    <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <x-card>
             <p class="admin-stat-label">Clients</p>
             <p class="admin-stat-value">{{ $stats['clients'] }}</p>

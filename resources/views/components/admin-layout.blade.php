@@ -1,5 +1,7 @@
 @props(['title' => null])
 
 <x-layouts.admin :title="$title">
-    {{ $slot }}
+    <div class="admin-page">
+        {{ $slot }}
+    </div>
 </x-layouts.admin>

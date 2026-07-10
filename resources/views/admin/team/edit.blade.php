@@ -5,8 +5,8 @@
 
     @include('admin.partials.header', ['title' => 'Edit team member'])
 
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.team.update', $user) }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.team.update', $user) }}">
             @csrf @method('PUT')
             @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $user->name])
             @include('admin.partials.form-field', ['label' => 'Email', 'name' => 'email', 'type' => 'email', 'required' => true, 'value' => $user->email])
@@ -18,7 +18,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="mb-4" id="assigned-clients-field">
+            <div class="mb-4 admin-form-span-full" id="assigned-clients-field">
                 <label class="block text-sm font-medium text-slate-700 mb-1">Assigned clients</label>
                 <p class="mb-2 text-xs text-slate-500">Select which client companies this account manager can manage.</p>
                 @foreach($clients as $client)
@@ -31,7 +31,7 @@
                 @endforeach
             </div>
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $user->is_active])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Update</button>
                 <a href="{{ route('admin.team.index') }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
             </div>

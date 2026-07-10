@@ -5,7 +5,7 @@
 
     @include('admin.partials.header', ['title' => 'Add user — '.$client->name])
 
-    <x-card class="max-w-xl">
+    <x-card class="w-full">
         <p class="portal-body-muted mb-6 text-sm">
             Add a portal user for <strong class="text-white/80">{{ $client->name }}</strong>.
             @if(auth()->user()->role === \App\Enums\UserRole::SuperAdmin)
@@ -13,7 +13,7 @@
             @endif
         </p>
 
-        <form method="POST" action="{{ route('admin.users.store') }}">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.users.store') }}">
             @csrf
             <input type="hidden" name="client_id" value="{{ $client->id }}">
             @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true])
@@ -27,7 +27,7 @@
                 </select>
             </div>
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="px-4 py-2 bg-onit text-white rounded-lg hover:bg-onit-hover text-sm font-medium">Create user</button>
                 <a href="{{ route('admin.clients.users.index', $client) }}" class="px-4 py-2 text-slate-600 text-sm">Cancel</a>
             </div>

@@ -60,7 +60,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 |---|------|-----|
 | 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
 | 02 | Link Pax8 company (optional) | On IT technician (portal / SuperOps) |
-| 03 | M365 security group (SuperOps) | On IT technician (customer Entra / GDAP) |
+| 03 | M365 security group + Entra tenant | On IT technician (customer Entra / GDAP) |
 | 04 | Portal Graph admin consent | On IT technician (customer Entra / GDAP) |
 | 05 | SuperOps SCIM (requesters) | On IT technician (customer Entra / GDAP) |
 | 06 | SuperOps Client SSO (SAML) | On IT technician (customer Entra / GDAP) |
@@ -69,7 +69,9 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 09 | Test sign-in | On IT technician (portal / SuperOps) |
 | 10 | Hand off to customer | On IT technician (portal / SuperOps) |
 
-**Before step 01:** **Admin → Clients → Add Client** — name + optional SuperOps/Pax8 only → **Create client**. No Entra fields on that page.
+**Before step 01:** **Admin → Clients → Add Client** — name + optional SuperOps/Pax8 only → **Create client**. No Entra fields on that page. Slug is auto-generated from the name.
+
+**Before step 03:** On **Edit Client**, set **Customer Entra license tier** (`Entra ID Free` or `Entra ID P1 or higher`) on the left. This changes steps 03, 05, and 07 instructions. **Every customer creates the security group** `On IT Portal - {Company}` in step 03 — on Free, SuperOps SCIM uses the SuperOps app user list (step 05), not group assignment in Azure.
 
 ### Auto vs manual checklist steps
 
@@ -77,18 +79,25 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 |------|------------------------------|----------------------|
 | 01 SuperOps linked | `SuperOps Account ID` saved | — |
 | 02 Pax8 linked (optional) | Pax8 off, or company ID saved | — |
-| 03 M365 security group (SuperOps) | `Entra group ID` saved on client | Group exists in M365 but ID not pasted yet |
+| 03 M365 security group + Entra tenant | **Both** `Entra tenant ID` and `Entra group ID` saved | Done in Azure but IDs not pasted yet |
 | 04 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
 | 05 SuperOps SCIM | — | Done in SuperOps + customer Entra |
 | 06 SuperOps Client SSO (SAML) | — | SAML configured on same Entra app |
-| 07 Enable portal sync | Tenant ID saved + Entra sync enabled | — |
+| 07 Enable portal sync | Entra sync enabled **and** prerequisites met (see below) | — |
 | 08 Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
 | 09 Test sign-in | — | You tested in incognito |
 | 10 Hand off | — | Customer notified |
 
-**Rule:** Portal sync reads the **whole tenant**, **maintains** the SuperOps SCIM security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **writes the full SuperOps last name** to `extensionAttribute1` (e.g. `Munns (User Mailbox)`) — **not** M365 `displayName`. Entra SCIM maps `name.familyName` **Direct** from `extensionAttribute1`. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer).
+**Step 07 prerequisites** (`hasEntraSyncPrerequisites()` in code):
 
-**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. **Sync now** shows a spinner and status banner while running (do not close the page; SCIM phase is ~1.5s per user). Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
+| License tier | Required on Edit (left column) |
+|--------------|--------------------------------|
+| **Entra ID P1** | Entra tenant ID + Entra group ID + Entra sync enabled |
+| **Entra ID Free** | Above + **SuperOps Application (client) ID** |
+
+**Rule:** Portal sync reads the **whole tenant**, **maintains** the security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **writes the full SuperOps last name** to `extensionAttribute1` (e.g. `(User Mailbox)`) — **not** M365 `displayName`. Portal user names in app.onit.ltd stay plain M365 names. Entra SCIM maps `name.familyName` **Direct** from `extensionAttribute1`. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer).
+
+**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. **Dry run** shows a count summary banner immediately. **Sync now** starts a **background job** after the page redirects — refresh Edit to see **Last synced**; you can close the browser. For a live count summary on the server, use `php artisan portal:sync-entra-users --client={id}`. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
 
 ---
 
@@ -223,6 +232,8 @@ Manual **Admin → Users** remains available for pilots or exceptions (`provisio
 ---
 
 ## Part 1 — New client organisation
+
+> **Canonical flow:** use the in-app checklist on **Edit Client** (steps 01–10). The Path A / Path B sections below are **legacy reference** for Global SSO vs Client SSO architecture — do not use them for day-to-day Entra sync onboarding (use the checklist instead).
 
 Choose **Path A** or **Path B** before you start.
 

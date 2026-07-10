@@ -119,7 +119,11 @@ KNOWLEDGE_BASE_URL=https://your-kb-url
 BILLING_PORTAL_URL=https://your-billing-url
 
 ENTRA_SYNC_ENABLED=true
+ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
+ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1
 ```
+
+See [EntraGroupSync.md](EntraGroupSync.md) for optional keys (`ENTRA_SYNC_CLIENT_ID`, provision-on-demand interval, etc.).
 
 ### 7. Run Migrations and Seeders
 
@@ -164,16 +168,25 @@ In Plesk → Scheduled Tasks, add:
 
 1. Go to [Azure Portal](https://portal.azure.com) → Microsoft Entra ID → App registrations
 2. New registration:
-   - Name: "On IT Portal"
+   - Name: **OnIT Portal for Portals**
    - Supported account types: "Accounts in any organizational directory"
    - Redirect URI: Web → `https://app.onit.ltd/auth/microsoft/callback` (your Laravel subdomain — **not** `portal.onit.ltd`)
 3. Note the Application (client) ID
 4. Certificates & secrets → New client secret → note the value
 5. API permissions → Add:
-   - **Delegated:** `Microsoft Graph` → `openid`, `profile`, `email`, `User.Read` (login — unchanged)
-   - **Application:** `Microsoft Graph` → `GroupMember.Read.All`, `User.Read.All` (Entra group sync — [EntraGroupSync.md](EntraGroupSync.md))
+   - **Delegated:** `Microsoft Graph` → `openid`, `profile`, `email`, `User.Read` (portal login)
+   - **Application:** `Microsoft Graph` → all **nine** permissions below (Entra sync — full list in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0):
+     - `User.Read.All`
+     - `User.ReadWrite.All`
+     - `LicenseAssignment.Read.All`
+     - `MailboxSettings.Read`
+     - `Group.Read.All`
+     - `GroupMember.ReadWrite.All`
+     - `AppRoleAssignment.ReadWrite.All`
+     - `Application.Read.All`
+     - `Synchronization.ReadWrite.All`
 6. Grant admin consent in the On IT home tenant
-7. Grant admin consent in **each customer tenant** where you sync (consent URL in [EntraGroupSync.md](EntraGroupSync.md))
+7. Grant admin consent in **each customer tenant** where you sync (consent URL on client Edit — checklist step 04)
 
 ## Post-Deployment Verification
 

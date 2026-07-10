@@ -1,7 +1,7 @@
 <x-admin-layout>
     @include('admin.partials.header', ['title' => 'Edit Notice'])
-    <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.notices.update', $notice) }}">
+    <x-card class="w-full">
+        <form method="POST" class="admin-form-grid" action="{{ route('admin.notices.update', $notice) }}">
             @csrf @method('PUT')
             <div class="mb-4">
                 <label for="client_id" class="portal-label mb-2 block">Client</label>
@@ -26,7 +26,7 @@
                 'value' => $notice->expires_at?->format('Y-m-d\TH:i'),
             ])
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $notice->is_active])
-            <div class="flex gap-3 mt-6">
+            <div class="admin-form-actions">
                 <button type="submit" class="cta-btn text-sm px-6 py-3">Update</button>
                 <a href="{{ route('admin.notices.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
             </div>

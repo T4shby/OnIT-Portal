@@ -22,5 +22,5 @@ $logo = match (true) {
         loading="lazy"
     />
 @else
-    <span class="text-lg font-semibold text-onit-ink">{{ $link->name }}</span>
+    <span class="portal-card-title text-lg">{{ $link->name }}</span>
 @endif
