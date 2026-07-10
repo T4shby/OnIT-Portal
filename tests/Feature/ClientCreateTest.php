@@ -37,8 +37,36 @@ class ClientCreateTest extends TestCase
             ->get(route('admin.clients.create'));
 
         $response->assertOk();
-        $response->assertSee('setup checklist opens on the next screen', false);
+        $response->assertSee('Step 1 of 2', false);
+        $response->assertSee('Add the client record', false);
+        $response->assertSee('Step 2 of 2', false);
         $response->assertDontSee('Save checklist', false);
+        $response->assertDontSee('name="entra_tenant_id"', false);
+        $response->assertDontSee('name="entra_group_id"', false);
+        $response->assertDontSee('name="entra_sync_enabled"', false);
+        $response->assertDontSee('name="entra_superops_app_id"', false);
+    }
+
+    public function test_create_page_does_not_accept_entra_fields_on_store(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.store'), [
+                'name' => 'MXVI',
+                'entra_tenant_id' => '664302e2-8885-4ec1-9958-12233cbbeedb',
+                'entra_group_id' => 'd77ea486-e2fb-4dbe-b0a9-f322fd8cf1c3',
+                'entra_superops_app_id' => '8c46a344-a010-4c78-99b9-df8b9caaba2f',
+                'entra_sync_enabled' => '1',
+                'is_active' => '1',
+            ]);
+
+        $client = Client::where('name', 'MXVI')->firstOrFail();
+
+        $this->assertNull($client->entra_tenant_id);
+        $this->assertNull($client->entra_group_id);
+        $this->assertNull($client->entra_superops_app_id);
+        $this->assertFalse($client->entra_sync_enabled);
     }
 
     public function test_edit_page_uses_update_not_create(): void
@@ -52,7 +80,7 @@ class ClientCreateTest extends TestCase
         $response->assertOk();
         $response->assertSee('Edit Client — Ductec LTD', false);
         $response->assertSee('Save client', false);
-        $response->assertDontSee('>Create<', false);
+        $response->assertDontSee('Create client', false);
     }
 
     public function test_updating_client_redirects_back_to_edit(): void

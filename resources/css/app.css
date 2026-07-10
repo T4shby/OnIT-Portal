@@ -571,6 +571,43 @@
         @apply bg-onit/25 text-onit ring-1 ring-onit/40;
     }
 
+    .client-create-intro__phase {
+        @apply border px-5 py-5;
+    }
+
+    .client-create-intro__phase--current {
+        @apply border-onit/50 bg-onit/10;
+    }
+
+    .client-create-intro__phase--next {
+        @apply border-white/10 bg-white/[0.02];
+    }
+
+    .client-create-intro__badge {
+        @apply mb-3 inline-block bg-onit px-2.5 py-1 font-condensed text-[0.65rem] font-extrabold uppercase tracking-[0.2em] text-black;
+    }
+
+    .client-create-intro__badge--muted {
+        @apply bg-white/15 text-white/70;
+    }
+
+    .client-create-intro__title {
+        @apply mb-3 text-lg font-bold text-white underline decoration-onit decoration-2 underline-offset-4;
+    }
+
+    .client-create-intro__list {
+        @apply mt-4 space-y-2 text-sm leading-relaxed text-white/80;
+    }
+
+    .client-create-intro__list li {
+        @apply relative border-b border-white/[0.06] pb-2 pl-5 last:border-b-0 last:pb-0;
+    }
+
+    .client-create-intro__list li::before {
+        content: '—';
+        @apply absolute left-0 font-bold text-onit;
+    }
+
     .field-help {
         @apply relative shrink-0;
     }

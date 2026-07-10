@@ -75,17 +75,17 @@ class ClientController extends Controller
             'superops_sso_enabled' => $request->boolean('superops_sso_enabled'),
             'pax8_company_id' => $request->pax8_company_id,
             'pax8_sso_enabled' => $request->boolean('pax8_sso_enabled'),
-            'entra_tenant_id' => $request->entra_tenant_id,
-            'entra_group_id' => $request->entra_group_id,
-            'entra_superops_app_id' => $request->entra_superops_app_id,
-            'entra_sync_enabled' => $request->boolean('entra_sync_enabled'),
+            'entra_tenant_id' => null,
+            'entra_group_id' => null,
+            'entra_superops_app_id' => null,
+            'entra_sync_enabled' => false,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         return redirect()->route('admin.clients.edit', $client)
-            ->with('success', 'Client saved. Use Update on the left to change fields; the setup guide on the right tracks progress.');
+            ->with('success', 'Client created. Work through the setup guide on the right — step 01 first. Microsoft Entra fields on the left appear after you complete checklist step 03 (M365 security group).');
     }
 
     public function edit(Client $client): View

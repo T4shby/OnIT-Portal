@@ -69,7 +69,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 09 | Test sign-in | On IT technician (portal / SuperOps) |
 | 10 | Hand off to customer | On IT technician (portal / SuperOps) |
 
-**Before step 01:** **Admin → Clients → Add Client** — fill the form and click **Create** (not part of the numbered checklist).
+**Before step 01:** **Admin → Clients → Add Client** — name + optional SuperOps/Pax8 only → **Create client**. No Entra fields on that page.
 
 ### Auto vs manual checklist steps
 

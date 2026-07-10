@@ -78,10 +78,13 @@ This is the **same process for every MSP customer** — scale by repeating **Adm
 
 ## Part 2 — You: Portal client record (~5 min)
 
+**Page:** **Admin → Clients → Add Client** — form only. No checklist, no Microsoft Entra fields, no sync buttons.
+
 1. Open **https://app.onit.ltd** and sign in with your **On IT** Microsoft account (`@onit.ltd`).  
 2. Click **Admin** in the top navigation (only On IT staff see this).  
 3. Go to **Clients → Add Client**.  
-4. Fill in:
+4. Read **Step 1 of 2** on the page — you are only creating the client record.  
+5. Fill in:
 
 | Field | What to enter |
 |-------|----------------|
@@ -92,9 +95,9 @@ This is the **same process for every MSP customer** — scale by repeating **Adm
 | **Pax8 Company ID** | Optional — only if they use the Pax8 licensing tile |
 | **Pax8 access enabled** | ✓ if using Pax8 |
 
-5. Click **Create** once — you land on **Edit Client** with an **Update** button (not Create again). The setup checklist appears on the right.
+6. Click **Create client** once — you land on **Edit Client** with the **10-step setup guide** on the right. Entra tenant ID, group ID, and sync appear on the left **after** you work through checklist step 03 (M365 security group).
 
-**Done when:** client exists and SuperOps Account ID is saved (checklist step 2).
+**Done when:** client exists (you are on Edit). SuperOps Account ID saved = checklist step 01 done.
 
 ---
 
