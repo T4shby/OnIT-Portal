@@ -112,7 +112,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertFalse($step['auto_detected']);
     }
 
-    public function test_tenant_id_completes_entra_step_on_free(): void
+    public function test_tenant_id_alone_does_not_complete_security_group_step_on_free(): void
     {
         $client = Client::factory()->create([
             'entra_license_tier' => 'free',
@@ -123,15 +123,16 @@ class ClientOnboardingServiceTest extends TestCase
         $step = collect(app(ClientOnboardingService::class)->steps($client))
             ->firstWhere('key', 'entra_group_created');
 
-        $this->assertTrue($step['complete']);
-        $this->assertTrue($step['auto_detected']);
-        $this->assertSame('Customer Entra tenant', $step['title']);
+        $this->assertFalse($step['complete']);
+        $this->assertFalse($step['auto_detected']);
+        $this->assertSame('M365 security group + Entra tenant', $step['title']);
     }
 
     public function test_group_id_auto_completes_security_group_step(): void
     {
         $client = Client::factory()->create([
             'entra_license_tier' => 'p1',
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
             'entra_group_id' => '22222222-2222-2222-2222-222222222222',
         ]);
 
@@ -187,7 +188,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Single sign-on', $text);
     }
 
-    public function test_group_step_clarifies_portal_vs_superops_scope(): void
+    public function test_group_step_clarifies_portal_vs_superops_scope_on_free(): void
     {
         $client = Client::factory()->create([
             'name' => 'Ductec LTD',
@@ -197,10 +198,12 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
             ->firstWhere('key', 'entra_group_created')['instructions']);
 
-        $this->assertStringContainsString('Do not create a security group', $text);
-        $this->assertStringNotContainsString('New group', $text);
-        $this->assertStringNotContainsString('optional', strtolower($text));
-        $this->assertStringContainsString('SuperOps', $text);
+        $this->assertStringContainsString('New group', $text);
+        $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
+        $this->assertStringContainsString('Why this group on Entra ID Free?', $text);
+        $this->assertStringContainsString('Do not assign this group to the SuperOps app', $text);
+        $this->assertStringContainsString('Sync now', $text);
+        $this->assertStringNotContainsString('Do not create a security group', $text);
     }
 
     public function test_free_part_d_explains_portal_field_and_overview_app_id(): void
@@ -217,7 +220,7 @@ class ClientOnboardingServiceTest extends TestCase
 
         $text = implode(' ', array_merge($partD['steps'], $partD['notes'] ?? []));
 
-        $this->assertStringContainsString('Entra ID Free only', $text);
+        $this->assertStringContainsString('On Entra ID Free you do not assign', $text);
         $this->assertStringNotContainsString('Entra ID P1', $text);
         $this->assertStringNotContainsString('Users and groups → Add user/group', $text);
         $this->assertCount(3, $partD['steps']);
@@ -288,7 +291,8 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertArrayHasKey('entra_group_id', $helps);
         $this->assertArrayHasKey('entra_superops_app_id', $helps);
         $this->assertStringContainsString('MXVI', implode(' ', $helps['entra_superops_app_id']));
-        $this->assertStringContainsString('Not used on Entra ID Free', $helps['entra_group_id'][0]);
+        $this->assertStringContainsString('Create this group in step 03', implode(' ', $helps['entra_group_id']));
+        $this->assertStringContainsString('upgrade to P1', implode(' ', $helps['entra_group_id']));
     }
 
     public function test_update_checklist_persists_manual_checkpoints(): void

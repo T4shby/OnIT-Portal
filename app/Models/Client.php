@@ -58,7 +58,7 @@ class Client extends Model
             return filled($this->entra_group_id);
         }
 
-        return filled($this->entra_superops_app_id);
+        return filled($this->entra_group_id) && filled($this->entra_superops_app_id);
     }
 
     public function users(): HasMany

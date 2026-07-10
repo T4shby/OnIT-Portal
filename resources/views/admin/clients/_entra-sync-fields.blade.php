@@ -28,17 +28,16 @@
     </div>
 
     <ul class="client-create-intro__list mb-5 text-sm">
+        <li><strong class="text-onit">Step 03</strong> — Entra tenant ID + Entra group ID (create empty group in Azure; portal fills members on sync)</li>
         @if($isEntraFree)
-            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID only (no security group on Free)</li>
-            <li><strong class="text-onit">Step 05</strong> — SuperOps Application (client) ID — required on Free</li>
+            <li><strong class="text-onit">Step 05</strong> — SuperOps Application (client) ID — required on Free (SCIM app scope)</li>
         @else
-            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID + Entra group ID (required on P1)</li>
             <li><strong class="text-onit">Step 05</strong> — Assign security group to SCIM app in Azure</li>
         @endif
         <li><strong class="text-onit">Step 07</strong> — Tick Entra sync enabled</li>
         <li><strong class="text-onit">Step 08</strong> — Dry run sync / Sync now (buttons below this form)</li>
     </ul>
-    <p class="mb-4 portal-body-muted text-xs">Licensed M365 users and shared mailboxes in the customer tenant are synced automatically. Portal user names match M365 (no suffix). The M365 directory view shows <strong class="text-white/70">(User Mailbox)</strong> or <strong class="text-white/70">(Shared Mailbox)</strong> for clarity. SuperOps requesters get the same suffix via <strong class="text-white/70">extensionAttribute1</strong> + SCIM <strong class="text-white/70">name.formatted</strong> mapping — not by changing M365 display names. Shared mailboxes cannot sign in to the portal but are synced to SuperOps. On <strong class="text-white/70">Entra ID Free</strong>, paste the SuperOps <strong class="text-white/70">Application (client) ID</strong> below so sync assigns users to the SCIM app. Click <strong class="text-white/70">Help</strong> next to any field for step-by-step instructions.</p>
+    <p class="mb-4 portal-body-muted text-xs">Every customer gets a security group in step 03. On <strong class="text-white/70">Entra ID Free</strong>, SuperOps requesters come from the SuperOps app (step 05) — the group is your managed-user list in M365 and is ready if they upgrade to P1 later. Click <strong class="text-white/70">Sync now</strong> in step 08 to fill the group; do not add members by hand in Azure. Click <strong class="text-white/70">Help</strong> next to any field for more detail.</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra tenant ID',
@@ -47,29 +46,12 @@
     'help' => $fieldHelps['entra_tenant_id'],
 ])
 
-@if($isEntraFree)
-    @if(filled($client->entra_group_id))
-        <div class="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-white/85">
-            <strong class="text-white">Unused security group ID saved.</strong>
-            On Entra ID Free this group is <strong class="text-white">not</strong> used for SuperOps SCIM.
-            Clear <strong class="text-white">Entra group ID</strong> below and Save client, or delete
-            <strong class="text-white">On IT Portal - {{ $client->name }}</strong> in Azure if you created it by mistake.
-        </div>
-        @include('admin.partials.form-field', [
-            'label' => 'Entra group ID (clear on Free — not used for SCIM)',
-            'name' => 'entra_group_id',
-            'value' => $client->entra_group_id ?? '',
-            'help' => $fieldHelps['entra_group_id'],
-        ])
-    @endif
-@else
 @include('admin.partials.form-field', [
-    'label' => 'Entra group ID (SuperOps SCIM)',
+    'label' => 'Entra group ID (On IT Portal security group)',
     'name' => 'entra_group_id',
     'value' => $client->entra_group_id ?? '',
     'help' => $fieldHelps['entra_group_id'],
 ])
-@endif
 
 @include('admin.partials.form-field', [
     'label' => $isEntraFree ? 'SuperOps Application (client) ID (required on Free)' : 'SuperOps Application (client) ID (optional on P1)',
