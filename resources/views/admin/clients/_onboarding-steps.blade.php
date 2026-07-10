@@ -75,7 +75,7 @@
                 @if($step['key'] === 'entra_admin_consent_granted' && $adminConsentUrl)
                     <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
                         <strong class="text-white">Not app.onit.ltd login.</strong>
-                        Use only the Microsoft URL below. Sign in as a <strong class="text-white">Ductec</strong> Global Admin at Microsoft → Accept.
+                        Use only the Microsoft URL below. Sign in as a <strong class="text-white">{{ $client->name }}</strong> Global Admin at Microsoft → Accept.
                         If you land on <code class="text-onit">app.onit.ltd/login</code>, you opened the wrong link.
                     </p>
                     <div class="onboarding-guide__extra" x-data="{ copied: false }">

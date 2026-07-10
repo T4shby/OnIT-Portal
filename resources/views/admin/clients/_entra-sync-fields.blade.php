@@ -41,7 +41,7 @@
 <p class="mb-4 -mt-2 portal-body-muted text-xs">
     <strong class="text-white/70">Paste the Application (client) ID</strong> from
     <strong class="text-white/70">App registrations → your SuperOps app → Overview</strong>
-    (e.g. <code class="text-white/60">8c46a344-a010-4c78-99b9-df8b9caaba2f</code>).
+    (format: <code class="text-white/60">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>).
     Do <strong class="text-white/70">not</strong> use the <strong class="text-white/70">Object ID</strong> on that same page.
     Requires <strong class="text-white/70">Application.Read.All</strong> on the portal app (re-consent in customer tenant after adding).
 </p>

@@ -99,6 +99,22 @@ class ClientCreateTest extends TestCase
         $response->assertRedirect(route('admin.clients.edit', $client));
     }
 
+    public function test_edit_page_admin_consent_uses_client_name_not_pilot_example(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'name' => 'MXVI',
+            'entra_tenant_id' => '664302e2-8885-4ec1-9958-12233cbbeedb',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client));
+
+        $response->assertOk();
+        $response->assertSee('Sign in as a <strong class="text-white">MXVI</strong> Global Admin', false);
+        $response->assertDontSee('Ductec', false);
+    }
+
     public function test_saving_entra_group_id_completes_security_group_step(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);

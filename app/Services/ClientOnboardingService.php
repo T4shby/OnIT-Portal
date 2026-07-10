@@ -144,7 +144,7 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => $entraGroupSaved,
                 'blocked' => ! $superopsLinked,
-            ], $this->entraGroupGuide($groupName)),
+            ], $this->entraGroupGuide($groupName, $client->name)),
             $this->withManual([
                 'key' => 'entra_admin_consent_granted',
                 'title' => 'Portal Graph admin consent',
@@ -153,7 +153,7 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => $syncRun,
                 'blocked' => ! $entraTenantSaved,
-            ], $this->adminConsentGuide()),
+            ], $this->adminConsentGuide($client->name)),
             $this->withManual([
                 'key' => 'superops_scim_configured',
                 'title' => 'SuperOps SCIM (requesters)',
@@ -227,12 +227,12 @@ class ClientOnboardingService
     /**
      * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
      */
-    private function entraGroupGuide(string $groupName): array
+    private function entraGroupGuide(string $groupName, string $clientName): array
     {
         return OnboardingManual::build(
             prerequisites: [
                 'On IT tenant platform setup is already complete (OnIT Portal for Portals has all 9 Graph permissions). That is not part of this client checklist.',
-                'You are signed into portal.azure.com as the customer tenant (e.g. Ductec Ltd), not On IT — switch directory top-right if needed.',
+                'You are signed into portal.azure.com as the **'.$clientName.'** tenant, not On IT — switch directory top-right if needed.',
             ],
             sections: [
                 OnboardingManual::section(
@@ -270,7 +270,7 @@ class ClientOnboardingService
     /**
      * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
      */
-    private function adminConsentGuide(): array
+    private function adminConsentGuide(string $clientName): array
     {
         return OnboardingManual::build(
             prerequisites: [
@@ -279,7 +279,7 @@ class ClientOnboardingService
             ],
             notes: [
                 'This step is Microsoft only — not Sign in with Microsoft on app.onit.ltd.',
-                'The consent page must show the customer company name (e.g. Ductec Ltd), not On IT Technology Partners.',
+                'The consent page must show **'.$clientName.'** (this customer), not On IT Technology Partners.',
                 'After Accept, Microsoft redirects briefly to the portal success page — that is expected, not a login failure. Step 04 ticks automatically.',
                 'This grants OnIT Portal for Portals these Application permissions: User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All.',
                 'Application.Read.All resolves SuperOps Application (client) ID to the enterprise app during sync — required when using client ID on Entra ID Free.',
@@ -294,8 +294,8 @@ class ClientOnboardingService
                     [
                         'Copy or open the Admin consent URL below — it must contain /adminconsent.',
                         'Use a private/incognito window so you are not signed into the On IT tenant.',
-                        'Sign in as a customer tenant Global Administrator.',
-                        'Confirm the page shows the customer company name, not On IT.',
+                        'Sign in as a Global Administrator of **'.$clientName.'**.',
+                        'Confirm the page shows **'.$clientName.'**, not On IT.',
                         'Review the permissions list → click Accept.',
                     ],
                 ),
@@ -698,7 +698,7 @@ class ClientOnboardingService
             ],
             'entra_superops_app_id' => [
                 'Recommended: customer Entra → App registrations → your SuperOps app → Overview → Application (client) ID.',
-                'Example: 8c46a344-a010-4c78-99b9-df8b9caaba2f — paste that GUID here.',
+                'Paste the Application (client) ID GUID from App registrations → Overview (not Object ID).',
                 'Do not paste Object ID from the same Overview page — that causes Graph errors.',
                 'Requires Application.Read.All on OnIT Portal for Portals (On IT tenant) + admin consent in the customer tenant.',
                 'Required on Entra ID Free when Azure blocks group assignment to enterprise apps.',
