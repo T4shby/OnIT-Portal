@@ -19,6 +19,7 @@ class Client extends Model
         'pax8_company_id',
         'pax8_sso_enabled',
         'entra_tenant_id',
+        'entra_license_tier',
         'entra_group_id',
         'entra_superops_app_id',
         'entra_sync_enabled',
@@ -43,6 +44,21 @@ class Client extends Model
     {
         return $this->entra_sync_enabled
             && filled($this->entra_tenant_id);
+    }
+
+    public function hasEntraSyncPrerequisites(): bool
+    {
+        if (! $this->hasEntraSyncConfigured()) {
+            return false;
+        }
+
+        $tier = $this->entra_license_tier ?? 'free';
+
+        if ($tier === 'p1') {
+            return filled($this->entra_group_id);
+        }
+
+        return filled($this->entra_superops_app_id);
     }
 
     public function users(): HasMany

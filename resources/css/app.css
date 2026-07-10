@@ -492,6 +492,14 @@
         @apply border-b border-onit/20 pb-3 last:border-b-0 last:pb-0;
     }
 
+    .onboarding-manual__hint--section {
+        @apply mb-3 mt-5;
+    }
+
+    .onboarding-manual__section-explain {
+        @apply border-t border-white/10 pt-4;
+    }
+
     .onboarding-manual__section {
         @apply border border-white/10 bg-onit-ink/40 px-5 py-5;
     }

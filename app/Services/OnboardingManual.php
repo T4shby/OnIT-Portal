@@ -5,7 +5,7 @@ namespace App\Services;
 /**
  * Structured install-manual format for in-app onboarding steps.
  *
- * @phpstan-type ManualSection array{title: string, where: string|null, steps: list<string>}
+ * @phpstan-type ManualSection array{title: string, where: string|null, steps: list<string>, notes?: list<string>}
  * @phpstan-type ManualGuide array{
  *     prerequisites: list<string>,
  *     sections: list<ManualSection>,
@@ -40,13 +40,19 @@ class OnboardingManual
      * @param  list<string>  $steps
      * @return ManualSection
      */
-    public static function section(string $title, ?string $where, array $steps): array
+    public static function section(string $title, ?string $where, array $steps, array $notes = []): array
     {
-        return [
+        $section = [
             'title' => $title,
             'where' => $where,
             'steps' => $steps,
         ];
+
+        if ($notes !== []) {
+            $section['notes'] = $notes;
+        }
+
+        return $section;
     }
 
     /**
@@ -98,6 +104,10 @@ class OnboardingManual
 
             foreach ($section['steps'] as $step) {
                 $lines[] = $step;
+            }
+
+            foreach ($section['notes'] ?? [] as $note) {
+                $lines[] = 'Why: '.$note;
             }
         }
 

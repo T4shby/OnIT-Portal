@@ -60,7 +60,7 @@ class ClientController extends Controller
             'onboardingSteps' => $this->onboarding->steps($client),
             'onboardingProgress' => $this->onboarding->progress($client),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
-            'fieldHelps' => $this->onboarding->fieldHelps(),
+            'fieldHelps' => $this->onboarding->fieldHelps($client),
         ];
     }
 
@@ -76,6 +76,7 @@ class ClientController extends Controller
             'pax8_company_id' => $request->pax8_company_id,
             'pax8_sso_enabled' => $request->boolean('pax8_sso_enabled'),
             'entra_tenant_id' => null,
+            'entra_license_tier' => ClientOnboardingService::ENTRA_LICENSE_FREE,
             'entra_group_id' => null,
             'entra_superops_app_id' => null,
             'entra_sync_enabled' => false,
@@ -85,7 +86,7 @@ class ClientController extends Controller
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         return redirect()->route('admin.clients.edit', $client)
-            ->with('success', 'Client created. Work through the setup guide on the right — step 01 first. Microsoft Entra fields on the left appear after you complete checklist step 03 (M365 security group).');
+            ->with('success', 'Client created. Work through the setup guide on the right — step 01 first. On the left, set Entra license tier when you reach step 03 (Free vs P1 changes which fields are required).');
     }
 
     public function edit(Client $client): View
@@ -110,6 +111,7 @@ class ClientController extends Controller
             'pax8_company_id' => $request->pax8_company_id,
             'pax8_sso_enabled' => $request->boolean('pax8_sso_enabled'),
             'entra_tenant_id' => $request->entra_tenant_id,
+            'entra_license_tier' => $request->input('entra_license_tier', ClientOnboardingService::ENTRA_LICENSE_FREE),
             'entra_group_id' => $request->entra_group_id,
             'entra_superops_app_id' => $request->entra_superops_app_id,
             'entra_sync_enabled' => $request->boolean('entra_sync_enabled'),
@@ -124,7 +126,7 @@ class ClientController extends Controller
         $message = 'Client updated successfully.';
 
         if (filled($client->entra_group_id)) {
-            $message .= ' Security group step (04) is complete — Entra group ID is saved.';
+            $message .= ' Security group step (03) is complete — Entra group ID is saved.';
         }
 
         return redirect()->route('admin.clients.edit', $client)
@@ -136,6 +138,10 @@ class ClientController extends Controller
         $this->authorize('update', $client);
 
         $dryRun = request()->boolean('dry_run');
+
+        if (! config('services.entra_sync.enabled')) {
+            return back()->with('error', 'Entra sync is disabled (ENTRA_SYNC_ENABLED=false).');
+        }
 
         if ($dryRun) {
             return $this->finishEntraSyncResponse($client, $sync->syncClient($client, true), dryRun: true);

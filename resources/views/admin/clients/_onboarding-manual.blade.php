@@ -52,6 +52,17 @@
                         <li class="onboarding-manual__step">{!! \App\Support\OnboardingStepFormatter::rich($step) !!}</li>
                     @endforeach
                 </ol>
+
+                @if(!empty($section['notes']))
+                    <div class="onboarding-manual__section-explain">
+                        <p class="onboarding-manual__hint onboarding-manual__hint--section">Explanation — not a numbered step.</p>
+                        <ul class="onboarding-manual__prereq-list">
+                            @foreach($section['notes'] as $note)
+                                <li>{!! \App\Support\OnboardingStepFormatter::rich($note) !!}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </div>
         @endforeach
 

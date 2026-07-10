@@ -1,5 +1,6 @@
 @php
-    $fieldHelps = app(\App\Services\ClientOnboardingService::class)->fieldHelps();
+    $fieldHelps = app(\App\Services\ClientOnboardingService::class)->fieldHelps($client);
+    $isEntraFree = ($client->entra_license_tier ?? 'free') === 'free';
 @endphp
 
 <div class="entra-sync-fields mt-8 border-t border-white/10 pt-6">
@@ -9,9 +10,31 @@
         Work the checklist on the <strong class="text-white/90">right</strong> in order; paste each value here, then click
         <strong class="text-white/90">Save client</strong>.
     </p>
+
+    <div class="mb-4">
+        <div class="mb-2 flex items-center justify-between gap-2">
+            <label for="entra_license_tier" class="portal-label">Customer Entra license tier</label>
+            @if($fieldHelps['entra_license_tier'] ?? null)
+                <x-field-help title="Customer Entra license tier" :steps="$fieldHelps['entra_license_tier']" />
+            @endif
+        </div>
+        <select name="entra_license_tier" id="entra_license_tier" class="admin-input">
+            <option value="free" @selected(old('entra_license_tier', $client->entra_license_tier ?? 'free') === 'free')>Entra ID Free</option>
+            <option value="p1" @selected(old('entra_license_tier', $client->entra_license_tier ?? 'free') === 'p1')>Entra ID P1 or higher</option>
+        </select>
+        @error('entra_license_tier')
+            <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
     <ul class="client-create-intro__list mb-5 text-sm">
-        <li><strong class="text-onit">Step 03</strong> — Entra tenant ID + Entra group ID (after you create the empty security group in Azure)</li>
-        <li><strong class="text-onit">Step 05</strong> — SuperOps Application (client) ID (after the SCIM app exists in customer Entra)</li>
+        @if($isEntraFree)
+            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID (security group optional on Free)</li>
+            <li><strong class="text-onit">Step 05</strong> — SuperOps Application (client) ID — required on Free</li>
+        @else
+            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID + Entra group ID (required on P1)</li>
+            <li><strong class="text-onit">Step 05</strong> — Assign security group to SCIM app in Azure</li>
+        @endif
         <li><strong class="text-onit">Step 07</strong> — Tick Entra sync enabled</li>
         <li><strong class="text-onit">Step 08</strong> — Dry run sync / Sync now (buttons below this form)</li>
     </ul>
@@ -25,14 +48,14 @@
 ])
 
 @include('admin.partials.form-field', [
-    'label' => 'Entra group ID (SuperOps SCIM)',
+    'label' => $isEntraFree ? 'Entra group ID (optional on Free)' : 'Entra group ID (SuperOps SCIM)',
     'name' => 'entra_group_id',
     'value' => $client->entra_group_id ?? '',
     'help' => $fieldHelps['entra_group_id'],
 ])
 
 @include('admin.partials.form-field', [
-    'label' => 'SuperOps Application (client) ID (Entra ID Free)',
+    'label' => $isEntraFree ? 'SuperOps Application (client) ID (required on Free)' : 'SuperOps Application (client) ID (optional on P1)',
     'name' => 'entra_superops_app_id',
     'value' => $client->entra_superops_app_id ?? '',
     'help' => $fieldHelps['entra_superops_app_id'],

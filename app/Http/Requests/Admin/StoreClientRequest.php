@@ -20,6 +20,7 @@ class StoreClientRequest extends FormRequest
             'pax8_company_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
             'pax8_sso_enabled' => ['boolean'],
             'entra_tenant_id' => ['nullable', 'uuid'],
+            'entra_license_tier' => ['nullable', 'string', 'in:free,p1'],
             'entra_group_id' => ['nullable', 'uuid'],
             'entra_superops_app_id' => ['nullable', 'uuid'],
             'entra_sync_enabled' => ['boolean'],
