@@ -125,8 +125,11 @@ class ClientController extends Controller
 
         $message = 'Client updated successfully.';
 
-        if (filled($client->entra_group_id)) {
+        if ($client->entra_license_tier === ClientOnboardingService::ENTRA_LICENSE_P1 && filled($client->entra_group_id)) {
             $message .= ' Security group step (03) is complete — Entra group ID is saved.';
+        } elseif (($client->entra_license_tier ?? ClientOnboardingService::ENTRA_LICENSE_FREE) === ClientOnboardingService::ENTRA_LICENSE_FREE
+            && filled($client->entra_tenant_id)) {
+            $message .= ' Customer Entra tenant step (03) is complete.';
         }
 
         return redirect()->route('admin.clients.edit', $client)

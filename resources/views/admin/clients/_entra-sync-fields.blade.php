@@ -29,7 +29,7 @@
 
     <ul class="client-create-intro__list mb-5 text-sm">
         @if($isEntraFree)
-            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID (security group optional on Free)</li>
+            <li><strong class="text-onit">Step 03</strong> — Entra tenant ID only (no security group on Free)</li>
             <li><strong class="text-onit">Step 05</strong> — SuperOps Application (client) ID — required on Free</li>
         @else
             <li><strong class="text-onit">Step 03</strong> — Entra tenant ID + Entra group ID (required on P1)</li>
@@ -47,12 +47,29 @@
     'help' => $fieldHelps['entra_tenant_id'],
 ])
 
+@if($isEntraFree)
+    @if(filled($client->entra_group_id))
+        <div class="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-white/85">
+            <strong class="text-white">Unused security group ID saved.</strong>
+            On Entra ID Free this group is <strong class="text-white">not</strong> used for SuperOps SCIM.
+            Clear <strong class="text-white">Entra group ID</strong> below and Save client, or delete
+            <strong class="text-white">On IT Portal - {{ $client->name }}</strong> in Azure if you created it by mistake.
+        </div>
+        @include('admin.partials.form-field', [
+            'label' => 'Entra group ID (clear on Free — not used for SCIM)',
+            'name' => 'entra_group_id',
+            'value' => $client->entra_group_id ?? '',
+            'help' => $fieldHelps['entra_group_id'],
+        ])
+    @endif
+@else
 @include('admin.partials.form-field', [
-    'label' => $isEntraFree ? 'Entra group ID (optional on Free)' : 'Entra group ID (SuperOps SCIM)',
+    'label' => 'Entra group ID (SuperOps SCIM)',
     'name' => 'entra_group_id',
     'value' => $client->entra_group_id ?? '',
     'help' => $fieldHelps['entra_group_id'],
 ])
+@endif
 
 @include('admin.partials.form-field', [
     'label' => $isEntraFree ? 'SuperOps Application (client) ID (required on Free)' : 'SuperOps Application (client) ID (optional on P1)',

@@ -197,8 +197,9 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
             ->firstWhere('key', 'entra_group_created')['instructions']);
 
-        $this->assertStringContainsString('whole tenant', $text);
-        $this->assertStringContainsString('optional', strtolower($text));
+        $this->assertStringContainsString('Do not create a security group', $text);
+        $this->assertStringNotContainsString('New group', $text);
+        $this->assertStringNotContainsString('optional', strtolower($text));
         $this->assertStringContainsString('SuperOps', $text);
     }
 
@@ -287,7 +288,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertArrayHasKey('entra_group_id', $helps);
         $this->assertArrayHasKey('entra_superops_app_id', $helps);
         $this->assertStringContainsString('MXVI', implode(' ', $helps['entra_superops_app_id']));
-        $this->assertStringContainsString('Optional', $helps['entra_group_id'][0]);
+        $this->assertStringContainsString('Not used on Entra ID Free', $helps['entra_group_id'][0]);
     }
 
     public function test_update_checklist_persists_manual_checkpoints(): void

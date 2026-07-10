@@ -272,57 +272,77 @@ class ClientOnboardingService
      */
     private function entraGroupGuide(string $groupName, string $clientName, bool $usesGroupScim): array
     {
-        $notes = $usesGroupScim
-            ? [
-                'The group is for SuperOps SCIM and SSO — portal sync fills membership automatically.',
-                'Who gets added on sync: licensed M365 users and shared mailboxes. Do not add members manually in Azure.',
-                'Existing SuperOps requesters: leave them. SCIM matches by email — no duplicates.',
-            ]
-            : [
-                '**Entra ID Free:** this security group is **optional**. SCIM does not use group assignment on Free — portal assigns users directly to the SuperOps app when you paste **SuperOps Application (client) ID** (step 05).',
-                'Portal sync reads the **whole tenant** for licensed users and shared mailboxes — the group is not how users are discovered.',
-                'You can skip creating the group and leave **Entra group ID** empty on the left.',
-                'If you already created the group, paste the ID anyway — portal will maintain membership, but SCIM still uses the app ID path on Free.',
-            ];
+        if (! $usesGroupScim) {
+            return OnboardingManual::build(
+                prerequisites: [
+                    'On IT tenant platform setup is already complete (OnIT Portal for Portals has all 9 Graph permissions). That is not part of this client checklist.',
+                    'You are signed into portal.azure.com as the **'.$clientName.'** tenant, not On IT — switch directory top-right if needed.',
+                    '**Customer Entra license tier** on the left is set to **Entra ID Free**.',
+                ],
+                notes: [
+                    '**Do not create a security group on Entra ID Free.** SuperOps SCIM scope is the SuperOps enterprise app — portal assigns users when you save **SuperOps Application (client) ID** (step 05) and run **Sync now** (step 08).',
+                    'Already created **'.$groupName.'** in Azure? It is **not used** for SuperOps on Free. Delete it in Azure or ignore it — leave **Entra group ID** empty on the portal.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Copy the customer tenant ID',
+                        'https://portal.azure.com — customer tenant',
+                        [
+                            'Microsoft Entra ID → Overview → Tenant ID (GUID).',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Save on the portal',
+                        'https://app.onit.ltd — this page, left column',
+                        [
+                            'Paste into **Entra tenant ID** → **Save client**.',
+                            'This step completes automatically when the tenant ID is saved.',
+                        ],
+                    ),
+                ],
+                verify: [
+                    'Entra tenant ID saved on the left — admin consent URL appears under checklist step 04.',
+                ],
+            );
+        }
 
-        $verify = $usesGroupScim
-            ? ['Customer Entra → Groups → '.$groupName.' → Members is empty (sync will populate later).']
-            : ['If you created a group: Members may stay empty on Free until sync — SCIM users come from app assignment, not the group.'];
+        $notes = [
+            'The group is for SuperOps SCIM and SSO — portal sync fills membership automatically.',
+            'Who gets added on sync: licensed M365 users and shared mailboxes. Do not add members manually in Azure.',
+            'Existing SuperOps requesters: leave them. SCIM matches by email — no duplicates.',
+        ];
 
         return OnboardingManual::build(
             prerequisites: [
                 'On IT tenant platform setup is already complete (OnIT Portal for Portals has all 9 Graph permissions). That is not part of this client checklist.',
                 'You are signed into portal.azure.com as the **'.$clientName.'** tenant, not On IT — switch directory top-right if needed.',
-                $usesGroupScim
-                    ? 'Customer has **Entra ID P1** (or higher) — security group assignment to the SuperOps app is required.'
-                    : 'Customer has **Entra ID Free** — set **Entra license tier** on the left to match. Group creation is optional.',
+                'Customer has **Entra ID P1** (or higher) — security group assignment to the SuperOps app is required.',
             ],
             sections: [
                 OnboardingManual::section(
-                    $usesGroupScim ? 'Create the security group (required)' : 'Create the security group (optional on Free)',
+                    'Create the security group (required)',
                     'https://portal.azure.com — customer tenant',
-                    array_values(array_filter([
-                        $usesGroupScim ? null : 'Skip this section on Entra ID Free if you will use SuperOps Application (client) ID only.',
+                    [
                         'Microsoft Entra ID → Manage → Groups → New group.',
                         'Group type: Security. Membership type: Assigned.',
                         'Group name: '.$groupName.'.',
-                        'Members: leave empty — portal sync can fill the group if you use one.',
+                        'Members: leave empty — portal sync fills the group on Sync now.',
                         'After Create: open the group → Overview → copy Object ID.',
-                    ])),
+                    ],
                 ),
                 OnboardingManual::section(
                     'Save on the portal',
                     'https://app.onit.ltd — this page, left column',
-                    array_values(array_filter([
-                        $usesGroupScim
-                            ? 'Paste Object ID into Entra group ID.'
-                            : 'Optional: paste Object ID into Entra group ID — or leave empty on Entra ID Free.',
-                        'If Entra tenant ID is not set yet: customer Entra → Overview → copy Tenant ID → paste Entra tenant ID.',
-                        'Click Save client.'.($usesGroupScim ? ' This step completes automatically when the group ID is saved.' : ''),
-                    ])),
+                    [
+                        'Paste Object ID into **Entra group ID**.',
+                        'Paste Tenant ID into **Entra tenant ID** if not saved yet.',
+                        'Click **Save client**. This step completes automatically when the group ID is saved.',
+                    ],
                 ),
             ],
-            verify: $verify,
+            verify: [
+                'Customer Entra → Groups → '.$groupName.' → Members is empty (sync will populate later).',
+            ],
             notes: $notes,
         );
     }
@@ -848,9 +868,9 @@ class ClientOnboardingService
                     'Required on Entra ID P1 — SuperOps SCIM uses group assignment to the enterprise app.',
                 ]
                 : [
-                    'Optional on Entra ID Free — SCIM uses SuperOps Application (client) ID instead of group assignment.',
-                    'If you created '.$groupName.' anyway: Group → Overview → Object ID. Portal can maintain membership.',
-                    'Leave empty if you skipped the group on Free.',
+                    'Not used on Entra ID Free — this field is hidden unless a legacy group ID was saved by mistake.',
+                    'SuperOps SCIM uses SuperOps Application (client) ID instead of a security group.',
+                    'If a group ID is saved: clear it and Save client to stop portal maintaining an unused group.',
                 ],
             'entra_superops_app_id' => $usesGroupScim
                 ? [
