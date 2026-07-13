@@ -34,8 +34,8 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('You only click buttons on this page', $text);
         $this->assertStringNotContainsString('git pull', $text);
         $this->assertStringNotContainsString('php artisan', $text);
-        $this->assertStringNotContainsString('SSH', $text);
         $this->assertStringNotContainsString('composer install', $text);
+        $this->assertStringNotContainsString('cd /var/www', $text);
     }
 
     public function test_enable_sync_step_is_save_client_not_env(): void
@@ -48,7 +48,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Entra sync enabled', $text);
         $this->assertStringContainsString('Save client', $text);
         $this->assertStringNotContainsString('ENTRA_SYNC_ENABLED', $text);
-        $this->assertStringNotContainsString('SSH', $text);
+        $this->assertStringNotContainsString('php artisan', $text);
     }
 
     public function test_admin_consent_url_uses_tenant_and_app_client_id(): void

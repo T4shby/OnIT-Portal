@@ -378,7 +378,7 @@ class ClientOnboardingService
         }
 
         $notes = [
-            'This step is only on **this page**. Tick a box and click **Save client**. You do not use SSH, Plesk, or Microsoft 365 admin for this step.',
+            'This step is only on **this page**. Tick a box and click **Save client**. You do not open a terminal, Plesk, or Microsoft 365 admin for this step.',
         ];
 
         if (! $syncEnabledGlobally) {
@@ -442,7 +442,7 @@ class ClientOnboardingService
         return OnboardingManual::build(
             prerequisites: $prerequisites,
             notes: [
-                '**You only click buttons on this page.** Do not SSH to the server, do not run commands, and do not look for a separate “run sync” button inside the Microsoft 365 admin centre for this step.',
+                '**You only click buttons on this page.** Do not open a terminal or run server commands, and do not look for a separate “run sync” button inside the Microsoft 365 admin centre for this step.',
                 '**Dry run sync** = preview. **Sync now** = apply. Always dry run first.',
             ],
             sections: [
