@@ -86,7 +86,7 @@
             </div>
         </div>
     @else
-        <p class="portal-body-muted mt-4 text-xs">Set <code class="text-onit">ENTRA_SYNC_ENABLED=true</code> on the server to run sync.</p>
+        <p class="portal-body-muted mt-4 text-xs">Sync buttons are unavailable — message Tom (platform sync is switched off).</p>
     @endif
 @elseif(isset($client) && $client->exists)
     <p class="portal-body-muted mt-4 text-xs">Save tenant ID and enable sync to run from here.</p>

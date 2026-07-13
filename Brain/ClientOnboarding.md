@@ -97,7 +97,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 
 **Rule:** Portal sync reads the **whole tenant**, **maintains** the security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **writes the full SuperOps last name** to `extensionAttribute1` (e.g. `(User Mailbox)`) — **not** M365 `displayName`. Portal user names in app.onit.ltd stay plain M365 names. Entra SCIM maps `name.familyName` **Direct** from `extensionAttribute1`. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer).
 
-**Dry run sync** / **Sync now** are orange buttons on the left under Microsoft Entra sync on this Edit page. **Dry run** shows a preview message at the top. **Sync now** applies changes in the background — refresh for **Last synced**. Staff never use SSH or artisan for client onboarding.
+**Dry run sync** / **Sync now** are orange buttons on the left under Microsoft Entra sync on this Edit page. **Dry run** shows a preview message at the top. **Sync now** applies changes in the background — refresh for **Last synced**. Technicians work only in this portal, SuperOps, and customer M365 — never on the server.
 
 ---
 

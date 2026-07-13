@@ -13,13 +13,9 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            <strong class="text-white/80">Per-customer onboarding only</strong> — steps for {{ $client->name }}.
-            Expand each numbered step for full instructions.
-        </p>
-        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">Not on this checklist:</strong>
-            one-time On IT platform setup (Graph permissions on OnIT Portal for Portals in the <strong class="text-white/80">On IT</strong> tenant, server deploy, portal OAuth app).
-            That is documented in <strong class="text-white/80">Brain/CustomerEntraSyncRunbook.md</strong> — do it once, not per client.
+            <strong class="text-white/80">Your tools for this checklist:</strong>
+            this portal page, SuperOps, and the customer’s Microsoft Entra / M365 admin.
+            You do not need server access.
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Order for this client:</strong>
@@ -29,7 +25,7 @@
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Saving data:</strong>
             Entra tenant ID, group ID, and sync settings → orange <strong class="text-white/80">Save client</strong> on the left.
-            Checklist ticks → <strong class="text-white/80">Save checklist</strong> (Azure / SuperOps steps only).
+            Checklist ticks → <strong class="text-white/80">Save checklist</strong> on the right.
         </p>
 
         <div class="onboarding-panel__progress">

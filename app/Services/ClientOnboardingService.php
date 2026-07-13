@@ -381,11 +381,11 @@ class ClientOnboardingService
         }
 
         $notes = [
-            'This step is only on **this page**. Tick a box and click **Save client**. You do not open a terminal, Plesk, or Microsoft 365 admin for this step.',
+            'This step is only on **this page**. Tick **Entra sync enabled** and click **Save client**.',
         ];
 
         if (! $syncEnabledGlobally) {
-            $notes[] = 'If the **Dry run sync** / **Sync now** buttons are missing or greyed after you save: stop and message Tom — server sync is switched off (not something you fix on this page).';
+            $notes[] = 'If the **Dry run sync** / **Sync now** buttons are missing after you save: stop and message Tom.';
         }
 
         return OnboardingManual::build(
@@ -445,9 +445,8 @@ class ClientOnboardingService
         return OnboardingManual::build(
             prerequisites: $prerequisites,
             notes: [
-                '**You only click buttons on this page.** Do not open a terminal or run server commands, and do not look for a separate “run sync” button inside the Microsoft 365 admin centre for this step.',
-                '**Dry run sync** = preview. **Sync now** = apply. Always dry run first.',
-                'After Sync now: if **Last synced** is not showing yet, tick **Mark this step complete** and click **Save checklist** — you do not wait for a developer.',
+                '**Dry run sync** = preview. **Sync now** = apply. Always dry run first. Both buttons are on this Edit Client page under the form.',
+                'After Sync now: if **Last synced** is not showing yet, tick **Mark this step complete** and click **Save checklist**.',
             ],
             sections: [
                 OnboardingManual::section(
