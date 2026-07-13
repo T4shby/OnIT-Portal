@@ -78,6 +78,14 @@
                     </p>
                 @endif
 
+                @if($step['key'] === 'portal_sync_run' && ! $isDone && ! $isBlocked)
+                    <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
+                        <strong class="text-white">After you click Sync now:</strong>
+                        tick <strong class="text-white">Mark this step complete</strong> below → <strong class="text-white">Save checklist</strong>.
+                        The step also turns Done when <strong class="text-white">Last synced</strong> appears on the left.
+                    </p>
+                @endif
+
                 @if($step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked)
                     <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
                         <strong class="text-white">Usually already done.</strong>

@@ -27,6 +27,7 @@ class ClientOnboardingService
         'superops_scim_configured',
         'entra_admin_consent_granted',
         'superops_client_sso_configured',
+        'portal_sync_run',
         'login_tested',
         'handed_off',
     ];
@@ -91,6 +92,8 @@ class ClientOnboardingService
             || (bool) ($checklist['entra_group_created'] ?? false);
 
         $adminConsentComplete = (bool) ($checklist['entra_admin_consent_granted'] ?? false) || $syncRun;
+
+        $portalSyncRunComplete = $syncRun || (bool) ($checklist['portal_sync_run'] ?? false);
 
         // Checklist is only shown on Edit (after Create). No "create client" step — you cannot reach this UI without one.
         return [
@@ -199,8 +202,8 @@ class ClientOnboardingService
                 'key' => 'portal_sync_run',
                 'title' => 'Run portal sync',
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
-                'complete' => $syncRun,
-                'manual' => false,
+                'complete' => $portalSyncRunComplete,
+                'manual' => true,
                 'auto_detected' => $syncRun,
                 'blocked' => ! $syncConfigured || ! $syncEnabledGlobally,
             ], $this->portalSyncRunGuide($client, $usesGroupScim)),
@@ -211,7 +214,7 @@ class ClientOnboardingService
                 'complete' => (bool) ($checklist['login_tested'] ?? false),
                 'manual' => true,
                 'auto_detected' => false,
-                'blocked' => ! $syncRun,
+                'blocked' => ! $portalSyncRunComplete,
             ], $this->loginTestGuide()),
             $this->withManual([
                 'key' => 'handed_off',
@@ -444,6 +447,7 @@ class ClientOnboardingService
             notes: [
                 '**You only click buttons on this page.** Do not open a terminal or run server commands, and do not look for a separate “run sync” button inside the Microsoft 365 admin centre for this step.',
                 '**Dry run sync** = preview. **Sync now** = apply. Always dry run first.',
+                'After Sync now: if **Last synced** is not showing yet, tick **Mark this step complete** and click **Save checklist** — you do not wait for a developer.',
             ],
             sections: [
                 OnboardingManual::section(
@@ -459,7 +463,7 @@ class ClientOnboardingService
                     ? null
                     : 'Customer Entra → Enterprise applications → SuperOps - '.$client->name.' → Manage → Users and groups — users listed (portal assigned them on Free).',
                 'SuperOps → Clients → '.$client->name.' → Requesters — emails match (may take a few minutes after SCIM).',
-                'This step completes automatically when **Last synced** appears — or refresh after Sync now finishes.',
+                'This step completes when **Last synced** appears after Sync now — or tick **Mark this step complete** → **Save checklist** once you have clicked Sync now.',
             ])),
         );
     }
@@ -755,6 +759,11 @@ class ClientOnboardingService
         if (filled($client->entra_group_id) && filled($client->entra_tenant_id)) {
             $changed = ($current['entra_group_created'] ?? false) !== true;
             $current['entra_group_created'] = true;
+        }
+
+        if ($client->entra_synced_at !== null && ($current['portal_sync_run'] ?? false) !== true) {
+            $changed = true;
+            $current['portal_sync_run'] = true;
         }
 
         if ($changed) {

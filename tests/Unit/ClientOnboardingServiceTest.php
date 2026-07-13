@@ -318,20 +318,31 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('upgrade to P1', implode(' ', $helps['entra_group_id']));
     }
 
-    public function test_update_checklist_persists_manual_checkpoints(): void
+    public function test_portal_sync_run_can_be_marked_complete_manually(): void
     {
-        $client = Client::factory()->create();
-        $service = app(ClientOnboardingService::class);
-
-        $service->updateChecklist($client, [
-            'entra_group_created' => true,
-            'login_tested' => true,
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_group_id' => '22222222-2222-2222-2222-222222222222',
+            'entra_superops_app_id' => '33333333-3333-3333-3333-333333333333',
+            'entra_sync_enabled' => true,
+            'entra_synced_at' => null,
+            'entra_license_tier' => 'free',
         ]);
 
+        config(['services.entra_sync.enabled' => true]);
+
+        $service = app(ClientOnboardingService::class);
+        $step = collect($service->steps($client))->firstWhere('key', 'portal_sync_run');
+
+        $this->assertFalse($step['complete']);
+        $this->assertTrue($step['manual']);
+        $this->assertFalse($step['blocked']);
+
+        $service->updateChecklist($client, ['portal_sync_run' => true]);
         $client->refresh();
 
-        $this->assertTrue($client->onboarding_checklist['entra_group_created']);
-        $this->assertTrue($client->onboarding_checklist['login_tested']);
-        $this->assertFalse($client->onboarding_checklist['handed_off'] ?? false);
+        $step = collect($service->steps($client))->firstWhere('key', 'portal_sync_run');
+        $this->assertTrue($step['complete']);
+        $this->assertFalse(collect($service->steps($client))->firstWhere('key', 'login_tested')['blocked']);
     }
 }
