@@ -673,12 +673,13 @@ class ClientOnboardingService
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part C — Confirm SuperOps has the Entra login details',
-                    $superOpsUrl.' — Global SSO',
+                    'Part C — Paste Login URL and certificate into SuperOps Global SSO',
+                    $superOpsUrl.' — Settings → Requester Login → SSO Protected → Global SSO',
                     [
-                        'IDP Login URL: from the On IT SuperOps Requester SSO Entra app → Overview / SAML → Login URL (ends in /saml2).',
-                        'Certificate: Base64 body only (no BEGIN/END lines) from Entra SAML Certificates.',
-                        'Save Global SSO in SuperOps.',
+                        'Stay on **Global SSO** — do **not** open Client SSO or a per-client configuration.',
+                        'IDP Login URL: On IT Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Overview / SAML → Login URL (ends in /saml2) → paste into SuperOps **IDP Login URL**.',
+                        'Certificate: Entra → same app → SAML Certificates → Certificate (Base64) → Download → open in Notepad → copy the middle only (no BEGIN/END lines) → paste into SuperOps **Certificate** on the same Global SSO page.',
+                        'Click **Save** on the Global SSO panel (toggle ON alone is not enough).',
                     ],
                 ),
             ],
