@@ -31,11 +31,13 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertStringContainsString('Dry run sync', $text);
         $this->assertStringContainsString('Sync now', $text);
-        $this->assertStringContainsString('You only click buttons on this page', $text);
+        $this->assertStringContainsString('Both buttons are on this Edit Client page', $text);
+        $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringNotContainsString('git pull', $text);
         $this->assertStringNotContainsString('php artisan', $text);
         $this->assertStringNotContainsString('composer install', $text);
         $this->assertStringNotContainsString('cd /var/www', $text);
+        $this->assertStringNotContainsString('ENTRA_SYNC_ENABLED', $text);
     }
 
     public function test_enable_sync_step_is_save_client_not_env(): void
