@@ -82,7 +82,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 03 M365 security group + Entra tenant | **Both** `Entra tenant ID` and `Entra group ID` saved | Done in Azure but IDs not pasted yet |
 | 04 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
 | 05 SuperOps SCIM | — | Done in SuperOps + customer Entra |
-| 06 SuperOps requester SSO (Global SSO) | — | Platform Global SSO confirmed (Entity ID `https://clientuser.superops.ai`) |
+| 06 SuperOps requester SSO (Global SSO) | — | **Almost always:** tick complete (Global SSO already set up once for On IT). Rebuild SAML only if Global SSO is broken for every client. |
 | 07 Enable portal sync | Entra sync enabled **and** prerequisites met (see below) | — |
 | 08 Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
 | 09 Test sign-in | — | You tested in incognito |

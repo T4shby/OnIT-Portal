@@ -78,6 +78,15 @@
                     </p>
                 @endif
 
+                @if($step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked)
+                    <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
+                        <strong class="text-white">Usually already done.</strong>
+                        Global SSO is set up <strong class="text-white">once</strong> for On IT — not again for this client.
+                        Follow <strong class="text-white">Part A only</strong>: tick Mark this step complete → Save checklist.
+                        Do not paste a certificate unless Tom asks you to.
+                    </p>
+                @endif
+
                 @if($step['key'] === 'entra_admin_consent_granted' && $adminConsentUrl)
                     <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
                         <strong class="text-white">Not app.onit.ltd login.</strong>

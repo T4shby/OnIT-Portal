@@ -181,18 +181,19 @@ class ClientOnboardingServiceTest extends TestCase
     {
         $client = Client::factory()->create(['name' => 'MXVI']);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_client_sso_configured')['instructions']);
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_client_sso_configured');
+        $text = implode(' ', $step['instructions']);
 
-        $this->assertSame('SuperOps requester SSO (Global SSO)', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_client_sso_configured')['title']);
+        $this->assertSame('SuperOps requester SSO (Global SSO)', $step['title']);
+        $this->assertStringContainsString('this is NOT per-client work', $text);
+        $this->assertStringContainsString('Part A only', $text);
+        $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringContainsString('https://clientuser.superops.ai', $text);
         $this->assertStringContainsString('Global SSO', $text);
-        $this->assertStringContainsString('Consumer Service URL', $text);
-        $this->assertStringContainsString('do **not** copy it from Client SSO', $text);
+        $this->assertStringContainsString('do **not** create a configuration for MXVI', $text);
         $this->assertStringNotContainsString('+ Configuration', $text);
-        $this->assertStringContainsString('Manage', $text);
-        $this->assertStringContainsString('Single sign-on', $text);
+        $this->assertStringContainsString('Only if Global SSO has NEVER been set up', $text);
     }
 
     public function test_group_step_clarifies_portal_vs_superops_scope_on_free(): void
