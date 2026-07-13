@@ -179,7 +179,7 @@ class ClientOnboardingService
             ], $this->superOpsScimGuide($client->name, $groupName, $usesGroupScim)),
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
-                'title' => 'SuperOps Client SSO (SAML)',
+                'title' => 'SuperOps requester SSO (Global SSO)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => (bool) ($checklist['superops_client_sso_configured'] ?? false),
                 'manual' => true,
@@ -515,7 +515,7 @@ class ClientOnboardingService
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
 
         $notes = [
-            'One Entra app only: '.$appName.' — SCIM in this step, SAML in SuperOps Client SSO step on the same app. Do not create a second app.',
+            'One Entra app only for SCIM: '.$appName.' — provisioning only on this customer app. Requester **login** uses On IT **Global SSO** (step 06) — not SAML on this app.',
             'Under Manage → Provisioning, expand Admin Credentials before Tenant URL and Secret Token appear.',
             'Authentication method must be Bearer Authentication (Azure default).',
             'Tick Mark this step complete on this page when done.',
@@ -627,64 +627,64 @@ class ClientOnboardingService
     }
 
     /**
-     * Client SSO (SAML) on the same Entra app created in the SCIM step.
+     * SuperOps requester Global SSO (SAML). On IT uses Global SSO — not per-client Client SSO.
+     * Entity ID is a fixed SuperOps value; Reply URL comes from Global SSO settings.
+     *
+     * @see https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops
      *
      * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
      */
     private function superOpsClientSsoGuide(string $clientName, string $groupName, bool $usesGroupScim): array
     {
-        $appName = 'SuperOps - '.$clientName;
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
+        $entityId = 'https://clientuser.superops.ai';
 
         return OnboardingManual::build(
             prerequisites: [
-                'SuperOps SCIM step complete — '.$appName.' already exists in customer Entra.',
-                $usesGroupScim
-                    ? 'Security group '.$groupName.' assigned to that app (from SCIM step).'
-                    : 'Licensed users assigned to the app via portal sync (SuperOps Application client ID set).',
+                'On IT uses **Global SSO** for SuperOps requesters (not Client SSO). This is usually already done once for the whole MSP — confirm below, then tick this step.',
+                'Do **not** open **Client SSO** or create a per-client Entity ID for '.$clientName.' unless Tom has asked you to.',
             ],
             notes: [
-                'Use the same Entra app as SuperOps SCIM — do not create a new application.',
+                '**Where does Entity ID come from?** You type it. It is always **'.$entityId.'** for Global SSO — SuperOps publishes this fixed value in their docs. It is **not** generated per client and you do **not** copy it from Client SSO.',
+                '**Where does Reply URL come from?** Copy it from SuperOps → **Settings → Requester Login → SSO Protected → Global SSO → Consumer Service URL** (for On IT this is usually on portal.onit.ltd).',
+                'SAML for Global SSO lives on the **On IT** Entra app (e.g. SuperOps Requester SSO), **not** on the customer SCIM app **SuperOps - '.$clientName.'**. SCIM stays on the customer app; login SSO is Global.',
             ],
             sections: [
                 OnboardingManual::section(
-                    'Part A — Get SAML values from SuperOps',
-                    $superOpsUrl.' — SuperOps MSP console',
+                    'Part A — Confirm SuperOps Global SSO values',
+                    $superOpsUrl.' — Settings → Requester Login → SSO Protected → Global SSO',
                     [
-                        'Settings → Requester Login → SSO Protected → Client SSO.',
-                        'Click + Configuration for '.$clientName.' (or edit existing).',
-                        'Copy Entity ID and Consumer Service URL (Reply URL) from SuperOps — keep this tab open.',
+                        'Open **Global SSO** (not Client SSO).',
+                        'Confirm Global SSO is **ON**.',
+                        'Copy **Consumer Service URL** — that is the Entra **Reply URL**. Keep this tab open.',
+                        'Remember the Entity ID: type **'.$entityId.'** in Entra (mark as default; delete any other default Identifier entries).',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part B — Configure SAML on the Entra app',
-                    'https://portal.azure.com — '.$this->entraEnterpriseAppPath($appName),
+                    'Part B — Confirm Entra SAML (On IT tenant) — skip if already live',
+                    'https://portal.azure.com — On IT tenant → Enterprise applications → SuperOps Requester SSO (On IT)',
                     [
-                        $this->entraManagePath('Single sign-on').'.',
-                        'Select SAML → Edit Basic SAML Configuration.',
-                        'Identifier (Entity ID): paste Entity ID from SuperOps.',
-                        'Reply URL (ACS): paste Consumer Service URL from SuperOps → Save.',
-                        'Attributes & Claims → Edit → Add new claim (repeat three times).',
-                        'Important: Namespace on each claim must be empty (delete the default URI prefix if present).',
-                        'Claim 1: name email, source user.mail (use user.userprincipalname if the user has no mailbox).',
-                        'Claim 2: name firstname, source user.givenname.',
-                        'Claim 3: name lastname, source user.surname.',
-                        'SAML Certificates → Certificate (Base64) → Download.',
-                        'Copy only the certificate body — no -----BEGIN CERTIFICATE----- lines.',
+                        'Switch directory to **On IT**, not the customer tenant.',
+                        $this->entraManagePath('Single sign-on').' → SAML.',
+                        'Basic SAML Configuration → Identifier (Entity ID): **'.$entityId.'** (type it — do not paste a client-specific ID).',
+                        'Reply URL (ACS): paste the **Consumer Service URL** you copied from Global SSO → Save.',
+                        'Attributes & Claims must include (exact names, empty Namespace): email → user.mail (or user.userprincipalname), firstname → user.givenname, lastname → user.surname.',
+                        'If Global SSO already works for requesters on portal.onit.ltd, skip editing Entra — go to Check your work.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part C — Finish SuperOps Client SSO',
-                    $superOpsUrl.' — Client SSO for '.$clientName,
+                    'Part C — Confirm SuperOps has the Entra login details',
+                    $superOpsUrl.' — Global SSO',
                     [
-                        'IDP Login URL: '.$this->entraEnterpriseAppPath($appName).' → Overview → Login URL (ends in /saml2).',
-                        'Certificate: paste Base64 body → Save in SuperOps.',
+                        'IDP Login URL: from the On IT SuperOps Requester SSO Entra app → Overview / SAML → Login URL (ends in /saml2).',
+                        'Certificate: Base64 body only (no BEGIN/END lines) from Entra SAML Certificates.',
+                        'Save Global SSO in SuperOps.',
                     ],
                 ),
             ],
             verify: [
-                'Incognito → app.onit.ltd → SuperOps tile → Microsoft sign-in with a @customer work email opens requester view (not technician role chooser).',
-                'Optional direct: https://portal.onit.ltd/#/requester/login with customer Microsoft account.',
+                'Incognito → https://portal.onit.ltd/#/requester/login → Microsoft sign-in works (or SuperOps tile from app.onit.ltd).',
+                'If Global SSO was already working before this client, tick **Mark this step complete** → Save checklist.',
             ],
         );
     }

@@ -74,14 +74,18 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps → Overview → portal field; portal sync assigns licensed users automatically
 7. Start provisioning
 
-#### 2c. Same app — Client SSO (SAML)
+#### 2c. Requester login — Global SSO (not on the customer SCIM app)
 
-1. SuperOps → **Settings → Requester Login → Client SSO** → copy Entity ID + Reply URL
-2. On the **same** Entra app → **Single sign-on → SAML** → configure Identifier + Reply URL, claims, certificate
-3. Paste Entra Login URL + certificate back into SuperOps Client SSO
-4. No second app; no second group assignment
+On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)):
 
-If SCIM test connection fails after SAML is added, or SuperOps support confirms incompatibility, fall back to two apps (legacy) — uncommon.
+| Field | Where it comes from |
+|-------|---------------------|
+| **Identifier (Entity ID)** | Type **`https://clientuser.superops.ai`** — fixed SuperOps value for Global SSO. Not per-client. |
+| **Reply URL** | SuperOps → Settings → Requester Login → SSO Protected → **Global SSO** → **Consumer Service URL** |
+
+Configure SAML on the **On IT** Entra app (e.g. SuperOps Requester SSO), then paste Login URL + certificate back into SuperOps **Global SSO**. Do **not** put Global SSO SAML on the customer `SuperOps - {Company}` SCIM app.
+
+Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md). Checklist step 06 confirms this.
 
 ### Legacy: two separate Entra apps
 

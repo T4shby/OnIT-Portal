@@ -177,13 +177,20 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Connect your application', $text);
     }
 
-    public function test_sso_step_uses_manage_single_sign_on_path(): void
+    public function test_sso_step_uses_global_sso_entity_id(): void
     {
         $client = Client::factory()->create(['name' => 'MXVI']);
 
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
             ->firstWhere('key', 'superops_client_sso_configured')['instructions']);
 
+        $this->assertSame('SuperOps requester SSO (Global SSO)', collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_client_sso_configured')['title']);
+        $this->assertStringContainsString('https://clientuser.superops.ai', $text);
+        $this->assertStringContainsString('Global SSO', $text);
+        $this->assertStringContainsString('Consumer Service URL', $text);
+        $this->assertStringContainsString('do **not** copy it from Client SSO', $text);
+        $this->assertStringNotContainsString('+ Configuration', $text);
         $this->assertStringContainsString('Manage', $text);
         $this->assertStringContainsString('Single sign-on', $text);
     }
