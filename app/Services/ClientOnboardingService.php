@@ -369,69 +369,45 @@ class ClientOnboardingService
     private function portalSyncConfiguredGuide(bool $syncEnabledGlobally, bool $usesGroupScim): array
     {
         $prerequisites = [
-            'Portal Graph admin consent accepted in the customer tenant.',
-            'Step 03 saved — Entra tenant ID and Entra group ID on the left.',
+            'Steps 03–06 done (or Global SSO already ticked in step 06).',
+            'On the left you already have Entra tenant ID and Entra group ID saved from step 03.',
         ];
 
         if (! $usesGroupScim) {
-            $prerequisites[] = 'SuperOps SCIM app created and **SuperOps Application (client) ID** pasted on the left (Entra ID Free — step 05).';
+            $prerequisites[] = 'SuperOps Application (client) ID is saved on the left (Entra ID Free — from step 05).';
         }
 
-        $sections = [
-            OnboardingManual::section(
-                'Enable sync on the portal',
-                'https://app.onit.ltd — this page, left column, Microsoft Entra sync',
-                array_values(array_filter([
-                    'Entra tenant ID: customer tenant GUID (step 03).',
-                    'Entra group ID: Object ID from step 03 — portal maintains group members on Sync now.',
-                    $usesGroupScim
-                        ? null
-                        : 'SuperOps Application (client) ID: from step 05 (required on Entra ID Free).',
-                    'Tick Entra sync enabled.',
-                    'Click Save client.',
-                ])),
-            ),
+        $notes = [
+            'This step is only on **this page**. Tick a box and click **Save client**. You do not use SSH, Plesk, or Microsoft 365 admin for this step.',
         ];
 
         if (! $syncEnabledGlobally) {
-            $sections[] = OnboardingManual::section(
-                'Server configuration',
-                'Production server SSH (app.onit.ltd host)',
-                [
-                    'In production .env set ENTRA_SYNC_ENABLED=true and ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true.',
-                    'Run php artisan config:clear on the server (see Run portal sync step for full deploy commands).',
-                ],
-            );
+            $notes[] = 'If the **Dry run sync** / **Sync now** buttons are missing or greyed after you save: stop and message Tom — server sync is switched off (not something you fix on this page).';
         }
 
         return OnboardingManual::build(
             prerequisites: $prerequisites,
-            sections: $sections,
+            notes: $notes,
+            sections: [
+                OnboardingManual::section(
+                    'Part A — Turn sync on for this client',
+                    'https://app.onit.ltd — this Edit Client page, left column, Microsoft Entra sync',
+                    array_values(array_filter([
+                        'Scroll to **Microsoft Entra sync** on the left.',
+                        'Check that **Entra tenant ID** and **Entra group ID** are filled (from step 03).',
+                        $usesGroupScim
+                            ? null
+                            : 'Check that **SuperOps Application (client) ID** is filled (from step 05 — Entra ID Free).',
+                        'Tick **Entra sync enabled**.',
+                        'Click the orange **Save client** button.',
+                    ])),
+                ),
+            ],
+            verify: [
+                'After Save client, the page reloads with **Entra sync enabled** still ticked.',
+                'Buttons **Dry run sync** and **Sync now** appear under the form (you use them in step 08).',
+            ],
         );
-    }
-
-    /**
-     * @return list<array{title: string, where: string|null, steps: list<string>}>
-     */
-    private function serverDeploySections(): array
-    {
-        return [
-            OnboardingManual::section(
-                'Deploy latest code (if needed)',
-                'SSH to app.onit.ltd production host',
-                [
-                    'cd /var/www/vhosts/onit.ltd/app.onit.ltd',
-                    'export PATH="/opt/plesk/php/8.3/bin:$PATH"',
-                    'export COMPOSER_ALLOW_SUPERUSER=1',
-                    'git pull origin main — or Plesk → Git → Deploy if the live site has no .git folder.',
-                    'rm -f public/hot',
-                    'composer install --no-dev --optimize-autoloader',
-                    'php artisan migrate --force',
-                    'php artisan config:clear && php artisan view:clear && php artisan optimize',
-                    'Production .env must include: ENTRA_SYNC_ENABLED=true, ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true, MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET for OnIT Portal for Portals.',
-                ],
-            ),
-        ];
     }
 
     /**
@@ -439,73 +415,57 @@ class ClientOnboardingService
      */
     private function portalSyncRunGuide(Client $client, bool $usesGroupScim): array
     {
-        $clientId = $client->exists ? (string) $client->id : '{client-id}';
-
         $prerequisites = [
-            'Portal Graph admin consent accepted.',
-            'Entra sync enabled on the left (Enable portal sync step).',
+            'Step 07 done — **Entra sync enabled** is ticked and saved on the left.',
+            'You are still on this Edit Client page (app.onit.ltd).',
         ];
-
-        if ($usesGroupScim) {
-            $prerequisites[] = 'M365 security group step saved (Entra group ID on the left).';
-        } else {
-            $prerequisites[] = 'M365 security group + tenant ID saved (step 03).';
-            $prerequisites[] = 'SuperOps Application (client) ID saved on the left.';
-        }
 
         $dryRunSteps = [
-            'Click Dry run sync first. Read the green or red message at the top of the page.',
-            'Expect: Created / Updated / Deactivated counts for portal users.',
-            'Expect: SuperOps name labels updated N (User Mailbox / Shared Mailbox in extensionAttribute1).',
+            'Scroll down under the form to the orange buttons **Dry run sync** and **Sync now**.',
+            'Click **Dry run sync** first (safe — does not change users yet).',
+            'Wait for the green or red message at the **top** of the page.',
+            'Green message should show Created / Updated / Deactivated counts for portal users.',
         ];
 
         if ($usesGroupScim) {
-            $dryRunSteps[] = 'Expect: SuperOps group: +N / -0 members when Entra group ID is set.';
-            $dryRunSteps[] = 'If there is no SuperOps group line: Entra group ID is empty — go back to step 03.';
+            $dryRunSteps[] = 'You should also see a SuperOps group line (members added). If that line is missing, go back to step 03 and save **Entra group ID**.';
         } else {
-            $dryRunSteps[] = 'Expect: SuperOps group: +N / -0 members — portal fills **On IT Portal - '.$client->name.'** (step 03 group ID).';
-            $dryRunSteps[] = 'Expect: SuperOps app: +N / -0 users — portal assigns the SuperOps app via Application (client) ID (step 05).';
-            $dryRunSteps[] = 'If either line is missing: check Entra group ID and SuperOps Application (client) ID on the left.';
+            $dryRunSteps[] = 'You should see SuperOps group members **and** SuperOps app users. If either is missing, check **Entra group ID** and **SuperOps Application (client) ID** on the left, Save client, then dry run again.';
         }
 
         $dryRunSteps = array_merge($dryRunSteps, [
-            'If errors mention 403 or group: admin consent missing or GroupMember.ReadWrite.All not granted — re-consent in customer tenant.',
-            'If errors mention app assignment: add AppRoleAssignment.ReadWrite.All to the portal app and re-consent in the customer tenant.',
-            'If errors mention Could not resolve or Application.Read.All: add Application.Read.All to the portal app in the On IT tenant, re-consent in the customer tenant, php artisan cache:clear, sync again.',
-            'If errors mention app role or Permission being assigned was not found: App registrations → SuperOps app → App roles → User role with Value User (not blank) → Save → Sync now.',
-            'Click Sync now to apply changes.',
+            'If the message is red: read it. Common fixes — redo admin consent (step 04), or check the SuperOps app has an App role named User (step 05). If you are stuck, send Tom the error text.',
+            'When the dry run looks good, click **Sync now**.',
+            'Sync now runs in the background — you can leave the page. After 1–2 minutes, refresh this Edit page and check **Last synced** under Microsoft Entra sync.',
         ]);
 
         return OnboardingManual::build(
             prerequisites: $prerequisites,
-            sections: array_merge($this->serverDeploySections(), [
+            notes: [
+                '**You only click buttons on this page.** Do not SSH to the server, do not run commands, and do not look for a separate “run sync” button inside the Microsoft 365 admin centre for this step.',
+                '**Dry run sync** = preview. **Sync now** = apply. Always dry run first.',
+            ],
+            sections: [
                 OnboardingManual::section(
-                    'Dry run and sync',
-                    'https://app.onit.ltd — this page, left column, Microsoft Entra sync',
+                    'Part A — Dry run, then Sync now',
+                    'https://app.onit.ltd — this Edit Client page, left column (buttons under the form)',
                     $dryRunSteps,
                 ),
-                OnboardingManual::section(
-                    'CLI alternative (server)',
-                    'SSH on production host',
-                    [
-                        'php artisan portal:sync-entra-users --client='.$clientId.' --dry-run',
-                        'php artisan portal:sync-entra-users --client='.$clientId,
-                    ],
-                ),
-            ]),
+            ],
             verify: array_values(array_filter([
-                'Admin → Users — filter by this client — licensed users appear with plain M365 names.',
-                'Customer Entra → Groups → On IT Portal - '.$client->name.' → Members — populated without manual adds.',
+                'Admin → Users — filter by this client — licensed users appear (plain names).',
+                'Customer Entra → Groups → On IT Portal - '.$client->name.' → Members — people are listed (portal added them; you did not add them by hand).',
                 $usesGroupScim
                     ? null
-                    : 'Entra ID Free: '.$this->entraEnterpriseAppPath('SuperOps - '.$client->name).' → '.$this->entraManagePath('Users and groups').' — app users assigned by portal (SCIM scope).',
-                'SuperOps → Clients → Requesters — emails match (after SCIM cycle from SuperOps SCIM step).',
+                    : 'Customer Entra → Enterprise applications → SuperOps - '.$client->name.' → Manage → Users and groups — users listed (portal assigned them on Free).',
+                'SuperOps → Clients → '.$client->name.' → Requesters — emails match (may take a few minutes after SCIM).',
+                'This step completes automatically when **Last synced** appears — or refresh after Sync now finishes.',
             ])),
         );
     }
 
     /**
-     * SCIM provisions SuperOps requesters from M365. SAML login is configured on the same Entra app (step 7).
+     * SCIM provisions SuperOps requesters from M365. Requester login uses On IT Global SSO (step 06).
      *
      * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
      */

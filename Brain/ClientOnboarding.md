@@ -83,8 +83,8 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 04 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
 | 05 SuperOps SCIM | — | Done in SuperOps + customer Entra |
 | 06 SuperOps requester SSO (Global SSO) | — | **Almost always:** tick complete (Global SSO already set up once for On IT). Rebuild SAML only if Global SSO is broken for every client. |
-| 07 Enable portal sync | Entra sync enabled **and** prerequisites met (see below) | — |
-| 08 Run portal sync | `entra_synced_at` set (Dry run / Sync now) | — |
+| 07 Enable portal sync | Tenant ID + group ID (+ app ID on Free) saved, **Entra sync enabled** ticked, **Save client** | — |
+| 08 Run portal sync | `entra_synced_at` set after **Dry run sync** then **Sync now** on this page | — |
 | 09 Test sign-in | — | You tested in incognito |
 | 10 Hand off | — | Customer notified |
 
@@ -97,7 +97,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 
 **Rule:** Portal sync reads the **whole tenant**, **maintains** the security group when `entra_group_id` is set, **assigns users to the SuperOps app** on Entra ID Free when `entra_superops_app_id` is set, and **writes the full SuperOps last name** to `extensionAttribute1` (e.g. `(User Mailbox)`) — **not** M365 `displayName`. Portal user names in app.onit.ltd stay plain M365 names. Entra SCIM maps `name.familyName` **Direct** from `extensionAttribute1`. Provisioning must be **ON** in Entra. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#entra-scim-attribute-mapping-one-time-per-customer).
 
-**Dry run sync** / **Sync now** are on the left under Microsoft Entra sync. **Dry run** shows a count summary banner immediately. **Sync now** starts a **background job** after the page redirects — refresh Edit to see **Last synced**; you can close the browser. For a live count summary on the server, use `php artisan portal:sync-entra-users --client={id}`. Remaining manual steps use **Save checklist** on the right when tick boxes are shown.
+**Dry run sync** / **Sync now** are orange buttons on the left under Microsoft Entra sync on this Edit page. **Dry run** shows a preview message at the top. **Sync now** applies changes in the background — refresh for **Last synced**. Staff never use SSH or artisan for client onboarding.
 
 ---
 

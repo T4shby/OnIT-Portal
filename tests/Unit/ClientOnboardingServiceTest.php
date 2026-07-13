@@ -22,18 +22,33 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertSame(10, $keys->count());
     }
 
-    public function test_run_sync_step_includes_server_deploy_commands(): void
+    public function test_run_sync_step_is_button_clicks_not_server_deploy(): void
     {
-        $client = Client::factory()->create(['id' => 42]);
+        $client = Client::factory()->create(['name' => 'SK Systems Limited']);
 
-        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'portal_sync_run')['instructions'];
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'portal_sync_run')['instructions']);
 
-        $text = implode(' ', $instructions);
+        $this->assertStringContainsString('Dry run sync', $text);
+        $this->assertStringContainsString('Sync now', $text);
+        $this->assertStringContainsString('You only click buttons on this page', $text);
+        $this->assertStringNotContainsString('git pull', $text);
+        $this->assertStringNotContainsString('php artisan', $text);
+        $this->assertStringNotContainsString('SSH', $text);
+        $this->assertStringNotContainsString('composer install', $text);
+    }
 
-        $this->assertStringContainsString('git pull origin main', $text);
-        $this->assertStringContainsString('--client=42', $text);
-        $this->assertStringContainsString('ENTRA_SYNC_ENABLED=true', $text);
+    public function test_enable_sync_step_is_save_client_not_env(): void
+    {
+        $client = Client::factory()->create(['entra_license_tier' => 'free']);
+
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'portal_sync_configured')['instructions']);
+
+        $this->assertStringContainsString('Entra sync enabled', $text);
+        $this->assertStringContainsString('Save client', $text);
+        $this->assertStringNotContainsString('ENTRA_SYNC_ENABLED', $text);
+        $this->assertStringNotContainsString('SSH', $text);
     }
 
     public function test_admin_consent_url_uses_tenant_and_app_client_id(): void
