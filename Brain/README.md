@@ -26,11 +26,11 @@ Read these documents before changing application code. **Update Brain for every 
 | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | **Entra SAML setup for SuperOps requesters** |
 | [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) | **Entra SAML setup for SuperOps technicians (On IT staff)** |
 | [OperatorRunbook.md](OperatorRunbook.md) | **Step-by-step checklist — finish SSO, onboard users, production** |
-| [ClientOnboarding.md](ClientOnboarding.md) | **Master checklist — new client, new user, Path A vs B, all systems** |
-| [NewClientSetupGuide.md](NewClientSetupGuide.md) | **Start-to-finish guide for colleagues onboarding a real customer** |
-| [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Simple guide for non-technical staff (60-client scale)** |
-| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Quick pointer** to in-app wizard |
-| [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) | **New customer tenant — full technician guide (start here)** |
+| [ClientOnboarding.md](ClientOnboarding.md) | Master reference — platform values, verification, anti-patterns |
+| [NewClientSetupGuide.md](NewClientSetupGuide.md) | **SUPERSEDED** — redirects to TechnicianTenantOnboarding |
+| [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | Simple guide for non-technical staff |
+| [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | **Only technician entry point** — mirrors live 12-step checklist |
+| [NewCustomerTenantSetup.md](NewCustomerTenantSetup.md) | Deep narrative reference (not day-to-day start) |
 | [AccessAndSync.md](AccessAndSync.md) | **Two-sync model: M365 → SuperOps SCIM + M365 → Portal** |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | **Sync 1: SuperOps SCIM** — Bearer auth, Entra ID Free, requester names `(User Mailbox)` / `(Shared Mailbox)` |
 | [EntraGroupSync.md](EntraGroupSync.md) | **Sync 2: Portal Entra group sync** |
@@ -71,6 +71,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Live checklist rebuilt as 12 zero-training MSP steps; TechnicianTenantOnboarding is sole entry point; NewClientSetupGuide superseded |
+| 2026-07-14 | Checklist 06 simplified: Accept button first, one short technician procedure, platform recovery removed from the live step |
 | 2026-07-14 | Brain policy: update for **every** meaningful change (same turn); SuperOps Multitenant App ID URI vs Entity ID documented |
 | 2026-07-14 | SuperOps Requester SSO: Multitenant saved; document App ID URI (`onit.ltd`) vs SAML Entity ID (`clientuser.superops.ai`); step 06 Accept for every customer |
 | 2026-06-25 | Security/reliability: signed admin consent state, block login for inactive clients, sync lock + throttle, partial-sync warnings, cron non-zero exit |

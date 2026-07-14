@@ -1,4 +1,8 @@
-# New customer tenant — technician setup guide
+# New customer tenant — deep reference
+
+> **Day-to-day start:** [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) and the live **Edit Client** 12-step guide.
+>
+> This file is a longer narrative if you want background. Do not skip the in-app checklist.
 
 **For:** On IT technicians who have never used this portal before.  
 **Time:** ~1–2 hours first time (less once you have done one customer).  
@@ -34,7 +38,7 @@ This guide is **only for each new customer tenant**.
 1. **Work email must match everywhere** — same address in M365, SuperOps, and the portal.  
 2. **Microsoft 365 is the source of truth** — disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
 3. **Use a private/incognito browser for testing** — do not test with `tom.ashby@onit.ltd` (that is a technician account).  
-4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (install-manual format: **Before you start**, numbered parts, **Check your work**; admin consent URL on step 04). **Dry run sync** / **Sync now** are on the **left** under Microsoft Entra sync (spinner + status banner while running).
+4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (Start here / Do this / Done when; Accept buttons first on steps 04 and 08). **Dry run sync** / **Sync now** are on the **left**.
 
 ---
 

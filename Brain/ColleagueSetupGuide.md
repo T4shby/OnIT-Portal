@@ -1,11 +1,11 @@
 # Colleague Setup Guide (simple version)
 
-> **Status:** Entra group sync is **built**. Use the **in-app wizard**: Admin → Clients → Edit. Backup: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) · [EntraGroupSync.md](EntraGroupSync.md).
+> **Status:** Use the **in-app wizard**: Admin → Clients → Edit (12 steps). Entry point: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
 
-Give this document to someone who will **add customers** but does not need to understand Laravel, code, or Microsoft SAML.
+Give this document to someone who will **create the client record** but does not run Entra Accept / SCIM.
 
-**They can do:** SuperOps users, portal admin (clients and users), basic testing.  
-**Tom (M365 admin) must do:** Microsoft SSO setup per customer tenant, disabling access when someone leaves.
+**They can do:** create the client, paste SuperOps Account ID, optional Pax8.
+**A trained technician must do:** Entra Accept steps, SCIM, sync, and customer handoff.
 
 **Portal:** https://app.onit.ltd  
 **Sign in:** Use your On IT work account. You need **Admin** access in the portal.

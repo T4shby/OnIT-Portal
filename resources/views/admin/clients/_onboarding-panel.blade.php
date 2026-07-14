@@ -13,19 +13,13 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            <strong class="text-white/80">Your tools for this checklist:</strong>
-            this portal page, SuperOps, and the customer’s Microsoft Entra / M365 admin.
-            You do not need server access.
+            Follow the open step. Use only this portal page, SuperOps, and the customer’s Microsoft Entra admin.
+            You do not need server access or training notes.
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">Order for this client:</strong>
-            SuperOps link (01) → Pax8 if used (02) → M365 group (03) → Portal Graph consent (04) →
-            SuperOps SCIM (05) → SuperOps Global SSO Accept (06) → Enable sync (07) → Dry run / Sync now (08) → Test sign-in (09) → Hand off (10).
-        </p>
-        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">Saving data:</strong>
-            Entra tenant ID, group ID, and sync settings → orange <strong class="text-white/80">Save client</strong> on the left.
-            Checklist ticks → <strong class="text-white/80">Save checklist</strong> on the right.
+            <strong class="text-white/80">Two save buttons:</strong>
+            orange <strong class="text-white/80">Save client</strong> on the left stores IDs and sync settings.
+            <strong class="text-white/80">Save checklist</strong> on the right stores step ticks.
         </p>
 
         <div class="onboarding-panel__progress">

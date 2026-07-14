@@ -39,15 +39,17 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 |----------------|----------------|----------------|
 | — | **Portal** (before checklist) | Admin → Clients → **Add Client** → Create → Edit opens |
 | 01 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
-| 02 Pax8 (optional) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
-| 03 Security group | **Azure** (customer tenant) | portal.azure.com — customer directory |
-| 04 Admin consent | **Azure** (customer tenant) | Consent URL on portal checklist → Microsoft login |
-| 05 SCIM | **SuperOps** + **Azure** (customer) | SuperOps Integrations + Entra enterprise app |
-| 06 Requester SSO (Global SSO Accept) | **Portal** + **customer** Entra / GA | Customer Accepts multitenant app `bf1c303e-…` — not Client SSO |
-| 07 Enable sync | **Portal** | app.onit.ltd — left column fields → Save client |
-| 08 Run sync | **Portal** | **Dry run** = inline count banner. **Sync now** = background job — refresh for **Last synced** |
-| 09 Test sign-in | **Browser** | app.onit.ltd + SuperOps in incognito |
-| 10 Hand off | **Email/ticket** | Tell customer the portal URL |
+| 02 Pax8 (or skip) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
+| 03 Portal group + Entra IDs | **Azure** (customer tenant) | portal.azure.com — customer directory |
+| 04 Portal Graph Accept | **Portal** + customer GA | Orange Accept button on checklist |
+| 05 SCIM tokens | **SuperOps** | Generate Tokens for this client |
+| 06 SCIM app | **Azure** (customer) | Create `SuperOps - {Company}` + Test Connection |
+| 07 SCIM mapping + start | **Azure** + Portal | Mappings; P1 assign group / Free paste app ID |
+| 08 SuperOps SSO Accept | **Portal** + customer GA | Orange Accept button; assign group/users |
+| 09 Enable sync | **Portal** | Left column → Entra sync enabled → Save client |
+| 10 Dry run / Sync now | **Portal** | Left buttons under the form |
+| 11 Test as customer | **Browser** | Incognito customer work email |
+| 12 Hand off | **Email/ticket** | Tell customer the portal URL |
 
 **Once per platform (not per client):** Graph permissions on **OnIT Portal for Portals** in **On IT** tenant — Step 0 below.
 
@@ -98,7 +100,7 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
 | **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
-| **6** | Portal + customer GA | Checklist **06** — Accept SuperOps Requester SSO; assign Portal group in customer tenant |
+| **8** | Portal + customer GA | Checklist **08** — Accept SuperOps Requester SSO; assign Portal group in customer tenant |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
@@ -226,7 +228,7 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={P
 
 ---
 
-## Step 5–6 — One SuperOps Entra app (SCIM + SAML) — checklist **05** + **06**
+## Step 5–7 — SuperOps SCIM app only — checklist **05** + **06** + **07**
 
 App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 
@@ -263,7 +265,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 7. **Provisioning → Start provisioning** (or wait for cycle)
 8. **Portal Sync now** → expect `SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)` — confirm **Update** per user in Entra **Provisioning logs**; requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
 
-### 6 — SuperOps requester SSO (Global SSO Accept) — checklist **06**
+### 8 — SuperOps requester SSO (Global SSO Accept) — checklist **08**
 
 On IT uses **Global SSO** only — **never** SuperOps Client SSO. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
@@ -271,16 +273,16 @@ On IT uses **Global SSO** only — **never** SuperOps Client SSO. Full detail: [
 
 **Every customer (required):**
 
-1. Edit Client → step **06** → Open **SuperOps SSO Accept URL** (customer tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
+1. Edit Client → step **08** → click the orange **Open Microsoft Accept page** button (customer tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
 2. Customer Global Admin → **Accept**
-3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → assign `On IT Portal - {Company}` (`Assignment required?` = Yes)
+3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → P1: assign `On IT Portal - {Company}`; Free: assign requester users directly
 4. Incognito test with customer work email — must **not** say user is missing from On IT tenant
 
-Do **not** put SAML on the customer SCIM app `SuperOps - {Company}`. Do **not** tick step 06 complete just because Global SSO works for another client.
+Do **not** put SAML on the customer SCIM app `SuperOps - {Company}`. Do **not** tick step 08 complete just because Global SSO works for another client.
 
 ---
 
-## Step 7 — Portal sync — checklist **07** + **08**
+## Step 9–10 — Portal sync — checklist **09** + **10**
 
 ### Server deploy (after `git pull`)
 

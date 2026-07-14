@@ -307,16 +307,21 @@ Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAM
 | **SuperOps** (client users) | Who exists as a requester | Entra SCIM per client (`SuperOps - {Company}`) |
 | **Entra** (SAML app assignment) | Who may use SuperOps Requester SSO | After **Accept**, assign `On IT Portal - {Company}` in the **customer** tenant (`Assignment required?` = Yes) |
 
-### Multitenant Accept (required for every customer tenant — checklist **06**)
+### Multitenant Accept (required for every customer tenant — checklist **08**)
 
 On IT uses **one** Global SSO SAML configuration in SuperOps. The Entra app is **multitenant**. Each of the **50+** customer tenants must **Accept** that app once.
 
-| Step | Who | Action |
-|---|---|---|
-| 1 | On IT / customer GA | Edit Client → step **06** → **Open** SuperOps SSO Accept URL |
-| 2 | Customer Global Admin | Sign in at Microsoft as **customer** GA → **Accept** |
-| 3 | On IT (customer Entra) | Enterprise applications → **SuperOps Requester SSO (On IT)** (now in customer tenant) → Users and groups → assign `On IT Portal - {Company}` |
-| 4 | On IT | Incognito test: `portal.onit.ltd/#/requester/login` with customer work email |
+The live Edit Client guide is deliberately short. The technician does this:
+
+1. Open checklist **08**.
+2. Click the orange **Open Microsoft Accept page** button shown at the very top of the step.
+3. Sign in as the **customer Global Admin** (not an `@onit.ltd` account).
+4. On Microsoft’s permissions page, click **Accept**.
+5. Customer Entra → **Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups**:
+   - **P1:** assign `On IT Portal - {Company}`.
+   - **Entra ID Free:** group assignment to an enterprise app is unavailable; assign requester users directly.
+6. Return to the portal → tick **Mark this step complete** → **Save checklist**.
+7. Complete the real customer sign-in test later in checklist **11**.
 
 **Accept URL:**
 
@@ -330,11 +335,7 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id=bf
 
 **If Accept was skipped:** Microsoft error that the user is not in tenant **On IT Technology Partners LTD** / cannot access `https://clientuser.superops.ai`.
 
-### What to do for a new client (summary)
-
-1. Checklist 01–05 (SuperOps link, group, Portal Graph consent, SCIM)
-2. Checklist **06** — Accept + assign group (this doc)
-3. Checklist 07–10 — enable sync, Sync now, test, hand off
+Platform recovery details (Entity ID, certificate and SuperOps Global SSO) stay in this Brain runbook. They must **not** be placed in routine checklist 08.
 
 ---
 
@@ -415,7 +416,7 @@ Portal (Microsoft login as customer) → Dashboard → SuperOps
 |---|---|---|
 | Confused SuperOps Entity ID with Application ID URI | Put `clientuser.superops.ai` under Expose an API then tried Multitenant | Keep Entity ID on SAML blade; set App ID URI to `https://onit.ltd/superops-requester-sso`; retry Authentication |
 | Unable to update Supported account type … Application ID URI must be on a tenant verified domain | App ID URI still on `clientuser.superops.ai` | §2.1a — change Expose an API first |
-| Account does not exist in tenant **On IT Technology Partners LTD** | Customer tenant never Accepted the multitenant SAML app (or app still single-tenant) | Confirm Multitenant saved; then checklist **06** Accept URL with correct customer tenant ID |
+| Account does not exist in tenant **On IT Technology Partners LTD** | Customer tenant never Accepted the multitenant SAML app (or app still single-tenant) | Confirm Multitenant saved; then checklist **08** Accept URL with correct customer tenant ID |
 | Chooser appears when using `/#/login` | Wrong launch path | Use `/#/requester/login` — not `/#/login/requester` |
 | Tom Ashby lands as **technician** after requester click | Tom is MSP technician in SuperOps | Test with customer email or `portal.test@onit.ltd` |
 | Wrong Microsoft account at SAML step | Browser cached Tom's M365 session | Private/incognito window |
@@ -424,7 +425,7 @@ Portal (Microsoft login as customer) → Dashboard → SuperOps
 | **Error 1028** — on **Entra → Test single sign-on** only | Entra test is **IdP-initiated** | Ignore Entra Test; re-test via SuperOps SP-initiated flow |
 | **Error 1028** on real SuperOps login | Certificate mismatch, expired cert, or wrong Reply URL | Re-download Entra cert → paste body only into SuperOps Step 2 → **Save** |
 | Assignment required but sign-in denied | Group/user not assigned on customer SP after Accept | Customer Entra → Users and groups → assign Portal group |
-| Confused with Portal Graph consent | Step 04 vs step 06 | Different Application IDs; both Accepts are required |
+| Confused with Portal Graph consent | Step 04 vs step 08 | Different Application IDs; both Accepts are required |
 | Step 2 blank after reload | Did not click Save | Fill IDP Login URL, Certificate; Save Global SSO panel |
 | `AADSTS750054` SAMLRequest must be present | Entra Login URL in portal `.env` | Remove from `SUPEROPS_SSO_URL`; portal redirects to `portal.onit.ltd` only |
 | CNAME change after SSO | SuperOps docs warn URLs break | Update Entra Reply URL and SuperOps settings |
@@ -479,7 +480,7 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 | Portal Accept URL env | `SUPEROPS_REQUESTER_SSO_CLIENT_ID` |
 | Portal launch route | `/integrations/superops/launch` |
 | SuperOps SSO setting path | Settings → Requester Login → SSO Protected → Global SSO |
-| Checklist step | **06** — SuperOps requester SSO (Global SSO Accept) |
+| Checklist step | **08** — Customer Accepts SuperOps login |
 
 ---
 

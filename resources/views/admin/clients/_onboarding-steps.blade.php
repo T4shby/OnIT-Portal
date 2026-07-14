@@ -1,5 +1,4 @@
 @php
-    $isEntraFree = ($client->entra_license_tier ?? 'free') === 'free';
     $defaultOpenIndex = 0;
     foreach ($onboardingSteps as $i => $step) {
         if (! $step['complete'] && ! $step['blocked']) {
@@ -18,6 +17,8 @@
             $stepNumber = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
             $isDone = $step['complete'];
             $isBlocked = $step['blocked'] && ! $step['complete'];
+            $showGraphAccept = $step['key'] === 'entra_admin_consent_granted' && ! $isDone && ! $isBlocked;
+            $showSsoAccept = $step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked;
         @endphp
 
         <article
@@ -62,106 +63,78 @@
                 x-cloak
                 class="onboarding-guide__panel"
             >
-                @include('admin.clients._onboarding-manual', [
-                    'guide' => $step['guide'] ?? null,
-                    'instructions' => $step['instructions'] ?? [],
-                ])
-
-                @if($step['key'] === 'entra_group_created' && ! $isDone && ! $isBlocked)
-                    <p class="onboarding-guide__note portal-body-muted text-sm">
-                        Paste <strong class="text-white/80">Entra tenant ID</strong> and <strong class="text-white/80">Entra group ID</strong> on the left → <strong class="text-white/80">Save client</strong>.
-                        @if($isEntraFree)
-                            On Entra ID Free the group is still required — read <strong class="text-white/80">Why this group on Entra ID Free?</strong> in the step notes. Do not add members in Azure; <strong class="text-white/80">Sync now</strong> (step 08) fills the group for you.
-                        @else
-                            Leave the group empty in Azure — <strong class="text-white/80">Sync now</strong> (step 08) fills members for you.
-                        @endif
-                    </p>
-                @endif
-
-                @if($step['key'] === 'portal_sync_run' && ! $isDone && ! $isBlocked)
-                    <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                        <strong class="text-white">After you click Sync now:</strong>
-                        tick <strong class="text-white">Mark this step complete</strong> below → <strong class="text-white">Save checklist</strong>.
-                        The step also turns Done when <strong class="text-white">Last synced</strong> appears on the left.
-                    </p>
-                @endif
-
-                @if($step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked)
-                    <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                        <strong class="text-white">Per client — customer GA must Accept.</strong>
-                        Platform Global SSO (cert / Entity ID) is already set once. This step is the customer tenant
-                        <strong class="text-white">Accept</strong> of <strong class="text-white">SuperOps Requester SSO (On IT)</strong>
-                        — not step 04 Portal Graph consent, and not SuperOps Client SSO.
-                    </p>
-                    @if(! empty($superOpsRequesterSsoConsentUrl))
+                @if($showGraphAccept)
+                    @if(! empty($adminConsentUrl))
                         <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
-                            <p class="portal-label mb-3">SuperOps SSO Accept URL</p>
-                            <div class="flex flex-col gap-3 lg:flex-row">
+                            <p class="portal-label mb-2">Start here</p>
+                            <a
+                                href="{{ $adminConsentUrl }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
+                            >Open Microsoft Accept page</a>
+                            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <input
                                     type="text"
                                     readonly
-                                    value="{{ $superOpsRequesterSsoConsentUrl }}"
-                                    class="admin-input flex-1 text-xs"
+                                    value="{{ $adminConsentUrl }}"
+                                    class="admin-input min-w-0 flex-1 text-xs"
+                                    aria-label="Portal Graph Accept URL"
                                 >
-                                <div class="flex shrink-0 gap-2">
-                                    <a
-                                        href="{{ $superOpsRequesterSsoConsentUrl }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="cta-btn-ghost px-4 py-2 text-xs"
-                                    >Open</a>
-                                    <button
-                                        type="button"
-                                        class="cta-btn-ghost px-4 py-2 text-xs"
-                                        @click="navigator.clipboard.writeText(@js($superOpsRequesterSsoConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
-                                        x-text="copied ? 'Copied' : 'Copy'"
-                                    >Copy</button>
-                                </div>
+                                <button
+                                    type="button"
+                                    class="cta-btn-ghost shrink-0 px-4 py-2 text-xs"
+                                    @click="navigator.clipboard.writeText(@js($adminConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
+                                    x-text="copied ? 'Copied' : 'Copy link'"
+                                >Copy link</button>
                             </div>
                         </div>
                     @else
-                        <p class="onboarding-guide__note portal-body-muted mb-4 text-sm">
-                            Save the Entra tenant ID on the left to generate the SuperOps SSO Accept link here.
+                        <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
+                            <strong class="text-white">Action needed:</strong>
+                            save the customer Entra tenant ID on the left. This page will then show the Microsoft Accept button here.
                         </p>
                     @endif
                 @endif
 
-                @if($step['key'] === 'entra_admin_consent_granted' && $adminConsentUrl)
-                    <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                        <strong class="text-white">Not app.onit.ltd login.</strong>
-                        Use only the Microsoft URL below. Sign in as a <strong class="text-white">{{ $client->name }}</strong> Global Admin at Microsoft → Accept.
-                        If you land on <code class="text-onit">app.onit.ltd/login</code>, you opened the wrong link.
-                    </p>
-                    <div class="onboarding-guide__extra" x-data="{ copied: false }">
-                        <p class="portal-label mb-3">Admin consent URL</p>
-                        <div class="flex flex-col gap-3 lg:flex-row">
-                            <input
-                                type="text"
-                                readonly
-                                value="{{ $adminConsentUrl }}"
-                                class="admin-input flex-1 text-xs"
-                            >
-                            <div class="flex shrink-0 gap-2">
-                                <a
-                                    href="{{ $adminConsentUrl }}"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="cta-btn-ghost px-4 py-2 text-xs"
-                                >Open</a>
+                @if($showSsoAccept)
+                    @if(! empty($superOpsRequesterSsoConsentUrl))
+                        <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
+                            <p class="portal-label mb-2">Start here</p>
+                            <a
+                                href="{{ $superOpsRequesterSsoConsentUrl }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
+                            >Open Microsoft Accept page</a>
+                            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <input
+                                    type="text"
+                                    readonly
+                                    value="{{ $superOpsRequesterSsoConsentUrl }}"
+                                    class="admin-input min-w-0 flex-1 text-xs"
+                                    aria-label="SuperOps SSO Accept URL"
+                                >
                                 <button
                                     type="button"
-                                    class="cta-btn-ghost px-4 py-2 text-xs"
-                                    @click="navigator.clipboard.writeText(@js($adminConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
-                                    x-text="copied ? 'Copied' : 'Copy'"
-                                >Copy</button>
+                                    class="cta-btn-ghost shrink-0 px-4 py-2 text-xs"
+                                    @click="navigator.clipboard.writeText(@js($superOpsRequesterSsoConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
+                                    x-text="copied ? 'Copied' : 'Copy link'"
+                                >Copy link</button>
                             </div>
                         </div>
-                    </div>
-                @elseif($step['key'] === 'entra_admin_consent_granted' && ! $adminConsentUrl)
-                    <p class="onboarding-guide__note portal-body-muted text-sm">
-                        Save the Entra tenant ID on the left to generate the consent link here.
-                    </p>
+                    @else
+                        <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
+                            <strong class="text-white">Action needed:</strong>
+                            save the customer Entra tenant ID on the left. This page will then show the Microsoft Accept button here.
+                        </p>
+                    @endif
                 @endif
+
+                @include('admin.clients._onboarding-manual', [
+                    'guide' => $step['guide'] ?? null,
+                    'instructions' => $step['instructions'] ?? [],
+                ])
 
                 @if($isDone && ($step['auto_detected'] ?? false))
                     <p class="onboarding-guide__note portal-body-muted text-sm">

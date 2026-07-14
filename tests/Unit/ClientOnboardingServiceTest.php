@@ -11,41 +11,55 @@ class ClientOnboardingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_client_checklist_does_not_include_platform_graph_step(): void
+    public function test_checklist_has_twelve_zero_training_steps(): void
     {
         $client = Client::factory()->create();
 
         $keys = collect(app(ClientOnboardingService::class)->steps($client))->pluck('key');
 
+        $this->assertSame([
+            'superops_linked',
+            'pax8_linked',
+            'entra_group_created',
+            'entra_admin_consent_granted',
+            'superops_scim_tokens',
+            'superops_scim_app',
+            'superops_scim_provisioning',
+            'superops_client_sso_configured',
+            'portal_sync_configured',
+            'portal_sync_run',
+            'login_tested',
+            'handed_off',
+        ], $keys->all());
         $this->assertFalse($keys->contains('platform_graph_permissions'));
-        $this->assertFalse($keys->contains('portal_client_created'));
-        $this->assertSame(10, $keys->count());
+        $this->assertSame(12, $keys->count());
     }
 
     public function test_run_sync_step_is_button_clicks_not_server_deploy(): void
     {
         $client = Client::factory()->create(['name' => 'SK Systems Limited']);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'portal_sync_run')['instructions']);
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'portal_sync_run')['instructions']);
 
         $this->assertStringContainsString('Dry run sync', $text);
         $this->assertStringContainsString('Sync now', $text);
-        $this->assertStringContainsString('Both buttons are on this Edit Client page', $text);
         $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringNotContainsString('git pull', $text);
         $this->assertStringNotContainsString('php artisan', $text);
         $this->assertStringNotContainsString('composer install', $text);
         $this->assertStringNotContainsString('cd /var/www', $text);
         $this->assertStringNotContainsString('ENTRA_SYNC_ENABLED', $text);
+        $this->assertStringNotContainsString('Entity ID', $text);
+        $this->assertStringNotContainsString('certificate', $text);
     }
 
     public function test_enable_sync_step_is_save_client_not_env(): void
     {
         $client = Client::factory()->create(['entra_license_tier' => 'free']);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'portal_sync_configured')['instructions']);
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'portal_sync_configured')['instructions']);
 
         $this->assertStringContainsString('Entra sync enabled', $text);
         $this->assertStringContainsString('Save client', $text);
@@ -83,12 +97,16 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_group_id' => '22222222-2222-2222-2222-222222222222',
             'entra_sync_enabled' => true,
             'entra_synced_at' => now(),
+            'onboarding_checklist' => [
+                'superops_scim_configured' => true,
+                'superops_client_sso_configured' => true,
+            ],
         ]);
 
         $progress = app(ClientOnboardingService::class)->progress($client);
 
-        $this->assertGreaterThanOrEqual(6, $progress['complete']);
-        $this->assertSame(10, $progress['total']);
+        $this->assertGreaterThanOrEqual(8, $progress['complete']);
+        $this->assertSame(12, $progress['total']);
     }
 
     public function test_unsaved_client_does_not_mark_superops_linked_complete(): void
@@ -122,8 +140,8 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_group_id' => null,
         ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'entra_group_created');
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_group_created');
 
         $this->assertFalse($step['complete']);
         $this->assertFalse($step['auto_detected']);
@@ -137,12 +155,12 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_group_id' => null,
         ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'entra_group_created');
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_group_created');
 
         $this->assertFalse($step['complete']);
         $this->assertFalse($step['auto_detected']);
-        $this->assertSame('M365 security group + Entra tenant', $step['title']);
+        $this->assertSame('Create Portal group + save Entra IDs', $step['title']);
     }
 
     public function test_group_id_auto_completes_security_group_step(): void
@@ -153,45 +171,72 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_group_id' => '22222222-2222-2222-2222-222222222222',
         ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'entra_group_created');
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_group_created');
 
         $this->assertTrue($step['complete']);
         $this->assertTrue($step['auto_detected']);
     }
 
-    public function test_scim_part_c_maps_attributes_without_pilot_name_examples(): void
+    public function test_legacy_scim_checkpoint_completes_all_three_scim_steps(): void
     {
-        $client = Client::factory()->create(['name' => 'MXVI']);
+        $client = Client::factory()->create([
+            'onboarding_checklist' => ['superops_scim_configured' => true],
+        ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_scim_configured');
+        $steps = collect(app(ClientOnboardingService::class)->steps($client));
 
-        $partC = collect($step['guide']['sections'])
-            ->first(fn (array $section) => str_contains($section['title'], 'Part C'));
-
-        $this->assertCount(5, $partC['steps']);
-        $this->assertCount(2, $partC['notes']);
-        $this->assertStringContainsString('Surname (User Mailbox)', implode(' ', $partC['notes']));
-        $this->assertStringNotContainsString('No Expression needed', implode(' ', $partC['steps']));
-        $this->assertStringNotContainsString('Munns', implode(' ', array_merge($partC['steps'], $partC['notes'])));
+        $this->assertTrue($steps->firstWhere('key', 'superops_scim_tokens')['complete']);
+        $this->assertTrue($steps->firstWhere('key', 'superops_scim_app')['complete']);
+        $this->assertTrue($steps->firstWhere('key', 'superops_scim_provisioning')['complete']);
     }
 
-    public function test_scim_step_includes_detailed_instructions(): void
+    public function test_scim_provisioning_free_path_pastes_app_id(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'MXVI',
+            'entra_license_tier' => 'free',
+        ]);
+
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_provisioning')['instructions']);
+
+        $this->assertStringContainsString('Application (client) ID', $text);
+        $this->assertStringContainsString('Save client', $text);
+        $this->assertStringContainsString('Start provisioning', $text);
+        $this->assertStringNotContainsString('Assign group', $text);
+        $this->assertStringNotContainsString('Part C', $text);
+        $this->assertStringNotContainsString('Munns', $text);
+    }
+
+    public function test_scim_provisioning_p1_path_assigns_group(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'Acme Ltd',
+            'entra_license_tier' => 'p1',
+        ]);
+
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_provisioning')['instructions']);
+
+        $this->assertStringContainsString('On IT Portal - Acme Ltd', $text);
+        $this->assertStringContainsString('Start provisioning', $text);
+        $this->assertStringNotContainsString('SuperOps Application (client) ID', $text);
+        $this->assertStringNotContainsString('Entra ID Free:', $text);
+    }
+
+    public function test_scim_app_step_includes_test_connection(): void
     {
         $client = Client::factory()->create(['name' => 'Ductec LTD']);
 
-        $instructions = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_scim_configured')['instructions'];
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_app')['instructions']);
 
-        $text = implode(' ', $instructions);
-
-        $this->assertGreaterThanOrEqual(10, count($instructions));
         $this->assertStringContainsString('Test Connection', $text);
-        $this->assertStringContainsString('Ductec LTD', $text);
-        $this->assertStringContainsString('Manage', $text);
-        $this->assertStringContainsString('Admin Credentials', $text);
-        $this->assertStringContainsString('Connect your application', $text);
+        $this->assertStringContainsString('SuperOps - Ductec LTD', $text);
+        $this->assertStringContainsString('Bearer Authentication', $text);
+        $this->assertStringNotContainsString('Entity ID', $text);
+        $this->assertStringNotContainsString('Client SSO', $text);
     }
 
     public function test_sso_step_requires_customer_ga_accept(): void
@@ -208,14 +253,16 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', $step['instructions']);
         $consentUrl = $service->superOpsRequesterSsoConsentUrl($client);
 
-        $this->assertSame('SuperOps requester SSO (Global SSO Accept)', $step['title']);
-        $this->assertStringContainsString('customer Global Admin must Accept', $text);
-        $this->assertStringContainsString('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $text);
-        $this->assertStringContainsString('Do not', $text);
+        $this->assertSame('Customer Accepts SuperOps login', $step['title']);
+        $this->assertCount(1, $step['guide']['sections']);
+        $this->assertStringContainsString('Click **Open Microsoft Accept page** above', $text);
+        $this->assertStringContainsString('MXVI Global Admin', $text);
+        $this->assertStringContainsString('Accept', $text);
+        $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringContainsString('Client SSO', $text);
-        $this->assertStringContainsString('https://clientuser.superops.ai', $text);
-        $this->assertStringContainsString('Global SSO', $text);
-        $this->assertStringContainsString('not in tenant', $text);
+        $this->assertStringNotContainsString('Global SSO is broken', $text);
+        $this->assertStringNotContainsString('Entity ID', $text);
+        $this->assertStringNotContainsString('certificate', $text);
         $this->assertStringStartsWith(
             'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent',
             $consentUrl,
@@ -232,71 +279,36 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertNull(app(ClientOnboardingService::class)->superOpsRequesterSsoConsentUrl($withoutTenant));
     }
 
-    public function test_group_step_clarifies_portal_vs_superops_scope_on_free(): void
+    public function test_group_step_is_click_path_only(): void
     {
         $client = Client::factory()->create([
             'name' => 'Ductec LTD',
             'entra_license_tier' => 'free',
         ]);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'entra_group_created')['instructions']);
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_group_created')['instructions']);
 
         $this->assertStringContainsString('New group', $text);
         $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
-        $this->assertStringContainsString('Why this group on Entra ID Free?', $text);
-        $this->assertStringContainsString('Do not assign this group to the SuperOps app', $text);
-        $this->assertStringContainsString('Sync now', $text);
-        $this->assertStringNotContainsString('Do not create a security group', $text);
+        $this->assertStringContainsString('Leave **Members** empty', $text);
+        $this->assertStringContainsString('Save client', $text);
+        $this->assertStringNotContainsString('9 Graph permissions', $text);
+        $this->assertStringNotContainsString('Why this group on Entra ID Free?', $text);
     }
 
-    public function test_free_part_d_explains_portal_field_and_overview_app_id(): void
+    public function test_portal_graph_accept_step_is_button_first_copy(): void
     {
-        $client = Client::factory()->create([
-            'name' => 'MXVI',
-            'entra_license_tier' => 'free',
-        ]);
+        $client = Client::factory()->create(['name' => '3R Systems Limited']);
 
-        $partD = collect(
-            collect(app(ClientOnboardingService::class)->steps($client))
-                ->firstWhere('key', 'superops_scim_configured')['guide']['sections']
-        )->first(fn (array $section) => str_contains($section['title'], 'Part D'));
+        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_admin_consent_granted')['instructions']);
 
-        $text = implode(' ', array_merge($partD['steps'], $partD['notes'] ?? []));
-
-        $this->assertStringContainsString('On Entra ID Free you do not assign', $text);
-        $this->assertStringNotContainsString('Entra ID P1', $text);
-        $this->assertStringNotContainsString('Users and groups → Add user/group', $text);
-        $this->assertCount(3, $partD['steps']);
-    }
-
-    public function test_free_scim_guide_does_not_show_p1_and_free_paths_together(): void
-    {
-        $client = Client::factory()->create([
-            'name' => 'MXVI',
-            'entra_license_tier' => 'free',
-        ]);
-
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_scim_configured')['instructions']);
-
-        $this->assertStringContainsString('Entra ID Free', $text);
-        $this->assertStringNotContainsString('Entra ID P1:', $text);
-        $this->assertStringContainsString('SuperOps Application (client) ID', $text);
-    }
-
-    public function test_p1_scim_guide_uses_group_assignment_not_app_id_path(): void
-    {
-        $client = Client::factory()->create([
-            'name' => 'Acme Ltd',
-            'entra_license_tier' => 'p1',
-        ]);
-
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_scim_configured')['instructions']);
-
-        $this->assertStringContainsString('On IT Portal - Acme Ltd', $text);
-        $this->assertStringNotContainsString('Entra ID Free:', $text);
+        $this->assertStringContainsString('Open Microsoft Accept page', $text);
+        $this->assertStringContainsString('3R Systems Limited Global Admin', $text);
+        $this->assertStringNotContainsString('User.Read.All', $text);
+        $this->assertStringNotContainsString('Application.Read.All', $text);
+        $this->assertStringNotContainsString('extensionAttribute1', $text);
     }
 
     public function test_successful_sync_auto_completes_admin_consent_step(): void
@@ -305,8 +317,8 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_synced_at' => now(),
         ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'entra_admin_consent_granted');
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'entra_admin_consent_granted');
 
         $this->assertTrue($step['complete']);
         $this->assertTrue($step['auto_detected']);
@@ -335,8 +347,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertArrayHasKey('entra_group_id', $helps);
         $this->assertArrayHasKey('entra_superops_app_id', $helps);
         $this->assertStringContainsString('MXVI', implode(' ', $helps['entra_superops_app_id']));
-        $this->assertStringContainsString('Create this group in step 03', implode(' ', $helps['entra_group_id']));
-        $this->assertStringContainsString('upgrade to P1', implode(' ', $helps['entra_group_id']));
+        $this->assertStringContainsString('On IT Portal - MXVI', implode(' ', $helps['entra_group_id']));
     }
 
     public function test_portal_sync_run_can_be_marked_complete_manually(): void
@@ -348,6 +359,11 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_sync_enabled' => true,
             'entra_synced_at' => null,
             'entra_license_tier' => 'free',
+            'onboarding_checklist' => [
+                'superops_scim_tokens' => true,
+                'superops_scim_app' => true,
+                'superops_scim_provisioning' => true,
+            ],
         ]);
 
         config(['services.entra_sync.enabled' => true]);
@@ -365,5 +381,20 @@ class ClientOnboardingServiceTest extends TestCase
         $step = collect($service->steps($client))->firstWhere('key', 'portal_sync_run');
         $this->assertTrue($step['complete']);
         $this->assertFalse(collect($service->steps($client))->firstWhere('key', 'login_tested')['blocked']);
+    }
+
+    public function test_updating_all_scim_substeps_sets_legacy_key(): void
+    {
+        $client = Client::factory()->create();
+        $service = app(ClientOnboardingService::class);
+
+        $service->updateChecklist($client, [
+            'superops_scim_tokens' => true,
+            'superops_scim_app' => true,
+            'superops_scim_provisioning' => true,
+        ]);
+        $client->refresh();
+
+        $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
     }
 }

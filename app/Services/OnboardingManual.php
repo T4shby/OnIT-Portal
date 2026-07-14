@@ -88,11 +88,11 @@ class OnboardingManual
         $lines = [];
 
         foreach ($guide['prerequisites'] as $line) {
-            $lines[] = 'Prerequisite: '.$line;
+            $lines[] = 'Start here: '.$line;
         }
 
         foreach ($guide['notes'] as $line) {
-            $lines[] = 'Note: '.$line;
+            $lines[] = 'Remember: '.$line;
         }
 
         foreach ($guide['sections'] as $section) {
@@ -107,12 +107,12 @@ class OnboardingManual
             }
 
             foreach ($section['notes'] ?? [] as $note) {
-                $lines[] = 'Why: '.$note;
+                $lines[] = 'Remember: '.$note;
             }
         }
 
         foreach ($guide['verify'] as $line) {
-            $lines[] = 'Verify: '.$line;
+            $lines[] = 'Done when: '.$line;
         }
 
         return $lines;
