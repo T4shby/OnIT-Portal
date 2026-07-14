@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Fixed checklist 08: tenant-specific SuperOps SSO Accept button / Copy link remains visible after completion |
 | 2026-07-14 | Live checklist: multi-block **Where** per app (Portal / SuperOps / Azure) on every step; SSO Accept = **08** in Brain (fixed stale 06 refs) |
 | 2026-07-14 | Restored full Entra click-by-click how-tos in live checklist (create app, mappings, Application ID, Accept assignment) |
 | 2026-07-14 | Free Application (client) ID path explicit in step 07; guide header highlights Azure steps 03–08 |

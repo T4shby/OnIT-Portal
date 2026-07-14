@@ -300,8 +300,9 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertSame('Customer Accepts SuperOps login', $step['title']);
         $this->assertGreaterThanOrEqual(2, count($step['guide']['sections']));
-        $this->assertStringContainsString('Open Microsoft Accept page', $text);
-        $this->assertStringContainsString('MXVI Global Admin', $text);
+        $this->assertStringContainsString('Open customer SuperOps SSO Accept page', $text);
+        $this->assertStringContainsString('Global Administrator of MXVI', $text);
+        $this->assertStringContainsString('Copy link', $text);
         $this->assertStringContainsString('Users and groups', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
         $this->assertStringContainsString('Accept', $text);
@@ -316,6 +317,30 @@ class ClientOnboardingServiceTest extends TestCase
         );
         parse_str((string) parse_url((string) $consentUrl, PHP_URL_QUERY), $query);
         $this->assertSame('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $query['client_id']);
+    }
+
+    public function test_completed_sso_step_still_shows_customer_accept_button_and_copy_link(): void
+    {
+        $client = Client::factory()->create([
+            'name' => '3R Systems Limited',
+            'onboarding_checklist' => ['superops_client_sso_configured' => true],
+        ]);
+
+        $html = view('admin.clients._onboarding-steps', [
+            'client' => $client,
+            'onboardingSteps' => app(ClientOnboardingService::class)->steps($client),
+            'adminConsentUrl' => null,
+            'superOpsRequesterSsoConsentUrl' => 'https://login.microsoftonline.com/customer/adminconsent?client_id=sso-app',
+            'showCheckboxes' => true,
+        ])->render();
+
+        $this->assertStringContainsString('Open customer SuperOps SSO Accept page', $html);
+        $this->assertStringContainsString('Required for every customer tenant', $html);
+        $this->assertStringContainsString('Copy link', $html);
+        $this->assertStringContainsString(
+            'https://login.microsoftonline.com/customer/adminconsent?client_id=sso-app',
+            $html,
+        );
     }
 
     public function test_superops_requester_sso_consent_url_requires_tenant(): void

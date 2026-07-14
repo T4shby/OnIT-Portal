@@ -66,7 +66,7 @@ SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
 2. Choose **Global SSO** (all requesters use one Entra app)
 3. Keep this page open — you will copy values **to** and **from** here
 
-> **Client-level SSO:** SuperOps product supports Client SSO, but **On IT does not use it**. All customers use **Global SSO** + per-tenant **admin Accept** of the multitenant Entra app (checklist step **06**).
+> **Client-level SSO:** SuperOps product supports Client SSO, but **On IT does not use it**. All customers use **Global SSO** + per-tenant **admin Accept** of the multitenant Entra app (checklist step **08**).
 
 ### 1.3 Consumer Service URL (for Entra Reply URL)
 
@@ -118,7 +118,7 @@ SuperOps docs tell you to set Entity ID to `https://clientuser.superops.ai`. Tha
 
 **If Azure shows:** `Unable to update the Supported account type. The property Application ID URI … must be on a tenant verified domain` → you still have Application ID URI = `https://clientuser.superops.ai`. Fix Expose an API first, then retry Authentication.
 
-**Default trap:** New apps are **Single tenant / My organization only**. That blocks customer `@company.com` users (“account does not exist in tenant On IT Technology Partners LTD”). Multitenant alone does not finish a client — each tenant still needs checklist **06 Accept**.
+**Default trap:** New apps are **Single tenant / My organization only**. That blocks customer `@company.com` users (“account does not exist in tenant On IT Technology Partners LTD”). Multitenant alone does not finish a client — each tenant still needs checklist **08 Accept**.
 
 ### 2.1b Verified Enterprise application Properties (On IT home, 2026-07-14)
 
@@ -311,10 +311,10 @@ Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAM
 
 On IT uses **one** Global SSO SAML configuration in SuperOps. The Entra app is **multitenant**. Each of the **50+** customer tenants must **Accept** that app once.
 
-The live Edit Client guide is deliberately short. The technician does this:
+The live Edit Client guide contains the complete per-customer acceptance procedure. The technician does this:
 
 1. Open checklist **08**.
-2. Click the orange **Open Microsoft Accept page** button shown at the very top of the step.
+2. Click the orange **Open customer SuperOps SSO Accept page** button shown at the very top of the step. The button remains visible even after the checklist step is marked Done, so consent can be repeated or the link copied later.
 3. Sign in as the **customer Global Admin** (not an `@onit.ltd` account).
 4. On Microsoft’s permissions page, click **Accept**.
 5. Customer Entra → **Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups**:

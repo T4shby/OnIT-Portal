@@ -18,7 +18,10 @@
             $isDone = $step['complete'];
             $isBlocked = $step['blocked'] && ! $step['complete'];
             $showGraphAccept = $step['key'] === 'entra_admin_consent_granted' && ! $isDone && ! $isBlocked;
-            $showSsoAccept = $step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked;
+            // Keep the per-customer SSO Accept URL available after completion.
+            // Technicians may need to copy it to the customer's Global Admin or
+            // repeat consent; hiding it makes the instructions impossible to follow.
+            $showSsoAccept = $step['key'] === 'superops_client_sso_configured';
         @endphp
 
         <article
@@ -100,20 +103,20 @@
                 @if($showSsoAccept)
                     @if(! empty($superOpsRequesterSsoConsentUrl))
                         <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
-                            <p class="portal-label mb-2">Start here</p>
+                            <p class="portal-label mb-2">Required for every customer tenant</p>
                             <a
                                 href="{{ $superOpsRequesterSsoConsentUrl }}"
                                 target="_blank"
                                 rel="noopener"
                                 class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
-                            >Open Microsoft Accept page</a>
+                            >Open customer SuperOps SSO Accept page</a>
                             <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <input
                                     type="text"
                                     readonly
                                     value="{{ $superOpsRequesterSsoConsentUrl }}"
                                     class="admin-input min-w-0 flex-1 text-xs"
-                                    aria-label="SuperOps SSO Accept URL"
+                                    aria-label="Customer SuperOps SSO Accept URL"
                                 >
                                 <button
                                     type="button"

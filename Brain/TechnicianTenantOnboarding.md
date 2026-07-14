@@ -36,7 +36,7 @@ Set **Customer Entra license tier** on the left before step 03.
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
 | 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
 | 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
-| 08 | Customer Accepts SuperOps login | Orange Accept → customer Azure **SuperOps Requester SSO (On IT) → Users and groups** | Tick complete |
+| 08 | Customer Accepts SuperOps login | Orange **Open customer SuperOps SSO Accept page** (or **Copy link** for customer GA) → customer Azure **SuperOps Requester SSO (On IT) → Users and groups** | Accept completed and users/group assigned |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
@@ -67,6 +67,7 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 - Customer SCIM app is `SuperOps - {Company}` (SCIM only — not SAML).
 - SuperOps login uses **Global SSO + customer Accept** (step 08). Never Client SSO.
 - Portal Graph Accept (04) and SuperOps Accept (08) are different Microsoft Accept pages.
+- Step 08's customer Accept button remains visible after Done so technicians can copy or repeat the tenant-specific acceptance.
 - Test login with a **customer** work email, never an On IT staff account.
 
 ## If you get stuck
@@ -87,6 +88,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Fixed step 08: customer SuperOps SSO Accept / Copy link remains visible after the step is Done |
 | 2026-07-14 | Every live step now has separate **Where** blocks per app (Portal / SuperOps / Azure); Brain map lists product + menu path per step |
 | 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) — simple words, complete how-to |
 | 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |
