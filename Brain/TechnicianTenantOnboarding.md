@@ -2,6 +2,8 @@
 
 **This is the only technician-facing guide.** Open the live checklist and follow each numbered step. Do not start from old Path A/B or Client SSO docs.
 
+Every step in the app shows **Where** (exact product + menu path) then numbered clicks. This page mirrors that so you know the map before you start.
+
 ## Start here
 
 1. Sign in to https://app.onit.ltd as an On IT technician.
@@ -25,22 +27,38 @@
 
 Set **Customer Entra license tier** on the left before step 03.
 
-| # | Step | Done when |
-|---|---|---|
-| 01 | Link SuperOps client | SuperOps Account ID saved |
-| 02 | Link Pax8 (or skip) | Pax8 off, or company ID saved |
-| 03 | Create Portal group + save Entra IDs | Tenant ID + group ID saved |
-| 04 | Customer Accepts Portal access | Orange Accept button used / or first sync later |
-| 05 | Get SuperOps SCIM tokens | Tick complete |
-| 06 | Create SuperOps SCIM app in Entra | Tick complete |
-| 07 | Azure SCIM mappings + copy Application ID (Free) / assign group (P1) + start | Tick complete |
-| 08 | Customer Accepts SuperOps login | Orange Accept + Azure Users and groups assignment |
-| 09 | Turn on portal sync | Entra sync enabled + Save client |
-| 10 | Run Dry run then Sync now | Last synced shows, or tick after Sync now |
-| 11 | Test as a customer user | Tick complete |
-| 12 | Hand off to the customer | Tick complete |
+| # | Step | Where you work | Done when |
+|---|---|---|---|
+| 01 | Link SuperOps client | SuperOps **Clients** → paste Account ID on portal left | SuperOps Account ID saved |
+| 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
+| 03 | Create Portal group + save Entra IDs | Customer Azure **Groups** → paste Tenant + group IDs on portal left | Tenant ID + group ID saved |
+| 04 | Customer Accepts Portal access | Orange Accept on checklist → verify **OnIT Portal for Portals** permissions | Accept used / or first sync later |
+| 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
+| 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
+| 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
+| 08 | Customer Accepts SuperOps login | Orange Accept → customer Azure **SuperOps Requester SSO (On IT) → Users and groups** | Tick complete |
+| 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
+| 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
+| 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
+| 12 | Hand off to the customer | Email / ticket | Tick complete |
 
 Steps 05–07 are one SCIM job split so a new technician can finish each screen without guessing. Older clients that already had SCIM marked complete stay complete.
+
+### Where each product lives
+
+| Product | Open this |
+|---|---|
+| On IT Portal | https://app.onit.ltd → **Admin → Clients → Edit {Company}** |
+| SuperOps MSP | SuperOps portal URL from config (technician console) → **Clients** / **Integrations** |
+| Pax8 | https://app.pax8.com → **Companies** |
+| Customer Azure | https://portal.azure.com → top-right directory switcher → **customer name** (never stay in On IT Technology Partners LTD) |
+
+### Step 07 Free vs P1 (do not mix)
+
+| Licence tier | After mappings + App role Value **User** |
+|---|---|
+| **Entra ID Free** | App registrations → Overview → copy **Application (client) ID** (not Object ID) → portal left **SuperOps Application (client) ID** → Save client → Start provisioning |
+| **Entra ID P1** | Enterprise app → **Users and groups** → assign `On IT Portal - {Company}` → Start provisioning |
 
 ## Rules that never change
 
@@ -69,6 +87,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Every live step now has separate **Where** blocks per app (Portal / SuperOps / Azure); Brain map lists product + menu path per step |
 | 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) — simple words, complete how-to |
 | 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |
 | 2026-07-14 | Canonical zero-training technician guide; mirrors live 12-step checklist |

@@ -371,6 +371,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Live steps use multiple **Where** sections (product + menu path) so technicians know which app to open |
 | 2026-07-14 | Live checklist rebuilt as 12 zero-training steps; SuperOps Accept is step 08; SCIM split into 05–07 |
 | 2026-07-14 | Multitenant verified (App ID URI `onit.ltd/…` vs SAML Entity ID `clientuser.superops.ai`); Accept path; Client SSO removed from operating model |
 | 2026-06-15 | Phase A SSO validated; launch path `/#/requester/login`; Plesk deployment notes |

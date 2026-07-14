@@ -82,11 +82,11 @@ On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/ar
 |-------|---------------------|
 | **Identifier (Entity ID)** | Type **`https://clientuser.superops.ai`** — fixed SuperOps value for Global SSO. Not per-client. |
 | **Reply URL** | SuperOps → Settings → Requester Login → SSO Protected → **Global SSO** → **Consumer Service URL** |
-| **Per client** | Checklist **06** Accept URL → customer GA Accepts `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` → assign `On IT Portal - {Company}` in **customer** tenant |
+| **Per client** | Checklist **08** Accept URL → customer GA Accepts `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` → assign `On IT Portal - {Company}` in **customer** tenant |
 
 Configure SAML once on the **On IT** Entra app (**SuperOps Requester SSO (On IT)**), then paste Login URL + certificate into SuperOps **Global SSO**. Do **not** put Global SSO SAML on the customer `SuperOps - {Company}` SCIM app. Do **not** use SuperOps Client SSO.
 
-Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md). Checklist step 06 is the Accept — not “tick because platform exists”.
+Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md). Checklist step **08** is the Accept — not “tick because platform exists”.
 
 ### Legacy: two separate Entra apps
 
@@ -193,12 +193,12 @@ Then configure SCIM attribute mapping above and run **Sync now** so extension at
 | **Portal login** (OAuth) | On IT Portal app — separate from SCIM app |
 | **SuperOps SSO login** (SAML) | On IT **Global SSO** + customer Accept of **SuperOps Requester SSO (On IT)** — not the SCIM app |
 
-You may have **two** Entra enterprise apps in the customer tenant (plus the consented SuperOps Requester SSO SP after step 06):
+You may have **two** Entra enterprise apps in the customer tenant (plus the consented SuperOps Requester SSO SP after step **08**):
 
 | App | Purpose |
 |---|---|
 | **SuperOps - {Company}** | SCIM provisioning only |
-| **SuperOps Requester SSO (On IT)** | Appears after checklist **06** Accept — assign Portal group |
+| **SuperOps Requester SSO (On IT)** | Appears after checklist **08** Accept — assign Portal group |
 | On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant (step 04) |
 
 Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do **not** use SuperOps Client SSO for login.
@@ -215,7 +215,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
 | ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
-| ☐ | Checklist **06** — customer GA Accepted SuperOps Requester SSO; Portal group assigned |
+| ☐ | Checklist **08** — customer GA Accepted SuperOps Requester SSO; Portal group assigned |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
 
@@ -242,6 +242,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Checklist SSO Accept is step **08** (stale “06” refs corrected); live guide uses multi-block Where paths |
 | 2026-06-25 | Sync now: provision-on-demand **one user per API call** + delay after `extensionAttribute1`; spinner/status banner on Edit client |
 | 2026-06-25 | Portal writes full SCIM name to `extensionAttribute1`; Direct `name.familyName` mapping; provision-on-demand on Sync now |
 | 2026-06-25 | Requester display names: `(User Mailbox)` / `(Shared Mailbox)` — not via Entra `displayName` |

@@ -147,19 +147,31 @@ class ClientOnboardingService
                 'manual' => false,
                 'auto_detected' => $superopsLinked,
                 'blocked' => false,
-            ], OnboardingManual::simple(
-                $superOpsUrl.' → Clients',
-                [
-                    'Open SuperOps and go to **Clients**.',
-                    'Open this customer.',
-                    'Copy the Account ID from the browser URL (the long number after `/client/`).',
-                    'On the left of this page, paste it into **SuperOps Account ID**.',
-                    'Click **Save client** (left).',
+            ], OnboardingManual::build(
+                sections: [
+                    OnboardingManual::section(
+                        'Get the Account ID from SuperOps',
+                        $superOpsUrl.' → Clients',
+                        [
+                            'Open '.$superOpsUrl.' and sign in as an On IT technician (MSP console).',
+                            'Top or left menu → **Clients**.',
+                            'Search and open **'.$client->name.'**. If missing, create that SuperOps client first.',
+                            'Look at the browser address bar. Copy the long number after `/client/` — that is the SuperOps Account ID.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Paste it into this portal',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left column)',
+                        [
+                            'Stay on this portal Edit Client page (or reopen it).',
+                            'Left column → field **SuperOps Account ID** → paste the number.',
+                            'Click orange **Save client** (left).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'This step turns Done automatically when the Account ID is saved.',
+                    'This step turns Done automatically when SuperOps Account ID is saved.',
                 ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -170,18 +182,33 @@ class ClientOnboardingService
                 'manual' => false,
                 'auto_detected' => $pax8Configured,
                 'blocked' => false,
-            ], OnboardingManual::simple(
-                'Pax8 partner portal, then this page (left)',
-                [
-                    'If this customer does **not** use the Pax8 tile, leave Pax8 blank and unticked. This step is already Done.',
-                    'If they do use Pax8: open Pax8 → Companies → this customer → copy the company UUID.',
-                    'On the left: paste **Pax8 Company ID** and tick **Pax8 access**.',
-                    'Click **Save client** (left).',
+            ], OnboardingManual::build(
+                notes: [
+                    'If this customer will **not** see a Pax8 tile: leave **Pax8 Company ID** blank and **Pax8 access** unticked — this step is already Done.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Copy Company UUID from Pax8 (only if they use Pax8)',
+                        'https://app.pax8.com → Companies',
+                        [
+                            'Open https://app.pax8.com and sign in.',
+                            'Go to **Companies** → open this customer.',
+                            'Copy the company **UUID** from the browser URL or company profile page.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Save on this portal (only if they use Pax8)',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left column)',
+                        [
+                            'Left column → **Pax8 Company ID** → paste the UUID.',
+                            'Tick **Pax8 access**.',
+                            'Click orange **Save client** (left).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Pax8 off = Done. Or Pax8 Company ID is saved.',
+                    'Pax8 unused = Done, or Pax8 Company ID is saved.',
                 ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -192,33 +219,60 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => $entraTenantSaved && $entraGroupSaved,
                 'blocked' => ! $superopsLinked,
-            ], OnboardingManual::simple(
-                'https://portal.azure.com — customer Microsoft Entra (not On IT)',
-                [
-                    'On the left of this portal page, set **Customer Entra license tier** to **Entra ID Free** or **Entra ID P1 or higher** to match what the customer pays for.',
-                    'Open https://portal.azure.com in a new tab.',
-                    'Top-right directory switcher → select **'.$client->name.'** (customer). Do not stay in On IT Technology Partners.',
-                    'Left menu → **Microsoft Entra ID**.',
-                    'Left menu → **Manage → Groups → All groups → New group**.',
-                    'Group type: **Security**.',
-                    'Group name: type exactly **'.$groupName.'**.',
-                    'Membership type: **Assigned**.',
-                    'Owners / Members: leave empty (do not add anyone).',
-                    'Click **Create**. Wait until the group appears in the list, then open it.',
-                    'On the group **Overview**, copy **Object ID** (GUID).',
-                    'Left menu → **Microsoft Entra ID → Overview**.',
-                    'Copy **Tenant ID** (GUID).',
-                    'Back on this portal page (left): paste Tenant ID into **Entra tenant ID**.',
-                    'Paste the group Object ID into **Entra group ID**.',
-                    'Click **Save client** (left).',
+            ], OnboardingManual::build(
+                notes: [
+                    'Leave group Members empty. Sync fills them later.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Set licence tier on this portal first',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left)',
+                        [
+                            'On the left, under Microsoft Entra sync / Entra fields: set **Customer Entra license tier** to **Entra ID Free** or **Entra ID P1 or higher** (match what the customer pays for).',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Create the security group in customer Azure',
+                        'https://portal.azure.com → switch directory to **'.$client->name.'** → Microsoft Entra ID → Groups',
+                        [
+                            'Open a new tab → https://portal.azure.com.',
+                            'Top-right → directory / tenant switcher → pick **'.$client->name.'**. Do **not** stay in On IT Technology Partners LTD.',
+                            'Azure search bar (top) → type **Microsoft Entra ID** → open it (or left rail **Microsoft Entra ID**).',
+                            'Entra left menu → **Manage** → **Groups** → **All groups**.',
+                            'Click **New group**.',
+                            'Group type dropdown → **Security**.',
+                            'Group name → type exactly **'.$groupName.'**.',
+                            'Membership type → **Assigned**.',
+                            'Members / Owners → add nobody.',
+                            'Click **Create**.',
+                            'Back on **All groups**, open **'.$groupName.'**.',
+                            'Group left menu → **Overview**.',
+                            'Copy **Object ID** (GUID) into Notepad.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Copy Tenant ID from customer Azure',
+                        'https://portal.azure.com → customer directory → Microsoft Entra ID → Overview',
+                        [
+                            'Still in **'.$client->name.'** directory.',
+                            'Entra left menu → **Overview** (tenant overview — not the group Overview).',
+                            'Copy **Tenant ID** (GUID) into Notepad.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Paste both IDs into this portal',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left)',
+                        [
+                            'Return to this portal Edit Client tab.',
+                            'Left column → **Entra tenant ID** → paste Tenant ID.',
+                            'Left column → **Entra group ID** → paste group Object ID.',
+                            'Click orange **Save client** (left).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Left column shows both Entra IDs saved and this step shows Done.',
+                    'Both Entra IDs show on the left and this step is Done (auto or after Save checklist).',
                 ],
-                notes: [
-                    'Members stay empty on purpose. Sync later fills the group.',
-                ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -229,24 +283,43 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => $syncRun,
                 'blocked' => ! $entraTenantSaved,
-            ], OnboardingManual::simple(
-                'Start with the orange button above',
-                [
-                    'Click **Open Microsoft Accept page** above.',
-                    'Use a private/incognito window if you are already signed into On IT Azure.',
-                    'Sign in as a **'.$client->name.' Global Admin** — not an @onit.ltd account.',
-                    'Check the page shows tenant **'.$client->name.'**, not On IT Technology Partners.',
-                    'Click **Accept**.',
-                    'Optional check: Azure (customer directory) → **Enterprise applications → OnIT Portal for Portals → Permissions** shows Granted.',
-                    'Tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                notes: [
+                    'This Accept is only for portal sync (Graph). SuperOps login Accept is a later step with a different orange button.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Accept with the orange button',
+                        'This checklist step (right) → Microsoft permissions page',
+                        [
+                            'On this checklist step, click orange **Open Microsoft Accept page** (above). Or use **Copy link** and open it in a private window.',
+                            'If you are already in On IT Azure, use private/incognito so Microsoft does not reuse the wrong tenant.',
+                            'Sign in as a **Global Administrator of '.$client->name.'** (customer work account). Never use @onit.ltd here.',
+                            'Read the top of the Microsoft permissions page — tenant name must be **'.$client->name.'**, not On IT Technology Partners.',
+                            'Click **Accept**.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Verify Accept in customer Azure',
+                        'https://portal.azure.com → **'.$client->name.'** → Enterprise applications → OnIT Portal for Portals',
+                        [
+                            'Open https://portal.azure.com → top-right switcher → **'.$client->name.'**.',
+                            'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
+                            'Search **OnIT Portal for Portals** (or On IT Portal) → open it.',
+                            'Left menu → **Permissions** (under Manage or Security) → Application permissions show **Granted for '.$client->name.'**.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Mark complete on this portal',
+                        'https://app.onit.ltd → this checklist (right)',
+                        [
+                            'Tick **Mark this step complete** → click **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Accept succeeded for '.$client->name.'.',
+                    'Accept succeeded and OnIT Portal for Portals permissions are Granted in the customer tenant.',
                 ],
-                notes: [
-                    'This Accept is for portal Graph sync only. SuperOps login Accept is a later step.',
-                ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -257,23 +330,33 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => false,
                 'blocked' => ! $entraTenantSaved,
-            ], OnboardingManual::simple(
-                $superOpsUrl.' — SuperOps MSP console',
-                [
-                    'Sign in to SuperOps MSP (technician) console.',
-                    'Go to **Integrations**.',
-                    'Open **Microsoft Entra ID**.',
-                    'Click **Generate Tokens**.',
-                    'In the client list, select **'.$client->name.'** (must be the SuperOps client you linked in step 01).',
-                    'Copy **Tenant URL** — this is a SuperOps URL for SCIM, not the Azure Tenant ID.',
-                    'Copy **Secret Token** / **Auth Token** (same value, different label).',
-                    'Store both somewhere safe — you paste them into Azure in the next step.',
-                    'Tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                sections: [
+                    OnboardingManual::section(
+                        'Generate tokens in SuperOps',
+                        $superOpsUrl.' → Settings / Integrations → Microsoft Entra ID',
+                        [
+                            'Open '.$superOpsUrl.' (SuperOps MSP / technician console).',
+                            'Open **Settings** (gear) or left nav → **Integrations**.',
+                            'Open **Microsoft Entra ID**.',
+                            'Click **Generate Tokens**.',
+                            'In the client picker, select **'.$client->name.'** (same SuperOps client as step 01).',
+                            'Copy **Tenant URL** into Notepad. This is a SuperOps SCIM URL — **not** the Azure Tenant ID from step 03.',
+                            'Copy **Secret Token** (also labelled **Auth Token**) into Notepad.',
+                            'Keep both — the next Azure step pastes them.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Mark complete on this portal',
+                        'https://app.onit.ltd → this checklist (right)',
+                        [
+                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'You have Tenant URL and Secret Token copied for '.$client->name.'.',
+                    'You have Tenant URL + Secret Token for '.$client->name.' ready to paste.',
                 ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -284,33 +367,49 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => false,
                 'blocked' => ! $scimTokensComplete,
-            ], OnboardingManual::simple(
-                'https://portal.azure.com — customer Microsoft Entra',
-                [
-                    'Open https://portal.azure.com.',
-                    'Top-right directory switcher → **'.$client->name.'** (customer tenant).',
-                    'Left menu → **Microsoft Entra ID → Enterprise applications → All applications**.',
-                    'Click **New application**.',
-                    'Click **Create your own application**.',
-                    'Name: type exactly **'.$appName.'**.',
-                    'Select **Integrate any other application you don’t find in the gallery (Non-gallery)**.',
-                    'Click **Create**. Wait for the app to open.',
-                    'Left menu → expand **Manage** (if collapsed) → click **Provisioning**.',
-                    'If the page shows **Get started**, click **Connect your application**.',
-                    'Provisioning Mode dropdown → **Automatic**.',
-                    'Click the **Admin Credentials** heading to expand it (fields are hidden until expanded).',
-                    'Authentication method → leave **Bearer Authentication** selected.',
-                    'Tenant URL → paste the SuperOps **Tenant URL** from the previous step (not Azure Tenant ID).',
-                    'Secret Token → paste the SuperOps **Secret Token / Auth Token**.',
-                    'Click **Test Connection**. Wait until Azure says the connection succeeded.',
-                    'If Test Connection fails: re-copy tokens from SuperOps Generate Tokens and try again. Do not continue until it succeeds.',
-                    'Click toolbar **Save**.',
-                    'Tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                sections: [
+                    OnboardingManual::section(
+                        'Create the non-gallery enterprise app',
+                        'https://portal.azure.com → **'.$client->name.'** → Enterprise applications',
+                        [
+                            'Open https://portal.azure.com.',
+                            'Top-right directory switcher → **'.$client->name.'**.',
+                            'Open **Microsoft Entra ID**.',
+                            'Left menu → **Manage** → **Enterprise applications** → **All applications**.',
+                            'Click **New application**.',
+                            'Click **Create your own application**.',
+                            'Name the app exactly **'.$appName.'**.',
+                            'Select **Integrate any other application you don’t find in the gallery (Non-gallery)**.',
+                            'Click **Create**. Wait until the enterprise app Overview opens.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Paste SuperOps tokens and Test Connection',
+                        'Same app → Manage → Provisioning → Admin Credentials',
+                        [
+                            'Left menu under the app → expand **Manage** if needed → click **Provisioning**.',
+                            'If you see a **Get started** card, click **Connect your application**.',
+                            'Provisioning Mode → **Automatic**.',
+                            'Click the **Admin Credentials** section header to expand it (Tenant URL / Secret Token stay hidden until you expand).',
+                            'Authentication method → **Bearer Authentication** (leave Azure’s default).',
+                            'Tenant URL box → paste SuperOps **Tenant URL** from the previous step.',
+                            'Secret Token box → paste SuperOps **Secret Token / Auth Token**.',
+                            'Click **Test Connection**. Wait for success. Do not continue if it fails — regenerate tokens in SuperOps and paste again.',
+                            'Click the toolbar **Save** on the Provisioning page.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Mark complete on this portal',
+                        'https://app.onit.ltd → this checklist (right)',
+                        [
+                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Enterprise app **'.$appName.'** exists, Test Connection succeeded, Provisioning saved.',
+                    'App **'.$appName.'** exists under Enterprise applications, Test Connection succeeded, Provisioning saved.',
                 ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -343,24 +442,31 @@ class ClientOnboardingService
                 'manual' => false,
                 'auto_detected' => $syncConfigured,
                 'blocked' => ! $entraTenantSaved || ! $scimProvisioningComplete,
-            ], OnboardingManual::simple(
-                'This page — left column under Microsoft Entra sync',
-                array_values(array_filter([
-                    'Scroll to **Microsoft Entra sync** on the left.',
-                    'Confirm **Entra tenant ID** and **Entra group ID** are filled.',
-                    $usesGroupScim
-                        ? null
-                        : 'Confirm **SuperOps Application (client) ID** is filled (from the previous SCIM step).',
-                    'Tick **Entra sync enabled**.',
-                    'Click **Save client** (left).',
-                ])),
-                verify: [
-                    'After save, **Dry run sync** and **Sync now** buttons appear under the left form.',
-                ],
+            ], OnboardingManual::build(
                 notes: $syncEnabledGlobally
                     ? []
-                    : ['If those buttons are missing after save, stop and message Tom.'],
-                sectionTitle: 'Do this',
+                    : ['If Dry run / Sync now are missing after save, stop and message Tom.'],
+                sections: [
+                    OnboardingManual::section(
+                        'Enable sync on this portal',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' → left → Microsoft Entra sync',
+                        array_values(array_filter([
+                            'Stay on **Admin → Clients → Edit '.$client->name.'**.',
+                            'Scroll the left column to **Microsoft Entra sync**.',
+                            'Confirm **Entra tenant ID** is filled.',
+                            'Confirm **Entra group ID** is filled.',
+                            $usesGroupScim
+                                ? null
+                                : 'Confirm **SuperOps Application (client) ID** is filled (from the previous Azure App registrations step).',
+                            'Tick **Entra sync enabled**.',
+                            'Click orange **Save client** (left).',
+                            'After reload, look under the left form for orange buttons **Dry run sync** and **Sync now**.',
+                        ])),
+                    ),
+                ],
+                verify: [
+                    'Entra sync enabled stays ticked and Dry run / Sync now buttons are visible on the left.',
+                ],
             )),
 
             $this->withManual([
@@ -371,23 +477,56 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => $syncRun,
                 'blocked' => ! $syncConfigured || ! $syncEnabledGlobally,
-            ], OnboardingManual::simple(
-                'This page — left column buttons under the form',
-                [
-                    'Click **Dry run sync** (left). Read the message at the top of the page.',
-                    'If it is green and looks right, click **Sync now** (left).',
-                    'Wait 1–2 minutes, then refresh this page.',
-                    'Check **Last synced** on the left.',
-                    'Quick checks: Admin → Users shows this client’s people; SuperOps Requesters emails start to match.',
-                    'If Last synced is present, this step is Done. If you already clicked Sync now, tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                notes: [
+                    'Always Dry run first. Sync now applies changes.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Run sync on this portal',
+                        'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left buttons)',
+                        [
+                            'On this Edit Client page, scroll left to buttons **Dry run sync** and **Sync now**.',
+                            'Click **Dry run sync**. Read the banner at the **top** of the page (Created / Updated / SuperOps group / SuperOps app lines).',
+                            'If the banner is red, fix the message (often redo step 04 Accept, or App role Value **User** on the SCIM app) then dry run again.',
+                            'When the dry run looks correct, click **Sync now**.',
+                            'Wait 1–2 minutes. Refresh this Edit page.',
+                            'Under Microsoft Entra sync on the left, confirm **Last synced** has a time.',
+                            'Verify portal users: top menu **Admin → Users** → filter / open this client — licensed people appear.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Verify in customer Azure',
+                        'https://portal.azure.com → **'.$client->name.'** → Groups + Enterprise applications',
+                        array_values(array_filter([
+                            'Open https://portal.azure.com → switch directory to **'.$client->name.'**.',
+                            'Microsoft Entra ID → **Groups** → **'.$groupName.'** → **Members** — members listed (portal added them).',
+                            $usesGroupScim
+                                ? null
+                                : 'Enterprise applications → **'.$appName.'** → **Users and groups** — users listed after sync (Free path).',
+                            'Enterprise applications → **'.$appName.'** → **Provisioning** → **Provisioning logs** — Updates appear after a few minutes.',
+                        ])),
+                    ),
+                    OnboardingManual::section(
+                        'Verify in SuperOps',
+                        $superOpsUrl.' → Clients → '.$client->name.' → Requesters',
+                        [
+                            'Open '.$superOpsUrl.'.',
+                            '**Clients** → **'.$client->name.'** → **Requesters**.',
+                            'Emails should match portal users; last names often show (User Mailbox) / (Shared Mailbox).',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Mark complete if needed',
+                        'https://app.onit.ltd → this checklist (right)',
+                        [
+                            'If Last synced is set, this step is Done. If Sync now already ran, tick **Mark this step complete** → **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Last synced shows on the left, or you ticked this step after Sync now.',
+                    'Last synced is set; portal users, Azure group, and SuperOps requesters look right.',
                 ],
-                notes: [
-                    'Dry run first. Sync now applies the changes.',
-                ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -398,23 +537,36 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => false,
                 'blocked' => ! $portalSyncRunComplete,
-            ], OnboardingManual::simple(
-                'Private / incognito browser',
-                [
-                    'Open a private window (not your On IT technician session).',
-                    'Go to https://app.onit.ltd/login.',
-                    'Sign in with Microsoft using a **customer work email** from Admin → Users.',
-                    'Confirm the dashboard loads.',
-                    'Click the **SuperOps** tile. It must open as a requester (not technician).',
-                    'Tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                notes: [
+                    'Never validate requester SSO with an On IT staff account.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Sign in as the customer',
+                        'Private/incognito browser → https://app.onit.ltd/login',
+                        [
+                            'Open a private/incognito window (not your On IT technician Chrome profile).',
+                            'Go to https://app.onit.ltd/login.',
+                            'Click **Sign in with Microsoft**.',
+                            'Pick a **customer work email** that exists under **Admin → Users** for this client (not tom.ashby@onit.ltd).',
+                            'Confirm the portal dashboard loads for that customer.',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Open SuperOps from the dashboard',
+                        'Customer dashboard → SuperOps tile → requester portal',
+                        [
+                            'Click the **SuperOps** tile on the dashboard.',
+                            'It must open the requester portal (not technician role chooser).',
+                            'If Microsoft prompts again, sign in with the same customer email.',
+                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
-                    'Customer email can open the portal and SuperOps as a requester.',
+                    'Customer email can open app.onit.ltd and SuperOps as a requester.',
                 ],
-                notes: [
-                    'Do not test with tom.ashby@onit.ltd or other On IT staff accounts.',
-                ],
-                sectionTitle: 'Do this',
             )),
 
             $this->withManual([
@@ -425,17 +577,22 @@ class ClientOnboardingService
                 'manual' => true,
                 'auto_detected' => false,
                 'blocked' => ! $loginTested,
-            ], OnboardingManual::simple(
-                'Email or ticket to the customer contact',
-                [
-                    'Send them: go to https://app.onit.ltd and sign in with Microsoft using their work email.',
-                    'They must be a licensed M365 user (shared mailboxes cannot sign in).',
-                    'Tick **Mark this step complete** → **Save checklist** (right).',
+            ], OnboardingManual::build(
+                sections: [
+                    OnboardingManual::section(
+                        'Tell the customer how to sign in',
+                        'Email / ticket to the customer contact',
+                        [
+                            'Email or ticket the customer contact.',
+                            'Tell them: open https://app.onit.ltd → Sign in with Microsoft → use their work email.',
+                            'Tell them they must be a licensed M365 user (shared mailboxes cannot sign in).',
+                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                        ],
+                    ),
                 ],
                 verify: [
                     'Customer has been told how to sign in.',
                 ],
-                sectionTitle: 'Do this',
             )),
         ];
     }
@@ -470,100 +627,157 @@ class ClientOnboardingService
      */
     private function scimProvisioningGuide(string $clientName, string $groupName, string $appName, bool $usesGroupScim): array
     {
-        $mappingSteps = [
-            'Open https://portal.azure.com → switch directory (top-right) to **'.$clientName.'**.',
-            'Go to **Microsoft Entra ID → Enterprise applications → All applications → '.$appName.'**.',
-            'Left menu → expand **Manage** → **Provisioning**.',
-            'Open **Attribute mapping** (or **Mappings**), then open **Provision Microsoft Entra ID Users**.',
-            'Find **name.givenName** → Mapping type **Direct** → Source attribute **givenName** → Apply this mapping **Always**.',
-            'Find **name.familyName** → Mapping type **Direct** → Source attribute **extensionAttribute1** → Default if null **[surname]** (or surname) → Apply **Always**.',
-            'Find **name.formatted** → Mapping type **Direct** → Source attribute **displayName** → Apply **Always**.',
-            'Click **Save** on the attribute mapping page.',
-            'Create the App role if missing (required especially on Entra ID Free):',
-            'Go to **Microsoft Entra ID → App registrations → All applications**.',
-            'Search **'.$appName.'** and open it.',
-            'Left menu → **App roles → Create app role**.',
-            'Display name: **User**. Allowed member types: **Users/Groups**. Value: **User**. Description: **Default access for SCIM users**. Tick **Enable this app role**.',
-            'Click **Apply** / **Save**. If a User role already exists and is Enabled, skip create.',
+        $sections = [
+            OnboardingManual::section(
+                'Edit SCIM attribute mappings',
+                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → '.$appName.' → Provisioning → Attribute mapping',
+                [
+                    'Open https://portal.azure.com.',
+                    'Top-right directory switcher → **'.$clientName.'**.',
+                    'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
+                    'Open **'.$appName.'**.',
+                    'Left menu → **Manage** → **Provisioning**.',
+                    'Under Provisioning, open **Attribute mapping** (sometimes labelled **Mappings**).',
+                    'Click **Provision Microsoft Entra ID Users**.',
+                    'For **name.givenName**: click the row → Mapping type **Direct** → Source attribute **givenName** → Apply this mapping **Always** → OK.',
+                    'For **name.familyName**: click the row → Mapping type **Direct** (delete any Expression if present) → Source attribute **extensionAttribute1** → Default if null **[surname]** → Apply **Always** → OK.',
+                    'For **name.formatted**: click the row → Mapping type **Direct** → Source attribute **displayName** → Apply **Always** → OK.',
+                    'Do **not** paste an Expression into “Default value if null” on a Direct mapping — it will not run.',
+                    'Click **Save** at the top of the attribute mapping page.',
+                ],
+            ),
+            OnboardingManual::section(
+                'Create App role Value User',
+                'https://portal.azure.com → **'.$clientName.'** → App registrations → '.$appName.' → App roles',
+                [
+                    'Microsoft Entra ID → **App registrations** → **All applications**.',
+                    'Search **'.$appName.'** → open it (same app, App registrations blade — not only Enterprise applications).',
+                    'Left menu → **App roles**.',
+                    'If no enabled role with Value **User** exists: **Create app role**.',
+                    'Display name: **User**.',
+                    'Allowed member types: **Users/Groups**.',
+                    'Value: **User** (must not be blank — blank Value breaks Sync now).',
+                    'Description: **Default access for SCIM users**.',
+                    'Enable this app role: **Yes**.',
+                    'Click **Apply** then **Save**.',
+                    'If duplicate app roles with blank Value exist, remove/disable them — keep one enabled role with Value **User**.',
+                ],
+            ),
         ];
 
-        $finalSteps = $usesGroupScim
-            ? [
-                'Go back to **Enterprise applications → '.$appName.'**.',
-                'Left menu → **Manage → Users and groups → Add user/group**.',
-                'Open the **Groups** tab → select **'.$groupName.'** → **Select** → **Assign**.',
-                'Left menu → **Manage → Provisioning** → click toolbar **Start provisioning**.',
-                'Confirm provisioning status shows On / started.',
-                'Tick **Mark this step complete** → **Save checklist** (right).',
-            ]
-            : [
-                'Entra ID Free — copy Application (client) ID for the portal (do not skip):',
-                'Go to **Microsoft Entra ID → App registrations → All applications**.',
-                'Search **'.$appName.'** and open it.',
-                'Stay on **Overview**.',
-                'Copy **Application (client) ID** — long GUID under that exact label.',
-                'Do **not** copy **Object ID** (different field on the same Overview page).',
-                'Return to this portal Edit Client page.',
-                'Left column → paste into **SuperOps Application (client) ID**.',
-                'Click **Save client** (left).',
-                'Back in Azure: **Enterprise applications → '.$appName.' → Manage → Provisioning → Start provisioning**.',
-                'Confirm provisioning status shows On / started.',
-                'Tick **Mark this step complete** → **Save checklist** (right).',
-            ];
+        if ($usesGroupScim) {
+            $sections[] = OnboardingManual::section(
+                'Assign Portal group to the enterprise app',
+                'https://portal.azure.com → Enterprise applications → '.$appName.' → Users and groups',
+                [
+                    'Return to **Enterprise applications** → **'.$appName.'**.',
+                    'Left menu → **Manage** → **Users and groups**.',
+                    'Click **Add user/group**.',
+                    'Under Users and groups → **None Selected** → open **Groups**.',
+                    'Select **'.$groupName.'** → **Select** → **Assign**.',
+                ],
+            );
+        } else {
+            $sections[] = OnboardingManual::section(
+                'Copy Application (client) ID into this portal (Entra Free)',
+                'Azure App registrations Overview → then https://app.onit.ltd Edit Client (left)',
+                [
+                    'Microsoft Entra ID → **App registrations** → **All applications**.',
+                    'Search **'.$appName.'** → open it.',
+                    'Stay on **Overview**.',
+                    'Copy **Application (client) ID** (GUID under that exact label).',
+                    'Do **not** copy **Object ID** on the same page.',
+                    'Return to this portal tab: **Admin → Clients → Edit '.$clientName.'**.',
+                    'Left column → **SuperOps Application (client) ID** → paste.',
+                    'Click orange **Save client** (left).',
+                ],
+            );
+        }
 
-        return OnboardingManual::simple(
-            'https://portal.azure.com — customer tenant — '.$appName,
-            array_merge($mappingSteps, $finalSteps),
-            verify: [
-                $usesGroupScim
-                    ? 'Attribute mappings saved, group '.$groupName.' assigned, provisioning started.'
-                    : 'Attribute mappings saved, **SuperOps Application (client) ID** pasted on the left (Application client ID, not Object ID), provisioning started.',
+        $sections[] = OnboardingManual::section(
+            'Start provisioning in Azure',
+            'https://portal.azure.com → Enterprise applications → '.$appName.' → Provisioning',
+            [
+                'Back in Azure: **Enterprise applications** → **'.$appName.'** → **Manage** → **Provisioning**.',
+                'Click toolbar **Start provisioning**.',
+                'Confirm the status shows provisioning is on / started.',
+                'Tick **Mark this step complete** → **Save checklist** (right).',
             ],
+        );
+
+        return OnboardingManual::build(
             notes: [
                 $usesGroupScim
-                    ? 'P1: assign the Portal group once in Azure. Later Sync now keeps membership updated.'
-                    : 'Free: Azure will not let you assign the Portal group to the enterprise app. The portal needs Application (client) ID so Sync now can assign users for you.',
+                    ? 'P1: assign Portal group once here. Sync now later keeps membership updated.'
+                    : 'Free: you cannot assign the Portal group to this enterprise app. Application (client) ID on the portal is required.',
             ],
-            sectionTitle: 'Do this',
+            sections: $sections,
+            verify: [
+                $usesGroupScim
+                    ? 'Mappings saved, App role User exists, group '.$groupName.' assigned, provisioning started.'
+                    : 'Mappings saved, App role User exists, SuperOps Application (client) ID saved on portal (not Object ID), provisioning started.',
+            ],
         );
     }
 
     private function superOpsClientSsoGuide(Client $client, string $groupName, bool $usesGroupScim): array
     {
         $clientName = $client->name;
-        $assignSteps = $usesGroupScim
-            ? [
-                'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
-                'Go to **Microsoft Entra ID → Enterprise applications → All applications**.',
-                'Search **SuperOps Requester SSO (On IT)** and open it (created by the Accept).',
-                'Left menu → **Manage → Users and groups → Add user/group**.',
-                'Groups tab → select **'.$groupName.'** → **Select** → **Assign**.',
-            ]
-            : [
-                'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
-                'Go to **Microsoft Entra ID → Enterprise applications → All applications**.',
-                'Search **SuperOps Requester SSO (On IT)** and open it (created by the Accept).',
-                'Left menu → **Manage → Users and groups → Add user/group**.',
-                'Users tab → add the customer requester users who must Microsoft-sign-in (Free cannot assign a security group here).',
-            ];
 
-        return OnboardingManual::simple(
-            'Orange Accept button above, then customer Azure',
-            array_merge([
-                'Click **Open Microsoft Accept page** above.',
-                'Sign in as a **'.$clientName.' Global Admin** — not an @onit.ltd account.',
-                'Confirm the permissions page is for **'.$clientName.'**, not On IT.',
-                'Click **Accept**.',
-            ], $assignSteps, [
-                'Tick **Mark this step complete** → **Save checklist** (right).',
-            ]),
-            verify: [
-                'Customer Azure shows **SuperOps Requester SSO (On IT)** under Enterprise applications with users/groups assigned.',
-            ],
+        $assignSection = $usesGroupScim
+            ? OnboardingManual::section(
+                'Assign Portal group in customer Azure',
+                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups',
+                [
+                    'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
+                    'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
+                    'Search **SuperOps Requester SSO (On IT)** → open it (created by Accept).',
+                    'Left menu → **Properties**: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes is expected.',
+                    'Left menu → **Manage** → **Users and groups** → **Add user/group**.',
+                    'Groups → select **'.$groupName.'** → **Select** → **Assign**.',
+                ],
+            )
+            : OnboardingManual::section(
+                'Assign requester users in customer Azure (Free)',
+                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups',
+                [
+                    'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
+                    'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
+                    'Search **SuperOps Requester SSO (On IT)** → open it (created by Accept).',
+                    'Left menu → **Properties**: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes is expected.',
+                    'Left menu → **Manage** → **Users and groups** → **Add user/group**.',
+                    'Users → add each customer requester who must Microsoft-sign-in (Free cannot assign a security group here).',
+                ],
+            );
+
+        return OnboardingManual::build(
             notes: [
-                'Do not open SuperOps Client SSO. Do not change certificates or Global SSO settings for this client.',
+                'Do not open SuperOps **Client SSO**. Do not edit certificates / Global SSO for this client.',
             ],
-            sectionTitle: 'Do this',
+            sections: [
+                OnboardingManual::section(
+                    'Accept with the orange button',
+                    'This checklist step (right) → Microsoft permissions page',
+                    [
+                        'On this checklist step, click orange **Open Microsoft Accept page** (above).',
+                        'Private/incognito if needed.',
+                        'Sign in as **'.$clientName.' Global Admin** — not @onit.ltd.',
+                        'Confirm Microsoft shows tenant **'.$clientName.'**.',
+                        'Click **Accept**.',
+                    ],
+                ),
+                $assignSection,
+                OnboardingManual::section(
+                    'Mark complete on this portal',
+                    'https://app.onit.ltd → this checklist (right)',
+                    [
+                        'Tick **Mark this step complete** → **Save checklist** (right).',
+                    ],
+                ),
+            ],
+            verify: [
+                'Customer Azure has SuperOps Requester SSO (On IT) with the correct users/group assigned.',
+            ],
         );
     }
 

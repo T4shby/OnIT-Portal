@@ -156,7 +156,7 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 6. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
 7. Start provisioning. **Portal Sync now** updates SuperOps Last names automatically.
 
-**SAML / Global SSO Accept (checklist step 06) — not on the SCIM app:**
+**SAML / Global SSO Accept (checklist step 08) — not on the SCIM app:**
 
 1. Edit Client → step **06** → Open **SuperOps SSO Accept URL** (customer tenant + app `bf1c303e-…`).
 2. Customer Global Admin → **Accept**.
@@ -165,7 +165,7 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 
 Detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
-**Done when:** SCIM logs clean; step 06 Accept done; Portal group assigned to requester SSO SP in customer tenant.
+**Done when:** SCIM logs clean; step 08 Accept done; Portal group assigned to requester SSO SP in customer tenant.
 
 ---
 
@@ -255,7 +255,7 @@ Use a **private/incognito** window. Sign in as a **customer** user (e.g. `jane@a
 | Symptom | Fix |
 |---------|-----|
 | "Your account has not been set up" | Run **Sync now** (Part 4); user must be licensed or shared mailbox in M365 |
-| SuperOps role chooser | Wrong account (`@onit.ltd`) or step 06 Accept not done |
+| SuperOps role chooser | Wrong account (`@onit.ltd`) or step 08 Accept not done |
 | SuperOps Error 1027 | Missing `email` SAML claim on On IT Global SSO app |
 | M365 directory empty / error | Admin consent not done in customer tenant (Part 3b) |
 | Shared mailbox tried to log in | Expected — they cannot use portal login; use a personal work account |

@@ -11,6 +11,42 @@ class ClientOnboardingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_every_step_section_has_a_where_path(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'Path Check Ltd',
+            'entra_license_tier' => 'free',
+        ]);
+
+        $steps = app(ClientOnboardingService::class)->steps($client);
+
+        foreach ($steps as $step) {
+            $this->assertNotEmpty($step['guide']['sections'], $step['key']);
+            foreach ($step['guide']['sections'] as $section) {
+                $this->assertNotEmpty($section['where'], $step['key'].':'.$section['title']);
+                $this->assertNotEmpty($section['steps'], $step['key'].':'.$section['title']);
+            }
+        }
+    }
+
+    public function test_scim_provisioning_has_separate_where_for_mappings_and_app_roles(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'MXVI',
+            'entra_license_tier' => 'free',
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_provisioning');
+
+        $titles = collect($step['guide']['sections'])->pluck('title')->all();
+        $this->assertContains('Edit SCIM attribute mappings', $titles);
+        $this->assertContains('Create App role Value User', $titles);
+        $this->assertContains('Copy Application (client) ID into this portal (Entra Free)', $titles);
+        $this->assertContains('Start provisioning in Azure', $titles);
+        $this->assertStringContainsString('extensionAttribute1', implode(' ', $step['instructions']));
+    }
+
     public function test_checklist_has_twelve_zero_training_steps(): void
     {
         $client = Client::factory()->create();
@@ -263,9 +299,11 @@ class ClientOnboardingServiceTest extends TestCase
         $consentUrl = $service->superOpsRequesterSsoConsentUrl($client);
 
         $this->assertSame('Customer Accepts SuperOps login', $step['title']);
-        $this->assertCount(1, $step['guide']['sections']);
-        $this->assertStringContainsString('Click **Open Microsoft Accept page** above', $text);
+        $this->assertGreaterThanOrEqual(2, count($step['guide']['sections']));
+        $this->assertStringContainsString('Open Microsoft Accept page', $text);
         $this->assertStringContainsString('MXVI Global Admin', $text);
+        $this->assertStringContainsString('Users and groups', $text);
+        $this->assertStringContainsString('portal.azure.com', $text);
         $this->assertStringContainsString('Accept', $text);
         $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringContainsString('Client SSO', $text);
@@ -316,7 +354,9 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'entra_admin_consent_granted')['instructions']);
 
         $this->assertStringContainsString('Open Microsoft Accept page', $text);
-        $this->assertStringContainsString('3R Systems Limited Global Admin', $text);
+        $this->assertStringContainsString('Global Administrator of 3R Systems Limited', $text);
+        $this->assertStringContainsString('OnIT Portal for Portals', $text);
+        $this->assertStringContainsString('Enterprise applications', $text);
         $this->assertStringNotContainsString('User.Read.All', $text);
         $this->assertStringNotContainsString('Application.Read.All', $text);
         $this->assertStringNotContainsString('extensionAttribute1', $text);
