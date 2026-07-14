@@ -363,6 +363,63 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(0, $result->superOpsAppUsersRemoved);
     }
 
+    public function test_free_sync_assigns_active_licensed_users_to_requester_sso_automatically(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $requesterSsoClientId = 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1';
+        $requesterSsoServicePrincipalId = '44444444-4444-4444-4444-444444444444';
+
+        config(['services.superops.requester_sso_client_id' => $requesterSsoClientId]);
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_license_tier' => 'free',
+            'entra_sync_enabled' => true,
+            'onboarding_checklist' => ['superops_client_sso_configured' => true],
+        ]);
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                ],
+                'dddddddd-dddd-dddd-dddd-dddddddddddd' => [
+                    'mail' => 'accounts@acme.com',
+                    'userPrincipalName' => 'accounts@acme.com',
+                    'displayName' => 'Accounts',
+                    'accountEnabled' => false,
+                    'licensed' => false,
+                    'mailboxPurpose' => 'shared',
+                ],
+            ],
+            servicePrincipalId: $requesterSsoServicePrincipalId,
+            initialAppAssignedUsers: ['cccccccc-cccc-cccc-cccc-cccccccccccc'],
+            applicationClientId: $requesterSsoClientId,
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(1, $result->requesterSsoUsersAssigned);
+        $this->assertSame(1, $result->requesterSsoUsersRemoved);
+        $this->assertStringContainsString(
+            'SuperOps SSO access +1 / -1 active licensed users',
+            $result->summary(),
+        );
+
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && str_contains($request->url(), '/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/appRoleAssignments')
+            && ($request->data()['appRoleId'] ?? null) === '00000000-0000-0000-0000-000000000000');
+
+        Http::assertNotSent(fn ($request) => $request->method() === 'POST'
+            && str_contains($request->url(), '/users/dddddddd-dddd-dddd-dddd-dddddddddddd/appRoleAssignments'));
+    }
+
     public function test_sync_resolves_superops_application_client_id_to_enterprise_app(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';

@@ -546,6 +546,19 @@ class MicrosoftGraphClient
         );
     }
 
+    public function assignUserToEnterpriseAppDefaultAccess(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $userId,
+    ): void {
+        $this->assignUserToEnterpriseApp(
+            $tenantId,
+            $servicePrincipalId,
+            $userId,
+            self::DEFAULT_APP_ROLE_ID,
+        );
+    }
+
     public function removeUserFromEnterpriseApp(
         string $tenantId,
         string $servicePrincipalId,

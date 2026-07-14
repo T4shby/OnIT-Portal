@@ -158,14 +158,15 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 
 **SAML / Global SSO Accept (checklist step 08) — not on the SCIM app:**
 
-1. Edit Client → step **06** → Open **SuperOps SSO Accept URL** (customer tenant + app `bf1c303e-…`).
+1. Edit Client → step **08** → **Open customer SuperOps SSO Accept page** (customer tenant + app `bf1c303e-…`).
 2. Customer Global Admin → **Accept**.
-3. Customer Entra → Enterprise applications → **SuperOps Requester SSO (On IT)** → assign `On IT Portal - {Company}`.
-4. Do **not** open SuperOps Client SSO; do **not** configure SAML on `SuperOps - {Company}`.
+3. Customer Entra → Enterprise applications → **SuperOps Requester SSO (On IT)** → P1: assign `On IT Portal - {Company}`; Free: do not add users manually.
+4. Free: portal **Sync now** assigns every active licensed user directly to the requester SSO app.
+5. Do **not** open SuperOps Client SSO; do **not** configure SAML on `SuperOps - {Company}`.
 
 Detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
-**Done when:** SCIM logs clean; step 08 Accept done; Portal group assigned to requester SSO SP in customer tenant.
+**Done when:** SCIM logs clean; step 08 Accept done; P1 group assigned or Free users automatically assigned by Sync now.
 
 ---
 

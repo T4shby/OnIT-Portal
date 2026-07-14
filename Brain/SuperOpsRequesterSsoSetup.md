@@ -305,7 +305,7 @@ Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAM
 |---|---|---|
 | **On IT Portal** (`users` table) | Who may sign in to the portal | `portal:sync-entra-users` + Admin exceptions |
 | **SuperOps** (client users) | Who exists as a requester | Entra SCIM per client (`SuperOps - {Company}`) |
-| **Entra** (SAML app assignment) | Who may use SuperOps Requester SSO | After **Accept**, assign `On IT Portal - {Company}` in the **customer** tenant (`Assignment required?` = Yes) |
+| **Entra** (SAML app assignment) | Who may use SuperOps Requester SSO | After **Accept**: P1 assigns `On IT Portal - {Company}` once; Free portal Sync now assigns every active licensed user directly |
 
 ### Multitenant Accept (required for every customer tenant — checklist **08**)
 
@@ -319,9 +319,10 @@ The live Edit Client guide contains the complete per-customer acceptance procedu
 4. On Microsoft’s permissions page, click **Accept**.
 5. Customer Entra → **Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups**:
    - **P1:** assign `On IT Portal - {Company}`.
-   - **Entra ID Free:** group assignment to an enterprise app is unavailable; assign requester users directly.
+   - **Entra ID Free:** do **not** add requester users manually. Mark step 08 complete, then portal **Sync now** directly assigns every active licensed customer user.
 6. Return to the portal → tick **Mark this step complete** → **Save checklist**.
-7. Complete the real customer sign-in test later in checklist **11**.
+7. Complete steps 09–10. On Free, verify customer Entra → this app → **Users and groups** now lists all active licensed users.
+8. Complete the real customer sign-in test later in checklist **11**.
 
 **Accept URL:**
 
@@ -375,8 +376,8 @@ API token is **not** required for SSO launch alone.
 
 ### Per customer tenant (every new client)
 
-- [ ] Checklist **06** Accept completed
-- [ ] `On IT Portal - {Company}` assigned to SuperOps Requester SSO in **customer** Entra
+- [ ] Checklist **08** Accept completed
+- [ ] P1: `On IT Portal - {Company}` assigned to requester SSO; Free: portal Sync now has assigned all active licensed users
 - [ ] Incognito Microsoft login with customer work email succeeds
 
 ### SuperOps requester SSO (private browser)
@@ -488,6 +489,7 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 | Date | Author | Notes |
 |---|---|---|
+| 2026-07-14 | On IT | Entra ID Free: portal Sync now auto-assigns all active licensed users after customer Accept; no manual user assignment |
 | 2026-07-14 | On IT | Multitenant saved: App ID URI `https://onit.ltd/superops-requester-sso` vs SAML Entity ID `https://clientuser.superops.ai` documented; Accept path for 50+ clients |
 | 2026-07-14 | On IT | Documented multitenant Accept for every customer; verified Properties; removed Client SSO operating path |
 | 2026-06-15 | On IT | Phase A validated; launch path `/#/requester/login`; Entra errors 1027/1028 documented |

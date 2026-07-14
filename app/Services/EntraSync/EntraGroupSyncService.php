@@ -81,12 +81,15 @@ class EntraGroupSyncService
         $groupMembersRemoved = 0;
         $superOpsAppUsersAssigned = 0;
         $superOpsAppUsersRemoved = 0;
+        $requesterSsoUsersAssigned = 0;
+        $requesterSsoUsersRemoved = 0;
         $superOpsNameHintsUpdated = 0;
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
         $desiredGroupMemberIds = [];
         $desiredSuperOpsAppUserIds = [];
+        $desiredRequesterSsoUserIds = [];
 
         foreach ($graphUsers as $graphUser) {
             $email = $this->resolveEmail($graphUser);
@@ -105,6 +108,10 @@ class EntraGroupSyncService
 
             if ($this->shouldAssignToSuperOpsApp($identityType, $graphUser['accountEnabled'])) {
                 $desiredSuperOpsAppUserIds[] = $graphUser['id'];
+            }
+
+            if ($identityType === EntraIdentityType::User && $graphUser['accountEnabled']) {
+                $desiredRequesterSsoUserIds[] = $graphUser['id'];
             }
 
             [$shouldBeActive, $portalLoginEnabled] = $this->resolveAccountFlags(
@@ -228,6 +235,15 @@ class EntraGroupSyncService
             $errors = array_merge($errors, $appErrors);
         }
 
+        if ($this->shouldMaintainRequesterSsoUsers($client)) {
+            [$requesterSsoUsersAssigned, $requesterSsoUsersRemoved, $ssoErrors] = $this->syncRequesterSsoUserAssignments(
+                $client,
+                $desiredRequesterSsoUserIds,
+                $dryRun,
+            );
+            $errors = array_merge($errors, $ssoErrors);
+        }
+
         $superOpsUsersProvisioned = 0;
 
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
@@ -252,17 +268,19 @@ class EntraGroupSyncService
         }
 
         return new EntraSyncResult(
-            $created,
-            $updated,
-            $deactivated,
-            $skipped,
-            $groupMembersAdded,
-            $groupMembersRemoved,
-            $superOpsAppUsersAssigned,
-            $superOpsAppUsersRemoved,
-            $superOpsNameHintsUpdated,
-            $superOpsUsersProvisioned,
-            $errors,
+            created: $created,
+            updated: $updated,
+            deactivated: $deactivated,
+            skipped: $skipped,
+            groupMembersAdded: $groupMembersAdded,
+            groupMembersRemoved: $groupMembersRemoved,
+            superOpsAppUsersAssigned: $superOpsAppUsersAssigned,
+            superOpsAppUsersRemoved: $superOpsAppUsersRemoved,
+            requesterSsoUsersAssigned: $requesterSsoUsersAssigned,
+            requesterSsoUsersRemoved: $requesterSsoUsersRemoved,
+            superOpsNameHintsUpdated: $superOpsNameHintsUpdated,
+            superOpsUsersProvisioned: $superOpsUsersProvisioned,
+            errors: $errors,
         );
     }
 
@@ -331,6 +349,13 @@ class EntraGroupSyncService
     private function shouldMaintainSuperOpsAppUsers(Client $client): bool
     {
         return filled($client->entra_superops_app_id);
+    }
+
+    private function shouldMaintainRequesterSsoUsers(Client $client): bool
+    {
+        return ($client->entra_license_tier ?? 'free') === 'free'
+            && (bool) (($client->onboarding_checklist ?? [])['superops_client_sso_configured'] ?? false)
+            && filled(config('services.superops.requester_sso_client_id'));
     }
 
     private function shouldTriggerSuperOpsScimProvision(Client $client): bool
@@ -519,6 +544,84 @@ class EntraGroupSyncService
                 $removed++;
             } catch (Throwable $e) {
                 $errors[] = "Failed to remove {$userId} from SuperOps app: {$e->getMessage()}";
+            }
+        }
+
+        return [$assigned, $removed, $errors];
+    }
+
+    /**
+     * Keep Entra ID Free requester SSO access aligned with active licensed users.
+     *
+     * Group assignment requires Entra ID P1. On Free, the portal assigns users
+     * directly to the customer tenant's service principal created by step 08 Accept.
+     *
+     * @param  list<string>  $desiredUserIds
+     * @return array{0: int, 1: int, 2: list<string>}
+     */
+    private function syncRequesterSsoUserAssignments(Client $client, array $desiredUserIds, bool $dryRun): array
+    {
+        $tenantId = (string) $client->entra_tenant_id;
+        $applicationClientId = (string) config('services.superops.requester_sso_client_id');
+
+        try {
+            $servicePrincipalId = $this->graph->resolveEnterpriseServicePrincipalId(
+                $tenantId,
+                $applicationClientId,
+            );
+            $currentAssignments = $this->graph->listAppAssignedUsers($tenantId, $servicePrincipalId);
+        } catch (Throwable $e) {
+            Log::error('Entra SuperOps requester SSO assignment read failed', [
+                'client_id' => $client->id,
+                'application_client_id' => $applicationClientId,
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [0, 0, [
+                'SuperOps SSO user sync failed. Complete checklist step 08 customer Accept, then Sync now again: '
+                .$e->getMessage(),
+            ]];
+        }
+
+        $desired = array_values(array_unique($desiredUserIds));
+        $currentUserIds = array_keys($currentAssignments);
+        $toAssign = array_values(array_diff($desired, $currentUserIds));
+        $toRemove = array_values(array_diff($currentUserIds, $desired));
+
+        if ($dryRun) {
+            return [count($toAssign), count($toRemove), []];
+        }
+
+        $assigned = 0;
+        $removed = 0;
+        $errors = [];
+
+        foreach ($toAssign as $userId) {
+            try {
+                $this->graph->assignUserToEnterpriseAppDefaultAccess(
+                    $tenantId,
+                    $servicePrincipalId,
+                    $userId,
+                );
+                $assigned++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to grant SuperOps SSO access to {$userId}: {$e->getMessage()}";
+            }
+        }
+
+        foreach ($toRemove as $userId) {
+            $assignmentId = $currentAssignments[$userId] ?? null;
+
+            if ($assignmentId === null) {
+                continue;
+            }
+
+            try {
+                $this->graph->removeUserFromEnterpriseApp($tenantId, $servicePrincipalId, $assignmentId);
+                $removed++;
+            } catch (Throwable $e) {
+                $errors[] = "Failed to remove SuperOps SSO access from {$userId}: {$e->getMessage()}";
             }
         }
 

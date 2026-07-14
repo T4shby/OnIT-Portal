@@ -198,7 +198,7 @@ You may have **two** Entra enterprise apps in the customer tenant (plus the cons
 | App | Purpose |
 |---|---|
 | **SuperOps - {Company}** | SCIM provisioning only |
-| **SuperOps Requester SSO (On IT)** | Appears after checklist **08** Accept — assign Portal group |
+| **SuperOps Requester SSO (On IT)** | Appears after checklist **08** Accept — P1 assign Portal group; Free Sync now assigns active licensed users |
 | On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant (step 04) |
 
 Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do **not** use SuperOps Client SSO for login.
@@ -215,7 +215,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
 | ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
-| ☐ | Checklist **08** — customer GA Accepted SuperOps Requester SSO; Portal group assigned |
+| ☐ | Checklist **08** — customer GA Accepted SuperOps Requester SSO; P1 group assigned / Free users auto-assigned by Sync now |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
 
@@ -242,6 +242,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Entra ID Free: portal Sync now auto-assigns active licensed users to requester SSO SP after Accept |
 | 2026-07-14 | Checklist SSO Accept is step **08** (stale “06” refs corrected); live guide uses multi-block Where paths |
 | 2026-06-25 | Sync now: provision-on-demand **one user per API call** + delay after `extensionAttribute1`; spinner/status banner on Edit client |
 | 2026-06-25 | Portal writes full SCIM name to `extensionAttribute1`; Direct `name.familyName` mapping; provision-on-demand on Sync now |

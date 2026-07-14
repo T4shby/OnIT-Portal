@@ -111,7 +111,10 @@ class ClientCreateTest extends TestCase
             ->get(route('admin.clients.edit', $client));
 
         $response->assertOk();
-        $response->assertSee('Sign in as a <strong class="text-white">MXVI</strong> Global Admin', false);
+        $response->assertSee(
+            'Sign in as a <strong class="onboarding-manual__emph">Global Administrator of MXVI</strong>',
+            false,
+        );
         $response->assertDontSee('Ductec', false);
     }
 

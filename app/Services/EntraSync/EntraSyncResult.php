@@ -13,6 +13,8 @@ class EntraSyncResult
         public readonly int $groupMembersRemoved = 0,
         public readonly int $superOpsAppUsersAssigned = 0,
         public readonly int $superOpsAppUsersRemoved = 0,
+        public readonly int $requesterSsoUsersAssigned = 0,
+        public readonly int $requesterSsoUsersRemoved = 0,
         public readonly int $superOpsNameHintsUpdated = 0,
         public readonly int $superOpsUsersProvisioned = 0,
         public readonly array $errors = [],
@@ -28,6 +30,7 @@ class EntraSyncResult
         return $this->created + $this->updated + $this->deactivated
             + $this->groupMembersAdded + $this->groupMembersRemoved
             + $this->superOpsAppUsersAssigned + $this->superOpsAppUsersRemoved
+            + $this->requesterSsoUsersAssigned + $this->requesterSsoUsersRemoved
             + $this->superOpsNameHintsUpdated
             + $this->superOpsUsersProvisioned;
     }
@@ -55,9 +58,17 @@ class EntraSyncResult
 
         if ($this->superOpsAppUsersAssigned > 0 || $this->superOpsAppUsersRemoved > 0) {
             $parts .= sprintf(
-                '; SuperOps app +%d / -%d users',
+                '; SuperOps SCIM app +%d / -%d users',
                 $this->superOpsAppUsersAssigned,
                 $this->superOpsAppUsersRemoved,
+            );
+        }
+
+        if ($this->requesterSsoUsersAssigned > 0 || $this->requesterSsoUsersRemoved > 0) {
+            $parts .= sprintf(
+                '; SuperOps SSO access +%d / -%d active licensed users',
+                $this->requesterSsoUsersAssigned,
+                $this->requesterSsoUsersRemoved,
             );
         }
 

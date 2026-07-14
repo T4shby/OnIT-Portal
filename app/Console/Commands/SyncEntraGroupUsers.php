@@ -66,7 +66,11 @@ class SyncEntraGroupUsers extends Command
             }
 
             if ($result->superOpsAppUsersAssigned > 0 || $result->superOpsAppUsersRemoved > 0) {
-                $this->line("  SuperOps app: +{$result->superOpsAppUsersAssigned} / -{$result->superOpsAppUsersRemoved} users");
+                $this->line("  SuperOps SCIM app: +{$result->superOpsAppUsersAssigned} / -{$result->superOpsAppUsersRemoved} users");
+            }
+
+            if ($result->requesterSsoUsersAssigned > 0 || $result->requesterSsoUsersRemoved > 0) {
+                $this->line("  SuperOps SSO access: +{$result->requesterSsoUsersAssigned} / -{$result->requesterSsoUsersRemoved} active licensed users");
             }
 
             if ($result->superOpsNameHintsUpdated > 0) {

@@ -504,6 +504,9 @@ class ClientOnboardingService
                             $usesGroupScim
                                 ? null
                                 : 'Enterprise applications → **'.$appName.'** → **Users and groups** — users listed after sync (Free path).',
+                            $usesGroupScim
+                                ? null
+                                : 'Enterprise applications → **SuperOps Requester SSO (On IT)** → **Users and groups** — every active licensed user listed after Sync now (Free path; portal assigned them automatically).',
                             'Enterprise applications → **'.$appName.'** → **Provisioning** → **Provisioning logs** — Updates appear after a few minutes.',
                         ])),
                     ),
@@ -738,15 +741,15 @@ class ClientOnboardingService
                 ],
             )
             : OnboardingManual::section(
-                'Assign requester users in customer Azure (Free)',
+                'Confirm the SSO app exists — do not add users manually (Free)',
                 'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups',
                 [
                     'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
                     'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
                     'Search **SuperOps Requester SSO (On IT)** → open it (created by Accept).',
                     'Left menu → **Properties**: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes is expected.',
-                    'Left menu → **Manage** → **Users and groups** → **Add user/group**.',
-                    'Users → add each customer requester who must Microsoft-sign-in (Free cannot assign a security group here).',
+                    'Do **not** add users one-by-one. Entra ID Free cannot assign the Portal group, so portal **Sync now** assigns every active licensed customer user directly.',
+                    'After marking this acceptance complete, finish steps 09 and 10. Step 10 verifies **Users and groups** was filled automatically.',
                 ],
             );
 
@@ -777,7 +780,9 @@ class ClientOnboardingService
                 ),
             ],
             verify: [
-                'Customer Azure has SuperOps Requester SSO (On IT) with the correct users/group assigned.',
+                $usesGroupScim
+                    ? 'Customer Azure has SuperOps Requester SSO (On IT) with the Portal group assigned.'
+                    : 'Customer Azure has SuperOps Requester SSO (On IT). Users are assigned automatically by portal Sync now — not manually here.',
             ],
         );
     }

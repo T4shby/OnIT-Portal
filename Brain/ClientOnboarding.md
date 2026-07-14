@@ -246,7 +246,7 @@ Manual **Admin → Users** remains available for pilots or exceptions (`provisio
 Every real customer (own M365 tenant) uses the same model:
 
 1. **Platform (once):** SuperOps **Global SSO** + Entra app **SuperOps Requester SSO (On IT)** (multitenant App Registration + SAML). See §0.2 and [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
-2. **Per client:** checklist **04** Portal Graph Accept + **05–07** SCIM + **08** SuperOps SSO Accept + assign group/users in the **customer** tenant.
+2. **Per client:** checklist **04** Portal Graph Accept + **05–07** SCIM + **08** SuperOps SSO Accept. P1 assigns the Portal group once; Free Sync now assigns active licensed SSO users automatically.
 
 | # | System | Action | Done |
 |---|---|---|---|
@@ -255,7 +255,7 @@ Every real customer (own M365 tenant) uses the same model:
 | 3 | **Entra (customer)** | Group `On IT Portal - {Company}` + tenant ID (step 03) | ☐ |
 | 4 | **Portal / customer GA** | Step 04 Portal Graph Accept | ☐ |
 | 5–7 | **SuperOps + customer Entra** | Steps 05–07 SCIM tokens, app, mappings | ☐ |
-| 8 | **Customer GA** | Step 08 Accept **SuperOps Requester SSO (On IT)** + assign Portal group/users | ☐ |
+| 8 | **Customer GA** | Step 08 Accept **SuperOps Requester SSO (On IT)**; P1 assign Portal group / Free no manual users | ☐ |
 | 9–10 | **Portal** | Enable sync → Dry run → Sync now | ☐ |
 | 11–12 | **Portal** | Test Microsoft sign-in → hand off | ☐ |
 
@@ -277,7 +277,7 @@ Generated on Edit Client when Entra tenant ID is saved. Portal env: `SUPEROPS_RE
 |---|---|---|---|
 | 1 | **Portal / sync** | User appears after Sync now (or Admin → Users exception) | ☐ |
 | 2 | **SuperOps** | Requester exists via SCIM (same email) | ☐ |
-| 3 | **Entra (customer)** | In Portal group / assigned to SuperOps Requester SSO SP after Accept | ☐ |
+| 3 | **Entra (customer)** | P1: in Portal group; Free: automatically assigned to SuperOps Requester SSO by Sync now | ☐ |
 | 4 | **Test** | Portal login → SuperOps tile → requester | ☐ |
 
 **Not required per user:** changing SAML Reply URL, certificate, Entity ID, or SuperOps Global SSO fields.
@@ -288,7 +288,7 @@ Generated on Edit Client when Entra tenant ID is saved. Portal env: `SUPEROPS_RE
 
 On IT operates **Global SSO only** for all 50+ clients. SuperOps **Client SSO** (`+ Configuration` per client) is **out of scope**.
 
-Per-client work is checklist **08**: customer Global Admin **Accept** of the multitenant app **SuperOps Requester SSO (On IT)** + assign `On IT Portal - {Company}` (or Free: requester users) in the **customer** tenant. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
+Per-client work is checklist **08**: customer Global Admin **Accept** of the multitenant app **SuperOps Requester SSO (On IT)**. P1 assigns `On IT Portal - {Company}` once; Entra ID Free portal **Sync now** assigns all active licensed users directly (no manual user assignment). Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 ---
 
@@ -371,6 +371,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to SuperOps Requester SSO after step 08 Accept |
 | 2026-07-14 | Live steps use multiple **Where** sections (product + menu path) so technicians know which app to open |
 | 2026-07-14 | Live checklist rebuilt as 12 zero-training steps; SuperOps Accept is step 08; SCIM split into 05–07 |
 | 2026-07-14 | Multitenant verified (App ID URI `onit.ltd/…` vs SAML Entity ID `clientuser.superops.ai`); Accept path; Client SSO removed from operating model |

@@ -100,7 +100,7 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
 | **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
-| **8** | Portal + customer GA | Checklist **08** — Accept SuperOps Requester SSO; assign Portal group in customer tenant |
+| **8** | Portal + customer GA | Checklist **08** — Accept SuperOps Requester SSO; P1 assign Portal group / Free users assigned by Sync now |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
@@ -275,8 +275,9 @@ On IT uses **Global SSO** only — **never** SuperOps Client SSO. Full detail: [
 
 1. Edit Client → step **08** → click the orange **Open Microsoft Accept page** button (customer tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
 2. Customer Global Admin → **Accept**
-3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → P1: assign `On IT Portal - {Company}`; Free: assign requester users directly
-4. Incognito test with customer work email — must **not** say user is missing from On IT tenant
+3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → P1: assign `On IT Portal - {Company}`; Free: do **not** add users manually
+4. Free: mark step 08 complete, then portal **Sync now** directly assigns every active licensed user; verify them under the SSO app's **Users and groups**
+5. Incognito test with customer work email — must **not** say user is missing from On IT tenant
 
 Do **not** put SAML on the customer SCIM app `SuperOps - {Company}`. Do **not** tick step 08 complete just because Global SSO works for another client.
 
@@ -402,6 +403,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to requester SSO after step 08 Accept |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand; troubleshooting for plain names when extensionAttribute1 set |
 | 2026-06-25 | SuperOps App role step (Value `User`) for Entra ID Free; Application (client) ID on portal |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |

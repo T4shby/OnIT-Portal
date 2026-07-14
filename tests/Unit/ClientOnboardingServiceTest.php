@@ -306,6 +306,9 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Users and groups', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
         $this->assertStringContainsString('Accept', $text);
+        $this->assertStringContainsString('Do **not** add users one-by-one', $text);
+        $this->assertStringContainsString('Sync now', $text);
+        $this->assertStringNotContainsString('add each customer requester', $text);
         $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringContainsString('Client SSO', $text);
         $this->assertStringNotContainsString('Global SSO is broken', $text);
