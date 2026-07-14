@@ -49,7 +49,7 @@ This guide is **only for each new customer tenant**.
 | **On IT technician (portal / SuperOps)** | SuperOps client, portal client record, Pax8 ID, enable sync, dry-run, test, handoff |
 | **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, Portal Graph consent, SuperOps SSO Accept — all in the **customer** tenant |
 
-If GDAP is not available, the customer Global Admin runs admin consent; On IT still owns the checklist until complete.
+On IT technicians complete every action on the customer’s behalf using delegated / GDAP access. If the required GDAP role is unavailable, stop and escalate internally until access is corrected; do not send setup work or Accept URLs to the customer.
 
 This is the **same process for every MSP customer** — scale by repeating **Admin → Clients → Edit** per company.
 
@@ -158,8 +158,8 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 
 **SAML / Global SSO Accept (checklist step 08) — not on the SCIM app:**
 
-1. Edit Client → step **08** → **Open customer SuperOps SSO Accept page** (customer tenant + app `bf1c303e-…`).
-2. Customer Global Admin → **Accept**.
+1. On IT technician → Edit Client → step **08** → **Open SuperOps SSO Accept for customer tenant** (customer tenant + app `bf1c303e-…`).
+2. Sign in with the On IT account holding the required GDAP admin role → confirm customer tenant → **Accept**.
 3. Customer Entra → Enterprise applications → **SuperOps Requester SSO (On IT)** → P1: assign `On IT Portal - {Company}`; Free: do not add users manually.
 4. Free: portal **Sync now** assigns every active licensed user directly to the requester SSO app.
 5. Do **not** open SuperOps Client SSO; do **not** configure SAML on `SuperOps - {Company}`.

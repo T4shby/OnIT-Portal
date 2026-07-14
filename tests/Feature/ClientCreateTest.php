@@ -112,7 +112,7 @@ class ClientCreateTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(
-            'Sign in as a <strong class="onboarding-manual__emph">Global Administrator of MXVI</strong>',
+            'Sign in with the <strong class="onboarding-manual__emph">On IT technician account that has the required GDAP admin role</strong> for MXVI',
             false,
         );
         $response->assertDontSee('Ductec', false);

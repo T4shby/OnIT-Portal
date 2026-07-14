@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | MSP ownership rule: On IT technicians complete all customer-tenant onboarding/Accept actions through GDAP; customers do nothing |
 | 2026-07-14 | Entra ID Free: portal Sync now auto-assigns all active licensed users to customer SuperOps Requester SSO after Accept |
 | 2026-07-14 | Fixed checklist 08: tenant-specific SuperOps SSO Accept button / Copy link remains visible after completion |
 | 2026-07-14 | Live checklist: multi-block **Where** per app (Portal / SuperOps / Azure) on every step; SSO Accept = **08** in Brain (fixed stale 06 refs) |

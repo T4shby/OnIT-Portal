@@ -4,6 +4,8 @@
 
 **M365 is the source of truth.** The portal and SuperOps each have their own sync — they do **not** use the same membership rule.
 
+**MSP operating rule:** On IT technicians perform all customer-tenant setup and consent through delegated / GDAP access. Customers receive no onboarding tasks or Accept links.
+
 ```
 Customer M365 tenant
         │
@@ -139,6 +141,7 @@ On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | MSP ownership explicit: every customer-tenant setup/consent action is completed by On IT through GDAP |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns all active licensed users to customer SuperOps Requester SSO SP after Accept |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand; sync UI spinner; docs aligned on name.familyName mapping |
 | 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.familyName` mapping; provision-on-demand on Sync now |

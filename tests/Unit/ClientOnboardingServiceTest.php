@@ -284,7 +284,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringNotContainsString('Client SSO', $text);
     }
 
-    public function test_sso_step_requires_customer_ga_accept(): void
+    public function test_sso_step_requires_on_it_technician_gdap_accept(): void
     {
         $client = Client::factory()->create([
             'name' => 'MXVI',
@@ -298,11 +298,10 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', $step['instructions']);
         $consentUrl = $service->superOpsRequesterSsoConsentUrl($client);
 
-        $this->assertSame('Customer Accepts SuperOps login', $step['title']);
+        $this->assertSame('Accept SuperOps login in customer tenant', $step['title']);
         $this->assertGreaterThanOrEqual(2, count($step['guide']['sections']));
-        $this->assertStringContainsString('Open customer SuperOps SSO Accept page', $text);
-        $this->assertStringContainsString('Global Administrator of MXVI', $text);
-        $this->assertStringContainsString('Copy link', $text);
+        $this->assertStringContainsString('Open SuperOps SSO Accept for customer tenant', $text);
+        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $text);
         $this->assertStringContainsString('Users and groups', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
         $this->assertStringContainsString('Accept', $text);
@@ -337,8 +336,8 @@ class ClientOnboardingServiceTest extends TestCase
             'showCheckboxes' => true,
         ])->render();
 
-        $this->assertStringContainsString('Open customer SuperOps SSO Accept page', $html);
-        $this->assertStringContainsString('Required for every customer tenant', $html);
+        $this->assertStringContainsString('Open SuperOps SSO Accept for customer tenant', $html);
+        $this->assertStringContainsString('On IT technician action — required for every customer tenant', $html);
         $this->assertStringContainsString('Copy link', $html);
         $this->assertStringContainsString(
             'https://login.microsoftonline.com/customer/adminconsent?client_id=sso-app',
@@ -381,8 +380,8 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
             )->firstWhere('key', 'entra_admin_consent_granted')['instructions']);
 
-        $this->assertStringContainsString('Open Microsoft Accept page', $text);
-        $this->assertStringContainsString('Global Administrator of 3R Systems Limited', $text);
+        $this->assertStringContainsString('Open Portal Accept for customer tenant', $text);
+        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $text);
         $this->assertStringContainsString('OnIT Portal for Portals', $text);
         $this->assertStringContainsString('Enterprise applications', $text);
         $this->assertStringNotContainsString('User.Read.All', $text);
@@ -414,6 +413,29 @@ class ClientOnboardingServiceTest extends TestCase
             $this->assertNotSame('M365 admin', $step['who']);
             $this->assertStringContainsString('On IT technician', $step['who']);
         }
+    }
+
+    public function test_customer_is_never_assigned_onboarding_actions(): void
+    {
+        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+        $steps = collect(app(ClientOnboardingService::class)->steps($client));
+        $allText = $steps
+            ->flatMap(fn (array $step): array => [$step['title'], ...$step['instructions']])
+            ->implode(' ');
+
+        $this->assertSame(
+            'Accept Portal access in customer tenant',
+            $steps->firstWhere('key', 'entra_admin_consent_granted')['title'],
+        );
+        $this->assertSame(
+            'Accept SuperOps login in customer tenant',
+            $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
+        );
+        $this->assertStringContainsString('The customer does nothing', $allText);
+        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $allText);
+        $this->assertStringNotContainsString('Customer Accepts', $allText);
+        $this->assertStringNotContainsString('customer Global Admin', $allText);
+        $this->assertStringNotContainsString('send it to them', $allText);
     }
 
     public function test_field_helps_include_entra_ids(): void

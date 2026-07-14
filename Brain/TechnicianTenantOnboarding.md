@@ -4,6 +4,8 @@
 
 Every step in the app shows **Where** (exact product + menu path) then numbered clicks. This page mirrors that so you know the map before you start.
 
+**MSP ownership:** On IT technicians perform every setup and acceptance action on the customer’s behalf using delegated / GDAP access. The customer does not receive setup links, sign in, or complete checklist tasks.
+
 ## Start here
 
 1. Sign in to https://app.onit.ltd as an On IT technician.
@@ -21,7 +23,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 |---|---|
 | This portal page | Server / SSH / Plesk |
 | SuperOps MSP console | Platform SAML rebuild |
-| Customer Microsoft Entra / M365 admin | SuperOps Client SSO |
+| Customer Microsoft Entra / M365 tenant through On IT GDAP | SuperOps Client SSO |
 
 ## Live checklist (Edit page)
 
@@ -32,11 +34,11 @@ Set **Customer Entra license tier** on the left before step 03.
 | 01 | Link SuperOps client | SuperOps **Clients** → paste Account ID on portal left | SuperOps Account ID saved |
 | 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
 | 03 | Create Portal group + save Entra IDs | Customer Azure **Groups** → paste Tenant + group IDs on portal left | Tenant ID + group ID saved |
-| 04 | Customer Accepts Portal access | Orange Accept on checklist → verify **OnIT Portal for Portals** permissions | Accept used / or first sync later |
+| 04 | Accept Portal access in customer tenant | On IT technician clicks orange Accept using GDAP → verify **OnIT Portal for Portals** permissions | Accept used / or first sync later |
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
 | 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
 | 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
-| 08 | Customer Accepts SuperOps login | Orange **Open customer SuperOps SSO Accept page** (or **Copy link** for customer GA) → P1 assign group; Free add nobody manually | Accept completed |
+| 08 | Accept SuperOps login in customer tenant | On IT technician clicks **Open SuperOps SSO Accept for customer tenant** using GDAP → P1 assign group; Free add nobody manually | Accept completed |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
@@ -67,8 +69,9 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 - Customer SCIM app is `SuperOps - {Company}` (SCIM only — not SAML).
 - SuperOps login uses **Global SSO + customer Accept** (step 08). Never Client SSO.
 - Portal Graph Accept (04) and SuperOps Accept (08) are different Microsoft Accept pages.
-- Step 08's customer Accept button remains visible after Done so technicians can copy or repeat the tenant-specific acceptance.
+- Step 08's customer-tenant Accept button remains visible after Done so technicians can repeat the tenant-specific acceptance.
 - Entra ID Free: never add SSO users one-by-one. Step 10 **Sync now** assigns every active licensed user to `SuperOps Requester SSO (On IT)`.
+- Customers do no onboarding work. If GDAP permissions are insufficient, escalate internally; never send them checklist actions or Accept URLs.
 - Test login with a **customer** work email, never an On IT staff account.
 
 ## If you get stuck
@@ -89,6 +92,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | MSP ownership explicit: On IT technicians perform all setup via GDAP; customers receive no setup tasks or Accept links |
 | 2026-07-14 | Entra ID Free: removed manual SSO user assignment; Sync now assigns every active licensed user after step 08 Accept |
 | 2026-07-14 | Fixed step 08: customer SuperOps SSO Accept / Copy link remains visible after the step is Done |
 | 2026-07-14 | Every live step now has separate **Where** blocks per app (Portal / SuperOps / Azure); Brain map lists product + menu path per step |

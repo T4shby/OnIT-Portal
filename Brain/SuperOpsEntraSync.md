@@ -76,13 +76,13 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 #### 2c. Requester login — Global SSO + per-tenant Accept (not on the customer SCIM app)
 
-On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)) plus **customer Global Admin Accept** of the multitenant app:
+On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)) plus **per-customer-tenant admin Accept performed by an On IT technician through GDAP**:
 
 | Field | Where it comes from |
 |-------|---------------------|
 | **Identifier (Entity ID)** | Type **`https://clientuser.superops.ai`** — fixed SuperOps value for Global SSO. Not per-client. |
 | **Reply URL** | SuperOps → Settings → Requester Login → SSO Protected → **Global SSO** → **Consumer Service URL** |
-| **Per client** | Checklist **08** Accept URL → customer GA Accepts `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` → assign `On IT Portal - {Company}` in **customer** tenant |
+| **Per client** | On IT technician → checklist **08** → GDAP Accept `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` in customer tenant → P1 assign group / Free Sync now assigns users |
 
 Configure SAML once on the **On IT** Entra app (**SuperOps Requester SSO (On IT)**), then paste Login URL + certificate into SuperOps **Global SSO**. Do **not** put Global SSO SAML on the customer `SuperOps - {Company}` SCIM app. Do **not** use SuperOps Client SSO.
 
@@ -215,7 +215,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
 | ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
-| ☐ | Checklist **08** — customer GA Accepted SuperOps Requester SSO; P1 group assigned / Free users auto-assigned by Sync now |
+| ☐ | Checklist **08** — On IT technician Accepted SuperOps Requester SSO in customer tenant via GDAP; P1 group assigned / Free users auto-assigned |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
 
@@ -242,6 +242,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do 
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | MSP ownership explicit: On IT technicians complete customer-tenant Accept and setup through GDAP |
 | 2026-07-14 | Entra ID Free: portal Sync now auto-assigns active licensed users to requester SSO SP after Accept |
 | 2026-07-14 | Checklist SSO Accept is step **08** (stale “06” refs corrected); live guide uses multi-block Where paths |
 | 2026-06-25 | Sync now: provision-on-demand **one user per API call** + delay after `extensionAttribute1`; spinner/status banner on Edit client |

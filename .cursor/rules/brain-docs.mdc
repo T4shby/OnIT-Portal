@@ -35,9 +35,10 @@ Keep step numbers, Application IDs, URLs, and who-does-what aligned with the **l
 
 ## Hard constraints (do not regress)
 
-- Global SSO + per-customer GA Accept — **not** SuperOps Client SSO for normal clients.
+- Global SSO + per-customer-tenant admin Accept — **not** SuperOps Client SSO for normal clients.
+- **On IT MSP technicians perform every onboarding action on the customer’s behalf using delegated / GDAP access.** Customers are not sent setup links, asked to sign in, or assigned checklist tasks.
 - SAML Entity ID `https://clientuser.superops.ai` ≠ App ID URI `https://onit.ltd/superops-requester-sso`.
-- App registration = Multitenant. Checklist **04** = Portal Graph; **06** = SuperOps Requester SSO Accept.
+- App registration = Multitenant. Checklist **04** = Portal Graph; **08** = SuperOps Requester SSO Accept.
 
 ## Before answering ops / Azure / onboarding questions
 

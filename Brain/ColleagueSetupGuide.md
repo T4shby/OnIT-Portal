@@ -75,7 +75,7 @@ Send Tom a message with:
 - SuperOps Account ID  
 - Confirm they use their **own** Microsoft 365 (almost always yes)
 
-Tom will complete checklist **08** (customer Global Admin **Accepts** SuperOps Requester SSO) so users can Microsoft-sign-in with `@theircompany.com`. You cannot skip this Accept.
+An On IT technician completes checklist **08** using delegated / GDAP access to **Accept** SuperOps Requester SSO in the customer tenant so users can Microsoft-sign-in with `@theircompany.com`. The customer does nothing; you cannot skip this Accept.
 
 **Tick:** ☐ Tom confirmed SuperOps SSO Accept is done
 

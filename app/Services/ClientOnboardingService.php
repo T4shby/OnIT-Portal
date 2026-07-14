@@ -277,7 +277,7 @@ class ClientOnboardingService
 
             $this->withManual([
                 'key' => 'entra_admin_consent_granted',
-                'title' => 'Customer Accepts Portal access',
+                'title' => 'Accept Portal access in customer tenant',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $adminConsentComplete,
                 'manual' => true,
@@ -286,15 +286,16 @@ class ClientOnboardingService
             ], OnboardingManual::build(
                 notes: [
                     'This Accept is only for portal sync (Graph). SuperOps login Accept is a later step with a different orange button.',
+                    'The customer does nothing. An On IT technician completes this using delegated / GDAP access.',
                 ],
                 sections: [
                     OnboardingManual::section(
                         'Accept with the orange button',
                         'This checklist step (right) → Microsoft permissions page',
                         [
-                            'On this checklist step, click orange **Open Microsoft Accept page** (above). Or use **Copy link** and open it in a private window.',
+                            'On this checklist step, click orange **Open Portal Accept for customer tenant** (above). Or use **Copy link** and open it in a private window.',
                             'If you are already in On IT Azure, use private/incognito so Microsoft does not reuse the wrong tenant.',
-                            'Sign in as a **Global Administrator of '.$client->name.'** (customer work account). Never use @onit.ltd here.',
+                            'Sign in with the **On IT technician account that has the required GDAP admin role** for '.$client->name.'.',
                             'Read the top of the Microsoft permissions page — tenant name must be **'.$client->name.'**, not On IT Technology Partners.',
                             'Click **Accept**.',
                         ],
@@ -426,7 +427,7 @@ class ClientOnboardingService
 
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
-                'title' => 'Customer Accepts SuperOps login',
+                'title' => 'Accept SuperOps login in customer tenant',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $ssoComplete,
                 'manual' => true,
@@ -756,16 +757,16 @@ class ClientOnboardingService
         return OnboardingManual::build(
             notes: [
                 'Do not open SuperOps **Client SSO**. Do not edit certificates / Global SSO for this client.',
+                'The customer does nothing. An On IT technician completes the Accept and all Azure work using delegated / GDAP access.',
             ],
             sections: [
                 OnboardingManual::section(
                     'Accept with the orange button',
                     'This checklist step (right) → Microsoft permissions page',
                     [
-                        'On this checklist step, click orange **Open customer SuperOps SSO Accept page** (above).',
-                        'If the customer Global Admin must do it: click **Copy link**, send it to them, and ask them to complete the remaining steps.',
-                        'Open it in private/incognito so Microsoft does not reuse an On IT account.',
-                        'Sign in as a **Global Administrator of '.$clientName.'** — never use @onit.ltd.',
+                        'On this checklist step, click orange **Open SuperOps SSO Accept for customer tenant** (above).',
+                        'Open it in private/incognito if Microsoft has cached the wrong directory.',
+                        'Sign in with the **On IT technician account that has the required GDAP admin role** for '.$clientName.'.',
                         'Confirm Microsoft shows tenant **'.$clientName.'**, not On IT Technology Partners LTD.',
                         'Click **Accept**.',
                     ],

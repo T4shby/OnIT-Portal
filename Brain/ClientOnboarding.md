@@ -22,14 +22,14 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 ## Who performs each step (MSP — ~100 clients)
 
-Every step is performed by **On IT technicians**. The label shows **where** you work, not a different company.
+Every step is performed by **On IT MSP technicians on the customer’s behalf**. The label shows **where** you work, not a different company. The customer does not receive setup links, sign in, or complete checklist tasks.
 
 | Label in app | Where | Examples |
 |--------------|-------|----------|
 | **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
 | **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, Portal Graph Accept (04), SuperOps SSO Accept (08) |
 
-If you do not have GDAP on a tenant, send the customer admin the Accept URLs from **checklist steps 04 and 08** — the checklist owner is still On IT until handed off.
+If On IT does not have the required delegated / GDAP role, stop and escalate internally until access is corrected. Do **not** hand setup actions or Accept URLs to the customer.
 
 Same playbook for every client: **Admin → Clients → Add → Edit** → work the checklist → next client.
 
@@ -60,11 +60,11 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 | 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
 | 02 | Link Pax8 (or skip) | On IT technician (portal / SuperOps) |
 | 03 | Create Portal group + save Entra IDs | On IT technician (customer Entra / GDAP) |
-| 04 | Customer Accepts Portal access | On IT technician (customer Entra / GDAP) |
+| 04 | Accept Portal access in customer tenant | On IT technician (customer Entra / GDAP) |
 | 05 | Get SuperOps SCIM tokens | On IT technician (customer Entra / GDAP) |
 | 06 | Create SuperOps SCIM app in Entra | On IT technician (customer Entra / GDAP) |
 | 07 | Azure SCIM mappings + Application ID / group + start | On IT technician (customer Entra / GDAP) |
-| 08 | Customer Accepts SuperOps login | On IT technician (customer Entra / GDAP) |
+| 08 | Accept SuperOps login in customer tenant | On IT technician (customer Entra / GDAP) |
 | 09 | Turn on portal sync | On IT technician (portal / SuperOps) |
 | 10 | Run Dry run then Sync now | On IT technician (portal / SuperOps) |
 | 11 | Test as a customer user | On IT technician (portal / SuperOps) |
@@ -196,7 +196,7 @@ SUPEROPS_REQUESTER_SSO_CLIENT_ID=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
 # Leave SUPEROPS_SSO_URL empty — Entra Login URL belongs in SuperOps admin only (see below)
 ```
 
-**Per client (checklist 08):** customer Global Admin Accepts this app — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) § Multitenant Accept.
+**Per client (checklist 08):** an On IT technician uses delegated / GDAP access to grant admin consent in the customer tenant — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) § Multitenant Accept.
 
 **Entra Login URL** (`https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2`) — copy from **Entra → SuperOps Requester SSO app → Single sign-on → Login URL** (Section 4). Paste into **SuperOps Step 2 IDP Login URL only**. Click **Save**. See [SuperOpsRequesterSsoSetup.md §2.6–2.8](SuperOpsRequesterSsoSetup.md).
 
@@ -253,7 +253,7 @@ Every real customer (own M365 tenant) uses the same model:
 | 1 | **SuperOps** | Create / confirm client; note Account ID | ☐ |
 | 2 | **Portal** | **Admin → Clients** → Create → Edit checklist | ☐ |
 | 3 | **Entra (customer)** | Group `On IT Portal - {Company}` + tenant ID (step 03) | ☐ |
-| 4 | **Portal / customer GA** | Step 04 Portal Graph Accept | ☐ |
+| 4 | **On IT technician / customer tenant via GDAP** | Step 04 Portal Graph Accept | ☐ |
 | 5–7 | **SuperOps + customer Entra** | Steps 05–07 SCIM tokens, app, mappings | ☐ |
 | 8 | **Customer GA** | Step 08 Accept **SuperOps Requester SSO (On IT)**; P1 assign Portal group / Free no manual users | ☐ |
 | 9–10 | **Portal** | Enable sync → Dry run → Sync now | ☐ |
@@ -288,7 +288,7 @@ Generated on Edit Client when Entra tenant ID is saved. Portal env: `SUPEROPS_RE
 
 On IT operates **Global SSO only** for all 50+ clients. SuperOps **Client SSO** (`+ Configuration` per client) is **out of scope**.
 
-Per-client work is checklist **08**: customer Global Admin **Accept** of the multitenant app **SuperOps Requester SSO (On IT)**. P1 assigns `On IT Portal - {Company}` once; Entra ID Free portal **Sync now** assigns all active licensed users directly (no manual user assignment). Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
+Per-client work is checklist **08**: an On IT technician uses delegated / GDAP access to **Accept** the multitenant app **SuperOps Requester SSO (On IT)** in the customer tenant. P1 assigns `On IT Portal - {Company}` once; Entra ID Free portal **Sync now** assigns all active licensed users directly. The customer does nothing. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 ---
 
@@ -344,7 +344,7 @@ On IT validated Global SSO with **`portal.test@onit.ltd`** (`client_user` on On 
 
 **Do not test requester SSO as `tom.ashby@onit.ltd`** — MSP technician in SuperOps. Portal blocks `super_admin` from SuperOps launch.
 
-**Next:** For each real customer tenant, complete checklist **06 Accept** (not Client SSO). `portal.onit.ltd` remains SuperOps only.
+**Next:** For each real customer tenant, an On IT technician completes checklist **08 Accept** through GDAP (not Client SSO). `portal.onit.ltd` remains SuperOps only.
 
 See [OperatorRunbook.md](OperatorRunbook.md) Phase A for click-by-click.
 
@@ -371,6 +371,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | MSP ownership made explicit: On IT technicians complete all onboarding and Accept actions via GDAP; customers do nothing |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to SuperOps Requester SSO after step 08 Accept |
 | 2026-07-14 | Live steps use multiple **Where** sections (product + menu path) so technicians know which app to open |
 | 2026-07-14 | Live checklist rebuilt as 12 zero-training steps; SuperOps Accept is step 08; SCIM split into 05–07 |

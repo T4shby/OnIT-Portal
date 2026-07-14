@@ -41,11 +41,11 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 01 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
 | 02 Pax8 (or skip) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
 | 03 Portal group + Entra IDs | **Azure** (customer tenant) | portal.azure.com — customer directory |
-| 04 Portal Graph Accept | **Portal** + customer GA | Orange Accept button on checklist |
+| 04 Portal Graph Accept | **On IT technician** + customer tenant via GDAP | Orange Accept button on checklist |
 | 05 SCIM tokens | **SuperOps** | Generate Tokens for this client |
 | 06 SCIM app | **Azure** (customer) | Create `SuperOps - {Company}` + Test Connection |
 | 07 SCIM mapping + start | **Azure** + Portal | Mappings; P1 assign group / Free paste app ID |
-| 08 SuperOps SSO Accept | **Portal** + customer GA | Orange Accept button; assign group/users |
+| 08 SuperOps SSO Accept | **On IT technician** + customer tenant via GDAP | Orange Accept button; P1 assign group / Free auto users |
 | 09 Enable sync | **Portal** | Left column → Entra sync enabled → Save client |
 | 10 Dry run / Sync now | **Portal** | Left buttons under the form |
 | 11 Test as customer | **Browser** | Incognito customer work email |
@@ -100,7 +100,7 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
 | **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
-| **8** | Portal + customer GA | Checklist **08** — Accept SuperOps Requester SSO; P1 assign Portal group / Free users assigned by Sync now |
+| **8** | On IT technician + customer tenant via GDAP | Checklist **08** — Accept SuperOps Requester SSO; P1 assign Portal group / Free users assigned by Sync now |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
@@ -202,10 +202,12 @@ Click **Save client**.
 
 Must be done in the **customer** tenant as Global Admin (or GDAP with consent rights).
 
+**Actor:** the On IT technician does this on the customer’s behalf using GDAP. Do not send the consent URL or task to the customer.
+
 ### Option A — Link from portal checklist
 
 1. **Admin → Clients → Edit** → checklist **Step 04 — Portal Graph admin consent**
-2. Open the consent URL (or send to customer admin)
+2. On IT technician opens the consent URL using delegated / GDAP access
 3. Confirm the sign-in page shows the **customer** tenant name (not On IT)
 4. Review permissions → **Accept**
 5. Success page confirms consent
@@ -273,8 +275,8 @@ On IT uses **Global SSO** only — **never** SuperOps Client SSO. Full detail: [
 
 **Every customer (required):**
 
-1. Edit Client → step **08** → click the orange **Open Microsoft Accept page** button (customer tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
-2. Customer Global Admin → **Accept**
+1. On IT technician → Edit Client → step **08** → click orange **Open SuperOps SSO Accept for customer tenant** (tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
+2. Sign in with the On IT account holding the required GDAP admin role → confirm customer tenant → **Accept**
 3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → P1: assign `On IT Portal - {Company}`; Free: do **not** add users manually
 4. Free: mark step 08 complete, then portal **Sync now** directly assigns every active licensed user; verify them under the SSO app's **Users and groups**
 5. Incognito test with customer work email — must **not** say user is missing from On IT tenant
@@ -403,6 +405,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | MSP ownership explicit: On IT technicians perform customer-tenant consent and all setup via GDAP |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to requester SSO after step 08 Accept |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand; troubleshooting for plain names when extensionAttribute1 set |
 | 2026-06-25 | SuperOps App role step (Value `User`) for Entra ID Free; Application (client) ID on portal |

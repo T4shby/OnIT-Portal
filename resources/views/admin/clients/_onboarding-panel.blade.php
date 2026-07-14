@@ -14,9 +14,13 @@
 
         <p class="portal-body-muted text-sm leading-relaxed">
             Follow the open step. Your tools are this portal, SuperOps, and
-            <strong class="text-white/80">the customer’s Microsoft Entra / Azure admin</strong>
-            (portal.azure.com in their directory — not On IT).
+            <strong class="text-white/80">the customer’s Microsoft Entra tenant through On IT delegated / GDAP access</strong>
+            (portal.azure.com in their directory — not the On IT directory).
             You do not need server access.
+        </p>
+        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
+            <strong class="text-white/80">MSP-owned setup:</strong>
+            On IT technicians complete every checklist action on the customer’s behalf. Do not send setup links or tasks to the customer.
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Most Azure work is on steps 03–08:</strong>

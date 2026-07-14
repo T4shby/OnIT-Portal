@@ -37,7 +37,7 @@
         <li><strong class="text-onit">Step 07</strong> — Tick Entra sync enabled</li>
         <li><strong class="text-onit">Step 08</strong> — Dry run sync / Sync now (buttons below this form)</li>
     </ul>
-    <p class="mb-4 portal-body-muted text-xs">Every customer gets a security group in step 03. On <strong class="text-white/70">Entra ID Free</strong>, SuperOps requesters come from the SuperOps app (step 05) — the group is your managed-user list in M365 and is ready if they upgrade to P1 later. Click <strong class="text-white/70">Sync now</strong> in step 08 to fill the group; do not add members by hand in Azure. Click <strong class="text-white/70">Help</strong> next to any field for more detail.</p>
+    <p class="mb-4 portal-body-muted text-xs">Every customer gets a security group in step 03. On <strong class="text-white/70">Entra ID Free</strong>, SuperOps requesters come from the SuperOps app (steps 05–07) — the group is your managed-user list in M365 and is ready if they upgrade to P1 later. Click <strong class="text-white/70">Sync now</strong> in step 10 to fill the group; do not add members by hand in Azure. Click <strong class="text-white/70">Help</strong> next to any field for more detail.</p>
 
 @include('admin.partials.form-field', [
     'label' => 'Entra tenant ID',

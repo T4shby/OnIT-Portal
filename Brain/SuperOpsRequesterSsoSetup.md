@@ -311,11 +311,13 @@ Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAM
 
 On IT uses **one** Global SSO SAML configuration in SuperOps. The Entra app is **multitenant**. Each of the **50+** customer tenants must **Accept** that app once.
 
+**Who does it:** an On IT MSP technician completes every action below using delegated / GDAP access to the customer tenant. The customer is not sent the URL and does not sign in or complete any setup.
+
 The live Edit Client guide contains the complete per-customer acceptance procedure. The technician does this:
 
 1. Open checklist **08**.
-2. Click the orange **Open customer SuperOps SSO Accept page** button shown at the very top of the step. The button remains visible even after the checklist step is marked Done, so consent can be repeated or the link copied later.
-3. Sign in as the **customer Global Admin** (not an `@onit.ltd` account).
+2. Click the orange **Open SuperOps SSO Accept for customer tenant** button shown at the very top of the step. The button remains visible after Done so the On IT technician can repeat consent.
+3. Sign in with the **On IT technician account that has the required delegated / GDAP admin role** for that customer tenant.
 4. On Microsoft’s permissions page, click **Accept**.
 5. Customer Entra → **Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups**:
    - **P1:** assign `On IT Portal - {Company}`.
@@ -481,7 +483,7 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 | Portal Accept URL env | `SUPEROPS_REQUESTER_SSO_CLIENT_ID` |
 | Portal launch route | `/integrations/superops/launch` |
 | SuperOps SSO setting path | Settings → Requester Login → SSO Protected → Global SSO |
-| Checklist step | **08** — Customer Accepts SuperOps login |
+| Checklist step | **08** — On IT technician Accepts SuperOps login in customer tenant |
 
 ---
 
@@ -489,6 +491,7 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 | Date | Author | Notes |
 |---|---|---|
+| 2026-07-14 | On IT | MSP-owned onboarding clarified: On IT technicians complete customer-tenant Accept via GDAP; customer does nothing |
 | 2026-07-14 | On IT | Entra ID Free: portal Sync now auto-assigns all active licensed users after customer Accept; no manual user assignment |
 | 2026-07-14 | On IT | Multitenant saved: App ID URI `https://onit.ltd/superops-requester-sso` vs SAML Entity ID `https://clientuser.superops.ai` documented; Accept path for 50+ clients |
 | 2026-07-14 | On IT | Documented multitenant Accept for every customer; verified Properties; removed Client SSO operating path |
