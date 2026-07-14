@@ -27,18 +27,24 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 ## Live checklist (Edit page)
 
-Set **Customer Entra license tier** on the left before step 03.
+**Before step 03 — check licence in customer Entra Overview:**
+
+1. Azure → customer directory → **Microsoft Entra ID → Overview**.
+2. Read **License** (e.g. **Microsoft Entra ID Free** or **Microsoft Entra ID P1**).
+3. On the portal left, set **Customer Entra license tier** to match → **Save client**.
+
+Wrong tier breaks Free vs P1 paths on steps 07–08 (group assign vs Application ID / Sync now).
 
 | # | Step | Where you work | Done when |
 |---|---|---|---|
 | 01 | Link SuperOps client | SuperOps **Clients** → paste Account ID on portal left | SuperOps Account ID saved |
 | 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
-| 03 | Create Portal group + save Entra IDs | Customer Azure **Groups** → paste Tenant + group IDs on portal left | Tenant ID + group ID saved |
+| 03 | Create Portal group + save Entra IDs | Confirm licence on Entra Overview → set portal tier → Customer Azure **Groups** → paste Tenant + group IDs | Tenant ID + group ID saved |
 | 04 | Accept Portal access in customer tenant | On IT technician clicks orange Accept using GDAP → verify **OnIT Portal for Portals** permissions | Accept used / or first sync later |
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
 | 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
 | 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
-| 08 | Accept SuperOps login in customer tenant | On IT technician clicks **Open SuperOps SSO Accept for customer tenant** using GDAP → P1 assign group; Free add nobody manually | Accept completed |
+| 08 | Accept SuperOps login in customer tenant | On IT technician clicks **Open SuperOps SSO Accept for customer tenant** using GDAP → must land on portal consent-complete page → P1 assign group; Free add nobody manually | Enterprise app exists + Accept completed |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
@@ -72,7 +78,8 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 - Step 08's customer-tenant Accept button remains visible after Done so technicians can repeat the tenant-specific acceptance.
 - Entra ID Free: never add SSO users one-by-one. Step 10 **Sync now** assigns every active licensed user to `SuperOps Requester SSO (On IT)`.
 - Customers do no onboarding work. If GDAP permissions are insufficient, escalate internally; never send them checklist actions or Accept URLs.
-- If Accept ends on `usauth.superops.ai` JSON `{"code":"unknown"}`, check customer Enterprise applications first — that page is often a bad SAML redirect after successful consent.
+- If Accept ends on `usauth.superops.ai` / SAML ACS JSON `{"code":"unknown"}`, search customer Enterprise applications by App ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`. Missing app = Accept failed; confirm both Web redirect URIs on the On IT Requester SSO app registration, then retry.
+- Confirm customer **Entra ID Overview → License** before setting portal licence tier (P1 vs Free).
 - Test login with a **customer** work email, never an On IT staff account.
 
 ## If you get stuck
@@ -93,6 +100,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Licence check from Entra Overview before step 03; Accept must land on portal consent-complete; keep portal.onit.ltd SAML URI + add app.onit.ltd Accept URI |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform all setup via GDAP; customers receive no setup tasks or Accept links |
 | 2026-07-14 | Entra ID Free: removed manual SSO user assignment; Sync now assigns every active licensed user after step 08 Accept |
 | 2026-07-14 | Fixed step 08: customer SuperOps SSO Accept / Copy link remains visible after the step is Done |

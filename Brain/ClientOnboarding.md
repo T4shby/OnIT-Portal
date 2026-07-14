@@ -72,7 +72,7 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 
 **Before step 01:** **Admin → Clients → Add Client** → **Create client**.
 
-**Before step 03:** set **Customer Entra license tier** on the left.
+**Before step 03:** open customer **Microsoft Entra ID → Overview**, read **License** (Free / P1), set **Customer Entra license tier** on the portal left to match, then **Save client**.
 
 ### Auto vs manual checklist steps
 
@@ -255,7 +255,7 @@ Every real customer (own M365 tenant) uses the same model:
 | 3 | **Entra (customer)** | Group `On IT Portal - {Company}` + tenant ID (step 03) | ☐ |
 | 4 | **On IT technician / customer tenant via GDAP** | Step 04 Portal Graph Accept | ☐ |
 | 5–7 | **SuperOps + customer Entra** | Steps 05–07 SCIM tokens, app, mappings | ☐ |
-| 8 | **Customer GA** | Step 08 Accept **SuperOps Requester SSO (On IT)**; P1 assign Portal group / Free no manual users | ☐ |
+| 8 | **On IT technician + customer tenant via GDAP** | Step 08 Accept **SuperOps Requester SSO (On IT)**; P1 assign Portal group / Free no manual users | ☐ |
 | 9–10 | **Portal** | Enable sync → Dry run → Sync now | ☐ |
 | 11–12 | **Portal** | Test Microsoft sign-in → hand off | ☐ |
 
@@ -371,6 +371,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Step 03: read customer Entra Overview → License before setting portal tier; Accept redirect URIs documented (keep SAML, add portal consent-complete) |
 | 2026-07-14 | MSP ownership made explicit: On IT technicians complete all onboarding and Accept actions via GDAP; customers do nothing |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to SuperOps Requester SSO after step 08 Accept |
 | 2026-07-14 | Live steps use multiple **Where** sections (product + menu path) so technicians know which app to open |

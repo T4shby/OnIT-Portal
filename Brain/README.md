@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Docs: check Entra Overview License before tier; keep SAML `portal.onit.ltd` Web URI and add `app.onit.ltd` Accept return URI |
 | 2026-07-14 | SuperOps SSO Accept: portal consent-complete redirect; `usauth.superops.ai` JSON after Accept is bad redirect, not failure |
 | 2026-07-14 | MSP ownership rule: On IT technicians complete all customer-tenant onboarding/Accept actions through GDAP; customers do nothing |
 | 2026-07-14 | Entra ID Free: portal Sync now auto-assigns all active licensed users to customer SuperOps Requester SSO after Accept |

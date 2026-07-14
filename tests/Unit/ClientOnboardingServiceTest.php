@@ -367,6 +367,8 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'entra_group_created')['instructions']);
 
         $this->assertStringContainsString('New group', $text);
+        $this->assertStringContainsString('License', $text);
+        $this->assertStringContainsString('Customer Entra license tier', $text);
         $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
         $this->assertStringContainsString('Members', $text);
         $this->assertStringContainsString('Object ID', $text);

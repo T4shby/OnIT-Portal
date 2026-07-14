@@ -229,19 +229,29 @@ class ClientOnboardingService
                 ],
                 sections: [
                     OnboardingManual::section(
-                        'Set licence tier on this portal first',
+                        'Confirm Entra licence in customer Azure',
+                        'https://portal.azure.com → **'.$client->name.'** → Microsoft Entra ID → Overview',
+                        [
+                            'Open a new tab → https://portal.azure.com.',
+                            'Top-right → directory / tenant switcher → pick **'.$client->name.'**. Do **not** stay in On IT Technology Partners LTD.',
+                            'Azure search bar (top) → type **Microsoft Entra ID** → open it.',
+                            'Entra left menu → **Overview**.',
+                            'Read **License** (e.g. Microsoft Entra ID Free, or Microsoft Entra ID P1).',
+                        ],
+                    ),
+                    OnboardingManual::section(
+                        'Set licence tier on this portal to match',
                         'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left)',
                         [
-                            'On the left, under Microsoft Entra sync / Entra fields: set **Customer Entra license tier** to **Entra ID Free** or **Entra ID P1 or higher** (match what the customer pays for).',
+                            'On the left, under Microsoft Entra sync / Entra fields: set **Customer Entra license tier** to **Entra ID Free** or **Entra ID P1 or higher** — must match Overview → License above.',
+                            'Wrong tier breaks Free vs P1 paths later (Application ID vs group assign).',
                         ],
                     ),
                     OnboardingManual::section(
                         'Create the security group in customer Azure',
                         'https://portal.azure.com → switch directory to **'.$client->name.'** → Microsoft Entra ID → Groups',
                         [
-                            'Open a new tab → https://portal.azure.com.',
-                            'Top-right → directory / tenant switcher → pick **'.$client->name.'**. Do **not** stay in On IT Technology Partners LTD.',
-                            'Azure search bar (top) → type **Microsoft Entra ID** → open it (or left rail **Microsoft Entra ID**).',
+                            'Stay in **'.$client->name.'** directory.',
                             'Entra left menu → **Manage** → **Groups** → **All groups**.',
                             'Click **New group**.',
                             'Group type dropdown → **Security**.',
