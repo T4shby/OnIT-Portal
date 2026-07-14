@@ -241,6 +241,9 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Test Connection', $text);
         $this->assertStringContainsString('SuperOps - Ductec LTD', $text);
         $this->assertStringContainsString('Bearer Authentication', $text);
+        $this->assertStringContainsString('Create your own application', $text);
+        $this->assertStringContainsString('Admin Credentials', $text);
+        $this->assertStringContainsString('Non-gallery', $text);
         $this->assertStringNotContainsString('Entity ID', $text);
         $this->assertStringNotContainsString('Client SSO', $text);
     }
@@ -268,7 +271,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Client SSO', $text);
         $this->assertStringNotContainsString('Global SSO is broken', $text);
         $this->assertStringNotContainsString('Entity ID', $text);
-        $this->assertStringNotContainsString('certificate', $text);
+        $this->assertStringNotContainsString('Consumer Service URL', $text);
         $this->assertStringStartsWith(
             'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent',
             $consentUrl,
@@ -297,10 +300,12 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertStringContainsString('New group', $text);
         $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
-        $this->assertStringContainsString('Leave **Members** empty', $text);
+        $this->assertStringContainsString('Members', $text);
+        $this->assertStringContainsString('Object ID', $text);
+        $this->assertStringContainsString('Tenant ID', $text);
         $this->assertStringContainsString('Save client', $text);
+        $this->assertStringContainsString('portal.azure.com', $text);
         $this->assertStringNotContainsString('9 Graph permissions', $text);
-        $this->assertStringNotContainsString('Why this group on Entra ID Free?', $text);
     }
 
     public function test_portal_graph_accept_step_is_button_first_copy(): void

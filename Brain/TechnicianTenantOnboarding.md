@@ -69,6 +69,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) — simple words, complete how-to |
 | 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |
 | 2026-07-14 | Canonical zero-training technician guide; mirrors live 12-step checklist |
 | 2026-06-25 | SuperOps requester naming + Free app ID notes |
