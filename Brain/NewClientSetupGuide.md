@@ -11,7 +11,7 @@ This file previously described a manual Path A / Path B / Client SSO playbook. T
 Canonical operating model:
 
 1. In-app checklist (12 steps).
-2. Global SSO + per-customer Microsoft Accept.
+2. SuperOps Client SSO with a customer-owned Entra SAML app.
 3. Portal sync + SuperOps SCIM for users — not manual Admin → Users for every joiner.
 
 Deep reference only:

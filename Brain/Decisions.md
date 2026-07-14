@@ -171,18 +171,18 @@ Documented in [LocalDevelopment.md](LocalDevelopment.md). Juniors must not clone
 
 ---
 
-## ADR-013 (updated 2026-06-22)
+## ADR-013 (updated 2026-07-14)
 
-Date: 2026-06-12 — updated 2026-06-22
+Date: 2026-06-12 — updated 2026-07-14
 
 Decision:
-Configure **SuperOps Requester SSO** via a dedicated Entra SAML enterprise app (#2) for **client users**, and **SuperOps Technician SSO** via a separate Entra SAML app (#3) for **On IT staff**. Technicians launch to `/#/technician/login` on the **same SuperOps host** as requesters (`portal.onit.ltd`), not `app.superops.ai`. The portal redirects only; SuperOps SPA initiates SP-initiated SAML.
+Configure **SuperOps Requester Client SSO** through a dedicated SAML enterprise app in each customer's Entra tenant, and **SuperOps Technician SSO** through the separate On IT technician SAML app. Technicians launch to `/#/technician/login` on the same SuperOps host as requesters (`portal.onit.ltd`), not `app.superops.ai`. The portal redirects only; SuperOps SPA initiates SP-initiated SAML.
 
 Reason:
-SuperOps requires separate Entra apps for requester vs technician SAML (Entity IDs `https://clientuser.superops.ai` vs `https://superops.ai`). Launching technicians to `app.superops.ai` bypasses the custom-domain Technician Login SSO configuration and shows email/password login.
+Customer identities must remain in their own tenants without On IT B2B guests. SuperOps Client SSO provides customer-specific Entity IDs and Consumer Service URLs. The retired shared Global SSO Multitenant admin-consent experiment was unsupported and conflicted with Azure verified-domain identifier rules.
 
 Consequences:
-Three Entra apps in production (portal OAuth + requester SAML + technician SAML). Entra Login URLs configured in SuperOps admin only. Portal `.env` uses `SUPEROPS_REQUESTER_PORTAL_URL` for both roles (different hash paths). Setup guides: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md), [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md).
+Each customer has separate SCIM and requester Client SSO applications in its own tenant. The customer Login URL and certificate are stored in that customer's SuperOps Client SSO configuration, not portal `.env`. Portal `.env` uses `SUPEROPS_REQUESTER_PORTAL_URL` for both roles with different hash paths. Setup guides: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md), [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md).
 
 ---
 
@@ -246,18 +246,18 @@ Technician launch URL: `https://app.pax8.com/login?login_hint=…`. Operator mus
 
 ---
 
-## ADR-018
+## ADR-018 (updated 2026-07-14)
 
-Date: 2026-06-19
+Date: 2026-06-19 — updated 2026-07-14
 
 Decision:
-(1) Portal sync **auto-maintains** the customer security group via Graph (`GroupMember.ReadWrite.All`) when `entra_group_id` is set — technicians create an **empty** Assigned group only. (2) Default customer SuperOps setup is **one** Entra enterprise app (`SuperOps - {Company}`) with SCIM provisioning and Client SSO (SAML) on the same object; assign the group once.
+(1) Portal sync **auto-maintains** the customer security group via Graph (`GroupMember.ReadWrite.All`) when `entra_group_id` is set — technicians create an empty Assigned group only. (2) Each customer has separate Entra enterprise applications: `SuperOps - {Company}` for SCIM and `SuperOps Requester SSO - {Company}` for Client SSO.
 
 Reason:
-Manual group membership and separate SCIM/SSO apps do not scale to ~100 MSP clients. Entra SCIM still requires an app assignment scope; auto-maintain removes bulk-add/PowerShell. Microsoft Entra supports SAML + provisioning on one enterprise app; SuperOps exposes separate wizards but not separate apps as a requirement.
+Auto-maintained membership removes bulk-add work. Separate apps keep SuperOps' independent SCIM and Client SSO configurations unambiguous and allow Entra Free to store and target distinct Application IDs for provisioning and sign-in assignment.
 
 Consequences:
-`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true` (default). Onboarding checklist and [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) document order of operations, consent refresh fix, and validation steps. Legacy: dynamic groups (`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false`) or two-app fallback if single-app fails.
+`ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true` remains the default. P1 assigns the maintained group to both apps. Entra Free stores `entra_superops_app_id` for SCIM and `entra_superops_sso_app_id` for Client SSO so Sync now can assign the correct users directly.
 
 ---
 

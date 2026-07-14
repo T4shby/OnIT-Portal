@@ -75,13 +75,6 @@ return [
                 ? 'https://'.env('SUPEROPS_SUBDOMAIN').'.superops.ai'
                 : null),
         'sso_url' => env('SUPEROPS_SSO_URL'),
-        // Entra Application (client) ID for SuperOps Requester SSO (On IT) — Global SSO app customers Accept per tenant.
-        'requester_sso_client_id' => env('SUPEROPS_REQUESTER_SSO_CLIENT_ID', 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1'),
-        // Must also be registered once as a Web redirect URI on that Entra app registration.
-        'requester_sso_consent_redirect' => env(
-            'SUPEROPS_REQUESTER_SSO_CONSENT_REDIRECT',
-            rtrim((string) env('APP_URL', 'https://app.onit.ltd'), '/').'/integrations/superops/requester-sso/consent-complete',
-        ),
         'requester_login_path' => env('SUPEROPS_REQUESTER_LOGIN_PATH', '/#/requester/login'),
         'technician_login_path' => env('SUPEROPS_TECHNICIAN_LOGIN_PATH', '/#/technician/login'),
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),

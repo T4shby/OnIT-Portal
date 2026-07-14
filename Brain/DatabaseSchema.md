@@ -4,7 +4,7 @@
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (SuperOps **Application (client) ID** — Entra ID Free SCIM app assignment; sync resolves to enterprise app), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
+`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** — Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** — Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
 
 ### users
 
@@ -35,6 +35,7 @@ Standard Laravel / audit tables.
 - `2026_06_16_100000_add_entra_group_sync.php`
 - `2026_06_19_100000_add_client_onboarding_checklist.php`
 - `2026_06_25_100000_add_entra_superops_app_id_to_clients.php`
+- `2026_07_14_140000_add_entra_superops_sso_app_id_to_clients.php`
 
 ## Tenant Rules
 

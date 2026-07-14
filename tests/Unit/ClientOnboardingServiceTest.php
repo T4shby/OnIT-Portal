@@ -284,47 +284,36 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringNotContainsString('Client SSO', $text);
     }
 
-    public function test_sso_step_requires_on_it_technician_gdap_accept(): void
+    public function test_sso_step_uses_customer_owned_client_sso(): void
     {
         $client = Client::factory()->create([
             'name' => 'MXVI',
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
         ]);
 
-        config(['services.superops.requester_sso_client_id' => 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1']);
-
-        $service = app(ClientOnboardingService::class);
-        $step = collect($service->steps($client))->firstWhere('key', 'superops_client_sso_configured');
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_client_sso_configured');
         $text = implode(' ', $step['instructions']);
-        $consentUrl = $service->superOpsRequesterSsoConsentUrl($client);
 
-        $this->assertSame('Accept SuperOps login in customer tenant', $step['title']);
-        $this->assertGreaterThanOrEqual(2, count($step['guide']['sections']));
-        $this->assertStringContainsString('Open SuperOps SSO Accept for customer tenant', $text);
-        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $text);
-        $this->assertStringContainsString('Users and groups', $text);
+        $this->assertSame('Configure SuperOps Client SSO', $step['title']);
+        $this->assertGreaterThanOrEqual(4, count($step['guide']['sections']));
+        $this->assertStringContainsString('+ Configuration', $text);
+        $this->assertStringContainsString('Client SSO', $text);
+        $this->assertStringContainsString('SuperOps Requester SSO - MXVI', $text);
+        $this->assertStringContainsString('client-specific Entity ID', $text);
+        $this->assertStringContainsString('Consumer Service URL', $text);
+        $this->assertStringContainsString('user.mail', $text);
+        $this->assertStringContainsString('Certificate (Base64)', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
-        $this->assertStringContainsString('Accept', $text);
         $this->assertStringContainsString('Do **not** add users one-by-one', $text);
         $this->assertStringContainsString('Sync now', $text);
         $this->assertStringNotContainsString('add each customer requester', $text);
         $this->assertStringContainsString('Mark this step complete', $text);
-        $this->assertStringContainsString('Client SSO', $text);
-        $this->assertStringNotContainsString('Global SSO is broken', $text);
-        $this->assertStringNotContainsString('Entity ID', $text);
-        $this->assertStringNotContainsString('Consumer Service URL', $text);
-        $this->assertStringStartsWith(
-            'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent',
-            $consentUrl,
-        );
-        parse_str((string) parse_url((string) $consentUrl, PHP_URL_QUERY), $query);
-        $this->assertSame('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $query['client_id']);
-        $this->assertSame(config('services.superops.requester_sso_consent_redirect'), $query['redirect_uri']);
-        $this->assertSame(\App\Support\AdminConsentState::encode($client->id), $query['state']);
-        $this->assertStringContainsString('usauth.superops.ai', $text);
+        $this->assertStringNotContainsString('adminconsent', $text);
+        $this->assertStringNotContainsString('AADSTS1003031', $text);
     }
 
-    public function test_completed_sso_step_still_shows_customer_accept_button_and_copy_link(): void
+    public function test_sso_step_does_not_render_retired_global_accept_button(): void
     {
         $client = Client::factory()->create([
             'name' => '3R Systems Limited',
@@ -335,25 +324,12 @@ class ClientOnboardingServiceTest extends TestCase
             'client' => $client,
             'onboardingSteps' => app(ClientOnboardingService::class)->steps($client),
             'adminConsentUrl' => null,
-            'superOpsRequesterSsoConsentUrl' => 'https://login.microsoftonline.com/customer/adminconsent?client_id=sso-app',
             'showCheckboxes' => true,
         ])->render();
 
-        $this->assertStringContainsString('Open SuperOps SSO Accept for customer tenant', $html);
-        $this->assertStringContainsString('On IT technician action — required for every customer tenant', $html);
-        $this->assertStringContainsString('Copy link', $html);
-        $this->assertStringContainsString(
-            'https://login.microsoftonline.com/customer/adminconsent?client_id=sso-app',
-            $html,
-        );
-    }
-
-    public function test_superops_requester_sso_consent_url_requires_tenant(): void
-    {
-        config(['services.superops.requester_sso_client_id' => 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1']);
-
-        $withoutTenant = Client::factory()->create(['entra_tenant_id' => null]);
-        $this->assertNull(app(ClientOnboardingService::class)->superOpsRequesterSsoConsentUrl($withoutTenant));
+        $this->assertStringContainsString('Configure SuperOps Client SSO', $html);
+        $this->assertStringNotContainsString('Open SuperOps SSO Accept', $html);
+        $this->assertStringNotContainsString('adminconsent', $html);
     }
 
     public function test_group_step_is_click_path_only(): void
@@ -433,7 +409,7 @@ class ClientOnboardingServiceTest extends TestCase
             $steps->firstWhere('key', 'entra_admin_consent_granted')['title'],
         );
         $this->assertSame(
-            'Accept SuperOps login in customer tenant',
+            'Configure SuperOps Client SSO',
             $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
         );
         $this->assertStringContainsString('The customer does nothing', $allText);
@@ -452,7 +428,9 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertArrayHasKey('entra_license_tier', $helps);
         $this->assertArrayHasKey('entra_group_id', $helps);
         $this->assertArrayHasKey('entra_superops_app_id', $helps);
+        $this->assertArrayHasKey('entra_superops_sso_app_id', $helps);
         $this->assertStringContainsString('MXVI', implode(' ', $helps['entra_superops_app_id']));
+        $this->assertStringContainsString('MXVI', implode(' ', $helps['entra_superops_sso_app_id']));
         $this->assertStringContainsString('On IT Portal - MXVI', implode(' ', $helps['entra_group_id']));
     }
 

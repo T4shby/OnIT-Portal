@@ -71,18 +71,18 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-07-14 | Docs: check Entra Overview License before tier; keep SAML `portal.onit.ltd` Web URI and add `app.onit.ltd` Accept return URI |
-| 2026-07-14 | SuperOps SSO Accept: portal consent-complete redirect; `usauth.superops.ai` JSON after Accept is bad redirect, not failure |
+| 2026-07-14 | Migration resets legacy step 08 completions; every existing customer must complete the new Client SSO checklist |
+| 2026-07-14 | Completed requester SSO redesign: checklist 08 now creates SuperOps Client SSO + customer-owned SAML app; old Accept UI/callback/config retired |
+| 2026-07-14 | Added per-client SSO Application ID so Entra Free Sync can assign users without On IT guest accounts |
+| 2026-07-14 | Retired failed Global SSO Multitenant adminconsent experiment and its AADSTS1003031/700016 recovery paths |
+| 2026-07-14 | Docs: check Entra Overview License before tier |
 | 2026-07-14 | MSP ownership rule: On IT technicians complete all customer-tenant onboarding/Accept actions through GDAP; customers do nothing |
-| 2026-07-14 | Entra ID Free: portal Sync now auto-assigns all active licensed users to customer SuperOps Requester SSO after Accept |
-| 2026-07-14 | Fixed checklist 08: tenant-specific SuperOps SSO Accept button / Copy link remains visible after completion |
-| 2026-07-14 | Live checklist: multi-block **Where** per app (Portal / SuperOps / Azure) on every step; SSO Accept = **08** in Brain (fixed stale 06 refs) |
-| 2026-07-14 | Restored full Entra click-by-click how-tos in live checklist (create app, mappings, Application ID, Accept assignment) |
+| 2026-07-14 | Entra ID Free: portal Sync auto-assigns active licensed users to each customer Client SSO app after step 08 |
+| 2026-07-14 | Live checklist: multi-block **Where** per app (Portal / SuperOps / Azure) on every step; Client SSO = **08** |
+| 2026-07-14 | Restored full Entra click-by-click how-tos in live checklist (create app, mappings, Application IDs, group assignment) |
 | 2026-07-14 | Free Application (client) ID path explicit in step 07; guide header highlights Azure steps 03–08 |
 | 2026-07-14 | Live checklist rebuilt as 12 zero-training MSP steps; TechnicianTenantOnboarding is sole entry point; NewClientSetupGuide superseded |
-| 2026-07-14 | Checklist 06 simplified: Accept button first, one short technician procedure, platform recovery removed from the live step |
-| 2026-07-14 | Brain policy: update for **every** meaningful change (same turn); SuperOps Multitenant App ID URI vs Entity ID documented |
-| 2026-07-14 | SuperOps Requester SSO: Multitenant saved; document App ID URI (`onit.ltd`) vs SAML Entity ID (`clientuser.superops.ai`); step **08** Accept for every customer |
+| 2026-07-14 | Brain policy: update for **every** meaningful change (same turn) |
 | 2026-06-25 | Security/reliability: signed admin consent state, block login for inactive clients, sync lock + throttle, partial-sync warnings, cron non-zero exit |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand + delay; spinner/status banner; Brain docs + ADR-020 aligned on name.familyName |
 | 2026-06-25 | Sync now / dry run: spinner + status banner on Edit client while Entra sync runs |

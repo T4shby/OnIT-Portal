@@ -77,7 +77,7 @@ Send Tom a message with:
 
 An On IT technician completes checklist **08** using delegated / GDAP access to **Accept** SuperOps Requester SSO in the customer tenant so users can Microsoft-sign-in with `@theircompany.com`. The customer does nothing; you cannot skip this Accept.
 
-**Tick:** ☐ Tom confirmed SuperOps SSO Accept is done
+**Tick:** ☐ Tom confirmed SuperOps Client SSO is configured and tested
 
 ---
 

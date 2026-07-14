@@ -60,7 +60,6 @@ class ClientController extends Controller
             'onboardingSteps' => $this->onboarding->steps($client),
             'onboardingProgress' => $this->onboarding->progress($client),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
-            'superOpsRequesterSsoConsentUrl' => $this->onboarding->superOpsRequesterSsoConsentUrl($client),
             'fieldHelps' => $this->onboarding->fieldHelps($client),
         ];
     }
@@ -80,6 +79,7 @@ class ClientController extends Controller
             'entra_license_tier' => ClientOnboardingService::ENTRA_LICENSE_FREE,
             'entra_group_id' => null,
             'entra_superops_app_id' => null,
+            'entra_superops_sso_app_id' => null,
             'entra_sync_enabled' => false,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -115,6 +115,7 @@ class ClientController extends Controller
             'entra_license_tier' => $request->input('entra_license_tier', ClientOnboardingService::ENTRA_LICENSE_FREE),
             'entra_group_id' => $request->entra_group_id,
             'entra_superops_app_id' => $request->entra_superops_app_id,
+            'entra_superops_sso_app_id' => $request->entra_superops_sso_app_id,
             'entra_sync_enabled' => $request->boolean('entra_sync_enabled'),
             'is_active' => $request->boolean('is_active'),
         ]);

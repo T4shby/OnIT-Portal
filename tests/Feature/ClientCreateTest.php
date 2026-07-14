@@ -45,6 +45,7 @@ class ClientCreateTest extends TestCase
         $response->assertDontSee('name="entra_group_id"', false);
         $response->assertDontSee('name="entra_sync_enabled"', false);
         $response->assertDontSee('name="entra_superops_app_id"', false);
+        $response->assertDontSee('name="entra_superops_sso_app_id"', false);
     }
 
     public function test_create_page_does_not_accept_entra_fields_on_store(): void
@@ -57,6 +58,7 @@ class ClientCreateTest extends TestCase
                 'entra_tenant_id' => '664302e2-8885-4ec1-9958-12233cbbeedb',
                 'entra_group_id' => 'd77ea486-e2fb-4dbe-b0a9-f322fd8cf1c3',
                 'entra_superops_app_id' => '8c46a344-a010-4c78-99b9-df8b9caaba2f',
+                'entra_superops_sso_app_id' => '4d8b28c0-79ae-4fa6-b7ef-5bd03e704296',
                 'entra_sync_enabled' => '1',
                 'is_active' => '1',
             ]);
@@ -66,6 +68,7 @@ class ClientCreateTest extends TestCase
         $this->assertNull($client->entra_tenant_id);
         $this->assertNull($client->entra_group_id);
         $this->assertNull($client->entra_superops_app_id);
+        $this->assertNull($client->entra_superops_sso_app_id);
         $this->assertFalse($client->entra_sync_enabled);
     }
 
@@ -93,10 +96,15 @@ class ClientCreateTest extends TestCase
                 'name' => 'Ductec LTD',
                 'superops_account_id' => '3425667307281944576',
                 'superops_sso_enabled' => '1',
+                'entra_superops_sso_app_id' => '4d8b28c0-79ae-4fa6-b7ef-5bd03e704296',
                 'is_active' => '1',
             ]);
 
         $response->assertRedirect(route('admin.clients.edit', $client));
+        $this->assertSame(
+            '4d8b28c0-79ae-4fa6-b7ef-5bd03e704296',
+            $client->fresh()->entra_superops_sso_app_id,
+        );
     }
 
     public function test_edit_page_admin_consent_uses_client_name_not_pilot_example(): void

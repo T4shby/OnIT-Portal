@@ -13,8 +13,8 @@ Copy the **requester SSO** process ([SuperOpsRequesterSsoSetup.md](SuperOpsReque
 | | **Requester SSO** (already done) | **Technician SSO** (this guide) |
 |---|---|---|
 | **Who** | Client staff (`portal.test@onit.ltd`) | On IT staff (`tom.ashby@onit.ltd`) |
-| **SuperOps screen** | Settings → **Requester Login** → SSO Protected → Global SSO | Settings → **Technician Login** → SSO |
-| **Entra app name** | SuperOps Requester SSO (On IT) | **SuperOps Technician SSO (On IT)** |
+| **SuperOps screen** | Settings → **Requester Login** → SSO Protected → Client SSO | Settings → **Technician Login** → SSO |
+| **Entra app name** | `SuperOps Requester SSO - {Company}` in each customer tenant | **SuperOps Technician SSO (On IT)** |
 | **Entity ID** | `https://clientuser.superops.ai` | `https://superops.ai` |
 | **Reply URL (On IT)** | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` | `https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448` |
 | **Portal launch path** | `/#/requester/login` | `/#/technician/login` |

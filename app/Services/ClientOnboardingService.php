@@ -69,36 +69,6 @@ class ClientOnboardingService
     }
 
     /**
-     * MSP technician Accept URL for SuperOps Requester SSO (On IT) in the customer tenant.
-     */
-    public function superOpsRequesterSsoConsentUrl(Client $client): ?string
-    {
-        if (! filled($client->entra_tenant_id)) {
-            return null;
-        }
-
-        $appClientId = config('services.superops.requester_sso_client_id');
-
-        if (! filled($appClientId)) {
-            return null;
-        }
-
-        $redirectUri = config('services.superops.requester_sso_consent_redirect');
-
-        $query = http_build_query(array_filter([
-            'client_id' => $appClientId,
-            'redirect_uri' => filled($redirectUri) ? $redirectUri : null,
-            'state' => $client->exists ? \App\Support\AdminConsentState::encode($client->id) : null,
-        ]));
-
-        return sprintf(
-            'https://login.microsoftonline.com/%s/adminconsent?%s',
-            $client->entra_tenant_id,
-            $query,
-        );
-    }
-
-    /**
      * @return list<array{
      *     key: string,
      *     title: string,
@@ -116,6 +86,7 @@ class ClientOnboardingService
         $checklist = $client->onboarding_checklist ?? [];
         $groupName = 'On IT Portal - '.$client->name;
         $appName = 'SuperOps - '.$client->name;
+        $ssoAppName = 'SuperOps Requester SSO - '.$client->name;
         $entraTier = $this->normalizeEntraLicenseTier($client->entra_license_tier);
         $usesGroupScim = $this->usesEntraGroupScim($entraTier);
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
@@ -441,7 +412,7 @@ class ClientOnboardingService
 
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
-                'title' => 'Accept SuperOps login in customer tenant',
+                'title' => 'Configure SuperOps Client SSO',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $ssoComplete,
                 'manual' => true,
@@ -521,7 +492,7 @@ class ClientOnboardingService
                                 : 'Enterprise applications → **'.$appName.'** → **Users and groups** — users listed after sync (Free path).',
                             $usesGroupScim
                                 ? null
-                                : 'Enterprise applications → **SuperOps Requester SSO (On IT)** → **Users and groups** — every active licensed user listed after Sync now (Free path; portal assigned them automatically).',
+                                : 'Enterprise applications → **'.$ssoAppName.'** → **Users and groups** — every active licensed user listed after Sync now (Free path; portal assigned them automatically).',
                             'Enterprise applications → **'.$appName.'** → **Provisioning** → **Provisioning logs** — Updates appear after a few minutes.',
                         ])),
                     ),
@@ -741,49 +712,70 @@ class ClientOnboardingService
     private function superOpsClientSsoGuide(Client $client, string $groupName, bool $usesGroupScim): array
     {
         $clientName = $client->name;
+        $appName = 'SuperOps Requester SSO - '.$clientName;
 
         $assignSection = $usesGroupScim
             ? OnboardingManual::section(
                 'Assign Portal group in customer Azure',
-                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups',
+                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → '.$appName.' → Users and groups',
                 [
-                    'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
-                    'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
-                    'Search **SuperOps Requester SSO (On IT)** → open it (created by Accept).',
-                    'Left menu → **Properties**: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes is expected.',
+                    'Open **'.$appName.'** in the customer tenant.',
                     'Left menu → **Manage** → **Users and groups** → **Add user/group**.',
                     'Groups → select **'.$groupName.'** → **Select** → **Assign**.',
                 ],
             )
             : OnboardingManual::section(
-                'Confirm the SSO app exists — do not add users manually (Free)',
-                'https://portal.azure.com → **'.$clientName.'** → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups',
+                'Save the Client SSO app ID for automatic assignment (Free)',
+                'Customer Azure App registrations → '.$appName.' → Overview; then this portal left column',
                 [
-                    'Open https://portal.azure.com → switch directory to **'.$clientName.'**.',
-                    'Microsoft Entra ID → **Enterprise applications** → **All applications**.',
-                    'Search **SuperOps Requester SSO (On IT)** → open it (created by Accept).',
-                    'Left menu → **Properties**: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes is expected.',
-                    'Do **not** add users one-by-one. Entra ID Free cannot assign the Portal group, so portal **Sync now** assigns every active licensed customer user directly.',
-                    'After marking this acceptance complete, finish steps 09 and 10. Step 10 verifies **Users and groups** was filled automatically.',
+                    'Customer Azure → **App registrations** → **'.$appName.'** → **Overview**.',
+                    'Copy **Application (client) ID** — not Object ID.',
+                    'Return to this portal → left column → **SuperOps Client SSO Application (client) ID** → paste → **Save client**.',
+                    'Do **not** add users one-by-one. Step 10 **Sync now** assigns active licensed customer users to this customer-owned SSO app.',
                 ],
             );
 
         return OnboardingManual::build(
             notes: [
-                'Do not open SuperOps **Client SSO**. Do not edit certificates / Global SSO for this client.',
-                'The customer does nothing. An On IT technician completes the Accept and all Azure work using delegated / GDAP access.',
-                'If Microsoft then opens usauth.superops.ai with JSON `{"code":"unknown"}`, that is a bad redirect — not Accept failure. Check customer Enterprise applications for **SuperOps Requester SSO (On IT)**.',
+                'Use SuperOps **Client SSO**. Do not use the retired Global SSO Accept link or the shared On IT requester SSO app.',
+                'The customer does nothing. An On IT technician completes SuperOps and customer Azure work using delegated / GDAP access.',
+                'This SAML app is separate from **SuperOps - '.$clientName.'** (the SCIM provisioning app).',
             ],
             sections: [
                 OnboardingManual::section(
-                    'Accept with the orange button',
-                    'This checklist step (right) → Microsoft permissions page',
+                    'Generate this customer’s SSO values in SuperOps',
+                    'SuperOps MSP → Settings → Requester Login → SSO Protected → Client SSO',
                     [
-                        'On this checklist step, click orange **Open SuperOps SSO Accept for customer tenant** (above).',
-                        'Open it in private/incognito if Microsoft has cached the wrong directory.',
-                        'Sign in with the **On IT technician account that has the required GDAP admin role** for '.$clientName.'.',
-                        'Confirm Microsoft shows tenant **'.$clientName.'**, not On IT Technology Partners LTD.',
-                        'Click **Accept**.',
+                        'Click **+ Configuration**.',
+                        'Give it a clear name such as **'.$clientName.' Entra SSO**.',
+                        'Select client **'.$clientName.'**.',
+                        'Generate the client-specific values.',
+                        'Copy **Entity ID** and **Consumer Service URL**. Keep this SuperOps configuration open.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Create the customer-owned SAML app',
+                    'https://portal.azure.com → switch directory to **'.$clientName.'** → Enterprise applications',
+                    [
+                        'Use the directory switcher and confirm **'.$clientName.'** is active.',
+                        '**Enterprise applications** → **New application** → **Create your own application**.',
+                        'Name: **'.$appName.'**.',
+                        'Choose **Integrate any other application you don’t find in the gallery (Non-gallery)** → **Create**.',
+                        'Open **Single sign-on** → **SAML**.',
+                        'Basic SAML Configuration → **Identifier (Entity ID)** = the client-specific Entity ID copied from SuperOps; mark it Default.',
+                        '**Reply URL** = the client-specific Consumer Service URL copied from SuperOps; mark it Default.',
+                        'Leave Sign on URL, Relay State and Logout URL empty → **Save**.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Add exact claims and connect Azure back to SuperOps',
+                    'Customer Azure SAML page ↔ SuperOps Client SSO configuration',
+                    [
+                        'Azure **Attributes & Claims** → add exact lowercase claims: `email` = `user.mail`, `firstname` = `user.givenname`, `lastname` = `user.surname`.',
+                        'Azure **SAML Certificates** → download **Certificate (Base64)** → open it → copy the certificate text without BEGIN/END marker lines.',
+                        'Azure SAML page section **Set up '.$appName.'** → copy **Login URL**.',
+                        'Return to the open SuperOps Client SSO configuration.',
+                        'Paste the Azure **Login URL** and certificate; confirm client **'.$clientName.'** is selected → **Save / Enable**.',
                     ],
                 ),
                 $assignSection,
@@ -797,8 +789,8 @@ class ClientOnboardingService
             ],
             verify: [
                 $usesGroupScim
-                    ? 'Customer Azure has SuperOps Requester SSO (On IT) with the Portal group assigned.'
-                    : 'Customer Azure has SuperOps Requester SSO (On IT). Users are assigned automatically by portal Sync now — not manually here.',
+                    ? 'SuperOps Client SSO is enabled for '.$clientName.' and '.$groupName.' is assigned to '.$appName.'.'
+                    : 'SuperOps Client SSO is enabled for '.$clientName.' and its Application (client) ID is saved for automatic assignment by Sync now.',
             ],
         );
     }
@@ -893,7 +885,7 @@ class ClientOnboardingService
             ],
             'entra_tenant_id' => [
                 'Azure (customer tenant) → Microsoft Entra ID → Overview → Tenant ID.',
-                'Needed for the Accept buttons.',
+                'Needed for Portal Graph access and customer-owned SCIM / Client SSO apps.',
             ],
             'entra_group_id' => [
                 'Create group '.$groupName.' empty, copy Object ID, paste here.',
@@ -907,6 +899,13 @@ class ClientOnboardingService
                     'Required on Free.',
                     'App registrations → SuperOps - '.$clientName.' → Overview → Application (client) ID (not Object ID).',
                 ],
+            'entra_superops_sso_app_id' => [
+                'Created in checklist step 08 for SuperOps Client SSO.',
+                'Customer Azure → App registrations → SuperOps Requester SSO - '.$clientName.' → Overview → Application (client) ID (not Object ID).',
+                $usesGroupScim
+                    ? 'Saved for support and verification; P1 access is assigned through the Portal group.'
+                    : 'Required on Free so Sync now can assign active licensed users directly.',
+            ],
             'entra_sync_enabled' => [
                 'Tick this after Entra IDs are saved, then Save client.',
                 'Then use Dry run sync and Sync now on the left.',

@@ -369,11 +369,10 @@ class EntraGroupSyncServiceTest extends TestCase
         $requesterSsoClientId = 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1';
         $requesterSsoServicePrincipalId = '44444444-4444-4444-4444-444444444444';
 
-        config(['services.superops.requester_sso_client_id' => $requesterSsoClientId]);
-
         $client = Client::factory()->create([
             'entra_tenant_id' => $tenantId,
             'entra_license_tier' => 'free',
+            'entra_superops_sso_app_id' => $requesterSsoClientId,
             'entra_sync_enabled' => true,
             'onboarding_checklist' => ['superops_client_sso_configured' => true],
         ]);

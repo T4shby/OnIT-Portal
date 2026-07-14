@@ -355,7 +355,7 @@ class EntraGroupSyncService
     {
         return ($client->entra_license_tier ?? 'free') === 'free'
             && (bool) (($client->onboarding_checklist ?? [])['superops_client_sso_configured'] ?? false)
-            && filled(config('services.superops.requester_sso_client_id'));
+            && filled($client->entra_superops_sso_app_id);
     }
 
     private function shouldTriggerSuperOpsScimProvision(Client $client): bool
@@ -554,7 +554,7 @@ class EntraGroupSyncService
      * Keep Entra ID Free requester SSO access aligned with active licensed users.
      *
      * Group assignment requires Entra ID P1. On Free, the portal assigns users
-     * directly to the customer tenant's service principal created by step 08 Accept.
+     * directly to the customer-owned Client SSO service principal created in step 08.
      *
      * @param  list<string>  $desiredUserIds
      * @return array{0: int, 1: int, 2: list<string>}
@@ -562,7 +562,7 @@ class EntraGroupSyncService
     private function syncRequesterSsoUserAssignments(Client $client, array $desiredUserIds, bool $dryRun): array
     {
         $tenantId = (string) $client->entra_tenant_id;
-        $applicationClientId = (string) config('services.superops.requester_sso_client_id');
+        $applicationClientId = (string) $client->entra_superops_sso_app_id;
 
         try {
             $servicePrincipalId = $this->graph->resolveEnterpriseServicePrincipalId(
@@ -579,7 +579,7 @@ class EntraGroupSyncService
             ]);
 
             return [0, 0, [
-                'SuperOps SSO user sync failed. Complete checklist step 08 customer Accept, then Sync now again: '
+                'SuperOps SSO user sync failed. Complete checklist step 08 Client SSO app setup, save its Application (client) ID, then Sync now again: '
                 .$e->getMessage(),
             ]];
         }

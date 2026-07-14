@@ -1,6 +1,6 @@
 # MSP technician onboarding (zero training)
 
-**This is the only technician-facing guide.** Open the live checklist and follow each numbered step. Do not start from old Path A/B or Client SSO docs.
+**This is the only technician-facing guide.** Open the live checklist and follow each numbered step. Requester Client SSO is configured in step 08.
 
 Every step in the app shows **Where** (exact product + menu path) then numbered clicks. This page mirrors that so you know the map before you start.
 
@@ -44,7 +44,7 @@ Wrong tier breaks Free vs P1 paths on steps 07–08 (group assign vs Application
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
 | 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
 | 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
-| 08 | Accept SuperOps login in customer tenant | On IT technician clicks **Open SuperOps SSO Accept for customer tenant** using GDAP → must land on portal consent-complete page → P1 assign group; Free add nobody manually | Enterprise app exists + Accept completed |
+| 08 | Configure SuperOps Client SSO | Generate client-specific values in SuperOps → create customer Entra SAML app using GDAP → claims/cert/Login URL → P1 assign group; Free save SSO Application ID | Client SSO enabled and app access configured |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
@@ -73,12 +73,11 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 - Work email must match in M365, SuperOps, and the portal.
 - Group name is always `On IT Portal - {Company}` and starts empty.
 - Customer SCIM app is `SuperOps - {Company}` (SCIM only — not SAML).
-- SuperOps login uses **Global SSO + customer Accept** (step 08). Never Client SSO.
-- Portal Graph Accept (04) and SuperOps Accept (08) are different Microsoft Accept pages.
-- Step 08's customer-tenant Accept button remains visible after Done so technicians can repeat the tenant-specific acceptance.
-- Entra ID Free: never add SSO users one-by-one. Step 10 **Sync now** assigns every active licensed user to `SuperOps Requester SSO (On IT)`.
+- SuperOps requester login uses **Client SSO** (step 08). Global SSO + customer Accept is retired.
+- Portal Graph Accept (04) remains; step 08 is SAML setup, not a Microsoft Accept page.
+- Entra ID Free: never add SSO users one-by-one. Save the customer Client SSO Application ID; step 10 **Sync now** assigns active licensed users.
 - Customers do no onboarding work. If GDAP permissions are insufficient, escalate internally; never send them checklist actions or Accept URLs.
-- If Accept ends on `usauth.superops.ai` / SAML ACS JSON `{"code":"unknown"}`, search customer Enterprise applications by App ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`. Missing app = Accept failed; confirm both Web redirect URIs on the On IT Requester SSO app registration, then retry.
+- Never reuse another customer's Entity ID, Consumer Service URL, Login URL or certificate. Details: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 - Confirm customer **Entra ID Overview → License** before setting portal licence tier (P1 vs Free).
 - Test login with a **customer** work email, never an On IT staff account.
 
@@ -90,7 +89,7 @@ Use these only when the live step is blocked or broken:
 |---|---|
 | Full Entra / SCIM re-do | [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | SCIM mapping detail | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
-| Multitenant / Accept / Entity ID | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |
+| Client SSO / Entity ID / certificate | [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |
 | Why two syncs exist | [AccessAndSync.md](AccessAndSync.md) |
 | Platform values / verification | [ClientOnboarding.md](ClientOnboarding.md) |
 
@@ -100,10 +99,10 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
-| 2026-07-14 | Licence check from Entra Overview before step 03; Accept must land on portal consent-complete; keep portal.onit.ltd SAML URI + add app.onit.ltd Accept URI |
+| 2026-07-14 | Replaced requester Global SSO Accept with customer-owned Client SSO in step 08 |
+| 2026-07-14 | Licence check from Entra Overview before step 03 |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform all setup via GDAP; customers receive no setup tasks or Accept links |
-| 2026-07-14 | Entra ID Free: removed manual SSO user assignment; Sync now assigns every active licensed user after step 08 Accept |
-| 2026-07-14 | Fixed step 08: customer SuperOps SSO Accept / Copy link remains visible after the step is Done |
+| 2026-07-14 | Entra ID Free: Client SSO Application ID lets Sync now assign active licensed users after step 08 |
 | 2026-07-14 | Every live step now has separate **Where** blocks per app (Portal / SuperOps / Azure); Brain map lists product + menu path per step |
 | 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) — simple words, complete how-to |
 | 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |

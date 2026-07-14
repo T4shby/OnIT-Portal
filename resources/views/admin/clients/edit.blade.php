@@ -55,7 +55,6 @@
             'onboardingSteps' => $onboardingSteps,
             'onboardingProgress' => $onboardingProgress,
             'adminConsentUrl' => $adminConsentUrl,
-            'superOpsRequesterSsoConsentUrl' => $superOpsRequesterSsoConsentUrl,
         ])
     </div>
 </x-admin-layout>

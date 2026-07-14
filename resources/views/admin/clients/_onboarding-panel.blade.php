@@ -60,7 +60,6 @@
                 'client' => $client,
                 'onboardingSteps' => $onboardingSteps,
                 'adminConsentUrl' => $adminConsentUrl,
-                'superOpsRequesterSsoConsentUrl' => $superOpsRequesterSsoConsentUrl ?? null,
                 'showCheckboxes' => true,
             ])
             <div class="onboarding-panel__actions">
@@ -73,7 +72,6 @@
                 'client' => $client,
                 'onboardingSteps' => $onboardingSteps,
                 'adminConsentUrl' => $adminConsentUrl,
-                'superOpsRequesterSsoConsentUrl' => $superOpsRequesterSsoConsentUrl ?? null,
                 'showCheckboxes' => false,
             ])
         </div>

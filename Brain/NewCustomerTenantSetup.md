@@ -38,7 +38,7 @@ This guide is **only for each new customer tenant**.
 1. **Work email must match everywhere** — same address in M365, SuperOps, and the portal.  
 2. **Microsoft 365 is the source of truth** — disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
 3. **Use a private/incognito browser for testing** — do not test with `tom.ashby@onit.ltd` (that is a technician account).  
-4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (Start here / Do this / Done when; Accept buttons first on steps 04 and 08). **Dry run sync** / **Sync now** are on the **left**.
+4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (Portal Accept on step 04; Client SSO on step 08). **Dry run sync** / **Sync now** are on the **left**.
 
 ---
 
@@ -47,7 +47,7 @@ This guide is **only for each new customer tenant**.
 | Person | Typical tasks |
 |--------|----------------|
 | **On IT technician (portal / SuperOps)** | SuperOps client, portal client record, Pax8 ID, enable sync, dry-run, test, handoff |
-| **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, Portal Graph consent, SuperOps SSO Accept — all in the **customer** tenant |
+| **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, Portal Graph consent, SuperOps Client SSO app — all in the **customer** tenant |
 
 On IT technicians complete every action on the customer’s behalf using delegated / GDAP access. If the required GDAP role is unavailable, stop and escalate internally until access is corrected; do not send setup work or Accept URLs to the customer.
 
@@ -156,17 +156,18 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 6. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
 7. Start provisioning. **Portal Sync now** updates SuperOps Last names automatically.
 
-**SAML / Global SSO Accept (checklist step 08) — not on the SCIM app:**
+**Requester Client SSO (checklist step 08) — separate from the SCIM app:**
 
-1. On IT technician → Edit Client → step **08** → **Open SuperOps SSO Accept for customer tenant** (customer tenant + app `bf1c303e-…`).
-2. Sign in with the On IT account holding the required GDAP admin role → confirm customer tenant → **Accept**.
-3. Customer Entra → Enterprise applications → **SuperOps Requester SSO (On IT)** → P1: assign `On IT Portal - {Company}`; Free: do not add users manually.
-4. Free: portal **Sync now** assigns every active licensed user directly to the requester SSO app.
-5. Do **not** open SuperOps Client SSO; do **not** configure SAML on `SuperOps - {Company}`.
+1. SuperOps Client SSO → + Configuration → select customer → copy generated Entity ID + Consumer Service URL.
+2. Through GDAP create customer Entra non-gallery app `SuperOps Requester SSO - {Company}`.
+3. Configure SAML, exact claims, Azure Login URL and certificate as shown in the live guide.
+4. P1: assign `On IT Portal - {Company}`. Free: save the SSO Application (client) ID in the portal.
+5. Free: portal **Sync now** assigns active licensed users directly to the customer SSO app.
+6. Do not configure SAML on `SuperOps - {Company}`; that app remains SCIM only.
 
 Detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
-**Done when:** SCIM logs clean; step 08 Accept done; P1 group assigned or Free users automatically assigned by Sync now.
+**Done when:** SCIM logs clean; step 08 Client SSO enabled; P1 group assigned or Free users automatically assigned by Sync now.
 
 ---
 
@@ -256,8 +257,8 @@ Use a **private/incognito** window. Sign in as a **customer** user (e.g. `jane@a
 | Symptom | Fix |
 |---------|-----|
 | "Your account has not been set up" | Run **Sync now** (Part 4); user must be licensed or shared mailbox in M365 |
-| SuperOps role chooser | Wrong account (`@onit.ltd`) or step 08 Accept not done |
-| SuperOps Error 1027 | Missing `email` SAML claim on On IT Global SSO app |
+| SuperOps role chooser | Wrong account (`@onit.ltd`) or customer Client SSO not finished |
+| SuperOps Error 1027 | Missing lowercase `email` SAML claim on the customer Client SSO app |
 | M365 directory empty / error | Admin consent not done in customer tenant (Part 3b) |
 | Shared mailbox tried to log in | Expected — they cannot use portal login; use a personal work account |
 
@@ -336,7 +337,7 @@ Full hosting detail: [Deployment.md](Deployment.md)
 |------------------------|---------|
 | On IT Portal (consent only) | Portal login + Graph sync + M365 directory |
 | SuperOps SCIM provisioning | Auto-create/update SuperOps requesters |
-| SuperOps Global SSO + customer Accept | Microsoft login to SuperOps requester portal |
+| SuperOps Client SSO per customer | Microsoft login to SuperOps requester portal without On IT guest accounts |
 
 ---
 

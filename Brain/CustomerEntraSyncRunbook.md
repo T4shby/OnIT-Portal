@@ -45,7 +45,7 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 05 SCIM tokens | **SuperOps** | Generate Tokens for this client |
 | 06 SCIM app | **Azure** (customer) | Create `SuperOps - {Company}` + Test Connection |
 | 07 SCIM mapping + start | **Azure** + Portal | Mappings; P1 assign group / Free paste app ID |
-| 08 SuperOps SSO Accept | **On IT technician** + customer tenant via GDAP | Orange Accept button; P1 assign group / Free auto users |
+| 08 SuperOps Client SSO | **On IT technician** + SuperOps + customer tenant via GDAP | Generate client values; create customer SAML app; P1 group / Free SSO app ID |
 | 09 Enable sync | **Portal** | Left column → Entra sync enabled → Save client |
 | 10 Dry run / Sync now | **Portal** | Left buttons under the form |
 | 11 Test as customer | **Browser** | Incognito customer work email |
@@ -100,7 +100,7 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
 | **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
-| **8** | On IT technician + customer tenant via GDAP | Checklist **08** — Accept SuperOps Requester SSO; P1 assign Portal group / Free users assigned by Sync now |
+| **8** | On IT technician + customer tenant via GDAP | Checklist **08** — configure SuperOps Client SSO; P1 assign Portal group / Free save SSO app ID for Sync now |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
@@ -267,21 +267,20 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 7. **Provisioning → Start provisioning** (or wait for cycle)
 8. **Portal Sync now** → expect `SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)` — confirm **Update** per user in Entra **Provisioning logs**; requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
 
-### 8 — SuperOps requester SSO (Global SSO Accept) — checklist **08**
+### 8 — SuperOps requester Client SSO — checklist **08**
 
-On IT uses **Global SSO** only — **never** SuperOps Client SSO. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
-
-**Platform (already done once):** On IT Entra app **SuperOps Requester SSO (On IT)** — SAML Entity ID `https://clientuser.superops.ai`, App ID URI `https://onit.ltd/superops-requester-sso`, Supported account types = **Multiple Entra ID tenants**, Reply URL from SuperOps Global SSO Consumer Service URL. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.1a.
+On IT uses customer-specific **Client SSO** so customer identities remain in their own Entra tenant with no On IT B2B guests. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 **Every customer (required):**
 
-1. On IT technician → Edit Client → step **08** → click orange **Open SuperOps SSO Accept for customer tenant** (tenant + client ID `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1`)
-2. Sign in with the On IT account holding the required GDAP admin role → confirm customer tenant → **Accept**
-3. Customer Entra → Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → P1: assign `On IT Portal - {Company}`; Free: do **not** add users manually
-4. Free: mark step 08 complete, then portal **Sync now** directly assigns every active licensed user; verify them under the SSO app's **Users and groups**
-5. Incognito test with customer work email — must **not** say user is missing from On IT tenant
+1. SuperOps → Requester Login → SSO Protected → Client SSO → **+ Configuration** → select customer → copy generated Entity ID and Consumer Service URL.
+2. Through GDAP, create customer Entra non-gallery app `SuperOps Requester SSO - {Company}`.
+3. Configure SAML with the generated values; claims `email`, `firstname`, `lastname`; copy Azure Login URL and Base64 certificate back into SuperOps.
+4. P1: assign `On IT Portal - {Company}`. Free: save the SSO app's **Application (client) ID** in the portal.
+5. Free: mark step 08 complete, then portal **Sync now** directly assigns active licensed users.
+6. Incognito test with a real customer work email.
 
-Do **not** put SAML on the customer SCIM app `SuperOps - {Company}`. Do **not** tick step 08 complete just because Global SSO works for another client.
+Do **not** configure SAML on the customer SCIM app `SuperOps - {Company}`. SCIM and Client SSO are separate customer-owned enterprise apps.
 
 ---
 
@@ -379,9 +378,9 @@ php artisan portal:sync-entra-users --client={id}
 |-----|--------|---------|
 | **OnIT Portal for Portals** | On IT (registered); consented in customer | Portal login + Graph sync |
 | **SuperOps - {Company}** | Customer | SCIM provisioning only |
-| **SuperOps Requester SSO (On IT)** | Customer (after Accept) | Global SSO SP — assign Portal group |
+| **SuperOps Requester SSO - {Company}** | Customer | Client SSO SAML — P1 assign Portal group / Free portal assigns users |
 
-**Not per customer:** On IT Global/technician SSO apps, portal OAuth registration itself.
+**Not per customer:** On IT technician SSO and portal OAuth registration itself.
 
 ---
 
@@ -405,8 +404,9 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Step 08 changed from Global SSO Accept to per-customer SuperOps Client SSO |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform customer-tenant consent and all setup via GDAP |
-| 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users to requester SSO after step 08 Accept |
+| 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users using the saved Client SSO Application ID |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand; troubleshooting for plain names when extensionAttribute1 set |
 | 2026-06-25 | SuperOps App role step (Value `User`) for Entra ID Free; Application (client) ID on portal |
 | 2026-06-24 | In-app checklist manual format; step numbers aligned (05 consent, 06 SCIM, 07 SAML) |

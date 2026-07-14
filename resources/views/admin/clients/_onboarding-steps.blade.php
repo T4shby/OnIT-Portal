@@ -18,9 +18,6 @@
             $isDone = $step['complete'];
             $isBlocked = $step['blocked'] && ! $step['complete'];
             $showGraphAccept = $step['key'] === 'entra_admin_consent_granted' && ! $isDone && ! $isBlocked;
-            // Keep the per-customer SSO Accept URL available after completion so
-            // an On IT technician can repeat consent using delegated / GDAP access.
-            $showSsoAccept = $step['key'] === 'superops_client_sso_configured';
         @endphp
 
         <article
@@ -87,40 +84,6 @@
                                     type="button"
                                     class="cta-btn-ghost shrink-0 px-4 py-2 text-xs"
                                     @click="navigator.clipboard.writeText(@js($adminConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
-                                    x-text="copied ? 'Copied' : 'Copy link'"
-                                >Copy link</button>
-                            </div>
-                        </div>
-                    @else
-                        <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                            <strong class="text-white">Action needed:</strong>
-                            save the customer Entra tenant ID on the left. This page will then show the Microsoft Accept button here.
-                        </p>
-                    @endif
-                @endif
-
-                @if($showSsoAccept)
-                    @if(! empty($superOpsRequesterSsoConsentUrl))
-                        <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
-                            <p class="portal-label mb-2">On IT technician action — required for every customer tenant</p>
-                            <a
-                                href="{{ $superOpsRequesterSsoConsentUrl }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
-                            >Open SuperOps SSO Accept for customer tenant</a>
-                            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                                <input
-                                    type="text"
-                                    readonly
-                                    value="{{ $superOpsRequesterSsoConsentUrl }}"
-                                    class="admin-input min-w-0 flex-1 text-xs"
-                                    aria-label="Customer SuperOps SSO Accept URL"
-                                >
-                                <button
-                                    type="button"
-                                    class="cta-btn-ghost shrink-0 px-4 py-2 text-xs"
-                                    @click="navigator.clipboard.writeText(@js($superOpsRequesterSsoConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
                                     x-text="copied ? 'Copied' : 'Copy link'"
                                 >Copy link</button>
                             </div>

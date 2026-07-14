@@ -28,7 +28,7 @@ Microsoft Entra ID → On IT Portal session
   1. `SUPEROPS_REQUESTER_PORTAL_URL` or `https://{subdomain}.superops.ai` + `/#/requester/login`
   2. Optional `SUPEROPS_SSO_URL` only if it is a **SuperOps** URL (never `login.microsoftonline.com`)
 
-**Important:** Do **not** put the Entra SAML Login URL in portal `SUPEROPS_SSO_URL`. That URL requires a `SAMLRequest` from SuperOps. Pasting it in the portal causes `AADSTS750054`. The Entra Login URL belongs in **SuperOps → Global SSO → IDP Login URL** only.
+**Important:** Do **not** put an Entra SAML Login URL in portal `SUPEROPS_SSO_URL`. It requires a `SAMLRequest` from SuperOps. Each customer Login URL belongs in that customer's **SuperOps Client SSO** configuration.
 
 **Important:** `https://app.superops.ai/login/sso` does **not** exist (404). The MSP app URL and the client portal URL are different products.
 
@@ -52,8 +52,8 @@ SUPEROPS_SUBDOMAIN=onitltd
 SUPEROPS_API_TOKEN=
 SUPEROPS_REGION=us
 
-# Required for one-click Microsoft SSO into SuperOps (configured in SuperOps admin, not portal .env):
-# SUPEROPS_SSO_URL=   ← leave empty; Entra Login URL goes in SuperOps Global SSO only
+# Requester Client SSO is configured in SuperOps per customer, not portal .env:
+# SUPEROPS_SSO_URL=   ← leave empty
 # Launch path (default skips role chooser):
 SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login
 SUPEROPS_LOGIN_HINT_ENABLED=true
@@ -162,7 +162,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | Audience | What happens |
 |---|---|
 | **Technicians** | Portal OAuth → M365 session → launch `portal.onit.ltd/#/technician/login` + `login_hint` → SuperOps **Technician Login SSO** (SAML Entra app #3) → MSP console. Requires [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). |
-| **Client users** | Launch `portal.onit.ltd/#/requester/login` → SuperOps **Requester Global SSO** (SAML Entra app #2) → requester dashboard. |
+| **Client users** | Launch `portal.onit.ltd/#/requester/login` → customer's SuperOps **Client SSO** → customer's Entra SAML app → requester dashboard. |
 
 **Do not launch technicians to `app.superops.ai`** — that host does not use the custom-domain Technician Login SSO configuration. Use the same host as requesters (`portal.onit.ltd`) with `/#/technician/login`.
 
@@ -175,16 +175,16 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | SuperOps card missing for client | Client needs `superops_sso_enabled`; user must be `client_user` or `client_admin` |
 | **Error 1027** | Entra `email` claim missing — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore — use portal or `/#/requester/login` flow (SP-initiated) |
-| **Login with Email** on requester login | SuperOps Global SSO Step 2 not saved |
+| **Login with Email** on requester login | Client SSO is not enabled for that SuperOps client |
 | **Access denied** on `/#/client-home` | SAML OK — fix SuperOps requester provisioning / permissions |
 
-If you see an email form, `SUPEROPS_SSO_URL` / portal `.env` is not the fix. The IdP Login URL and certificate must be correct **inside SuperOps → SSO Protected → Global SSO**, and requester login must be **SSO-only** (not password).
+If you see an email form, `SUPEROPS_SSO_URL` / portal `.env` is not the fix. Verify that customer's Client SSO association, Azure Login URL and certificate.
 
 ### SuperOps admin checklist (fix “Login with Email”)
 
 1. **Settings → Requester Login** → **SSO Protected** tab (not Password Protected)
-2. **Global SSO** toggle **ON** → Save
-3. Confirm **IDP Login URL** and **Certificate** match Entra (see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md))
+2. **Client SSO** → open the customer's configuration
+3. Confirm **Login URL**, **Certificate** and selected client match the customer's Entra app (see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md))
 4. Requester user **invitation complete** (pending invites sometimes use email flow first)
 5. Test in private window: open via portal → **SuperOps** — should redirect to **Microsoft**, not email form
 6. If still email → open ticket with SuperOps support (SSO not applied to requester login)
