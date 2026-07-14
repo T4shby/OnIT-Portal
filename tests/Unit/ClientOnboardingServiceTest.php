@@ -412,11 +412,11 @@ class ClientOnboardingServiceTest extends TestCase
             'Configure SuperOps Client SSO',
             $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
         );
-        $this->assertStringContainsString('The customer does nothing', $allText);
         $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $allText);
         $this->assertStringNotContainsString('Customer Accepts', $allText);
         $this->assertStringNotContainsString('customer Global Admin', $allText);
         $this->assertStringNotContainsString('send it to them', $allText);
+        $this->assertStringNotContainsString('MSP-owned setup', $allText);
     }
 
     public function test_field_helps_include_entra_ids(): void

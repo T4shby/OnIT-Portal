@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Client setup guide header shortened to product copy (policy lecture kept in Brain only) |
 | 2026-07-14 | Migration resets legacy step 08 completions; every existing customer must complete the new Client SSO checklist |
 | 2026-07-14 | Completed requester SSO redesign: checklist 08 now creates SuperOps Client SSO + customer-owned SAML app; old Accept UI/callback/config retired |
 | 2026-07-14 | Added per-client SSO Application ID so Entra Free Sync can assign users without On IT guest accounts |

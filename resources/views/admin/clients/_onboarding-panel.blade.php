@@ -13,23 +13,9 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            Follow the open step. Your tools are this portal, SuperOps, and
-            <strong class="text-white/80">the customer’s Microsoft Entra tenant through On IT delegated / GDAP access</strong>
-            (portal.azure.com in their directory — not the On IT directory).
-            You do not need server access.
-        </p>
-        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">MSP-owned setup:</strong>
-            On IT technicians complete every checklist action on the customer’s behalf. Do not send setup links or tasks to the customer.
-        </p>
-        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">Most Azure work is on steps 03–08:</strong>
-            create the Portal group, Microsoft Accept, SuperOps SCIM app, Application (client) ID on Free / group assign on P1, then SuperOps login Accept.
-        </p>
-        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
-            <strong class="text-white/80">Two save buttons:</strong>
-            orange <strong class="text-white/80">Save client</strong> on the left stores IDs and sync settings.
-            <strong class="text-white/80">Save checklist</strong> on the right stores step ticks.
+            Work the open step. Azure stays in the customer directory.
+            <strong class="text-white/80">Save client</strong> (left) stores IDs —
+            <strong class="text-white/80">Save checklist</strong> (right) stores ticks.
         </p>
 
         <div class="onboarding-panel__progress">

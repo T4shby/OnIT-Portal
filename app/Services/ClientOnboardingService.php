@@ -270,8 +270,7 @@ class ClientOnboardingService
                 'blocked' => ! $entraTenantSaved,
             ], OnboardingManual::build(
                 notes: [
-                    'This Accept is only for portal sync (Graph). SuperOps login Accept is a later step with a different orange button.',
-                    'The customer does nothing. An On IT technician completes this using delegated / GDAP access.',
+                    'Portal Graph only. SuperOps Client SSO is a later step.',
                 ],
                 sections: [
                     OnboardingManual::section(
@@ -737,9 +736,8 @@ class ClientOnboardingService
 
         return OnboardingManual::build(
             notes: [
-                'Use SuperOps **Client SSO**. Do not use the retired Global SSO Accept link or the shared On IT requester SSO app.',
-                'The customer does nothing. An On IT technician completes SuperOps and customer Azure work using delegated / GDAP access.',
-                'This SAML app is separate from **SuperOps - '.$clientName.'** (the SCIM provisioning app).',
+                'Use SuperOps Client SSO for this customer — not Global SSO.',
+                'Separate app from SuperOps - '.$clientName.' (SCIM).',
             ],
             sections: [
                 OnboardingManual::section(
