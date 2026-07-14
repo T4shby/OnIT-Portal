@@ -38,8 +38,11 @@ class ClientCreateTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Step 1 of 2', false);
-        $response->assertSee('Add the client record', false);
-        $response->assertSee('Step 2 of 2', false);
+        $response->assertSee('Add the client', false);
+        $response->assertDontSee('Add the client record', false);
+        $response->assertSee('Setup guide', false);
+        $response->assertDontSee('10-step checklist', false);
+        $response->assertDontSee('Not on this page', false);
         $response->assertDontSee('Save checklist', false);
         $response->assertDontSee('name="entra_tenant_id"', false);
         $response->assertDontSee('name="entra_group_id"', false);
@@ -120,7 +123,7 @@ class ClientCreateTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(
-            'Sign in with the <strong class="onboarding-manual__emph">On IT technician account that has the required GDAP admin role</strong> for MXVI',
+            'Sign in with the On IT technician account that has GDAP for MXVI',
             false,
         );
         $response->assertDontSee('Ductec', false);

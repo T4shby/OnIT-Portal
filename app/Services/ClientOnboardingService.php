@@ -17,9 +17,9 @@ class ClientOnboardingService
     ];
 
     /** Shown on checklist steps — MSP role labels, not generic "you". */
-    public const RESPONSIBLE_ON_IT_PORTAL = 'On IT technician (portal / SuperOps)';
+    public const RESPONSIBLE_ON_IT_PORTAL = 'On IT · portal / SuperOps';
 
-    public const RESPONSIBLE_ON_IT_CUSTOMER_ENTRA = 'On IT technician (customer Entra / GDAP)';
+    public const RESPONSIBLE_ON_IT_CUSTOMER_ENTRA = 'On IT · customer Entra';
 
     /**
      * Manual checkpoint keys technicians can tick.
@@ -159,7 +159,7 @@ class ClientOnboardingService
                 'blocked' => false,
             ], OnboardingManual::build(
                 notes: [
-                    'If this customer will **not** see a Pax8 tile: leave **Pax8 Company ID** blank and **Pax8 access** unticked — this step is already Done.',
+                    'Skip if they do not use Pax8 — leave Company ID blank and access unticked.',
                 ],
                 sections: [
                     OnboardingManual::section(
@@ -196,7 +196,7 @@ class ClientOnboardingService
                 'blocked' => ! $superopsLinked,
             ], OnboardingManual::build(
                 notes: [
-                    'Leave group Members empty. Sync fills them later.',
+                    'Leave Members empty — Sync fills them.',
                 ],
                 sections: [
                     OnboardingManual::section(
@@ -214,8 +214,7 @@ class ClientOnboardingService
                         'Set licence tier on this portal to match',
                         'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left)',
                         [
-                            'On the left, under Microsoft Entra sync / Entra fields: set **Customer Entra license tier** to **Entra ID Free** or **Entra ID P1 or higher** — must match Overview → License above.',
-                            'Wrong tier breaks Free vs P1 paths later (Application ID vs group assign).',
+                            'Left column → **Entra license tier** → **Entra ID Free** or **Entra ID P1 or higher** — match Overview → License.',
                         ],
                     ),
                     OnboardingManual::section(
@@ -223,40 +222,30 @@ class ClientOnboardingService
                         'https://portal.azure.com → switch directory to **'.$client->name.'** → Microsoft Entra ID → Groups',
                         [
                             'Stay in **'.$client->name.'** directory.',
-                            'Entra left menu → **Manage** → **Groups** → **All groups**.',
-                            'Click **New group**.',
-                            'Group type dropdown → **Security**.',
-                            'Group name → type exactly **'.$groupName.'**.',
-                            'Membership type → **Assigned**.',
-                            'Members / Owners → add nobody.',
-                            'Click **Create**.',
-                            'Back on **All groups**, open **'.$groupName.'**.',
-                            'Group left menu → **Overview**.',
-                            'Copy **Object ID** (GUID) into Notepad.',
+                            'Entra → **Groups** → **New group**.',
+                            'Type **Security**, name **'.$groupName.'**, membership **Assigned**.',
+                            'Add no members → **Create**.',
+                            'Open the group → copy **Object ID**.',
                         ],
                     ),
                     OnboardingManual::section(
                         'Copy Tenant ID from customer Azure',
                         'https://portal.azure.com → customer directory → Microsoft Entra ID → Overview',
                         [
-                            'Still in **'.$client->name.'** directory.',
-                            'Entra left menu → **Overview** (tenant overview — not the group Overview).',
-                            'Copy **Tenant ID** (GUID) into Notepad.',
+                            'Entra → **Overview** → copy **Tenant ID**.',
                         ],
                     ),
                     OnboardingManual::section(
                         'Paste both IDs into this portal',
                         'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left)',
                         [
-                            'Return to this portal Edit Client tab.',
-                            'Left column → **Entra tenant ID** → paste Tenant ID.',
-                            'Left column → **Entra group ID** → paste group Object ID.',
-                            'Click orange **Save client** (left).',
+                            'Left column → paste **Entra tenant ID** and **Entra group ID**.',
+                            'Click **Save client**.',
                         ],
                     ),
                 ],
                 verify: [
-                    'Both Entra IDs show on the left and this step is Done (auto or after Save checklist).',
+                    'Tenant ID and group ID are saved on the left.',
                 ],
             )),
 
@@ -270,18 +259,16 @@ class ClientOnboardingService
                 'blocked' => ! $entraTenantSaved,
             ], OnboardingManual::build(
                 notes: [
-                    'Portal Graph only. SuperOps Client SSO is a later step.',
+                    'Portal Graph only — not SuperOps login.',
                 ],
                 sections: [
                     OnboardingManual::section(
                         'Accept with the orange button',
                         'This checklist step (right) → Microsoft permissions page',
                         [
-                            'On this checklist step, click orange **Open Portal Accept for customer tenant** (above). Or use **Copy link** and open it in a private window.',
-                            'If you are already in On IT Azure, use private/incognito so Microsoft does not reuse the wrong tenant.',
-                            'Sign in with the **On IT technician account that has the required GDAP admin role** for '.$client->name.'.',
-                            'Read the top of the Microsoft permissions page — tenant name must be **'.$client->name.'**, not On IT Technology Partners.',
-                            'Click **Accept**.',
+                            'Click orange **Open Portal Accept for customer tenant** above.',
+                            'Sign in with the On IT technician account that has GDAP for '.$client->name.'.',
+                            'Confirm Microsoft shows tenant **'.$client->name.'**, then **Accept**.',
                         ],
                     ),
                     OnboardingManual::section(
@@ -430,7 +417,7 @@ class ClientOnboardingService
             ], OnboardingManual::build(
                 notes: $syncEnabledGlobally
                     ? []
-                    : ['If Dry run / Sync now are missing after save, stop and message Tom.'],
+                    : ['If Dry run / Sync now are missing after save, message Tom.'],
                 sections: [
                     OnboardingManual::section(
                         'Enable sync on this portal',
@@ -464,7 +451,7 @@ class ClientOnboardingService
                 'blocked' => ! $syncConfigured || ! $syncEnabledGlobally,
             ], OnboardingManual::build(
                 notes: [
-                    'Always Dry run first. Sync now applies changes.',
+                    'Dry run first, then Sync now.',
                 ],
                 sections: [
                     OnboardingManual::section(
@@ -527,7 +514,7 @@ class ClientOnboardingService
                 'blocked' => ! $portalSyncRunComplete,
             ], OnboardingManual::build(
                 notes: [
-                    'Never validate requester SSO with an On IT staff account.',
+                    'Test with a customer work email — not an On IT account.',
                 ],
                 sections: [
                     OnboardingManual::section(
@@ -695,9 +682,10 @@ class ClientOnboardingService
 
         return OnboardingManual::build(
             notes: [
+                'This is the SCIM app — not the Client SSO app.',
                 $usesGroupScim
-                    ? 'P1: assign Portal group once here. Sync now later keeps membership updated.'
-                    : 'Free: you cannot assign the Portal group to this enterprise app. Application (client) ID on the portal is required.',
+                    ? 'P1: assign the Portal group once.'
+                    : 'Free: paste Application (client) ID on the portal.',
             ],
             sections: $sections,
             verify: [
@@ -729,15 +717,14 @@ class ClientOnboardingService
                 [
                     'Customer Azure → **App registrations** → **'.$appName.'** → **Overview**.',
                     'Copy **Application (client) ID** — not Object ID.',
-                    'Return to this portal → left column → **SuperOps Client SSO Application (client) ID** → paste → **Save client**.',
-                    'Do **not** add users one-by-one. Step 10 **Sync now** assigns active licensed customer users to this customer-owned SSO app.',
+                    'Portal left column → **Client SSO Application (client) ID** → paste → **Save client**.',
+                    'Do not add users by hand — **Sync now** assigns them.',
                 ],
             );
 
         return OnboardingManual::build(
             notes: [
-                'Use SuperOps Client SSO for this customer — not Global SSO.',
-                'Separate app from SuperOps - '.$clientName.' (SCIM).',
+                'Use Client SSO. Separate from the SCIM app SuperOps - '.$clientName.'.',
             ],
             sections: [
                 OnboardingManual::section(
@@ -870,43 +857,36 @@ class ClientOnboardingService
 
         return [
             'superops_account_id' => [
-                'SuperOps → Clients → open the customer → copy Account ID from the URL after /client/.',
-                'Paste here → Save client.',
+                'SuperOps → Clients → open customer → copy the number after /client/.',
             ],
             'pax8_company_id' => [
-                'Only if they use the Pax8 tile.',
-                'Pax8 → Companies → copy company UUID → paste here and tick Pax8 access.',
+                'Optional. Pax8 → Companies → copy company UUID.',
             ],
             'entra_license_tier' => [
-                'Set this before you create the Portal group.',
-                'Free and P1 change the last SCIM step only.',
+                'Match the customer Entra Overview → License. Free vs P1 changes steps 07–08.',
             ],
             'entra_tenant_id' => [
-                'Azure (customer tenant) → Microsoft Entra ID → Overview → Tenant ID.',
-                'Needed for Portal Graph access and customer-owned SCIM / Client SSO apps.',
+                'Customer Azure → Microsoft Entra ID → Overview → Tenant ID.',
             ],
             'entra_group_id' => [
-                'Create group '.$groupName.' empty, copy Object ID, paste here.',
-                'Sync fills members later — do not add people by hand.',
+                'Create empty group '.$groupName.', paste its Object ID. Sync fills members.',
             ],
             'entra_superops_app_id' => $usesGroupScim
                 ? [
-                    'Optional on P1 when the Portal group is assigned to the SuperOps SCIM app.',
+                    'Optional on P1 if the Portal group is already assigned to the SCIM app.',
                 ]
                 : [
-                    'Required on Free.',
-                    'App registrations → SuperOps - '.$clientName.' → Overview → Application (client) ID (not Object ID).',
+                    'App registrations → SuperOps - '.$clientName.' → Overview → Application (client) ID.',
                 ],
-            'entra_superops_sso_app_id' => [
-                'Created in checklist step 08 for SuperOps Client SSO.',
-                'Customer Azure → App registrations → SuperOps Requester SSO - '.$clientName.' → Overview → Application (client) ID (not Object ID).',
-                $usesGroupScim
-                    ? 'Saved for support and verification; P1 access is assigned through the Portal group.'
-                    : 'Required on Free so Sync now can assign active licensed users directly.',
-            ],
+            'entra_superops_sso_app_id' => $usesGroupScim
+                ? [
+                    'App registrations → SuperOps Requester SSO - '.$clientName.' → Application (client) ID.',
+                ]
+                : [
+                    'Required on Free. App registrations → SuperOps Requester SSO - '.$clientName.' → Application (client) ID.',
+                ],
             'entra_sync_enabled' => [
-                'Tick this after Entra IDs are saved, then Save client.',
-                'Then use Dry run sync and Sync now on the left.',
+                'Tick after IDs are saved, then use Dry run / Sync now below.',
             ],
         ];
     }

@@ -92,7 +92,7 @@ class OnboardingManual
         }
 
         foreach ($guide['notes'] as $line) {
-            $lines[] = 'Remember: '.$line;
+            $lines[] = 'Note: '.$line;
         }
 
         foreach ($guide['sections'] as $section) {
@@ -107,7 +107,7 @@ class OnboardingManual
             }
 
             foreach ($section['notes'] ?? [] as $note) {
-                $lines[] = 'Remember: '.$note;
+                $lines[] = 'Note: '.$note;
             }
         }
 

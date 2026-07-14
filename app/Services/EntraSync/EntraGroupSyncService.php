@@ -579,7 +579,7 @@ class EntraGroupSyncService
             ]);
 
             return [0, 0, [
-                'SuperOps SSO user sync failed. Complete checklist step 08 Client SSO app setup, save its Application (client) ID, then Sync now again: '
+                'SuperOps SSO user sync failed. Finish step 08, save the Client SSO Application ID, then Sync now again: '
                 .$e->getMessage(),
             ]];
         }

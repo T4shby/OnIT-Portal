@@ -2,7 +2,7 @@
     <div class="onboarding-manual">
         @if(!empty($guide['notes']))
             <div class="onboarding-manual__callout">
-                <h3 class="onboarding-manual__block-title">Remember</h3>
+                <h3 class="onboarding-manual__block-title">Note</h3>
                 <ul class="onboarding-manual__notes">
                     @foreach($guide['notes'] as $note)
                         <li>{!! \App\Support\OnboardingStepFormatter::rich($note) !!}</li>

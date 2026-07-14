@@ -87,7 +87,7 @@ class ClientController extends Controller
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         return redirect()->route('admin.clients.edit', $client)
-            ->with('success', 'Client created. Work through the setup guide on the right — step 01 first. On the left, set Entra license tier when you reach step 03 (Free vs P1 changes which fields are required).');
+            ->with('success', 'Client created. Start with step 01 on the right.');
     }
 
     public function edit(Client $client): View

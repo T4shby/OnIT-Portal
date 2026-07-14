@@ -86,8 +86,8 @@
             </div>
         </div>
     @else
-        <p class="portal-body-muted mt-4 text-xs">Sync buttons are unavailable — message Tom (platform sync is switched off).</p>
+        <p class="portal-body-muted mt-4 text-xs">Sync is switched off on this environment.</p>
     @endif
 @elseif(isset($client) && $client->exists)
-    <p class="portal-body-muted mt-4 text-xs">Save tenant ID and enable sync to run from here.</p>
+    <p class="portal-body-muted mt-4 text-xs">Save tenant ID and enable sync to use these buttons.</p>
 @endif

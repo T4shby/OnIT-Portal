@@ -90,8 +90,7 @@
                         </div>
                     @else
                         <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                            <strong class="text-white">Action needed:</strong>
-                            save the customer Entra tenant ID on the left. This page will then show the Microsoft Accept button here.
+                            Save the Entra tenant ID on the left to unlock Accept.
                         </p>
                     @endif
                 @endif

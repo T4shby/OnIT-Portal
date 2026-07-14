@@ -29,8 +29,7 @@ class SuperOpsSsoService
 
     public function configurationHint(): string
     {
-        return 'Set SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL for clients. Technicians use the same SuperOps host with /#/technician/login. '
-            .'Customer requester SSO is configured per organisation in SuperOps Client SSO.';
+        return 'Set SUPEROPS_SUBDOMAIN or SUPEROPS_REQUESTER_PORTAL_URL. Technicians use /#/technician/login.';
     }
 
     public function accessDeniedHint(User $user): string

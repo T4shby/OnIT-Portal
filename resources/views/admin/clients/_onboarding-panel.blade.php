@@ -13,9 +13,9 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            Work the open step. Azure stays in the customer directory.
-            <strong class="text-white/80">Save client</strong> (left) stores IDs —
-            <strong class="text-white/80">Save checklist</strong> (right) stores ticks.
+            Work the open step.
+            <strong class="text-white/80">Save client</strong> left ·
+            <strong class="text-white/80">Save checklist</strong> right.
         </p>
 
         <div class="onboarding-panel__progress">

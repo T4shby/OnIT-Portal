@@ -305,7 +305,7 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('user.mail', $text);
         $this->assertStringContainsString('Certificate (Base64)', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
-        $this->assertStringContainsString('Do **not** add users one-by-one', $text);
+        $this->assertStringContainsString('Do not add users by hand', $text);
         $this->assertStringContainsString('Sync now', $text);
         $this->assertStringNotContainsString('add each customer requester', $text);
         $this->assertStringContainsString('Mark this step complete', $text);
@@ -344,7 +344,7 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertStringContainsString('New group', $text);
         $this->assertStringContainsString('License', $text);
-        $this->assertStringContainsString('Customer Entra license tier', $text);
+        $this->assertStringContainsString('Entra license tier', $text);
         $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
         $this->assertStringContainsString('Members', $text);
         $this->assertStringContainsString('Object ID', $text);
@@ -362,7 +362,7 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'entra_admin_consent_granted')['instructions']);
 
         $this->assertStringContainsString('Open Portal Accept for customer tenant', $text);
-        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $text);
+        $this->assertStringContainsString('On IT technician account that has GDAP', $text);
         $this->assertStringContainsString('OnIT Portal for Portals', $text);
         $this->assertStringContainsString('Enterprise applications', $text);
         $this->assertStringNotContainsString('User.Read.All', $text);
@@ -390,9 +390,9 @@ class ClientOnboardingServiceTest extends TestCase
         $steps = app(ClientOnboardingService::class)->steps($client);
 
         foreach ($steps as $step) {
-            $this->assertNotSame('You', $step['who']);
+            $this->assertStringContainsString('On IT', $step['who']);
+            $this->assertStringNotContainsString('You', $step['who']);
             $this->assertNotSame('M365 admin', $step['who']);
-            $this->assertStringContainsString('On IT technician', $step['who']);
         }
     }
 
@@ -412,7 +412,7 @@ class ClientOnboardingServiceTest extends TestCase
             'Configure SuperOps Client SSO',
             $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
         );
-        $this->assertStringContainsString('On IT technician account that has the required GDAP admin role', $allText);
+        $this->assertStringContainsString('On IT technician account that has GDAP', $allText);
         $this->assertStringNotContainsString('Customer Accepts', $allText);
         $this->assertStringNotContainsString('customer Global Admin', $allText);
         $this->assertStringNotContainsString('send it to them', $allText);
