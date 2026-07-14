@@ -319,6 +319,9 @@ class ClientOnboardingServiceTest extends TestCase
         );
         parse_str((string) parse_url((string) $consentUrl, PHP_URL_QUERY), $query);
         $this->assertSame('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $query['client_id']);
+        $this->assertSame(config('services.superops.requester_sso_consent_redirect'), $query['redirect_uri']);
+        $this->assertSame(\App\Support\AdminConsentState::encode($client->id), $query['state']);
+        $this->assertStringContainsString('usauth.superops.ai', $text);
     }
 
     public function test_completed_sso_step_still_shows_customer_accept_button_and_copy_link(): void

@@ -72,6 +72,7 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 - Step 08's customer-tenant Accept button remains visible after Done so technicians can repeat the tenant-specific acceptance.
 - Entra ID Free: never add SSO users one-by-one. Step 10 **Sync now** assigns every active licensed user to `SuperOps Requester SSO (On IT)`.
 - Customers do no onboarding work. If GDAP permissions are insufficient, escalate internally; never send them checklist actions or Accept URLs.
+- If Accept ends on `usauth.superops.ai` JSON `{"code":"unknown"}`, check customer Enterprise applications first — that page is often a bad SAML redirect after successful consent.
 - Test login with a **customer** work email, never an On IT staff account.
 
 ## If you get stuck

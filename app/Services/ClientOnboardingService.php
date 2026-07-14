@@ -69,7 +69,7 @@ class ClientOnboardingService
     }
 
     /**
-     * Customer Global Admin Accept URL for SuperOps Requester SSO (On IT).
+     * MSP technician Accept URL for SuperOps Requester SSO (On IT) in the customer tenant.
      */
     public function superOpsRequesterSsoConsentUrl(Client $client): ?string
     {
@@ -83,9 +83,13 @@ class ClientOnboardingService
             return null;
         }
 
-        $query = http_build_query([
+        $redirectUri = config('services.superops.requester_sso_consent_redirect');
+
+        $query = http_build_query(array_filter([
             'client_id' => $appClientId,
-        ]);
+            'redirect_uri' => filled($redirectUri) ? $redirectUri : null,
+            'state' => $client->exists ? \App\Support\AdminConsentState::encode($client->id) : null,
+        ]));
 
         return sprintf(
             'https://login.microsoftonline.com/%s/adminconsent?%s',
@@ -758,6 +762,7 @@ class ClientOnboardingService
             notes: [
                 'Do not open SuperOps **Client SSO**. Do not edit certificates / Global SSO for this client.',
                 'The customer does nothing. An On IT technician completes the Accept and all Azure work using delegated / GDAP access.',
+                'If Microsoft then opens usauth.superops.ai with JSON `{"code":"unknown"}`, that is a bad redirect — not Accept failure. Check customer Enterprise applications for **SuperOps Requester SSO (On IT)**.',
             ],
             sections: [
                 OnboardingManual::section(

@@ -16,11 +16,15 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
 use App\Http\Controllers\Integrations\SuperOpsLaunchController;
+use App\Http\Controllers\Integrations\SuperOpsRequesterSsoConsentController;
 use App\Http\Controllers\SupportController;
 use App\Enums\UserRole;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
+
+Route::get('/integrations/superops/requester-sso/consent-complete', [SuperOpsRequesterSsoConsentController::class, 'complete'])
+    ->name('integrations.superops.requester-sso.consent-complete');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [MicrosoftAuthController::class, 'showLogin'])->name('login');

@@ -329,8 +329,14 @@ The live Edit Client guide contains the complete per-customer acceptance procedu
 **Accept URL:**
 
 ```
-https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
+https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1&redirect_uri=https://app.onit.ltd/integrations/superops/requester-sso/consent-complete&state={signed-client-state}
 ```
+
+**Platform once (On IT tenant):** App registrations → **SuperOps Requester SSO (On IT)** → **Authentication** → add Web redirect URI exactly:
+
+`https://app.onit.ltd/integrations/superops/requester-sso/consent-complete`
+
+Without that URI, Microsoft may fall back to a SAML Reply URL (`usauth.superops.ai` / `portal.onit.ltd/.../saml/response/...`) after Accept and show JSON `{"code":"unknown"}`. That page is **not** Accept failure — verify Enterprise applications in the customer tenant.
 
 **Not the same as checklist 04** (Portal Graph / `OnIT Portal for Portals`).
 
@@ -419,6 +425,7 @@ Portal (Microsoft login as customer) → Dashboard → SuperOps
 |---|---|---|
 | Confused SuperOps Entity ID with Application ID URI | Put `clientuser.superops.ai` under Expose an API then tried Multitenant | Keep Entity ID on SAML blade; set App ID URI to `https://onit.ltd/superops-requester-sso`; retry Authentication |
 | Unable to update Supported account type … Application ID URI must be on a tenant verified domain | App ID URI still on `clientuser.superops.ai` | §2.1a — change Expose an API first |
+| Landing on `usauth.superops.ai` JSON `{"code":"unknown"}` after Accept | Microsoft redirected to SAML ACS instead of portal consent-complete URI | Confirm Enterprise app exists in customer tenant; add portal Web redirect URI on SuperOps Requester SSO app Authentication; re-open Accept URL |
 | Account does not exist in tenant **On IT Technology Partners LTD** | Customer tenant never Accepted the multitenant SAML app (or app still single-tenant) | Confirm Multitenant saved; then checklist **08** Accept URL with correct customer tenant ID |
 | Chooser appears when using `/#/login` | Wrong launch path | Use `/#/requester/login` — not `/#/login/requester` |
 | Tom Ashby lands as **technician** after requester click | Tom is MSP technician in SuperOps | Test with customer email or `portal.test@onit.ltd` |
@@ -491,6 +498,7 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 | Date | Author | Notes |
 |---|---|---|
+| 2026-07-14 | On IT | Accept URL adds portal redirect_uri; usauth.superops.ai `{"code":"unknown"}` after Accept documented as bad redirect |
 | 2026-07-14 | On IT | MSP-owned onboarding clarified: On IT technicians complete customer-tenant Accept via GDAP; customer does nothing |
 | 2026-07-14 | On IT | Entra ID Free: portal Sync now auto-assigns all active licensed users after customer Accept; no manual user assignment |
 | 2026-07-14 | On IT | Multitenant saved: App ID URI `https://onit.ltd/superops-requester-sso` vs SAML Entity ID `https://clientuser.superops.ai` documented; Accept path for 50+ clients |
