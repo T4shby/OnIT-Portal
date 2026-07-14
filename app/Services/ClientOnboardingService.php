@@ -61,6 +61,32 @@ class ClientOnboardingService
     }
 
     /**
+     * Customer Global Admin Accept URL for SuperOps Requester SSO (On IT) — Global SSO app (not Client SSO).
+     */
+    public function superOpsRequesterSsoConsentUrl(Client $client): ?string
+    {
+        if (! filled($client->entra_tenant_id)) {
+            return null;
+        }
+
+        $appClientId = config('services.superops.requester_sso_client_id');
+
+        if (! filled($appClientId)) {
+            return null;
+        }
+
+        $query = http_build_query([
+            'client_id' => $appClientId,
+        ]);
+
+        return sprintf(
+            'https://login.microsoftonline.com/%s/adminconsent?%s',
+            $client->entra_tenant_id,
+            $query,
+        );
+    }
+
+    /**
      * @return list<array{
      *     key: string,
      *     title: string,
@@ -182,13 +208,13 @@ class ClientOnboardingService
             ], $this->superOpsScimGuide($client->name, $groupName, $usesGroupScim)),
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
-                'title' => 'SuperOps requester SSO (Global SSO)',
+                'title' => 'SuperOps requester SSO (Global SSO Accept)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => (bool) ($checklist['superops_client_sso_configured'] ?? false),
                 'manual' => true,
                 'auto_detected' => false,
-                'blocked' => ! $superopsLinked,
-            ], $this->superOpsClientSsoGuide($client->name, $groupName, $usesGroupScim)),
+                'blocked' => ! $entraTenantSaved,
+            ], $this->superOpsClientSsoGuide($client, $groupName, $usesGroupScim)),
             $this->withManual([
                 'key' => 'portal_sync_configured',
                 'title' => 'Enable portal sync',
@@ -372,7 +398,7 @@ class ClientOnboardingService
     private function portalSyncConfiguredGuide(bool $syncEnabledGlobally, bool $usesGroupScim): array
     {
         $prerequisites = [
-            'Steps 03–06 done (or Global SSO already ticked in step 06).',
+            'Steps 03–06 done (step 06 = customer GA Accepted SuperOps Requester SSO).',
             'On the left you already have Entra tenant ID and Entra group ID saved from step 03.',
         ];
 
@@ -478,7 +504,7 @@ class ClientOnboardingService
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
 
         $notes = [
-            'One Entra app only for SCIM: '.$appName.' — provisioning only on this customer app. Requester **login** uses On IT **Global SSO** (step 06) — not SAML on this app.',
+            'One Entra app only for SCIM: '.$appName.' — provisioning only on this customer app. Requester **login** uses On IT **Global SSO** + customer **Accept** (step 06) — not SAML on this app.',
             'Under Manage → Provisioning, expand Admin Credentials before Tenant URL and Secret Token appear.',
             'Authentication method must be Bearer Authentication (Azure default).',
             'Tick Mark this step complete on this page when done.',
@@ -590,69 +616,72 @@ class ClientOnboardingService
     }
 
     /**
-     * SuperOps requester Global SSO (SAML). Platform-level — almost always already done.
-     * Per-client work is: tick complete. Full SAML rebuild is rare recovery only.
+     * SuperOps requester Global SSO (SAML) — multitenant app; per client the customer GA Accepts it.
+     * Platform SAML (Entity ID / cert / IDP URL) is one-time. Per client: Accept + assign group.
      *
      * @see https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops
+     * @see Brain/SuperOpsRequesterSsoSetup.md
      *
      * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
      */
-    private function superOpsClientSsoGuide(string $clientName, string $groupName, bool $usesGroupScim): array
+    private function superOpsClientSsoGuide(Client $client, string $groupName, bool $usesGroupScim): array
     {
+        $clientName = $client->name;
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
         $entityId = 'https://clientuser.superops.ai';
+        $appClientId = config('services.superops.requester_sso_client_id', 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1');
+        $assignStep = $usesGroupScim
+            ? 'Users and groups → Add user/group → assign security group **'.$groupName.'** (Assignment required = Yes on this app).'
+            : 'Users and groups → Add user/group → assign **'.$groupName.'** and/or the requesters who must Microsoft-sign-in (Assignment required = Yes). On Free, portal Sync now also maintains SuperOps app assignments for SCIM — still assign the Portal group here for SSO access.';
 
         return OnboardingManual::build(
             prerequisites: [
-                'Read **Important** first. For a normal new client you almost never open Entra or paste a certificate here.',
+                'Step 03 done — Entra tenant ID saved (needed for the Accept URL below).',
+                'Step 04 is a **different** Accept — Portal Graph (`OnIT Portal for Portals`). This step Accepts **SuperOps Requester SSO (On IT)** only.',
+                'Customer Global Admin can sign in at Microsoft (GDAP or send them the Open link).',
             ],
             notes: [
-                '**STOP — this is NOT per-client work.** SuperOps **Global SSO** (certificate, Login URL, Entity ID) was set up **once** for On IT. Every client you have already onboarded uses that same Global SSO. You do **not** set it up again for **'.$clientName.'**.',
-                '**What you do for this client:** follow **Part A only** → tick **Mark this step complete** → **Save checklist**. Then move on to Enable portal sync.',
-                '**Do not** open SuperOps **Client SSO**, do **not** create a configuration for '.$clientName.', and do **not** paste a certificate into the customer Entra app **SuperOps - '.$clientName.'** (that app is SCIM only).',
-                '**Only** use Parts B–C below if Tom asks you to, or if **no** client can Microsoft-sign-in to SuperOps at all (Global SSO is broken for the whole company).',
+                '**Per client — customer Global Admin must Accept this app.** SuperOps **Global SSO** (cert / Login URL / Entity ID) is configured **once** in On IT + SuperOps. Every new client still needs their tenant to **Accept** the multitenant Entra app **SuperOps Requester SSO (On IT)** (Application ID `'.$appClientId.'`).',
+                '**Do not** open SuperOps **Client SSO**. Do **not** create a Client SSO configuration for '.$clientName.'. Do **not** put SAML on the customer SCIM app **SuperOps - '.$clientName.'**.',
+                'If Microsoft says the user is not in tenant **On IT Technology Partners LTD**, this Accept (Part A) was skipped or failed for that customer tenant.',
             ],
             sections: [
                 OnboardingManual::section(
-                    'Part A — What to do for this client (almost always this only)',
-                    'This Edit Client page — checklist step 06',
+                    'Part A — Customer Global Admin Accepts SuperOps Requester SSO',
+                    'This Edit Client page — checklist step 06 → SuperOps SSO Accept URL',
                     [
-                        'Ask yourself: have we already onboarded other clients who can open SuperOps with Microsoft login? If **yes**, Global SSO is already done.',
-                        'Optional quick check: SuperOps → Settings → Requester Login → SSO Protected → **Global SSO** is **ON** and has an IDP Login URL and Certificate filled in. Do **not** change them.',
-                        'Tick **Mark this step complete** on this step → click **Save checklist** on the right.',
-                        'You are finished with step 06. Go to step 07 (Enable portal sync).',
+                        'Use the **SuperOps SSO Accept URL** shown on this step (Open or Copy). It is **not** the step 04 Portal Graph consent URL.',
+                        'Sign in at Microsoft as a **'.$clientName.'** Global Admin (not an @onit.ltd account).',
+                        'Review permissions → **Accept**. This creates the enterprise app in the **customer** tenant.',
+                        'If you land on app.onit.ltd login, you opened the wrong link — come back here and use Open on this step.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part B — Only if Global SSO has NEVER been set up (rare)',
-                    $superOpsUrl.' — Settings → Requester Login → SSO Protected → Global SSO',
+                    'Part B — Assign who can use SSO (customer tenant)',
+                    'Customer Entra — Enterprise applications → SuperOps Requester SSO (On IT)',
                     [
-                        'Skip this whole part unless Global SSO is empty or Microsoft login fails for **every** client.',
-                        'Open **Global SSO** (not Client SSO).',
-                        'In Entra (On IT tenant, not the customer): Enterprise applications → SuperOps Requester SSO (On IT) → '.$this->entraManagePath('Single sign-on').' → SAML.',
-                        'Identifier (Entity ID): type **'.$entityId.'** — fixed SuperOps value for Global SSO. Mark as default; delete other default Identifier entries.',
-                        'Reply URL: copy **Consumer Service URL** from SuperOps Global SSO → paste as Reply URL → Save in Entra.',
-                        'Attributes & Claims (exact names, empty Namespace): email → user.mail (or user.userprincipalname), firstname → user.givenname, lastname → user.surname.',
+                        'In the **'.$clientName.'** Entra tenant (not On IT home), open Enterprise applications → find **SuperOps Requester SSO (On IT)** (appears after Part A Accept).',
+                        'Confirm Properties: **Enabled for users to sign-in?** = Yes. **Assignment required?** = Yes (expected).',
+                        $assignStep,
+                        'Do **not** change Reply URL, Entity ID, certificate, or SuperOps Global SSO settings for this client.',
                     ],
                     notes: [
-                        'Entity ID is always **'.$entityId.'** — you type it; you do not copy it from Client SSO.',
+                        'Verified On IT home app (reference): Application ID `'.$appClientId.'`, Object ID `cc9c46a8-b038-4591-beab-414584233245`, Reply URL under portal.onit.ltd `/accounts-web/accounts/saml/response/…`.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Part C — Only if you ran Part B (paste into Global SSO once)',
+                    'Part C — Only if Global SSO is broken for EVERY client (rare)',
                     $superOpsUrl.' — Settings → Requester Login → SSO Protected → Global SSO',
                     [
-                        'Skip this part unless you just configured Entra in Part B.',
-                        'Stay on **Global SSO** — never Client SSO.',
-                        'IDP Login URL: On IT Entra → SuperOps Requester SSO (On IT) → Login URL (ends in /saml2) → paste into SuperOps **IDP Login URL**.',
-                        'Certificate: Entra → SAML Certificates → Certificate (Base64) → Download → Notepad → copy middle only (no BEGIN/END lines) → paste into SuperOps **Certificate**.',
-                        'Click **Save** on the Global SSO panel → then tick this checklist step complete.',
+                        'Skip unless Microsoft login fails for **all** clients (platform Global SSO empty or wrong).',
+                        'Open **Global SSO** (not Client SSO). Rebuild only on the On IT home enterprise app — see Brain/SuperOpsRequesterSsoSetup.md.',
+                        'Entity ID must stay **'.$entityId.'**. Paste Consumer Service URL as Reply URL; paste Login URL + cert body into SuperOps Global SSO → Save.',
                     ],
                 ),
             ],
             verify: [
-                'For a normal client: step 06 is ticked and saved — you did not paste a new certificate.',
-                'Only if you rebuilt Global SSO: Incognito → https://portal.onit.ltd/#/requester/login → Microsoft sign-in works.',
+                'Incognito → https://portal.onit.ltd/#/requester/login → Microsoft → customer work email (e.g. admin@'.$clientName.' domain) succeeds — no “not in On IT tenant” error.',
+                'Tick **Mark this step complete** → **Save checklist**.',
             ],
         );
     }

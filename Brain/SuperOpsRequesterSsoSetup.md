@@ -66,7 +66,7 @@ SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
 2. Choose **Global SSO** (all requesters use one Entra app)
 3. Keep this page open — you will copy values **to** and **from** here
 
-> **Client-level SSO:** use only if a specific client has their own Entra tenant and needs a separate SAML app. See [SuperOps client SSO section](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops). On IT MVP uses **Global SSO**.
+> **Client-level SSO:** SuperOps product supports Client SSO, but **On IT does not use it**. All customers use **Global SSO** + per-tenant **admin Accept** of the multitenant Entra app (checklist step **06**).
 
 ### 1.3 Consumer Service URL (for Entra Reply URL)
 
@@ -84,7 +84,7 @@ If you change CNAME or regenerate SSO in SuperOps, this URL may change — updat
 
 ## Part 2 — Microsoft Entra ID (SAML app)
 
-### 2.1 Create enterprise application
+### 2.1 Create enterprise application (platform — once)
 
 1. [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID**
 2. **Enterprise applications** → **+ New application**
@@ -92,6 +92,50 @@ If you change CNAME or regenerate SSO in SuperOps, this URL may change — updat
 4. Name: `SuperOps Requester SSO (On IT)` (or similar — must be distinct from the portal app)
 5. Select **Integrate any other application you don't find in the gallery (Non-gallery)**
 6. **Create**
+
+### 2.1a App Registration — **must be multitenant** (verified 2026-07-14)
+
+SAML is configured on the **Enterprise application**. **Supported account types** and **Application ID URI** are on the linked **App registration** (same Application ID).
+
+#### Two different URIs — do not mix them up
+
+| Setting | Where in Entra | On IT value | Who requires it |
+|---|---|---|---|
+| **SAML Identifier (Entity ID)** | Enterprise app → **Single sign-on** → Basic SAML Configuration | `https://clientuser.superops.ai` | **SuperOps** Global SSO (fixed). Do **not** change this when enabling multitenant. |
+| **Application ID URI** | App registration → **Expose an API** | `https://onit.ltd/superops-requester-sso` | **Microsoft** — multitenant apps must use a **tenant-verified domain** (e.g. `onit.ltd`). |
+
+SuperOps docs tell you to set Entity ID to `https://clientuser.superops.ai`. That is correct for **SAML**. It is **wrong** as the App registration **Application ID URI** if you need multitenant (Azure will refuse the save).
+
+#### Enable Multitenant (platform — once)
+
+1. Entra → **App registrations** → **SuperOps Requester SSO (On IT)** (or Enterprise app → “manage additional properties on the application registration”)
+2. **Expose an API** → **Application ID URI** → set to `https://onit.ltd/superops-requester-sso` (or `https://<tenant>.onmicrosoft.com/superops-requester-sso` if `onit.ltd` is not verified)
+3. If a scope still starts with `https://clientuser.superops.ai/...`, update or remove it so scopes match the new App ID URI (SAML Global SSO does **not** need `user_impersonation`)
+4. **Authentication** → Supported account types → **Multiple Entra ID tenants** → **Allow all tenants** → **Save**
+5. Confirm Enterprise app → **Single sign-on** → Identifier (Entity ID) is still **`https://clientuser.superops.ai`**
+
+**Verified save (2026-07-14):** Multitenant + Allow all tenants succeeded after App ID URI was moved to `https://onit.ltd/superops-requester-sso`.
+
+**If Azure shows:** `Unable to update the Supported account type. The property Application ID URI … must be on a tenant verified domain` → you still have Application ID URI = `https://clientuser.superops.ai`. Fix Expose an API first, then retry Authentication.
+
+**Default trap:** New apps are **Single tenant / My organization only**. That blocks customer `@company.com` users (“account does not exist in tenant On IT Technology Partners LTD”). Multitenant alone does not finish a client — each tenant still needs checklist **06 Accept**.
+
+### 2.1b Verified Enterprise application Properties (On IT home, 2026-07-14)
+
+| Property | Value |
+|---|---|
+| Name | SuperOps Requester SSO (On IT) |
+| Application (client) ID | `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` |
+| Object ID | `cc9c46a8-b038-4591-beab-414584233245` |
+| App registration — Supported account types | **Multiple Entra ID tenants** / Allow all tenants |
+| App registration — Application ID URI | `https://onit.ltd/superops-requester-sso` |
+| SAML Identifier (Entity ID) | `https://clientuser.superops.ai` |
+| Enabled for users to sign-in? | **Yes** |
+| Assignment required? | **Yes** |
+| Visible to users? | **Yes** |
+| Reply URL | `https://portal.onit.ltd/accounts-web/accounts/saml/response/568447181…` |
+
+Portal `.env`: `SUPEROPS_REQUESTER_SSO_CLIENT_ID=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` (Edit Client builds the Accept URL).
 
 ### 2.2 Assign users (use groups — not one-by-one)
 
@@ -216,7 +260,8 @@ https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2
 | URL | Copy from | Paste into | Never put in |
 |---|---|---|---|
 | **Consumer Service URL** | SuperOps Step 1 | Entra SAML **Reply URL** | Portal `.env` |
-| **Entity ID** `https://clientuser.superops.ai` | SuperOps docs | Entra SAML **Identifier** | Portal `.env` |
+| **Entity ID** `https://clientuser.superops.ai` | SuperOps docs | Entra Enterprise app → SAML **Identifier** | Portal `.env` **or** App registration Application ID URI |
+| **Application ID URI** `https://onit.ltd/superops-requester-sso` | On IT verified domain | App registration → **Expose an API** | SAML Entity ID (leave Entity ID alone) |
 | **Login URL** `login.microsoftonline.com/.../saml2` | Entra Section 4 | SuperOps Step 2 **IDP Login URL** | Portal `.env` (causes `AADSTS750054`) |
 | **Certificate (Base64)** | Entra SAML Certificates | SuperOps Step 2 **Certificate** | Portal `.env` |
 | Requester portal | — | Portal `SUPEROPS_REQUESTER_PORTAL_URL` | Entra |
@@ -254,49 +299,42 @@ Direct navigation to `https://login.microsoftonline.com/.../saml2` without a SAM
 
 ---
 
-## Provisioning — do you add every user manually?
-
-**Short answer (MVP):** Portal user + SuperOps requester = yes, admin creates (or bulk import in SuperOps). Entra SAML app assignment = **no**, if you use **groups** — but only for users in the **same Entra tenant** as the SAML app.
-
-### Three systems, three jobs
+## Provisioning — portal users, SuperOps requesters, Entra assignment
 
 | System | What it controls | Scales how |
 |---|---|---|
-| **On IT Portal** (`users` table) | Who may sign in to the portal | Admin CRUD today; Phase 3 self-service / API |
-| **SuperOps** (client users) | Who exists as a requester | Manual or SuperOps bulk import per client |
-| **Entra** (SAML app assignment) | Who may use the **On IT tenant** SAML app | **Security group** (one assign per client), not per user |
+| **On IT Portal** (`users` table) | Who may sign in to the portal | `portal:sync-entra-users` + Admin exceptions |
+| **SuperOps** (client users) | Who exists as a requester | Entra SCIM per client (`SuperOps - {Company}`) |
+| **Entra** (SAML app assignment) | Who may use SuperOps Requester SSO | After **Accept**, assign `On IT Portal - {Company}` in the **customer** tenant (`Assignment required?` = Yes) |
 
-Creating a user in the portal does **not** auto-create them in SuperOps or Entra. That is intentional in MVP — no SCIM or sync job yet.
+### Multitenant Accept (required for every customer tenant — checklist **06**)
 
-### The multi-tenant catch (important for MSPs)
+On IT uses **one** Global SSO SAML configuration in SuperOps. The Entra app is **multitenant**. Each of the **50+** customer tenants must **Accept** that app once.
 
-The portal uses **multi-tenant** Entra OAuth — Acme staff sign in with **Acme’s** Microsoft tenant.
-
-The **Global SSO** SAML app you built lives in **On IT’s** Entra tenant (`586cc505-...`). SAML login URL only federates users who exist in **that** tenant (or are B2B **guests** invited into it).
-
-So for a 100-person company on **their own** M365:
-
-- **Global SSO (On IT Entra)** does **not** automatically cover them unless they are guests in On IT’s directory.
-- Use **SuperOps Client SSO** (per client, their own Entra SAML app) for real client organisations, **or** send them to `portal.onit.ltd` / requester login with password until Client SSO is set up.
-
-**Practical split:**
-
-| User type | Portal login | SuperOps SSO approach |
+| Step | Who | Action |
 |---|---|---|
-| On IT internal / test users in On IT tenant | OAuth app #1 | Global SSO (group assign once) |
-| Client staff (own M365 tenant) | OAuth app #1 (email pre-provisioned) | Client SSO in SuperOps **or** manual requester login |
+| 1 | On IT / customer GA | Edit Client → step **06** → **Open** SuperOps SSO Accept URL |
+| 2 | Customer Global Admin | Sign in at Microsoft as **customer** GA → **Accept** |
+| 3 | On IT (customer Entra) | Enterprise applications → **SuperOps Requester SSO (On IT)** (now in customer tenant) → Users and groups → assign `On IT Portal - {Company}` |
+| 4 | On IT | Incognito test: `portal.onit.ltd/#/requester/login` with customer work email |
 
-### What to do today for a new client user
+**Accept URL:**
 
-1. **Portal:** Admin → Users → create (email must match their work account)
-2. **SuperOps:** Client → Users → add requester (same email) — or bulk import for large onboardings
-3. **Entra (only if user is in On IT tenant):** add to `SuperOps Requesters` group — **skip** for normal client staff on their own tenant until Client SSO exists
+```
+https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
+```
 
-### Future automation (not built yet)
+**Not the same as checklist 04** (Portal Graph / `OnIT Portal for Portals`).
 
-- `SuperOpsUserSyncService` on login (needs API token) — links existing requester by email, does **not** create new SuperOps users
-- Phase 3: client self-service, API provisioning, optional Graph enrichment
-- Per-client `SUPEROPS_SSO_URL` in DB if Client SSO URLs differ (would need a small code change)
+**Do not** use SuperOps **Client SSO** for normal onboardings.
+
+**If Accept was skipped:** Microsoft error that the user is not in tenant **On IT Technology Partners LTD** / cannot access `https://clientuser.superops.ai`.
+
+### What to do for a new client (summary)
+
+1. Checklist 01–05 (SuperOps link, group, Portal Graph consent, SCIM)
+2. Checklist **06** — Accept + assign group (this doc)
+3. Checklist 07–10 — enable sync, Sync now, test, hand off
 
 ---
 
@@ -304,17 +342,11 @@ So for a 100-person company on **their own** M365:
 
 ### 4.1 SuperOps requesters
 
-Each portal client user must exist in SuperOps as a **client user / requester** with the **same email** as `users.email` in the portal.
-
-1. SuperOps → **Clients** → select client → **Users** → add requester (bulk import if SuperOps supports it for large clients)
-2. Email must match exactly (e.g. `user@acme.example`)
-
-**At scale:** Entra group assignment (Part 2.2) + SuperOps client user list + portal Admin → Users. Three provisioning steps, but each scales via groups/imports — not per-user clicks on the SAML app.
+Each portal client user should exist in SuperOps as a **requester** with the **same email** (via SCIM after sync).
 
 ### 4.2 On IT Portal users
 
-1. Admin → **Users** — create user with matching email
-2. Admin → **Clients** — set `superops_account_id` if known; enable **SuperOps SSO enabled**
+Admin → Clients — SuperOps Account ID; sync fills users. Manual Admin → Users only for exceptions.
 
 ### 4.3 Optional API sync
 
@@ -336,38 +368,44 @@ API token is **not** required for SSO launch alone.
 
 - [ ] SuperOps **Global SSO** toggle ON and **Save** clicked
 - [ ] Step 2 fields not empty when you reload the page
+- [ ] App registration **Supported account types** = Multiple Entra ID tenants / Allow all tenants
+- [ ] App registration **Application ID URI** = `https://onit.ltd/superops-requester-sso` (not `clientuser.superops.ai`)
+- [ ] Enterprise app SAML **Entity ID** still = `https://clientuser.superops.ai`
+
+### Per customer tenant (every new client)
+
+- [ ] Checklist **06** Accept completed
+- [ ] `On IT Portal - {Company}` assigned to SuperOps Requester SSO in **customer** Entra
+- [ ] Incognito Microsoft login with customer work email succeeds
 
 ### SuperOps requester SSO (private browser)
 
-Use **`portal.test@onit.ltd`** only — not `tom.ashby@onit.ltd` (technician in SuperOps).
+Use a **customer** work email after Accept — or `portal.test@onit.ltd` for On IT home tenant tests only — **not** `tom.ashby@onit.ltd`.
 
 - [ ] Open `https://portal.onit.ltd/#/requester/login` — requester login (not role chooser)
 - [ ] Redirects to **Microsoft** (not “Login with Email”)
-- [ ] At Microsoft, confirm **`portal.test@onit.ltd`**
 - [ ] Land in SuperOps **requester** dashboard (`/#/client-home`)
 
 ### On IT Portal (end-to-end)
 
-- [ ] `php artisan config:clear` (no Entra URL in `SUPEROPS_SSO_URL`)
-- [ ] Private/incognito → http://localhost:8000/login → **`portal.test@onit.ltd`**
+- [ ] Private/incognito → https://app.onit.ltd/login → customer work email
 - [ ] Dashboard → **SuperOps** — direct redirect to `/#/requester/login`
 - [ ] Microsoft → requester dashboard
 
 ### Expected flow when working
 
 ```
-Portal (Microsoft login once as portal.test@onit.ltd) → Dashboard → SuperOps
+Portal (Microsoft login as customer) → Dashboard → SuperOps
   → portal.onit.ltd/?login_hint=...#/requester/login
-  → Microsoft (session may be silent)
+  → Microsoft (customer tenant session after Accept)
   → SuperOps requester dashboard (/#/client-home)
 ```
 
 ### Negative tests
 
+- [ ] Accept skipped → “not in On IT tenant” / cannot access clientuser.superops.ai
 - [ ] User in portal but **not** in SuperOps → SuperOps should deny or show error
-- [ ] User assigned to SAML app but wrong email in SuperOps → login failure
 - [ ] `tom.ashby@onit.ltd` via requester path → lands as **technician** (expected — do not use for requester SSO validation)
-- [ ] Clicking **Login as technician** on SuperOps is unrelated to this SSO app (expected)
 
 ---
 
@@ -375,23 +413,20 @@ Portal (Microsoft login once as portal.test@onit.ltd) → Dashboard → SuperOps
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| Confused SuperOps Entity ID with Application ID URI | Put `clientuser.superops.ai` under Expose an API then tried Multitenant | Keep Entity ID on SAML blade; set App ID URI to `https://onit.ltd/superops-requester-sso`; retry Authentication |
+| Unable to update Supported account type … Application ID URI must be on a tenant verified domain | App ID URI still on `clientuser.superops.ai` | §2.1a — change Expose an API first |
+| Account does not exist in tenant **On IT Technology Partners LTD** | Customer tenant never Accepted the multitenant SAML app (or app still single-tenant) | Confirm Multitenant saved; then checklist **06** Accept URL with correct customer tenant ID |
 | Chooser appears when using `/#/login` | Wrong launch path | Use `/#/requester/login` — not `/#/login/requester` |
-| Tom Ashby lands as **technician** after requester click | Tom is MSP technician in SuperOps | Test with `portal.test@onit.ltd` only — do not use Tom for requester SSO |
-| Wrong Microsoft account at SAML step | Browser cached Tom's M365 session | Private/incognito window; pick `portal.test@onit.ltd` at Microsoft |
+| Tom Ashby lands as **technician** after requester click | Tom is MSP technician in SuperOps | Test with customer email or `portal.test@onit.ltd` |
+| Wrong Microsoft account at SAML step | Browser cached Tom's M365 session | Private/incognito window |
 | `Login with Email` on SuperOps after choosing requester | Step 2 empty or not saved in SuperOps | Re-paste IDP Login URL + cert from Entra; **Save** |
-| **Error 1027** — “Email attribute missing; not configured in IDP” | Entra SAML claims wrong, or `user.mail` empty for test user | Fix claims (§2.4 below); use `user.userprincipalname` if mailbox has no `mail` |
-| **Error 1028** — “Error Validating SAML message” on **Entra → Test single sign-on** only | Entra test is **IdP-initiated**; SuperOps requester SSO expects **SP-initiated** (SuperOps sends `SAMLRequest` after **Login as requester**) | **Ignore Entra test** if portal → requester → Microsoft → `/#/client-home` works. Re-test via SuperOps, not Entra Test button |
-| **Error 1028** on real SuperOps login (after requester click) | Certificate mismatch, expired cert, or wrong Reply URL | Re-download Entra cert → paste body only into SuperOps Step 2 → **Save** |
-| **Logged in but “Access denied”** on `/#/client-home` | SAML succeeded; user lacks SuperOps content/client permissions | Confirm `portal.test@onit.ltd` is an active **requester** on the correct SuperOps client; check KB/article permissions |
+| **Error 1027** — “Email attribute missing; not configured in IDP” | Entra SAML claims wrong, or `user.mail` empty | Fix claims (§2.4); use `user.userprincipalname` if needed |
+| **Error 1028** — on **Entra → Test single sign-on** only | Entra test is **IdP-initiated** | Ignore Entra Test; re-test via SuperOps SP-initiated flow |
+| **Error 1028** on real SuperOps login | Certificate mismatch, expired cert, or wrong Reply URL | Re-download Entra cert → paste body only into SuperOps Step 2 → **Save** |
+| Assignment required but sign-in denied | Group/user not assigned on customer SP after Accept | Customer Entra → Users and groups → assign Portal group |
+| Confused with Portal Graph consent | Step 04 vs step 06 | Different Application IDs; both Accepts are required |
 | Step 2 blank after reload | Did not click Save | Fill IDP Login URL, Certificate; Save Global SSO panel |
 | `AADSTS750054` SAMLRequest must be present | Entra Login URL in portal `.env` | Remove from `SUPEROPS_SSO_URL`; portal redirects to `portal.onit.ltd` only |
-| Portal shows configuration error on SuperOps click | Missing `SUPEROPS_SUBDOMAIN` / requester URL | Set `.env`; `config:clear` |
-| Redirect to Microsoft then error | Wrong Reply URL or Entity ID | Re-check Part 2.3 against SuperOps Consumer Service URL |
-| SAML error / attributes | Claim names not exact | Use `email`, `firstname`, `lastname` (lowercase) |
-| Certificate error | PEM headers pasted into SuperOps | Paste body only (Part 2.5) |
-| User not found in SuperOps | Email mismatch | Align SuperOps requester email with portal `users.email` |
-| Lands as wrong role | Used technician SSO app or clicked technician | Requester SSO app only; clients use requester |
-| Works in Azure test but not portal | Stale config cache | `php artisan config:clear` |
 | CNAME change after SSO | SuperOps docs warn URLs break | Update Entra Reply URL and SuperOps settings |
 
 ---
@@ -404,7 +439,8 @@ Same steps; update production `.env`:
 APP_URL=https://app.onit.ltd
 MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 SUPEROPS_SUBDOMAIN=onitltd
-SUPEROPS_SSO_URL=https://login.microsoftonline.com/{tenant-id}/saml2
+SUPEROPS_REQUESTER_SSO_CLIENT_ID=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
+# SUPEROPS_SSO_URL=   ← leave empty
 ```
 
 Entra SAML Reply URL and portal OAuth redirect URI are **independent** — changing `APP_URL` does not affect SuperOps SAML.
@@ -417,9 +453,10 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 | Item | Reason |
 |---|---|
-| Technician SSO Entra app | Not needed for client portal |
+| SuperOps **Client SSO** per customer | Operating model = Global SSO + multitenant Accept |
+| Technician SSO Entra app for this checklist | Not needed for client portal requesters |
 | Reusing portal OAuth app | Wrong protocol (OIDC vs SAML) and wrong redirect URLs |
-| `app.superops.ai` | MSP technician app — not the requester portal |
+| `app.superops.ai` as requester target | MSP technician app — not the requester portal |
 
 ---
 
@@ -430,16 +467,19 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 | Entra app name | SuperOps Requester SSO (On IT) |
 | Entra Application (client) ID | `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` |
 | Entra Object ID | `cc9c46a8-b038-4591-beab-414584233245` |
-| Entra tenant ID | `586cc505-d298-4131-a3dc-9d1cd7c5ac0b` |
+| Supported account types | **Multiple Entra ID tenants** / Allow all tenants (verified 2026-07-14) |
+| Application ID URI (Expose an API) | `https://onit.ltd/superops-requester-sso` |
+| Assignment required? | **Yes** |
+| Entra tenant ID (home) | `586cc505-d298-4131-a3dc-9d1cd7c5ac0b` |
 | Entra SAML Login URL | `https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2` |
 | Requester portal (custom domain) | https://portal.onit.ltd |
 | Requester portal (default) | https://onitltd.superops.ai |
 | Consumer Service URL (Entra Reply URL) | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` |
-| SuperOps Entity ID (Entra) | `https://clientuser.superops.ai` |
+| SuperOps Entity ID (SAML Identifier — not App ID URI) | `https://clientuser.superops.ai` |
+| Portal Accept URL env | `SUPEROPS_REQUESTER_SSO_CLIENT_ID` |
 | Portal launch route | `/integrations/superops/launch` |
 | SuperOps SSO setting path | Settings → Requester Login → SSO Protected → Global SSO |
-
-> These Entra IDs are for admin reference only — they do **not** go in the portal `.env`. The portal uses `SUPEROPS_SSO_URL` (SAML Login URL).
+| Checklist step | **06** — SuperOps requester SSO (Global SSO Accept) |
 
 ---
 
@@ -447,6 +487,8 @@ See [Deployment.md](Deployment.md) for full Plesk checklist.
 
 | Date | Author | Notes |
 |---|---|---|
+| 2026-07-14 | On IT | Multitenant saved: App ID URI `https://onit.ltd/superops-requester-sso` vs SAML Entity ID `https://clientuser.superops.ai` documented; Accept path for 50+ clients |
+| 2026-07-14 | On IT | Documented multitenant Accept for every customer; verified Properties; removed Client SSO operating path |
 | 2026-06-15 | On IT | Phase A validated; launch path `/#/requester/login`; Entra errors 1027/1028 documented |
 | 2026-06-12 | On IT | Added On IT Consumer Service URL (`portal.onit.ltd` CNAME) |
 | 2026-06-12 | On IT | Initial guide — requester SSO only, Global SSO, `onitltd` subdomain |

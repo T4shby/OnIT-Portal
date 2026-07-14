@@ -194,23 +194,42 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertStringContainsString('Connect your application', $text);
     }
 
-    public function test_sso_step_uses_global_sso_entity_id(): void
+    public function test_sso_step_requires_customer_ga_accept(): void
     {
-        $client = Client::factory()->create(['name' => 'MXVI']);
+        $client = Client::factory()->create([
+            'name' => 'MXVI',
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+        ]);
 
-        $step = collect(app(ClientOnboardingService::class)->steps($client))
-            ->firstWhere('key', 'superops_client_sso_configured');
+        config(['services.superops.requester_sso_client_id' => 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1']);
+
+        $service = app(ClientOnboardingService::class);
+        $step = collect($service->steps($client))->firstWhere('key', 'superops_client_sso_configured');
         $text = implode(' ', $step['instructions']);
+        $consentUrl = $service->superOpsRequesterSsoConsentUrl($client);
 
-        $this->assertSame('SuperOps requester SSO (Global SSO)', $step['title']);
-        $this->assertStringContainsString('this is NOT per-client work', $text);
-        $this->assertStringContainsString('Part A only', $text);
-        $this->assertStringContainsString('Mark this step complete', $text);
+        $this->assertSame('SuperOps requester SSO (Global SSO Accept)', $step['title']);
+        $this->assertStringContainsString('customer Global Admin must Accept', $text);
+        $this->assertStringContainsString('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $text);
+        $this->assertStringContainsString('Do not', $text);
+        $this->assertStringContainsString('Client SSO', $text);
         $this->assertStringContainsString('https://clientuser.superops.ai', $text);
         $this->assertStringContainsString('Global SSO', $text);
-        $this->assertStringContainsString('do **not** create a configuration for MXVI', $text);
-        $this->assertStringNotContainsString('+ Configuration', $text);
-        $this->assertStringContainsString('Only if Global SSO has NEVER been set up', $text);
+        $this->assertStringContainsString('not in tenant', $text);
+        $this->assertStringStartsWith(
+            'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/adminconsent',
+            $consentUrl,
+        );
+        parse_str((string) parse_url((string) $consentUrl, PHP_URL_QUERY), $query);
+        $this->assertSame('bf1c303e-6015-43f7-abb2-5dfe8f67a5a1', $query['client_id']);
+    }
+
+    public function test_superops_requester_sso_consent_url_requires_tenant(): void
+    {
+        config(['services.superops.requester_sso_client_id' => 'bf1c303e-6015-43f7-abb2-5dfe8f67a5a1']);
+
+        $withoutTenant = Client::factory()->create(['entra_tenant_id' => null]);
+        $this->assertNull(app(ClientOnboardingService::class)->superOpsRequesterSsoConsentUrl($withoutTenant));
     }
 
     public function test_group_step_clarifies_portal_vs_superops_scope_on_free(): void

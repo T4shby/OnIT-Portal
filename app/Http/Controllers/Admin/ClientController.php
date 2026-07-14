@@ -60,6 +60,7 @@ class ClientController extends Controller
             'onboardingSteps' => $this->onboarding->steps($client),
             'onboardingProgress' => $this->onboarding->progress($client),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
+            'superOpsRequesterSsoConsentUrl' => $this->onboarding->superOpsRequesterSsoConsentUrl($client),
             'fieldHelps' => $this->onboarding->fieldHelps($client),
         ];
     }

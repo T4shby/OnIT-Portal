@@ -19,8 +19,8 @@
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Order for this client:</strong>
-            SuperOps link (01) → Pax8 if used (02) → M365 group (03) → Admin consent (04) →
-            SuperOps SCIM (05) → SuperOps Global SSO (06) → Enable sync (07) → Dry run / Sync now (08) → Test sign-in (09) → Hand off (10).
+            SuperOps link (01) → Pax8 if used (02) → M365 group (03) → Portal Graph consent (04) →
+            SuperOps SCIM (05) → SuperOps Global SSO Accept (06) → Enable sync (07) → Dry run / Sync now (08) → Test sign-in (09) → Hand off (10).
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Saving data:</strong>
@@ -56,6 +56,7 @@
                 'client' => $client,
                 'onboardingSteps' => $onboardingSteps,
                 'adminConsentUrl' => $adminConsentUrl,
+                'superOpsRequesterSsoConsentUrl' => $superOpsRequesterSsoConsentUrl ?? null,
                 'showCheckboxes' => true,
             ])
             <div class="onboarding-panel__actions">
@@ -68,6 +69,7 @@
                 'client' => $client,
                 'onboardingSteps' => $onboardingSteps,
                 'adminConsentUrl' => $adminConsentUrl,
+                'superOpsRequesterSsoConsentUrl' => $superOpsRequesterSsoConsentUrl ?? null,
                 'showCheckboxes' => false,
             ])
         </div>

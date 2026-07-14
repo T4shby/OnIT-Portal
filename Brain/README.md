@@ -1,12 +1,12 @@
 # On IT Portal — Brain (Source of Truth)
 
-Read these documents before changing application code. **Update Brain in the same change** — this folder is the handover doc for junior engineers and future maintainers.
+Read these documents before changing application code. **Update Brain for every meaningful change in the same turn** (code, checklist, Entra/SSO, deploy, env) — not only “docs tickets”. This folder is the handover doc for technicians and maintainers.
 
 ## For Junior Engineers
 
 1. Start here, then read [LocalDevelopment.md](LocalDevelopment.md) to run the app on Windows.
 2. Read the doc for the area you are changing (auth, SuperOps, portal links, etc.).
-3. After every code or config change, update the relevant Brain file in the same PR/commit.
+3. **Every** code or config change that affects how the app or ops works → update the relevant Brain file **in the same change** (same PR/commit). No exceptions for “I’ll document later”.
 4. If you hit an error locally, check [LocalDevelopment.md — Common Local Errors](LocalDevelopment.md#common-local-errors) first.
 
 ## Document Index
@@ -71,6 +71,8 @@ Read these documents before changing application code. **Update Brain in the sam
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Brain policy: update for **every** meaningful change (same turn); SuperOps Multitenant App ID URI vs Entity ID documented |
+| 2026-07-14 | SuperOps Requester SSO: Multitenant saved; document App ID URI (`onit.ltd`) vs SAML Entity ID (`clientuser.superops.ai`); step 06 Accept for every customer |
 | 2026-06-25 | Security/reliability: signed admin consent state, block login for inactive clients, sync lock + throttle, partial-sync warnings, cron non-zero exit |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand + delay; spinner/status banner; Brain docs + ADR-020 aligned on name.familyName |
 | 2026-06-25 | Sync now / dry run: spinner + status banner on Edit client while Entra sync runs |

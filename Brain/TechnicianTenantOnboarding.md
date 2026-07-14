@@ -4,7 +4,7 @@
 
 **In-app wizard:** **Add Client** = form only. After **Create**, **Edit** opens with the setup checklist on the **right** (10 steps, install-manual format); **Dry run sync** / **Sync now** on the **left**.
 
-**Checklist order (Edit page):** Add Client → Create first, then 01 SuperOps → 02 Pax8 (optional) → 03 security group → **04 admin consent** → **05 SCIM** → **06 Client SSO** → 07 enable sync → 08 run sync → 09 test → 10 handoff.
+**Checklist order (Edit page):** Add Client → Create first, then 01 SuperOps → 02 Pax8 (optional) → 03 security group → **04 Portal Graph consent** → **05 SCIM** → **06 Global SSO Accept** → 07 enable sync → 08 run sync → 09 test → 10 handoff.
 
 | URL | What |
 |-----|------|

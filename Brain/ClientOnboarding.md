@@ -12,7 +12,7 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 | [ColleagueSetupGuide.md](ColleagueSetupGuide.md) | **Give this to staff adding clients/users (simple)** |
 | [AccessAndSync.md](AccessAndSync.md) | **Auto-sync, offboarding, 60-tenant scale** |
 | [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete Entra/SCIM/SAML re-do from scratch** |
-| [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | One-time Entra SAML + SuperOps Global SSO |
+| [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) | One-time Global SSO + **per-client customer GA Accept** (50+ clients) |
 | [OperatorRunbook.md](OperatorRunbook.md) | Phase A test, day-to-day ops |
 | [Authentication.md](Authentication.md) | Portal OAuth (app #1) |
 | [Deployment.md](Deployment.md) | Production Plesk |
@@ -26,9 +26,9 @@ Every step is performed by **On IT technicians**. The label shows **where** you 
 | Label in app | Where | Examples |
 |--------------|-------|----------|
 | **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
-| **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, admin consent, Client SSO |
+| **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, Portal Graph consent (04), SuperOps SSO Accept (06) |
 
-If you do not have GDAP on a tenant, send the customer admin the consent URL from **checklist step 04** — the checklist owner is still On IT until handed off.
+If you do not have GDAP on a tenant, send the customer admin the consent URLs from **checklist steps 04 and 06** — the checklist owner is still On IT until handed off.
 
 Same playbook for every client: **Admin → Clients → Add → Edit** → work the checklist → next client.
 
@@ -63,7 +63,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 03 | M365 security group + Entra tenant | On IT technician (customer Entra / GDAP) |
 | 04 | Portal Graph admin consent | On IT technician (customer Entra / GDAP) |
 | 05 | SuperOps SCIM (requesters) | On IT technician (customer Entra / GDAP) |
-| 06 | SuperOps requester SSO (Global SSO) | On IT technician (customer Entra / GDAP) |
+| 06 | SuperOps requester SSO (Global SSO Accept) | On IT technician (customer Entra / GDAP) |
 | 07 | Enable portal sync | On IT technician (portal / SuperOps) |
 | 08 | Run portal sync | On IT technician (portal / SuperOps) |
 | 09 | Test sign-in | On IT technician (portal / SuperOps) |
@@ -82,7 +82,7 @@ Full click-by-click text lives in the app; Brain docs are reference copies — k
 | 03 M365 security group + Entra tenant | **Both** `Entra tenant ID` and `Entra group ID` saved | Done in Azure but IDs not pasted yet |
 | 04 Portal Graph admin consent | Entra sync has run successfully | Consent granted but sync not run yet |
 | 05 SuperOps SCIM | — | Done in SuperOps + customer Entra |
-| 06 SuperOps requester SSO (Global SSO) | — | **Almost always:** tick complete (Global SSO already set up once for On IT). Rebuild SAML only if Global SSO is broken for every client. |
+| 06 SuperOps requester SSO (Global SSO Accept) | — | Customer GA **Accepts** multitenant app **SuperOps Requester SSO (On IT)** + assign `On IT Portal - {Company}` in **customer** tenant. Not Client SSO. |
 | 07 Enable portal sync | Tenant ID + group ID (+ app ID on Free) saved, **Entra sync enabled** ticked, **Save client** | — |
 | 08 Run portal sync | `entra_synced_at` set after **Dry run sync** then **Sync now** on this page | — |
 | 09 Test sign-in | — | You tested in incognito |
@@ -154,15 +154,19 @@ See [Authentication.md](Authentication.md).
 | Application (client) ID | `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` |
 | Object ID | `cc9c46a8-b038-4591-beab-414584233245` |
 | On IT tenant ID | `586cc505-d298-4131-a3dc-9d1cd7c5ac0b` |
+| Supported account types | **Multiple Entra ID tenants** / Allow all tenants (verified 2026-07-14) |
+| Application ID URI (Expose an API) | `https://onit.ltd/superops-requester-sso` |
 
-**SAML — Basic configuration (Entra)**
+**SAML — Basic configuration (Entra Enterprise app → Single sign-on)**
 
 | Field | Value |
 |---|---|
-| Identifier (Entity ID) | `https://clientuser.superops.ai` |
+| Identifier (Entity ID) | `https://clientuser.superops.ai` — SuperOps fixed value; **not** the Application ID URI |
 | Reply URL (ACS) | `https://portal.onit.ltd/accounts-web/accounts/saml/response/5684471812792168448` |
 | Sign on URL | *(leave empty)* |
 | Logout URL | *(leave empty)* |
+
+> **Do not confuse:** SuperOps Entity ID = `https://clientuser.superops.ai` on the SAML blade. Multitenant App ID URI = `https://onit.ltd/superops-requester-sso` under Expose an API. See [SuperOpsRequesterSsoSetup.md §2.1a](SuperOpsRequesterSsoSetup.md).
 
 **SAML — Attributes & claims (Entra)** — must be lowercase:
 
@@ -187,8 +191,11 @@ See [Authentication.md](Authentication.md).
 SUPEROPS_SUBDOMAIN=onitltd
 SUPEROPS_REQUESTER_PORTAL_URL=https://portal.onit.ltd
 SUPEROPS_SSO_ENABLED=true
+SUPEROPS_REQUESTER_SSO_CLIENT_ID=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
 # Leave SUPEROPS_SSO_URL empty — Entra Login URL belongs in SuperOps admin only (see below)
 ```
+
+**Per client (checklist 06):** customer Global Admin Accepts this app — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) § Multitenant Accept.
 
 **Entra Login URL** (`https://login.microsoftonline.com/586cc505-d298-4131-a3dc-9d1cd7c5ac0b/saml2`) — copy from **Entra → SuperOps Requester SSO app → Single sign-on → Login URL** (Section 4). Paste into **SuperOps Step 2 IDP Login URL only**. Click **Save**. See [SuperOpsRequesterSsoSetup.md §2.6–2.8](SuperOpsRequesterSsoSetup.md).
 
@@ -233,87 +240,33 @@ Manual **Admin → Users** remains available for pilots or exceptions (`provisio
 
 ## Part 1 — New client organisation
 
-> **Canonical flow:** use the in-app checklist on **Edit Client** (steps 01–10). The Path A / Path B sections below are **legacy reference** for Global SSO vs Client SSO architecture — do not use them for day-to-day Entra sync onboarding (use the checklist instead).
+> **Canonical flow:** **Admin → Clients → Edit** checklist steps **01–10**. Do **not** use SuperOps **Client SSO**.
 
-Choose **Path A** or **Path B** before you start.
+Every real customer (own M365 tenant) uses the same model:
 
-| Path | Client's Microsoft tenant | SuperOps SSO |
-|---|---|---|
-| **A — Same On IT tenant** | Users are in **On IT** M365 (unusual for external clients) | **Global SSO** (already configured) |
-| **B — Client's own M365** | Users in **client's** tenant (normal MSP model) | **Client SSO** per client (see Part 3) |
-
-Most real customers are **Path B**. Path A + Global SSO suits internal/test users homed in On IT's directory.
-
----
-
-### Path A — New client (users in On IT tenant)
-
-Use when every requester has an `@onit.ltd` (or guest) account in **On IT's** Entra.
-
-#### Checklist — new client (Path A)
+1. **Platform (once):** SuperOps **Global SSO** + Entra app **SuperOps Requester SSO (On IT)** (multitenant App Registration + SAML). See §0.2 and [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
+2. **Per client:** checklist **04** Portal Graph Accept + **06** SuperOps SSO Accept (customer Global Admin) + assign group `On IT Portal - {Company}` in the **customer** tenant.
 
 | # | System | Action | Done |
 |---|---|---|---|
-| 1 | **SuperOps** | **Clients** → create client (or confirm exists) | ☐ |
-| 2 | **SuperOps** | Note **Account ID** for ticket mapping | ☐ |
-| 3 | **Portal** | **Admin → Clients** → Create: name, slug, active | ☐ |
-| 4 | **Portal** | Edit client: **SuperOps Account ID**, **SuperOps SSO enabled** ✓ | ☐ |
-| 5 | **Entra** | Create security group: `Client - {Name} - Portal` | ☐ |
-| 6 | **Entra** | Assign group to **SuperOps Requester SSO (On IT)** app (once per group) | ☐ |
-| 7 | **Portal** | **Admin → Users** → create each user (email, role, client) | ☐ |
-| 8 | **SuperOps** | Client → **Users** → add each **requester** (same emails) | ☐ |
-| 9 | **Entra** | Add each user to client's security group | ☐ |
-| 10 | **Test** | One user: portal login → SuperOps → requester portal | ☐ |
+| 1 | **SuperOps** | Create / confirm client; note Account ID | ☐ |
+| 2 | **Portal** | **Admin → Clients** → Create → Edit checklist | ☐ |
+| 3 | **Entra (customer)** | Group `On IT Portal - {Company}` + tenant ID (step 03) | ☐ |
+| 4 | **Portal / customer GA** | Step 04 Portal Graph admin consent | ☐ |
+| 5 | **SuperOps + customer Entra** | Step 05 SCIM on `SuperOps - {Company}` | ☐ |
+| 6 | **Customer GA** | Step 06 Accept **SuperOps Requester SSO (On IT)** + assign Portal group | ☐ |
+| 7–8 | **Portal** | Enable sync → Dry run → Sync now | ☐ |
+| 9–10 | **Portal** | Test Microsoft sign-in → hand off | ☐ |
 
-#### Portal — Admin → Clients (fields)
-
-| Field | What to enter |
-|---|---|
-| Name | Client display name |
-| Slug | URL-safe identifier |
-| SuperOps Account ID | From SuperOps client record |
-| SuperOps SSO enabled | ✓ if using SSO launch |
-| Active | ✓ |
-
-#### Portal — Admin → Users (per person)
-
-| Field | What to enter |
-|---|---|
-| Email | Must match Microsoft sign-in address |
-| Name | Display name |
-| Role | `client_user` or `client_admin` |
-| Client | This client |
-| Active | ✓ |
-
-#### Entra — group pattern (scalable)
+**Accept URL pattern (step 06):**
 
 ```
-Group name:     Client - Acme Corp - Portal
-Members:        all Acme portal users (@onit.ltd or guests)
-App assignment: SuperOps Requester SSO (On IT)  ← assign GROUP once
+https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id=bf1c303e-6015-43f7-abb2-5dfe8f67a5a1
 ```
 
-New hire at Acme → add to group only (steps 7–9 for portal + SuperOps user rows).
+Generated on Edit Client when Entra tenant ID is saved. Portal env: `SUPEROPS_REQUESTER_SSO_CLIENT_ID` (defaults to that Application ID).
 
----
-
-### Path B — New client (client's own M365 tenant) — most common
-
-Portal login already works (multi-tenant OAuth): provision `users.email` and they sign in with **their** work account.
-
-**Global SSO does not apply** — do **not** add client staff to On IT's `SuperOps Requester SSO` Entra app.
-
-| # | System | Action | Done |
-|---|---|---|---|
-| 1 | **SuperOps** | Create / confirm client | ☐ |
-| 2 | **Portal** | **Admin → Clients** → create + SuperOps Account ID | ☐ |
-| 3 | **SuperOps** | **Client SSO** setup (Part 3) — client's Entra SAML app | ☐ |
-| 4 | **Portal** | Create users with **client work emails** | ☐ |
-| 5 | **SuperOps** | Add **requesters** with same emails | ☐ |
-| 6 | **Portal** | Share portal URL; client signs in with Microsoft | ☐ |
-| 7 | **SuperOps access** | Client uses Client SSO URL or requester login on `portal.onit.ltd` | ☐ |
-
-**Note:** Per-client `SUPEROPS_SSO_URL` in the database is **not** implemented yet. Until then, portal **SuperOps** button uses the **global** `SUPEROPS_SSO_URL` (On IT tenant). For Path B clients, they may need to open `portal.onit.ltd` directly and use **Client SSO** login until per-client launch URLs are built (Roadmap / Phase 3).
+**Symptom if step 06 was skipped:** Microsoft error that the account does not exist in tenant **On IT Technology Partners LTD** / cannot access `https://clientuser.superops.ai`.
 
 ---
 
@@ -321,39 +274,20 @@ Portal login already works (multi-tenant OAuth): provision `users.email` and the
 
 | # | System | Action | Done |
 |---|---|---|---|
-| 1 | **Portal** | **Admin → Users** → Create (email, role, client) | ☐ |
-| 2 | **SuperOps** | Client → **Users** → Add requester (same email) | ☐ |
-| 3 | **Entra** (Path A only) | Add user to `Client - {Name} - Portal` group | ☐ |
-| 4 | **Test** | User signs in at portal URL | ☐ |
+| 1 | **Portal / sync** | User appears after Sync now (or Admin → Users exception) | ☐ |
+| 2 | **SuperOps** | Requester exists via SCIM (same email) | ☐ |
+| 3 | **Entra (customer)** | In Portal group / assigned to SuperOps Requester SSO SP after Accept | ☐ |
+| 4 | **Test** | Portal login → SuperOps tile → requester | ☐ |
 
-**Not required per user:** changes to SAML Reply URL, certificate, or `SUPEROPS_SSO_URL` (unless Client SSO path).
+**Not required per user:** changing SAML Reply URL, certificate, Entity ID, or SuperOps Global SSO fields.
 
 ---
 
-## Part 3 — Client SSO (client's own Entra tenant)
+## Part 3 — Do not use SuperOps Client SSO
 
-When a client has **their own** Microsoft 365 and wants passwordless SuperOps login.
+On IT operates **Global SSO only** for all 50+ clients. SuperOps **Client SSO** (`+ Configuration` per client) is **out of scope**.
 
-**One-time per client** in SuperOps + client's Entra (not On IT's Global SSO app).
-
-| # | Where | Action |
-|---|---|---|
-| 1 | **SuperOps** | **Requester Login → SSO Protected → Client SSO** → **+ Configuration** |
-| 2 | **SuperOps** | Copy **client-specific** Entity ID + Consumer Service URL |
-| 3 | **Client's Entra** | New enterprise app (non-gallery), SAML — use SuperOps values from step 2 |
-| 4 | **Client's Entra** | Claims: `email`, `firstname`, `lastname` (lowercase) |
-| 5 | **Client's Entra** | Cert → SuperOps; Login URL → SuperOps |
-| 6 | **Client's Entra** | Client IT assigns their users/groups to **their** SAML app |
-| 7 | **SuperOps** | Link configuration to this client |
-| 8 | **Portal** | Portal users still created in Admin (multi-tenant OAuth unchanged) |
-
-Official guide: [Setting up Requester SSO in SuperOps](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops) (Client SSO section).
-
-Record per client in your internal wiki:
-
-| Client | SuperOps account | Client SSO name | Client tenant ID | Notes |
-|---|---|---|---|---|
-| Example Ltd | … | SuperOps Requester - Example | … | Configured 2026-… |
+Per-client work is checklist **06**: customer Global Admin **Accept** of the multitenant app **SuperOps Requester SSO (On IT)** + assign `On IT Portal - {Company}` in the **customer** tenant. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 ---
 
@@ -363,20 +297,20 @@ Record per client in your internal wiki:
 
 | Test | Steps | Pass |
 |---|---|---|
-| SAML direct | Private window → Entra Login URL → test requester | ☐ |
-| Portal → SuperOps | Test user → dashboard → **SuperOps** → Microsoft → requester dashboard | ☐ |
+| SAML / Global SSO panel | SuperOps Global SSO ON; IDP URL + cert filled | ☐ |
+| Portal → SuperOps (On IT test) | `portal.test@onit.ltd` → dashboard → SuperOps → requester | ☐ |
 | Portal OAuth | Test user → `/login` → Microsoft | ☐ |
-| Pax8 | Dashboard → **Pax8** → launch route → Pax8 (partner or company view) | ☐ |
+| Pax8 | Dashboard → **Pax8** → launch (if used) | ☐ |
 
-### After each new client / user
+### After each new client
 
 | Test | Pass |
 |---|---|
-| Portal login with work email | ☐ |
-| Dashboard shows SuperOps + Pax8 | ☐ |
-| SuperOps opens as **requester** (not technician) | Use `portal.test@onit.ltd`; not `tom.ashby@onit.ltd` | ☐ |
-| User sees only their client's data | ☐ |
-
+| Step 06 Accept completed for that tenant | ☐ |
+| Portal login with customer work email | ☐ |
+| Dashboard shows SuperOps (+ Pax8 if enabled) | ☐ |
+| SuperOps opens as **requester** (not technician) | ☐ |
+| No “account does not exist in On IT tenant” at Microsoft | ☐ |
 ---
 
 ## Part 5 — What NOT to do
@@ -386,9 +320,10 @@ Record per client in your internal wiki:
 | Test requester SSO as `tom.ashby@onit.ltd` | SuperOps maps Tom to **technician** — misleading results |
 | Assign technicians to Requester SSO app | Technician ≠ requester |
 | Reuse portal OAuth app for SuperOps SAML | Wrong protocol and URLs |
-| Add client staff (own M365) to On IT Global SSO app | They live in a different tenant |
-| Use seeded `@*.example` emails for real tests | Not real Entra accounts |
-| Change Reply URL without updating Entra | SAML breaks for everyone on Global SSO |
+| Open SuperOps **Client SSO** for a normal client | On IT uses **Global SSO + per-tenant Accept** only |
+| Skip step 06 Accept for a new customer tenant | Microsoft: user not in On IT tenant / cannot access clientuser.superops.ai |
+| Confuse step 04 with step 06 | 04 = Portal Graph; 06 = SuperOps Requester SSO |
+| Change Reply URL / cert without updating both ends | SAML breaks for **every** client on Global SSO |
 
 ---
 
@@ -408,7 +343,7 @@ On IT validated Global SSO with **`portal.test@onit.ltd`** (`client_user` on On 
 
 **Do not test requester SSO as `tom.ashby@onit.ltd`** — MSP technician in SuperOps. Portal blocks `super_admin` from SuperOps launch.
 
-**Next:** Onboard first real client users (Path B in most cases). `portal.onit.ltd` remains SuperOps only.
+**Next:** For each real customer tenant, complete checklist **06 Accept** (not Client SSO). `portal.onit.ltd` remains SuperOps only.
 
 See [OperatorRunbook.md](OperatorRunbook.md) Phase A for click-by-click.
 
@@ -419,17 +354,12 @@ See [OperatorRunbook.md](OperatorRunbook.md) Phase A for click-by-click.
 ```
 Client name:     _______________________
 Portal slug:     _______________________
-Path:            [ ] A (On IT tenant)  [ ] B (client M365)
+Entra tenant ID: _______________________
 
 SuperOps account ID:  _______________________
-SuperOps SSO enabled: [ ] Yes  [ ] No (Path B until Client SSO)
-
-Entra group (Path A): Client - __________ - Portal
-
-Users:
-  Email                    Portal role    SuperOps requester    Entra group
-  ____________________     __________     [ ]                 [ ]
-  ____________________     __________     [ ]                 [ ]
+Step 04 Portal Graph Accept: [ ] Done
+Step 06 SuperOps SSO Accept: [ ] Done  (app bf1c303e-6015-43f7-abb2-5dfe8f67a5a1)
+Group On IT Portal - _______________ assigned in customer tenant: [ ]
 
 Tested by: __________  Date: __________
 ```
@@ -440,4 +370,5 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Multitenant verified (App ID URI `onit.ltd/…` vs SAML Entity ID `clientuser.superops.ai`); step 06 Accept path; Client SSO removed from operating model |
 | 2026-06-15 | Phase A SSO validated; launch path `/#/requester/login`; Plesk deployment notes |

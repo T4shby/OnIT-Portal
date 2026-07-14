@@ -88,11 +88,42 @@
 
                 @if($step['key'] === 'superops_client_sso_configured' && ! $isDone && ! $isBlocked)
                     <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                        <strong class="text-white">Usually already done.</strong>
-                        Global SSO is set up <strong class="text-white">once</strong> for On IT — not again for this client.
-                        Follow <strong class="text-white">Part A only</strong>: tick Mark this step complete → Save checklist.
-                        Do not paste a certificate unless Tom asks you to.
+                        <strong class="text-white">Per client — customer GA must Accept.</strong>
+                        Platform Global SSO (cert / Entity ID) is already set once. This step is the customer tenant
+                        <strong class="text-white">Accept</strong> of <strong class="text-white">SuperOps Requester SSO (On IT)</strong>
+                        — not step 04 Portal Graph consent, and not SuperOps Client SSO.
                     </p>
+                    @if(! empty($superOpsRequesterSsoConsentUrl))
+                        <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
+                            <p class="portal-label mb-3">SuperOps SSO Accept URL</p>
+                            <div class="flex flex-col gap-3 lg:flex-row">
+                                <input
+                                    type="text"
+                                    readonly
+                                    value="{{ $superOpsRequesterSsoConsentUrl }}"
+                                    class="admin-input flex-1 text-xs"
+                                >
+                                <div class="flex shrink-0 gap-2">
+                                    <a
+                                        href="{{ $superOpsRequesterSsoConsentUrl }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="cta-btn-ghost px-4 py-2 text-xs"
+                                    >Open</a>
+                                    <button
+                                        type="button"
+                                        class="cta-btn-ghost px-4 py-2 text-xs"
+                                        @click="navigator.clipboard.writeText(@js($superOpsRequesterSsoConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
+                                        x-text="copied ? 'Copied' : 'Copy'"
+                                    >Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <p class="onboarding-guide__note portal-body-muted mb-4 text-sm">
+                            Save the Entra tenant ID on the left to generate the SuperOps SSO Accept link here.
+                        </p>
+                    @endif
                 @endif
 
                 @if($step['key'] === 'entra_admin_consent_granted' && $adminConsentUrl)

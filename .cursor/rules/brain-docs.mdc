@@ -1,0 +1,44 @@
+---
+description: Keep Brain docs updated for every meaningful portal change
+alwaysApply: true
+---
+
+# Brain documentation (On IT Portal)
+
+Canonical ops/reference docs live in `Brain/`. They are part of the product — not optional notes for “later”.
+
+## Rule
+
+**Every meaningful change in this repo must update Brain in the same turn** — before you claim done, commit, or tell the user the work is finished.
+
+That means feature work, bug fixes, checklist/copy changes, env keys, deploy steps, Entra/SSO/SCIM, sync behaviour, auth, admin UX that technicians use, and any verified live fact that differs from what Brain says.
+
+Do **not** invent a narrow exception (“only Entra”, “only SSO”). If you changed how something works or how staff should do it, Brain changes too.
+
+If nothing in Brain is affected (pure typo in a comment, deps lockfile only, etc.), say so briefly in the task record / reply. Prefer updating over claiming N/A.
+
+## What to update
+
+Start from `Brain/README.md` (index + changelog row with today’s date). Then the topic file(s) that match the change, for example:
+
+| Topic | File |
+|---|---|
+| Client onboarding checklist | `Brain/ClientOnboarding.md` |
+| Requester Global SSO / Accept | `Brain/SuperOpsRequesterSsoSetup.md` |
+| Entra/SCIM redo | `Brain/CustomerEntraSyncRunbook.md` |
+| SCIM | `Brain/SuperOpsEntraSync.md` |
+| Deploy / Plesk | `Brain/Deployment.md` |
+| Access / sync model | `Brain/AccessAndSync.md` |
+| Auth | `Brain/Authentication.md` |
+
+Keep step numbers, Application IDs, URLs, and who-does-what aligned with the **live** checklist and Azure.
+
+## Hard constraints (do not regress)
+
+- Global SSO + per-customer GA Accept — **not** SuperOps Client SSO for normal clients.
+- SAML Entity ID `https://clientuser.superops.ai` ≠ App ID URI `https://onit.ltd/superops-requester-sso`.
+- App registration = Multitenant. Checklist **04** = Portal Graph; **06** = SuperOps Requester SSO Accept.
+
+## Before answering ops / Azure / onboarding questions
+
+Read the relevant Brain file first. If live reality differs, fix Brain after confirming.

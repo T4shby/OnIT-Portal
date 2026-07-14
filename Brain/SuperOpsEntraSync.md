@@ -25,11 +25,11 @@ Customer M365 tenant
 
 ## Per-client setup (e.g. Ductec)
 
-> **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05 (SCIM)** and **06 (Client SSO)** contain the full install-manual instructions (prerequisites, numbered parts, verification). This doc is the reference copy.
+> **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05 (SCIM)** and **06 (Global SSO Accept)** contain the full install-manual instructions. This doc is the reference copy.
 
 ### 1. Create the security group in customer Entra
 
-Used for **SuperOps SCIM and Client SSO** — portal sync **maintains membership** when `entra_group_id` is saved on the client.
+Used for **SuperOps SCIM** (and Portal group visibility) — portal sync **maintains membership** when `entra_group_id` is saved on the client. Requester **login** is Global SSO + checklist **06** Accept — not SAML on this customer SCIM app.
 
 1. Customer tenant (e.g. Ductec) → **Entra ID → Manage → Groups**
 2. Create security group: `On IT Portal - {Company}` — type **Security**, membership **Assigned**
@@ -74,18 +74,19 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps → Overview → portal field; portal sync assigns licensed users automatically
 7. Start provisioning
 
-#### 2c. Requester login — Global SSO (not on the customer SCIM app)
+#### 2c. Requester login — Global SSO + per-tenant Accept (not on the customer SCIM app)
 
-On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)):
+On IT uses **Global SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)) plus **customer Global Admin Accept** of the multitenant app:
 
 | Field | Where it comes from |
 |-------|---------------------|
 | **Identifier (Entity ID)** | Type **`https://clientuser.superops.ai`** — fixed SuperOps value for Global SSO. Not per-client. |
 | **Reply URL** | SuperOps → Settings → Requester Login → SSO Protected → **Global SSO** → **Consumer Service URL** |
+| **Per client** | Checklist **06** Accept URL → customer GA Accepts `bf1c303e-6015-43f7-abb2-5dfe8f67a5a1` → assign `On IT Portal - {Company}` in **customer** tenant |
 
-Configure SAML on the **On IT** Entra app (e.g. SuperOps Requester SSO), then paste Login URL + certificate back into SuperOps **Global SSO**. Do **not** put Global SSO SAML on the customer `SuperOps - {Company}` SCIM app.
+Configure SAML once on the **On IT** Entra app (**SuperOps Requester SSO (On IT)**), then paste Login URL + certificate into SuperOps **Global SSO**. Do **not** put Global SSO SAML on the customer `SuperOps - {Company}` SCIM app. Do **not** use SuperOps Client SSO.
 
-Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md). Checklist step 06 confirms this.
+Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md). Checklist step 06 is the Accept — not “tick because platform exists”.
 
 ### Legacy: two separate Entra apps
 
@@ -190,16 +191,17 @@ Then configure SCIM attribute mapping above and run **Sync now** so extension at
 |---|---|
 | **On IT Portal** users | Portal sync — [EntraGroupSync.md](EntraGroupSync.md) |
 | **Portal login** (OAuth) | On IT Portal app — separate from SCIM app |
-| **SuperOps SSO login** (SAML) | Same **SuperOps - {Company}** app as SCIM (default) — see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
+| **SuperOps SSO login** (SAML) | On IT **Global SSO** + customer Accept of **SuperOps Requester SSO (On IT)** — not the SCIM app |
 
-You may have **two** Entra enterprise apps per customer tenant (plus On IT Portal OAuth in On IT's tenant):
+You may have **two** Entra enterprise apps in the customer tenant (plus the consented SuperOps Requester SSO SP after step 06):
 
 | App | Purpose |
 |---|---|
-| **SuperOps - {Company}** (single app) | SCIM provisioning + Client SSO (SAML) — **default** |
-| On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant |
+| **SuperOps - {Company}** | SCIM provisioning only |
+| **SuperOps Requester SSO (On IT)** | Appears after checklist **06** Accept — assign Portal group |
+| On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant (step 04) |
 
-Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
+Legacy fallback: separate SCIM apps if single-app SCIM setup fails — still do **not** use SuperOps Client SSO for login.
 
 ---
 
@@ -213,7 +215,7 @@ Legacy fallback: separate SCIM and SSO apps if single-app setup fails.
 | ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
 | ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
-| ☐ | SuperOps Client SSO configured (SAML) |
+| ☐ | Checklist **06** — customer GA Accepted SuperOps Requester SSO; Portal group assigned |
 | ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
 

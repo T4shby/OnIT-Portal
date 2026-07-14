@@ -32,7 +32,7 @@ The group `On IT Portal - {Company}` is **not** how the portal discovers users.
 |---|---|
 | **On IT Portal** (`portal:sync-entra-users`) | **Maintains** the group via Graph when `entra_group_id` is set. On **Entra ID Free**, **assigns** licensed users + shared mailboxes to the SuperOps enterprise app when `entra_superops_app_id` is set. **Writes SuperOps last name** to `extensionAttribute1` (does not change M365 `displayName`). **Triggers SCIM provision-on-demand once per user** on Sync now |
 | **SuperOps SCIM** | **Yes** — provisions users assigned to the enterprise app (via group on P1, or direct app assignment on Free) |
-| **SuperOps Client SSO (SAML)** | **P1:** assign the same security group to the app once. **Free:** portal assigns users to the same app (SCIM + SAML share one app) |
+| **SuperOps Requester SSO (Global SSO)** | After customer Accept: assign `On IT Portal - {Company}` to the SuperOps Requester SSO SP in the **customer** tenant (`Assignment required?` = Yes). Not Client SSO. |
 
 ### Group membership — automatic
 
@@ -60,7 +60,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Task | Owner |
 |---|---|
 | Portal client + SuperOps / Pax8 IDs + sync | On IT technician (portal / SuperOps) |
-| Security group, SCIM, consent, Client SSO | On IT technician (customer Entra / GDAP) |
+| Security group, SCIM, Portal Graph consent, SuperOps SSO Accept | On IT technician (customer Entra / GDAP) |
 | Portal users (licensed + shared mailboxes) | **Automatic** — whole tenant |
 | SuperOps requesters | **Automatic** — SCIM for users in app scope (group or direct assignment) |
 | SuperOps requester **names** | **Automatic** — portal writes last name to `extensionAttribute1` → SCIM **name.familyName** Direct → `Name (User Mailbox)` or `Name (Shared Mailbox)` in SuperOps |

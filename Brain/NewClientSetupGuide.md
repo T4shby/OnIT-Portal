@@ -31,13 +31,13 @@ Collect this before you touch any system:
 
 ## Choose the path
 
-| | Path A | Path B (most customers) |
+| | Path A (rare) | Path B (most customers — **this is the normal path**) |
 |---|---|---|
 | User emails look like | `@onit.ltd` or guest in On IT tenant | `@customerdomain.com` |
 | Portal sign-in | Microsoft (On IT tenant) | Microsoft (customer tenant) |
-| SuperOps SSO | On IT **Global SSO** (already set up) | **Client SSO** per customer (you set up once per client) |
+| SuperOps SSO | Global SSO (On IT home) | **Same Global SSO** + customer GA **Accept** (checklist **06**) — **not** Client SSO |
 
-If the customer has their own Microsoft 365, you are on **Path B**. Follow every step in this guide.
+If the customer has their own Microsoft 365, you are on **Path B**. Follow every step in this guide. Step **06** Accept is mandatory for every customer tenant.
 
 ---
 
@@ -108,45 +108,30 @@ There is **no automatic portal sync** until Entra sync is configured on the clie
 
 ---
 
-## Step 4: SuperOps Client SSO (Path B only)
+## Step 4: SuperOps Global SSO Accept (every customer tenant)
 
-Skip this section if the customer uses Path A (On IT tenant). For normal customers with their own M365, do this **once per client**.
+Do **not** open SuperOps **Client SSO**. Platform Global SSO is already configured once. Every customer still needs **Accept**.
 
-### 4a. SuperOps
+### 4a. Portal checklist step 06
 
-1. **Settings → Requester Login → SSO Protected → Client SSO**.
-2. Click **+ Configuration** for this client.
-3. Copy the **Entity ID** and **Consumer Service URL** (client-specific values).
-4. Keep this page open.
+1. **Admin → Clients → Edit** this client (Entra tenant ID already saved from step 03).
+2. Open step **06 — SuperOps requester SSO (Global SSO Accept)**.
+3. Click **Open** on **SuperOps SSO Accept URL** (or send Copy to customer GA).
+4. Sign in as a **customer** Global Admin → **Accept**.
 
-### 4b. Customer's Microsoft Entra (client IT may need to help)
+### 4b. Customer Entra — assign who can sign in
 
-1. Customer's Entra admin creates a **non-gallery enterprise application** (SAML).
-2. Paste SuperOps **Entity ID** and **Reply URL** from 4a.
-3. Add SAML claims (names must be **lowercase**):
+1. In the **customer** tenant → Enterprise applications → **SuperOps Requester SSO (On IT)** (appears after Accept).
+2. Users and groups → assign security group **`On IT Portal - {Company}`**.
+3. Do not change Reply URL / certificate / Global SSO settings for this client.
 
-| Claim | Source |
-|---|---|
-| `email` | `user.mail` or `user.userprincipalname` |
-| `firstname` | `user.givenname` |
-| `lastname` | `user.surname` |
-
-4. Download the SAML certificate (Base64 body only in SuperOps, no BEGIN/END lines).
-5. Copy the Entra **Login URL**.
-6. Assign the customer's users or a security group to this app.
-
-### 4c. Back in SuperOps
-
-1. Paste certificate and Login URL into the Client SSO configuration.
-2. Link the configuration to the client.
-3. Save.
-
-Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and [SuperOps Client SSO article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops).
+Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 | Done | Task |
 |---|---|
-| ☐ | Client SSO configured in SuperOps |
-| ☐ | SAML app created in customer's Entra |
+| ☐ | Customer GA Accepted SuperOps Requester SSO |
+| ☐ | Portal group assigned in customer tenant |
+| ☐ | Incognito Microsoft login with customer work email works |
 | ☐ | Customer users assigned to SAML app |
 | ☐ | Test login at https://portal.onit.ltd/#/requester/login works for one user |
 
@@ -157,15 +142,13 @@ Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and [S
 If users are in **On IT's** Microsoft tenant (not the customer's):
 
 1. Entra → **Groups** → create `Client - {Name} - Portal`.
-2. Add each user to the group.
-3. **Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups** → assign the group.
-
-Do **not** add customer `@theircompany.com` users to On IT's Global SSO app. That is Path B (Step 4).
+2. Add each user to the group (or let Sync now maintain membership).
+3. After checklist **06** Accept: **customer** Enterprise applications → SuperOps Requester SSO (On IT) → Users and groups → assign the Portal group.
 
 | Done | Task |
 |---|---|
-| ☐ | Entra group created and assigned to SuperOps Requester SSO app |
-| ☐ | All users in the group |
+| ☐ | Entra group created |
+| ☐ | Group assigned to SuperOps Requester SSO in customer tenant (after Accept) |
 
 ---
 

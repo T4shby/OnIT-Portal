@@ -75,9 +75,9 @@ Send Tom a message with:
 - SuperOps Account ID  
 - Confirm they use their **own** Microsoft 365 (almost always yes)
 
-Tom will set up **Client SSO** so users can sign in with `@theircompany.com`. You cannot do this step without global admin access to their Microsoft tenant.
+Tom will complete checklist **06** (customer Global Admin **Accepts** SuperOps Requester SSO) so users can Microsoft-sign-in with `@theircompany.com`. You cannot skip this Accept.
 
-**Tick:** ☐ Tom confirmed Microsoft SSO is done
+**Tick:** ☐ Tom confirmed SuperOps SSO Accept is done
 
 ---
 
