@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-14 | Free Application (client) ID path explicit in step 07; guide header highlights Azure steps 03–08 |
 | 2026-07-14 | Live checklist rebuilt as 12 zero-training MSP steps; TechnicianTenantOnboarding is sole entry point; NewClientSetupGuide superseded |
 | 2026-07-14 | Checklist 06 simplified: Accept button first, one short technician procedure, platform recovery removed from the live step |
 | 2026-07-14 | Brain policy: update for **every** meaningful change (same turn); SuperOps Multitenant App ID URI vs Entity ID documented |

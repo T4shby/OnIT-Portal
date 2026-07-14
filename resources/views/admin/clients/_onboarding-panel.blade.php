@@ -13,8 +13,14 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            Follow the open step. Use only this portal page, SuperOps, and the customer’s Microsoft Entra admin.
-            You do not need server access or training notes.
+            Follow the open step. Your tools are this portal, SuperOps, and
+            <strong class="text-white/80">the customer’s Microsoft Entra / Azure admin</strong>
+            (portal.azure.com in their directory — not On IT).
+            You do not need server access.
+        </p>
+        <p class="portal-body-muted mt-4 text-sm leading-relaxed">
+            <strong class="text-white/80">Most Azure work is on steps 03–08:</strong>
+            create the Portal group, Microsoft Accept, SuperOps SCIM app, Application (client) ID on Free / group assign on P1, then SuperOps login Accept.
         </p>
         <p class="portal-body-muted mt-4 text-sm leading-relaxed">
             <strong class="text-white/80">Two save buttons:</strong>

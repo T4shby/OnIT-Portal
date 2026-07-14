@@ -63,7 +63,7 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 | 04 | Customer Accepts Portal access | On IT technician (customer Entra / GDAP) |
 | 05 | Get SuperOps SCIM tokens | On IT technician (customer Entra / GDAP) |
 | 06 | Create SuperOps SCIM app in Entra | On IT technician (customer Entra / GDAP) |
-| 07 | Finish SCIM mapping + start | On IT technician (customer Entra / GDAP) |
+| 07 | Azure SCIM mappings + Application ID / group + start | On IT technician (customer Entra / GDAP) |
 | 08 | Customer Accepts SuperOps login | On IT technician (customer Entra / GDAP) |
 | 09 | Turn on portal sync | On IT technician (portal / SuperOps) |
 | 10 | Run Dry run then Sync now | On IT technician (portal / SuperOps) |

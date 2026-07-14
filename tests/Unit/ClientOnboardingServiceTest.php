@@ -198,10 +198,14 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_license_tier' => 'free',
         ]);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
-            )->firstWhere('key', 'superops_scim_provisioning')['instructions']);
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_provisioning');
+        $text = implode(' ', $step['instructions']);
 
+        $this->assertSame('Azure SCIM mappings + copy Application ID + start', $step['title']);
         $this->assertStringContainsString('Application (client) ID', $text);
+        $this->assertStringContainsString('App registrations', $text);
+        $this->assertStringContainsString('Object ID', $text);
         $this->assertStringContainsString('Save client', $text);
         $this->assertStringContainsString('Start provisioning', $text);
         $this->assertStringNotContainsString('Assign group', $text);
@@ -216,9 +220,11 @@ class ClientOnboardingServiceTest extends TestCase
             'entra_license_tier' => 'p1',
         ]);
 
-        $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
-            )->firstWhere('key', 'superops_scim_provisioning')['instructions']);
+        $step = collect(app(ClientOnboardingService::class)->steps($client)
+            )->firstWhere('key', 'superops_scim_provisioning');
+        $text = implode(' ', $step['instructions']);
 
+        $this->assertSame('Azure SCIM mappings + assign group + start', $step['title']);
         $this->assertStringContainsString('On IT Portal - Acme Ltd', $text);
         $this->assertStringContainsString('Start provisioning', $text);
         $this->assertStringNotContainsString('SuperOps Application (client) ID', $text);

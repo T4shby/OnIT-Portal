@@ -33,8 +33,8 @@ Set **Customer Entra license tier** on the left before step 03.
 | 04 | Customer Accepts Portal access | Orange Accept button used / or first sync later |
 | 05 | Get SuperOps SCIM tokens | Tick complete |
 | 06 | Create SuperOps SCIM app in Entra | Tick complete |
-| 07 | Finish SCIM mapping + start | Tick complete (P1 assigns Portal group; Free pastes Application client ID) |
-| 08 | Customer Accepts SuperOps login | Orange Accept button used + users/group assigned |
+| 07 | Azure SCIM mappings + copy Application ID (Free) / assign group (P1) + start | Tick complete |
+| 08 | Customer Accepts SuperOps login | Orange Accept + Azure Users and groups assignment |
 | 09 | Turn on portal sync | Entra sync enabled + Save client |
 | 10 | Run Dry run then Sync now | Last synced shows, or tick after Sync now |
 | 11 | Test as a customer user | Tick complete |
@@ -69,6 +69,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |
 | 2026-07-14 | Canonical zero-training technician guide; mirrors live 12-step checklist |
 | 2026-06-25 | SuperOps requester naming + Free app ID notes |
 | 2026-06-16 | Initial guide |
