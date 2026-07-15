@@ -34,6 +34,16 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 Background refresh: `RefreshSuperOpsDashboardJob` — queued to the `jobs` table (`QUEUE_CONNECTION=database` in production). Requires a queue worker on Plesk; see [Deployment.md — Run the queue worker](Deployment.md#11-run-the-queue-worker).
 
+The dashboard uses a wide (`96rem`) layout and compact responsive grids so desktop
+and tablet widths show multiple cards per row. The rest of the portal retains the
+standard `64rem` content width.
+
+`portal:prewarm-client-dashboards` queues all configured integration refresh jobs
+for every active client. Laravel schedules it every ten minutes, so dashboard
+data is populated before a client visits. Production requires both Plesk tasks:
+minute-by-minute `schedule:run` and the separate queue worker documented in
+[Deployment.md](Deployment.md#10-configure-cron).
+
 ### Open ticket statuses
 
 Verified against live SuperOps data (3R Systems, 2026-07-15):

@@ -1,4 +1,4 @@
-@props(['title' => null])
+@props(['title' => null, 'contentClass' => 'max-w-portal'])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -121,7 +121,7 @@
         </header>
 
         <main class="flex-1 relative z-[1]">
-            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
+            <div class="{{ $contentClass }} mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}

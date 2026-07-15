@@ -1,4 +1,4 @@
-<x-app-layout title="Client Admin">
+<x-app-layout title="Client Admin" content-class="max-w-[96rem]">
 
     @php
         $refreshing = $summary->refreshInProgress
@@ -7,7 +7,7 @@
             || $dropsuiteSummary->refreshInProgress;
     @endphp
 
-    <section class="mb-8 sm:mb-10">
+    <section class="mb-6">
         <div class="orange-rule"></div>
         <div class="heading-stack mb-4">
             <h1 class="section-heading-white">Organisation</h1>
@@ -32,7 +32,7 @@
         <x-alert type="info" class="mb-6">Refresh in progress. Counts will update shortly.</x-alert>
     @endif
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         @if($summary->lastRefreshedAt)
             <p class="portal-body-muted text-xs">
                 SuperOps last refreshed {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
@@ -47,12 +47,12 @@
     </div>
 
     {{-- System health --}}
-    <section class="mb-12">
+    <section class="mb-8">
         <div class="flex items-center justify-between gap-4 mb-6">
             <h2 class="portal-label">System health</h2>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <x-card>
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -140,7 +140,7 @@
     </section>
 
     {{-- Support & SLA --}}
-    <section class="mb-12">
+    <section class="mb-8">
         <div class="flex items-center justify-between gap-4 mb-6">
             <h2 class="portal-label">Support &amp; SLA</h2>
             @if($summary->hasData())
@@ -148,7 +148,7 @@
             @endif
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <x-card>
                 <p class="portal-label mb-2">Open tickets</p>
                 <p class="text-4xl font-condensed font-bold text-onit">

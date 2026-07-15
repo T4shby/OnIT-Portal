@@ -159,11 +159,17 @@ php artisan optimize
 
 ### 10. Configure Cron
 
-In Plesk → Scheduled Tasks, add:
+In **Plesk → Websites & Domains → app.onit.ltd → Scheduled Tasks**, add a
+**Run a command** task with schedule **Cron style** `* * * * *`:
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && php artisan schedule:run >> /dev/null 2>&1
+cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
 ```
+
+The scheduler queues dashboard cache pre-warming every ten minutes via
+`portal:prewarm-client-dashboards`; it also runs the existing hourly Entra sync.
+This scheduled task queues work but does not process it — the queue worker below
+is a separate required Plesk task.
 
 ### 11. Run the queue worker
 
@@ -206,7 +212,8 @@ stdout_logfile=/var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker.l
 
 Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-portal-queue`
 
-**Plesk scheduled task fallback** (every minute — less ideal than Supervisor):
+**Plesk scheduled task fallback**: create a second **Run a command** task under
+the same Plesk Scheduled Tasks screen, also using Cron style `* * * * *`:
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1

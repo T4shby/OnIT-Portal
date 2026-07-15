@@ -75,6 +75,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-15 | Client Admin dashboard now uses a wide compact layout and automatically pre-warms every active client’s integration caches every ten minutes — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md#10-configure-cron) |
 | 2026-07-15 | Added Phase 2 M365 insights service layer: subscribed SKU inventory, cached utilisation summary, and unique background refresh — [ClientAdminDashboard.md](ClientAdminDashboard.md#microsoft-365-insights-phase-2-service-layer) |
 | 2026-07-15 | Huntress Client Admin Phase 3 scaffold: `huntress_organization_id`, API client, metrics cache + `RefreshHuntressSecurityJob` — [ClientAdminDashboard.md](ClientAdminDashboard.md#huntress-security-metrics-phase-3-scaffold) |
 | 2026-07-15 | Client Admin dashboard v2: system health / support / M365 sections; SuperOps SLA + open-ticket table; M365 insights; Huntress + Dropsuite scaffolds — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

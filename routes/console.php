@@ -13,3 +13,8 @@ Schedule::command('portal:sync-entra-users')
     ->when(fn () => (bool) config('services.entra_sync.enabled'))
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('portal:prewarm-client-dashboards')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
