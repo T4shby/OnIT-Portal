@@ -35,8 +35,11 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 Background refresh: `RefreshSuperOpsDashboardJob` — queued to the `jobs` table (`QUEUE_CONNECTION=database` in production). Requires a queue worker on Plesk; see [Deployment.md — Run the queue worker](Deployment.md#11-run-the-queue-worker).
 
 The dashboard uses a wide (`96rem`) layout and compact responsive grids so desktop
-and tablet widths show multiple cards per row. The rest of the portal retains the
-standard `64rem` content width.
+and tablet widths show multiple cards per row. The **Microsoft 365 Directory** page
+(`microsoft-365/directory.blade.php`, non-admin view) uses the same `96rem` width so
+its people/groups tables are not squished. The rest of the portal retains the
+standard `64rem` content width via the `content-class` prop default (`max-w-portal`)
+on `x-app-layout`.
 
 `portal:prewarm-client-dashboards` queues all configured integration refresh jobs
 for every active client. Laravel schedules it every ten minutes, so dashboard

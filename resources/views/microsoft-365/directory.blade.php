@@ -7,7 +7,7 @@
     @include('microsoft-365._directory-body')
 </x-admin-layout>
 @else
-<x-app-layout title="Microsoft 365">
+<x-app-layout title="Microsoft 365" content-class="max-w-[96rem]">
     @include('microsoft-365._directory-body')
 </x-app-layout>
 @endif
