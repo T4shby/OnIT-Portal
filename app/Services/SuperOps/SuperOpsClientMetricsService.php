@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
+/**
+ * Client Admin organisation metrics from SuperOps MSP GraphQL.
+ *
+ * Live-verified against developer.superops.com/msp + On IT tenant (2026-07-15):
+ * - Auth: Bearer token + CustomerSubDomain
+ * - Filters: RuleConditionInput { attribute, operator: "is", value }
+ * - Ticket/asset lists must select the ID field or SuperOps returns empty rows / Internal Server Error
+ * - Asset count must select at least one asset field (e.g. assetId); listInfo-only queries ISE
+ *
+ * @see https://developer.superops.com/msp
+ */
 class SuperOpsClientMetricsService
 {
     /**
@@ -38,6 +49,8 @@ class SuperOpsClientMetricsService
         'Resolved',
         'Cancelled',
     ];
+
+    private const PAGE_SIZE = 100;
 
     public function __construct(private SuperOpsApiClient $api) {}
 
@@ -133,9 +146,9 @@ class SuperOpsClientMetricsService
         }
 
         try {
-            $tickets = $this->listAllClientTickets($accountId);
+            $tickets = $this->listClientTickets($accountId);
             $payload = [
-                'assets_total' => $this->countAssets($accountId),
+                'assets_total' => $this->countClientAssets($accountId),
                 'open_tickets_total' => $this->countOpenTickets($tickets),
                 'tickets_created' => $this->countTicketsCreated($tickets),
                 'tickets_closed' => $this->countTicketsClosed($tickets),
@@ -152,6 +165,7 @@ class SuperOpsClientMetricsService
         } catch (Throwable $e) {
             Log::error('SuperOps dashboard refresh failed', [
                 'client_id' => $client->id,
+                'account_id' => $accountId,
                 'error' => $e->getMessage(),
             ]);
 
@@ -167,39 +181,35 @@ class SuperOpsClientMetricsService
         }
     }
 
-    private function countAssets(string $accountId): ?int
+    /**
+     * Count assets for one SuperOps client via filtered getAssetList.
+     *
+     * SuperOps returns Internal Server Error if the query selects only listInfo
+     * without any asset fields — always include assetId.
+     */
+    private function countClientAssets(string $accountId): ?int
     {
-        $assets = [];
-        $page = 1;
-        $total = null;
-
         try {
-            do {
-                $data = $this->api->query(<<<'GQL'
-                    query getAssetList($input: ListInfoInput!) {
-                        getAssetList(input: $input) {
-                            assets { client }
-                            listInfo { totalCount page pageSize }
-                        }
-                    }
-                GQL, [
-                    'input' => [
-                        'page' => $page,
-                        'pageSize' => 100,
-                    ],
-                ]);
-
-                $batch = $data['getAssetList']['assets'] ?? [];
-                $total = (int) ($data['getAssetList']['listInfo']['totalCount'] ?? count($batch));
-
-                foreach ($batch as $asset) {
-                    if ($this->belongsToSuperOpsAccount($asset['client'] ?? null, $accountId)) {
-                        $assets[] = $asset;
+            $data = $this->api->query(<<<'GQL'
+                query getAssetList($input: ListInfoInput!) {
+                    getAssetList(input: $input) {
+                        assets { assetId }
+                        listInfo { totalCount hasMore }
                     }
                 }
+            GQL, [
+                'input' => [
+                    'page' => 1,
+                    'pageSize' => 1,
+                    'condition' => $this->clientAccountCondition($accountId),
+                ],
+            ]);
 
-                $page++;
-            } while (($page - 1) * 100 < $total && $batch !== [] && $page <= 100);
+            if (! isset($data['getAssetList']['listInfo']['totalCount'])) {
+                return null;
+            }
+
+            return (int) $data['getAssetList']['listInfo']['totalCount'];
         } catch (Throwable $e) {
             Log::warning('SuperOps dashboard asset count unavailable', [
                 'account_id' => $accountId,
@@ -208,73 +218,80 @@ class SuperOpsClientMetricsService
 
             return null;
         }
-
-        return count($assets);
     }
 
     /**
+     * Page all tickets for one SuperOps client.
+     *
      * @return list<array{status: string, createdTime: ?string, resolutionTime: ?string}>
      */
-    private function listAllClientTickets(string $accountId): array
+    private function listClientTickets(string $accountId): array
     {
         $tickets = [];
         $page = 1;
-        $total = null;
 
         do {
             $data = $this->api->query(<<<'GQL'
                 query getTicketList($input: ListInfoInput!) {
                     getTicketList(input: $input) {
-                        tickets { ticketId status createdTime resolutionTime updatedTime client }
-                        listInfo { totalCount page pageSize }
+                        tickets {
+                            ticketId
+                            displayId
+                            status
+                            createdTime
+                            resolutionTime
+                            client
+                        }
+                        listInfo { totalCount hasMore }
                     }
                 }
             GQL, [
                 'input' => [
                     'page' => $page,
-                    'pageSize' => 100,
+                    'pageSize' => self::PAGE_SIZE,
+                    'condition' => $this->clientAccountCondition($accountId),
                     'sort' => [
-                        'attribute' => 'displayID',
-                        'order' => 'DESC',
+                        ['attribute' => 'createdTime', 'order' => 'DESC'],
                     ],
                 ],
             ]);
 
             $batch = $data['getTicketList']['tickets'] ?? [];
-            $total = (int) ($data['getTicketList']['listInfo']['totalCount'] ?? count($batch));
+            $hasMore = (bool) ($data['getTicketList']['listInfo']['hasMore'] ?? false);
+            $total = (int) ($data['getTicketList']['listInfo']['totalCount'] ?? 0);
 
             if ($batch === [] && $total > 0 && $page === 1) {
-                Log::warning('SuperOps dashboard ticket page returned no rows despite totalCount', [
-                    'account_id' => $accountId,
-                    'total_count' => $total,
-                ]);
+                throw new \RuntimeException(
+                    'SuperOps returned ticket totalCount without ticket rows. Ensure ticketId is selected.'
+                );
             }
 
             foreach ($batch as $ticket) {
-                if (! $this->belongsToSuperOpsAccount($ticket['client'] ?? null, $accountId)) {
-                    continue;
-                }
-
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
-                    'resolutionTime' => $ticket['resolutionTime'] ?? $ticket['updatedTime'] ?? null,
+                    'resolutionTime' => $ticket['resolutionTime'] ?? null,
                 ];
             }
 
             $page++;
-        } while (($page - 1) * 100 < $total && $batch !== [] && $page <= 100);
+        } while ($hasMore && $batch !== [] && $page <= 100);
 
         return $tickets;
     }
 
-    private function belongsToSuperOpsAccount(mixed $client, string $accountId): bool
+    /**
+     * Official RuleConditionInput for scoping lists to one client account.
+     *
+     * @return array{attribute: string, operator: string, value: string}
+     */
+    private function clientAccountCondition(string $accountId): array
     {
-        if (! is_array($client)) {
-            return false;
-        }
-
-        return (string) ($client['accountId'] ?? '') === $accountId;
+        return [
+            'attribute' => 'client.accountId',
+            'operator' => 'is',
+            'value' => $accountId,
+        ];
     }
 
     /**

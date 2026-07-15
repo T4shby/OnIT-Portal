@@ -18,7 +18,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         parent::setUp();
 
         config([
-            'services.superops.api_token' => 'test-token',
+            'services.superops.api_token' => 'api-test-token',
             'services.superops.subdomain' => 'onitltd',
             'services.superops.region' => 'us',
             'services.superops.dashboard_cache_minutes' => 10,
@@ -36,59 +36,56 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                             'tickets' => [
                                 [
                                     'ticketId' => '1',
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'displayId' => '1001',
                                     'status' => 'Open',
                                     'createdTime' => now()->subDays(2)->toIso8601String(),
                                     'resolutionTime' => null,
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                 ],
                                 [
-                                    'ticketId' => '1',
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'ticketId' => '2',
+                                    'displayId' => '1002',
                                     'status' => 'Waiting on Client',
                                     'createdTime' => now()->subDays(10)->toIso8601String(),
                                     'resolutionTime' => null,
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                 ],
                                 [
-                                    'ticketId' => '1',
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'ticketId' => '3',
+                                    'displayId' => '1003',
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(3)->toIso8601String(),
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                 ],
                                 [
-                                    'ticketId' => '1',
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'ticketId' => '4',
+                                    'displayId' => '1004',
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(20)->toIso8601String(),
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                 ],
                                 [
-                                    'ticketId' => '1',
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'ticketId' => '5',
+                                    'displayId' => '1005',
                                     'status' => 'Mystery Status',
                                     'createdTime' => now()->subDays(1)->toIso8601String(),
                                     'resolutionTime' => null,
-                                ],
-                                [
-                                    'ticketId' => 'other',
-                                    'client' => ['accountId' => 'other-client', 'name' => 'Other Client'],
-                                    'status' => 'Open',
-                                    'createdTime' => now()->subDays(1)->toIso8601String(),
-                                    'resolutionTime' => null,
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                 ],
                             ],
-                            'listInfo' => ['totalCount' => 6, 'page' => 1, 'pageSize' => 100],
+                            'listInfo' => ['totalCount' => 5, 'hasMore' => false],
                         ],
                     ],
                 ])
                 ->push([
                     'data' => [
                         'getAssetList' => [
-                            'assets' => array_merge(
-                                array_fill(0, 23, ['client' => ['accountId' => '6976691098608750592']]),
-                                [['client' => ['accountId' => 'other-client']]]
-                            ),
-                            'listInfo' => ['totalCount' => 24, 'page' => 1, 'pageSize' => 100],
+                            'assets' => [
+                                ['assetId' => 'a1'],
+                            ],
+                            'listInfo' => ['totalCount' => 23, 'hasMore' => true],
                         ],
                     ],
                 ]),
@@ -110,18 +107,26 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         Http::assertSent(function ($request) {
             $payload = $request->data();
+            $condition = $payload['variables']['input']['condition'] ?? [];
 
             return str_contains($payload['query'], 'getTicketList')
                 && str_contains($payload['query'], 'ticketId')
-                && ! isset($payload['variables']['input']['condition'])
-                && ($payload['variables']['input']['sort']['attribute'] ?? null) === 'displayID';
+                && ($condition['attribute'] ?? null) === 'client.accountId'
+                && ($condition['operator'] ?? null) === 'is'
+                && ($condition['value'] ?? null) === '6976691098608750592'
+                && ($payload['variables']['input']['sort'][0]['attribute'] ?? null) === 'createdTime'
+                && $request->hasHeader('Authorization', 'Bearer api-test-token')
+                && $request->hasHeader('CustomerSubDomain', 'onitltd');
         });
 
         Http::assertSent(function ($request) {
             $payload = $request->data();
+            $condition = $payload['variables']['input']['condition'] ?? [];
 
             return str_contains($payload['query'], 'getAssetList')
-                && ! isset($payload['variables']['input']['condition']);
+                && str_contains($payload['query'], 'assetId')
+                && ($condition['attribute'] ?? null) === 'client.accountId'
+                && ($condition['value'] ?? null) === '6976691098608750592';
         });
     }
 
@@ -176,5 +181,28 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(14, $summary->assetsTotal);
         $this->assertSame(6, $summary->openTicketsTotal);
         $this->assertTrue($summary->isStale);
+    }
+
+    public function test_api_client_strips_bearer_prefix_from_env_token(): void
+    {
+        config(['services.superops.api_token' => 'Bearer api-pasted-token']);
+
+        Http::fake([
+            'https://api.superops.ai/msp' => Http::response([
+                'data' => [
+                    'getClientList' => [
+                        'clients' => [],
+                        'listInfo' => ['totalCount' => 0],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        app(\App\Services\SuperOps\SuperOpsApiClient::class)->query(
+            'query getClientList($input: ListInfoInput!) { getClientList(input: $input) { clients { accountId } listInfo { totalCount } } }',
+            ['input' => ['page' => 1, 'pageSize' => 1]],
+        );
+
+        Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer api-pasted-token'));
     }
 }

@@ -74,6 +74,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-15 | Rebuilt SuperOps dashboard client from official MSP GraphQL docs: Bearer + CustomerSubDomain, filtered `client.accountId`, mandatory `ticketId`/`assetId` selections — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | SuperOps dashboard ticket queries must include `ticketId` or SuperOps returns empty rows — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | SuperOps Client Admin dashboard now mirrors the working Python API shape: bearer + `CustomerSubDomain`, unfiltered list calls, local `client.accountId` filtering — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | M365 directory refresh now reuses user license data and resolves SKU names with one tenant-level Graph request — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

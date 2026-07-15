@@ -42,29 +42,63 @@ Closed counts use `resolutionTime`, not `createdTime`. Unknown statuses are excl
 
 ### SuperOps GraphQL request shape
 
-The dashboard intentionally follows the working Python reference scripts: `POST https://api.superops.ai/msp` with:
+Built from [developer.superops.com/msp](https://developer.superops.com/msp) and live-verified against the On IT tenant (2026-07-15). Auth matches the working Python scripts:
 
-- `Authorization: Bearer <SUPEROPS_API_TOKEN>`
-- `CustomerSubDomain: onitltd`
-- JSON body `{ "query": "...", "variables": { "input": { "page": 1, "pageSize": 100 } } }`
-
-Do **not** rely on SuperOps server-side `condition` filters for dashboard metrics. Production returned `Internal Server Error(s) while executing query` for client-scoped dashboard filters on 2026-07-15. The portal now uses unfiltered `getTicketList` / `getAssetList` calls and filters records by `client.accountId` in PHP against `clients.superops_account_id`.
-
-`SortInput` for the dashboard ticket list follows the proven Python shape:
-
-```json
-{ "sort": { "attribute": "displayID", "order": "DESC" } }
+```http
+POST https://api.superops.ai/msp
+Content-Type: application/json
+Authorization: Bearer <SUPEROPS_API_TOKEN>
+CustomerSubDomain: onitltd
 ```
 
-Do **not** use `field` / `eq` — the live API rejects those with a ValidationError. Requester-specific `/support` filtering is separate from these dashboard metrics.
+Body: `{ "query": "...", "variables": { "input": { ... } } }`
 
-Date-range ticket metrics cannot be filtered server-side (date operators return Internal Server Error). The dashboard pages tickets (`pageSize` 100), keeps only matching `client.accountId`, and computes 7/14/30/all ranges in PHP from `createdTime` / `resolutionTime`.
+`ListInfoInput` (docs):
 
-`getTicketList` must include `ticketId` in the selected fields. Without it, SuperOps returns `totalCount` but an empty `tickets` array (live-verified 2026-07-15).
+| Field | Type | Use |
+|-------|------|-----|
+| `page` | Int | 1-based page |
+| `pageSize` | Int | page size (dashboard uses 100 for tickets, 1 for asset count) |
+| `condition` | RuleConditionInput | `{ "attribute", "operator", "value" }` |
+| `sort` | [SortInput] | array of `{ "attribute", "order": "ASC"|"DESC" }` |
 
-### Assets
+Client-scoped filter (works for tickets and assets):
 
-`getAssetList` is read without a `condition`; the portal requests `assets { client }`, filters by `client.accountId`, and counts the matches. If SuperOps rejects asset list fields, the dashboard logs `SuperOps dashboard asset count unavailable`, stores ticket metrics, and shows assets as unavailable rather than blanking the whole dashboard.
+```json
+{ "attribute": "client.accountId", "operator": "is", "value": "<clients.superops_account_id>" }
+```
+
+`client.name` with operator `is` also works. Do **not** use `field` / `eq`.
+
+Hard SuperOps quirks (live-verified):
+
+1. `getTicketList` must select `ticketId` — otherwise `totalCount` is set but `tickets` is empty.
+2. `getAssetList` must select at least one asset field (e.g. `assetId`) — a `listInfo`-only selection returns **Internal Server Error**.
+3. Date-range ticket filters are unreliable; the dashboard pages the client’s tickets and computes 7/14/30/all in PHP from `createdTime` / `resolutionTime`.
+
+Ticket query shape used by the dashboard:
+
+```graphql
+query getTicketList($input: ListInfoInput!) {
+  getTicketList(input: $input) {
+    tickets { ticketId displayId status createdTime resolutionTime client }
+    listInfo { totalCount hasMore }
+  }
+}
+```
+
+Asset count query shape:
+
+```graphql
+query getAssetList($input: ListInfoInput!) {
+  getAssetList(input: $input) {
+    assets { assetId }
+    listInfo { totalCount hasMore }
+  }
+}
+```
+
+If the asset query fails, tickets still cache and assets show as unavailable.
 
 ### SuperOps launch
 

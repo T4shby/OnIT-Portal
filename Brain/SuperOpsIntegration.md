@@ -16,8 +16,10 @@ Microsoft Entra ID → On IT Portal session
 
 - Route: `GET /support`, `POST /support`, etc.
 - `SuperOpsApiClient` → `https://api.superops.ai/msp` (or EU endpoint)
+- Headers: `Authorization: Bearer <SUPEROPS_API_TOKEN>`, `CustomerSubDomain: <SUPEROPS_SUBDOMAIN>`, `Content-Type: application/json`
 - Server-side `SUPEROPS_API_TOKEN` — never exposed to browser
 - Tickets filtered by requester email / `users.superops_user_id`
+- Client Admin organisation metrics: [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape)
 
 ### Pillar 2 — SSO launch
 
