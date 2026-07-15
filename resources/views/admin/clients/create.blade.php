@@ -17,6 +17,16 @@
                 'name' => 'pax8_company_id',
                 'help' => $fieldHelps['pax8_company_id'],
             ])
+            @include('admin.partials.form-field', [
+                'label' => 'Dropsuite Organization ID',
+                'name' => 'dropsuite_organization_id',
+                'help' => $fieldHelps['dropsuite_organization_id'],
+            ])
+            @include('admin.partials.form-field', [
+                'label' => 'Huntress Organization ID',
+                'name' => 'huntress_organization_id',
+                'help' => $fieldHelps['huntress_organization_id'],
+            ])
             @include('admin.partials.form-field', ['label' => 'SuperOps SSO enabled', 'name' => 'superops_sso_enabled', 'type' => 'checkbox', 'value' => true])
             @include('admin.partials.form-field', ['label' => 'Pax8 access enabled', 'name' => 'pax8_sso_enabled', 'type' => 'checkbox', 'value' => false])
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => true])

@@ -18,6 +18,8 @@ class Client extends Model
         'superops_sso_enabled',
         'pax8_company_id',
         'pax8_sso_enabled',
+        'dropsuite_organization_id',
+        'huntress_organization_id',
         'entra_tenant_id',
         'entra_license_tier',
         'entra_group_id',

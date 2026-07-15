@@ -111,6 +111,11 @@ SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 SUPEROPS_AUTO_OPEN_AFTER_LOGIN=false
 
+DROPSUITE_ENABLED=false
+DROPSUITE_API_URL=https://dropsuite.us/api
+DROPSUITE_RESELLER_TOKEN=
+DROPSUITE_AUTH_TOKEN=
+
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
 PAX8_PARTNER_LOGIN_PATH=/login
@@ -215,6 +220,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 |---|---|
 | `RefreshM365DirectoryJob` | Stale M365 directory cache, manual refresh |
 | `RefreshSuperOpsDashboardJob` | Stale SuperOps dashboard cache |
+| `RefreshHuntressSecurityJob` | Stale Huntress security metrics cache |
 | `SyncEntraClientJob` | Admin → Clients → Sync Entra users |
 
 ### 12. SSL Certificate

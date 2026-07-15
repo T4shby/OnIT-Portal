@@ -184,6 +184,50 @@ class MicrosoftGraphClient
     }
 
     /**
+     * @return list<array{skuPartNumber: string, consumedUnits: int, prepaidEnabled: int, utilizationPct: float}>
+     */
+    public function listSubscribedSkuInventory(string $tenantId): array
+    {
+        $response = $this->request($tenantId)
+            ->get('https://graph.microsoft.com/v1.0/subscribedSkus', [
+                '$select' => 'skuId,skuPartNumber,consumedUnits,prepaidUnits,appliesTo,capabilityStatus',
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph subscribedSkus inventory failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $inventory = [];
+
+        foreach ($response->json('value') ?? [] as $sku) {
+            if (($sku['appliesTo'] ?? null) !== 'User' || ($sku['capabilityStatus'] ?? null) !== 'Enabled') {
+                continue;
+            }
+
+            $skuPartNumber = trim((string) ($sku['skuPartNumber'] ?? ''));
+            if ($skuPartNumber === '') {
+                continue;
+            }
+
+            $consumedUnits = max(0, (int) ($sku['consumedUnits'] ?? 0));
+            $prepaidEnabled = max(0, (int) ($sku['prepaidUnits']['enabled'] ?? 0));
+
+            $inventory[] = [
+                'skuPartNumber' => $skuPartNumber,
+                'consumedUnits' => $consumedUnits,
+                'prepaidEnabled' => $prepaidEnabled,
+                'utilizationPct' => $prepaidEnabled > 0
+                    ? round(($consumedUnits / $prepaidEnabled) * 100, 1)
+                    : 0.0,
+            ];
+        }
+
+        return $inventory;
+    }
+
+    /**
      * @return list<string>
      */
     public function getUserLicenseSkuPartNumbers(string $tenantId, string $userId): array

@@ -30,7 +30,19 @@
                     'value' => $client->pax8_company_id,
                     'help' => $fieldHelps['pax8_company_id'],
                 ])
+                @include('admin.partials.form-field', [
+                    'label' => 'Huntress Organization ID',
+                    'name' => 'huntress_organization_id',
+                    'value' => $client->huntress_organization_id,
+                    'help' => $fieldHelps['huntress_organization_id'],
+                ])
                 @include('admin.partials.form-field', ['label' => 'Pax8 access enabled', 'name' => 'pax8_sso_enabled', 'type' => 'checkbox', 'value' => $client->pax8_sso_enabled])
+                @include('admin.partials.form-field', [
+                    'label' => 'Dropsuite Organization ID',
+                    'name' => 'dropsuite_organization_id',
+                    'value' => $client->dropsuite_organization_id,
+                    'help' => $fieldHelps['dropsuite_organization_id'],
+                ])
                 @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                 @include('admin.clients._entra-sync-fields', ['client' => $client])
                 <div class="mt-6 flex flex-wrap gap-3">

@@ -26,9 +26,17 @@ class ClientAdminDashboardTest extends TestCase
 
         config(['services.superops.api_token' => 'token', 'services.superops.subdomain' => 'onitltd']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v1", [
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
             'assets_total' => 14,
+            'assets_online' => 12,
+            'assets_offline' => 2,
             'open_tickets_total' => 6,
+            'open_tickets_by_priority' => ['High' => 2, 'Normal' => 4],
+            'open_tickets_table' => [
+                ['displayId' => '1001', 'subject' => 'Test', 'priority' => 'High', 'status' => 'Open', 'createdTime' => now()->toIso8601String()],
+            ],
+            'sla_met_percent' => 95,
+            'sla_sample_size' => 20,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
             'tickets_closed' => ['7' => 2, '14' => 6, '30' => 10, 'all' => 171],
             'last_refreshed_at' => now()->toIso8601String(),
@@ -39,6 +47,8 @@ class ClientAdminDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('14');
         $response->assertSee('6');
+        $response->assertSee('System health');
+        $response->assertSee('Open tickets');
     }
 
     public function test_dashboard_shows_unavailable_when_superops_not_linked(): void

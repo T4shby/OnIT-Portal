@@ -37,42 +37,52 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                 [
                                     'ticketId' => '1',
                                     'displayId' => '1001',
+                                    'subject' => 'Printer offline',
+                                    'priority' => 'High',
                                     'status' => 'Open',
                                     'createdTime' => now()->subDays(2)->toIso8601String(),
                                     'resolutionTime' => null,
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'resolutionViolated' => null,
                                 ],
                                 [
                                     'ticketId' => '2',
                                     'displayId' => '1002',
+                                    'subject' => 'VPN issue',
+                                    'priority' => 'Normal',
                                     'status' => 'Waiting on Client',
                                     'createdTime' => now()->subDays(10)->toIso8601String(),
                                     'resolutionTime' => null,
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'resolutionViolated' => null,
                                 ],
                                 [
                                     'ticketId' => '3',
                                     'displayId' => '1003',
+                                    'subject' => 'Closed ticket',
+                                    'priority' => 'Low',
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(3)->toIso8601String(),
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'resolutionViolated' => false,
                                 ],
                                 [
                                     'ticketId' => '4',
                                     'displayId' => '1004',
+                                    'subject' => 'Old closed',
+                                    'priority' => 'Low',
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(20)->toIso8601String(),
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'resolutionViolated' => true,
                                 ],
                                 [
                                     'ticketId' => '5',
                                     'displayId' => '1005',
+                                    'subject' => 'Mystery',
+                                    'priority' => 'Normal',
                                     'status' => 'Mystery Status',
                                     'createdTime' => now()->subDays(1)->toIso8601String(),
                                     'resolutionTime' => null,
-                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
+                                    'resolutionViolated' => null,
                                 ],
                             ],
                             'listInfo' => ['totalCount' => 5, 'hasMore' => false],
@@ -83,9 +93,20 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                     'data' => [
                         'getAssetList' => [
                             'assets' => [
-                                ['assetId' => 'a1'],
+                                ['assetId' => 'a1', 'status' => 'ONLINE'],
                             ],
-                            'listInfo' => ['totalCount' => 23, 'hasMore' => true],
+                            'listInfo' => ['totalCount' => 23, 'hasMore' => false],
+                        ],
+                    ],
+                ])
+                ->push([
+                    'data' => [
+                        'getAssetList' => [
+                            'assets' => [
+                                ['assetId' => 'a1', 'status' => 'ONLINE'],
+                                ['assetId' => 'a2', 'status' => 'OFFLINE'],
+                            ],
+                            'listInfo' => ['hasMore' => false],
                         ],
                     ],
                 ]),
@@ -95,7 +116,12 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $summary = app(SuperOpsClientMetricsService::class)->refreshAndStore($client);
 
         $this->assertSame(23, $summary->assetsTotal);
+        $this->assertSame(1, $summary->assetsOnline);
+        $this->assertSame(1, $summary->assetsOffline);
         $this->assertSame(2, $summary->openTicketsTotal);
+        $this->assertSame('High', array_key_first($summary->openTicketsByPriority));
+        $this->assertCount(2, $summary->openTicketsTable);
+        $this->assertSame(50, $summary->slaMetPercent);
         $this->assertSame(2, $summary->ticketsCreated['7']);
         $this->assertSame(3, $summary->ticketsCreated['14']);
         $this->assertSame(3, $summary->ticketsCreated['30']);
@@ -135,7 +161,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $clientA = Client::factory()->create(['superops_account_id' => '111']);
         $clientB = Client::factory()->create(['superops_account_id' => '222']);
 
-        Cache::put("client:{$clientA->id}:superops-dashboard:v1", [
+        Cache::put("client:{$clientA->id}:superops-dashboard:v2", [
             'assets_total' => 10,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -143,7 +169,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v1", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v2", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],
@@ -164,7 +190,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v1", [
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],

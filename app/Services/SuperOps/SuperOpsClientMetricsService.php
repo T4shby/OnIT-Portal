@@ -12,19 +12,11 @@ use Throwable;
 /**
  * Client Admin organisation metrics from SuperOps MSP GraphQL.
  *
- * Live-verified against developer.superops.com/msp + On IT tenant (2026-07-15):
- * - Auth: Bearer token + CustomerSubDomain
- * - Filters: RuleConditionInput { attribute, operator: "is", value }
- * - Ticket/asset lists must select the ID field or SuperOps returns empty rows / Internal Server Error
- * - Asset count must select at least one asset field (e.g. assetId); listInfo-only queries ISE
- *
  * @see https://developer.superops.com/msp
  */
 class SuperOpsClientMetricsService
 {
     /**
-     * Statuses treated as open. Verified against live SuperOps ticket data (2026-07-15).
-     *
      * @var list<string>
      */
     public const OPEN_STATUSES = [
@@ -39,8 +31,6 @@ class SuperOpsClientMetricsService
     ];
 
     /**
-     * Statuses treated as closed. Verified against live SuperOps ticket data (2026-07-15).
-     *
      * @var list<string>
      */
     public const CLOSED_STATUSES = [
@@ -50,7 +40,23 @@ class SuperOpsClientMetricsService
         'Cancelled',
     ];
 
+    /**
+     * Lower sort weight = higher priority in open-ticket table.
+     *
+     * @var array<string, int>
+     */
+    private const PRIORITY_WEIGHT = [
+        'critical' => 0,
+        'urgent' => 1,
+        'high' => 2,
+        'medium' => 3,
+        'normal' => 4,
+        'low' => 5,
+    ];
+
     private const PAGE_SIZE = 100;
+
+    private const OPEN_TICKET_TABLE_LIMIT = 10;
 
     public function __construct(private SuperOpsApiClient $api) {}
 
@@ -95,7 +101,13 @@ class SuperOpsClientMetricsService
 
         return new ClientOperationsSummary(
             assetsTotal: null,
+            assetsOnline: null,
+            assetsOffline: null,
             openTicketsTotal: null,
+            openTicketsByPriority: [],
+            openTicketsTable: [],
+            slaMetPercent: null,
+            slaSampleSize: null,
             ticketsCreated: $this->emptyRangeCounts(),
             ticketsClosed: $this->emptyRangeCounts(),
             lastRefreshedAt: null,
@@ -147,9 +159,17 @@ class SuperOpsClientMetricsService
 
         try {
             $tickets = $this->listClientTickets($accountId);
+            $assetHealth = $this->summariseClientAssetHealth($accountId);
+
             $payload = [
-                'assets_total' => $this->countClientAssets($accountId),
+                'assets_total' => $assetHealth['total'],
+                'assets_online' => $assetHealth['online'],
+                'assets_offline' => $assetHealth['offline'],
                 'open_tickets_total' => $this->countOpenTickets($tickets),
+                'open_tickets_by_priority' => $this->openTicketsByPriority($tickets),
+                'open_tickets_table' => $this->openTicketsTable($tickets),
+                'sla_met_percent' => $this->slaMetPercent($tickets),
+                'sla_sample_size' => $this->slaSampleSize($tickets),
                 'tickets_created' => $this->countTicketsCreated($tickets),
                 'tickets_closed' => $this->countTicketsClosed($tickets),
                 'last_refreshed_at' => now()->toIso8601String(),
@@ -182,18 +202,15 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * Count assets for one SuperOps client via filtered getAssetList.
-     *
-     * SuperOps returns Internal Server Error if the query selects only listInfo
-     * without any asset fields — always include assetId.
+     * @return array{total: ?int, online: ?int, offline: ?int}
      */
-    private function countClientAssets(string $accountId): ?int
+    private function summariseClientAssetHealth(string $accountId): array
     {
         try {
             $data = $this->api->query(<<<'GQL'
                 query getAssetList($input: ListInfoInput!) {
                     getAssetList(input: $input) {
-                        assets { assetId }
+                        assets { assetId status }
                         listInfo { totalCount hasMore }
                     }
                 }
@@ -205,25 +222,69 @@ class SuperOpsClientMetricsService
                 ],
             ]);
 
-            if (! isset($data['getAssetList']['listInfo']['totalCount'])) {
-                return null;
+            $total = isset($data['getAssetList']['listInfo']['totalCount'])
+                ? (int) $data['getAssetList']['listInfo']['totalCount']
+                : null;
+
+            if ($total === null || $total === 0) {
+                return ['total' => $total, 'online' => $total === 0 ? 0 : null, 'offline' => $total === 0 ? 0 : null];
             }
 
-            return (int) $data['getAssetList']['listInfo']['totalCount'];
+            $online = 0;
+            $offline = 0;
+            $page = 1;
+
+            do {
+                $pageData = $this->api->query(<<<'GQL'
+                    query getAssetList($input: ListInfoInput!) {
+                        getAssetList(input: $input) {
+                            assets { assetId status }
+                            listInfo { hasMore }
+                        }
+                    }
+                GQL, [
+                    'input' => [
+                        'page' => $page,
+                        'pageSize' => self::PAGE_SIZE,
+                        'condition' => $this->clientAccountCondition($accountId),
+                    ],
+                ]);
+
+                $batch = $pageData['getAssetList']['assets'] ?? [];
+                $hasMore = (bool) ($pageData['getAssetList']['listInfo']['hasMore'] ?? false);
+
+                foreach ($batch as $asset) {
+                    if (strtoupper((string) ($asset['status'] ?? '')) === 'ONLINE') {
+                        $online++;
+                    } else {
+                        $offline++;
+                    }
+                }
+
+                $page++;
+            } while ($hasMore && $batch !== [] && $page <= 100);
+
+            return ['total' => $total, 'online' => $online, 'offline' => $offline];
         } catch (Throwable $e) {
-            Log::warning('SuperOps dashboard asset count unavailable', [
+            Log::warning('SuperOps dashboard asset health unavailable', [
                 'account_id' => $accountId,
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            return ['total' => null, 'online' => null, 'offline' => null];
         }
     }
 
     /**
-     * Page all tickets for one SuperOps client.
-     *
-     * @return list<array{status: string, createdTime: ?string, resolutionTime: ?string}>
+     * @return list<array{
+     *     status: string,
+     *     createdTime: ?string,
+     *     resolutionTime: ?string,
+     *     displayId: string,
+     *     subject: string,
+     *     priority: string,
+     *     resolutionViolated: ?bool,
+     * }>
      */
     private function listClientTickets(string $accountId): array
     {
@@ -237,10 +298,12 @@ class SuperOpsClientMetricsService
                         tickets {
                             ticketId
                             displayId
+                            subject
+                            priority
                             status
                             createdTime
                             resolutionTime
-                            client
+                            resolutionViolated
                         }
                         listInfo { totalCount hasMore }
                     }
@@ -271,6 +334,12 @@ class SuperOpsClientMetricsService
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
                     'resolutionTime' => $ticket['resolutionTime'] ?? null,
+                    'displayId' => (string) ($ticket['displayId'] ?? ''),
+                    'subject' => (string) ($ticket['subject'] ?? ''),
+                    'priority' => $this->priorityName($ticket['priority'] ?? null),
+                    'resolutionViolated' => isset($ticket['resolutionViolated'])
+                        ? (bool) $ticket['resolutionViolated']
+                        : null,
                 ];
             }
 
@@ -281,8 +350,6 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * Official RuleConditionInput for scoping lists to one client account.
-     *
      * @return array{attribute: string, operator: string, value: string}
      */
     private function clientAccountCondition(string $accountId): array
@@ -295,7 +362,7 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * @param  list<array{status: string, createdTime: ?string, resolutionTime: ?string}>  $tickets
+     * @param  list<array{status: string, priority: string}>  $tickets
      */
     private function countOpenTickets(array $tickets): int
     {
@@ -308,6 +375,131 @@ class SuperOpsClientMetricsService
         }
 
         return $count;
+    }
+
+    /**
+     * @param  list<array{status: string, priority: string}>  $tickets
+     * @return array<string, int>
+     */
+    private function openTicketsByPriority(array $tickets): array
+    {
+        $counts = [];
+
+        foreach ($tickets as $ticket) {
+            if ($this->classifyStatus($ticket['status']) !== 'open') {
+                continue;
+            }
+
+            $priority = $ticket['priority'] !== '' ? $ticket['priority'] : 'Unspecified';
+            $counts[$priority] = ($counts[$priority] ?? 0) + 1;
+        }
+
+        arsort($counts);
+
+        return $counts;
+    }
+
+    /**
+     * @param  list<array{
+     *     status: string,
+     *     displayId: string,
+     *     subject: string,
+     *     priority: string,
+     *     createdTime: ?string,
+     * }>  $tickets
+     * @return list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string}>
+     */
+    private function openTicketsTable(array $tickets): array
+    {
+        $open = array_values(array_filter(
+            $tickets,
+            fn (array $ticket): bool => $this->classifyStatus($ticket['status']) === 'open',
+        ));
+
+        usort($open, function (array $a, array $b): int {
+            $weightA = self::PRIORITY_WEIGHT[strtolower($a['priority'])] ?? 99;
+            $weightB = self::PRIORITY_WEIGHT[strtolower($b['priority'])] ?? 99;
+
+            if ($weightA !== $weightB) {
+                return $weightA <=> $weightB;
+            }
+
+            $createdA = $this->parseTimestamp($a['createdTime'])?->timestamp ?? 0;
+            $createdB = $this->parseTimestamp($b['createdTime'])?->timestamp ?? 0;
+
+            return $createdB <=> $createdA;
+        });
+
+        return array_map(
+            fn (array $ticket): array => [
+                'displayId' => $ticket['displayId'],
+                'subject' => $ticket['subject'],
+                'priority' => $ticket['priority'],
+                'status' => $ticket['status'],
+                'createdTime' => $ticket['createdTime'],
+            ],
+            array_slice($open, 0, self::OPEN_TICKET_TABLE_LIMIT),
+        );
+    }
+
+    /**
+     * Resolution SLA met % for tickets closed in the last 30 days.
+     *
+     * @param  list<array{status: string, resolutionTime: ?string, resolutionViolated: ?bool}>  $tickets
+     */
+    private function slaMetPercent(array $tickets): ?int
+    {
+        $sample = $this->slaSampleSize($tickets);
+
+        if ($sample === null || $sample === 0) {
+            return null;
+        }
+
+        $met = 0;
+        $since = now()->subDays(30)->startOfDay();
+
+        foreach ($tickets as $ticket) {
+            if ($this->classifyStatus($ticket['status']) !== 'closed') {
+                continue;
+            }
+
+            $resolved = $this->parseTimestamp($ticket['resolutionTime']);
+            if ($resolved === null || $resolved->lt($since)) {
+                continue;
+            }
+
+            if ($ticket['resolutionViolated'] !== true) {
+                $met++;
+            }
+        }
+
+        return (int) round(($met / $sample) * 100);
+    }
+
+    /**
+     * @param  list<array{status: string, resolutionTime: ?string, resolutionViolated: ?bool}>  $tickets
+     */
+    private function slaSampleSize(array $tickets): ?int
+    {
+        $since = now()->subDays(30)->startOfDay();
+        $count = 0;
+
+        foreach ($tickets as $ticket) {
+            if ($this->classifyStatus($ticket['status']) !== 'closed') {
+                continue;
+            }
+
+            $resolved = $this->parseTimestamp($ticket['resolutionTime']);
+            if ($resolved === null || $resolved->lt($since)) {
+                continue;
+            }
+
+            if ($ticket['resolutionViolated'] !== null) {
+                $count++;
+            }
+        }
+
+        return $count > 0 ? $count : null;
     }
 
     /**
@@ -339,7 +531,7 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * @param  list<array{status: string, createdTime: ?string, resolutionTime: ?string}>  $tickets
+     * @param  list<array{status: string, createdTime: ?string}>  $tickets
      */
     private function countCreatedSince(array $tickets, int $days): int
     {
@@ -357,7 +549,7 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * @param  list<array{status: string, createdTime: ?string, resolutionTime: ?string}>  $tickets
+     * @param  list<array{status: string, resolutionTime: ?string}>  $tickets
      */
     private function countClosedSince(array $tickets, ?int $days): int
     {
@@ -412,6 +604,15 @@ class SuperOpsClientMetricsService
         return (string) ($status ?? '');
     }
 
+    private function priorityName(mixed $priority): string
+    {
+        if (is_array($priority)) {
+            return (string) ($priority['name'] ?? $priority['id'] ?? '');
+        }
+
+        return (string) ($priority ?? '');
+    }
+
     private function parseTimestamp(?string $value): ?Carbon
     {
         if (! filled($value)) {
@@ -446,7 +647,13 @@ class SuperOpsClientMetricsService
 
         return new ClientOperationsSummary(
             assetsTotal: $payload['assets_total'] ?? null,
+            assetsOnline: $payload['assets_online'] ?? null,
+            assetsOffline: $payload['assets_offline'] ?? null,
             openTicketsTotal: $payload['open_tickets_total'] ?? null,
+            openTicketsByPriority: $payload['open_tickets_by_priority'] ?? [],
+            openTicketsTable: $payload['open_tickets_table'] ?? [],
+            slaMetPercent: $payload['sla_met_percent'] ?? null,
+            slaSampleSize: $payload['sla_sample_size'] ?? null,
             ticketsCreated: $payload['tickets_created'] ?? $this->emptyRangeCounts(),
             ticketsClosed: $payload['tickets_closed'] ?? $this->emptyRangeCounts(),
             lastRefreshedAt: $lastRefreshedAt,
@@ -459,7 +666,13 @@ class SuperOpsClientMetricsService
     {
         return new ClientOperationsSummary(
             assetsTotal: null,
+            assetsOnline: null,
+            assetsOffline: null,
             openTicketsTotal: null,
+            openTicketsByPriority: [],
+            openTicketsTable: [],
+            slaMetPercent: null,
+            slaSampleSize: null,
             ticketsCreated: $this->emptyRangeCounts(),
             ticketsClosed: $this->emptyRangeCounts(),
             lastRefreshedAt: null,
@@ -479,6 +692,6 @@ class SuperOpsClientMetricsService
 
     private function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:superops-dashboard:v1";
+        return "client:{$clientId}:superops-dashboard:v2";
     }
 }

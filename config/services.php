@@ -60,6 +60,13 @@ return [
         'enabled' => env('PAX8_SSO_ENABLED', true),
     ],
 
+    'dropsuite' => [
+        'api_url' => env('DROPSUITE_API_URL', 'https://dropsuite.us/api'),
+        'reseller_token' => env('DROPSUITE_RESELLER_TOKEN'),
+        'auth_token' => env('DROPSUITE_AUTH_TOKEN'),
+        'enabled' => env('DROPSUITE_ENABLED', false),
+    ],
+
     'superops' => [
         'api_token' => env('SUPEROPS_API_TOKEN'),
         'subdomain' => env('SUPEROPS_SUBDOMAIN'),
@@ -85,6 +92,12 @@ return [
         'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
     ],
 
+    'huntress' => [
+        'api_key' => env('HUNTRESS_API_KEY'),
+        'api_secret' => env('HUNTRESS_API_SECRET'),
+        'enabled' => env('HUNTRESS_ENABLED', false),
+    ],
+
     'entra_sync' => [
         'enabled' => env('ENTRA_SYNC_ENABLED', false),
         'client_id' => env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID')),
@@ -105,6 +118,12 @@ return [
         'superops_provision_max_attempts' => max(1, (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_MAX_ATTEMPTS', 3)),
         'lock_seconds' => max(60, (int) env('ENTRA_SYNC_LOCK_SECONDS', 600)),
         'web_max_execution_seconds' => max(60, (int) env('ENTRA_SYNC_WEB_MAX_EXECUTION_SECONDS', 300)),
+    ],
+
+    'm365_insights' => [
+        'insights_cache_minutes' => env('M365_INSIGHTS_CACHE_MINUTES', 15),
+        'insights_stale_minutes' => env('M365_INSIGHTS_STALE_MINUTES', 1440),
+        'insights_refresh_cooldown_seconds' => env('M365_INSIGHTS_REFRESH_COOLDOWN_SECONDS', 60),
     ],
 
 ];

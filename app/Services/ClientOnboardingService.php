@@ -862,6 +862,12 @@ class ClientOnboardingService
             'pax8_company_id' => [
                 'Optional. Pax8 → Companies → copy company UUID.',
             ],
+            'huntress_organization_id' => [
+                'Optional. Huntress → Organizations → open customer → copy the organization ID.',
+            ],
+            'dropsuite_organization_id' => [
+                'Optional. Dropsuite / NinjaOne SaaS Backup → Organizations → copy the organization ID for dashboard backup metrics.',
+            ],
             'entra_license_tier' => [
                 'Match the customer Entra Overview → License. Free vs P1 changes steps 07–08.',
             ],

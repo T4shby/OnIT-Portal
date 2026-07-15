@@ -43,7 +43,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Deployment.md](Deployment.md) | Plesk production, `.env`, Entra + SuperOps setup |
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
-| [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps metrics cache, async M365 directory** |
+| [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
 
 ## Implementation Map
 
@@ -59,8 +59,9 @@ Read these documents before changing application code. **Update Brain for every 
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
 | Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
 | Portal links | `app/Models/PortalLink.php`, `ExternalServicesService.php` |
-| Client Admin dashboard | `ClientAdminDashboardController`, `SuperOpsClientMetricsService`, `RefreshSuperOpsDashboardJob` |
+| Client Admin dashboard | `ClientAdminDashboardController`, `SuperOpsClientMetricsService`, `RefreshSuperOpsDashboardJob`, `HuntressClientMetricsService`, `RefreshHuntressSecurityJob` |
 | M365 directory (async) | `M365DirectoryService`, `RefreshM365DirectoryJob` |
+| M365 insights (async) | `M365InsightsService`, `RefreshM365InsightsJob` |
 | Client roles | `App\Enums\UserRole`, `User` capability helpers, gates in `AuthServiceProvider` |
 
 ## Change Protocol
@@ -74,7 +75,10 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-07-15 | Rebuilt SuperOps dashboard client from official MSP GraphQL docs: Bearer + CustomerSubDomain, filtered `client.accountId`, mandatory `ticketId`/`assetId` selections — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
+| 2026-07-15 | Added Phase 2 M365 insights service layer: subscribed SKU inventory, cached utilisation summary, and unique background refresh — [ClientAdminDashboard.md](ClientAdminDashboard.md#microsoft-365-insights-phase-2-service-layer) |
+| 2026-07-15 | Huntress Client Admin Phase 3 scaffold: `huntress_organization_id`, API client, metrics cache + `RefreshHuntressSecurityJob` — [ClientAdminDashboard.md](ClientAdminDashboard.md#huntress-security-metrics-phase-3-scaffold) |
+| 2026-07-15 | Client Admin dashboard v2: system health / support / M365 sections; SuperOps SLA + open-ticket table; M365 insights; Huntress + Dropsuite scaffolds — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-07-15 | Added Dropsuite / NinjaOne SaaS Backup Client Admin dashboard scaffold: client organization mapping, token API client, cached summary DTO/service, refresh job, and docs — [ClientAdminDashboard.md](ClientAdminDashboard.md#dropsuite--ninjaone-saas-backup-scaffold) |
 | 2026-07-15 | SuperOps dashboard ticket queries must include `ticketId` or SuperOps returns empty rows — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | SuperOps Client Admin dashboard now mirrors the working Python API shape: bearer + `CustomerSubDomain`, unfiltered list calls, local `client.accountId` filtering — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | M365 directory refresh now reuses user license data and resolves SKU names with one tenant-level Graph request — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

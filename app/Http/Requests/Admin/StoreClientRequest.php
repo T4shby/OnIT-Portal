@@ -19,6 +19,8 @@ class StoreClientRequest extends FormRequest
             'superops_sso_enabled' => ['boolean'],
             'pax8_company_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
             'pax8_sso_enabled' => ['boolean'],
+            'dropsuite_organization_id' => ['nullable', 'string', 'max:255'],
+            'huntress_organization_id' => ['nullable', 'string', 'max:255'],
             'entra_tenant_id' => ['nullable', 'uuid'],
             'entra_license_tier' => ['nullable', 'string', 'in:free,p1'],
             'entra_group_id' => ['nullable', 'uuid'],
@@ -33,7 +35,7 @@ class StoreClientRequest extends FormRequest
     {
         $trimmed = [];
 
-        foreach (['entra_tenant_id', 'entra_group_id', 'entra_superops_app_id', 'entra_superops_sso_app_id', 'pax8_company_id', 'superops_account_id'] as $field) {
+        foreach (['entra_tenant_id', 'entra_group_id', 'entra_superops_app_id', 'entra_superops_sso_app_id', 'pax8_company_id', 'superops_account_id', 'dropsuite_organization_id', 'huntress_organization_id'] as $field) {
             $value = $this->input($field);
 
             if (is_string($value)) {
