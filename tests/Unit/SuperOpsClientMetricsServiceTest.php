@@ -35,39 +35,54 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                         'getTicketList' => [
                             'tickets' => [
                                 [
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Open',
                                     'createdTime' => now()->subDays(2)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
                                 [
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Waiting on Client',
                                     'createdTime' => now()->subDays(10)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
                                 [
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(3)->toIso8601String(),
                                 ],
                                 [
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(20)->toIso8601String(),
                                 ],
                                 [
+                                    'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Mystery Status',
                                     'createdTime' => now()->subDays(1)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
+                                [
+                                    'client' => ['accountId' => 'other-client', 'name' => 'Other Client'],
+                                    'status' => 'Open',
+                                    'createdTime' => now()->subDays(1)->toIso8601String(),
+                                    'resolutionTime' => null,
+                                ],
                             ],
-                            'listInfo' => ['totalCount' => 5, 'page' => 1, 'pageSize' => 100],
+                            'listInfo' => ['totalCount' => 6, 'page' => 1, 'pageSize' => 100],
                         ],
                     ],
                 ])
                 ->push([
                     'data' => [
                         'getAssetList' => [
-                            'listInfo' => ['totalCount' => 23],
+                            'assets' => array_merge(
+                                array_fill(0, 23, ['client' => ['accountId' => '6976691098608750592']]),
+                                [['client' => ['accountId' => 'other-client']]]
+                            ),
+                            'listInfo' => ['totalCount' => 24, 'page' => 1, 'pageSize' => 100],
                         ],
                     ],
                 ]),
@@ -89,11 +104,17 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         Http::assertSent(function ($request) {
             $payload = $request->data();
-            $condition = $payload['variables']['input']['condition'] ?? [];
 
-            return ($condition['attribute'] ?? null) === 'client.accountId'
-                && ($condition['operator'] ?? null) === 'is'
-                && ($condition['value'] ?? null) === '6976691098608750592';
+            return str_contains($payload['query'], 'getTicketList')
+                && ! isset($payload['variables']['input']['condition'])
+                && ($payload['variables']['input']['sort']['attribute'] ?? null) === 'displayID';
+        });
+
+        Http::assertSent(function ($request) {
+            $payload = $request->data();
+
+            return str_contains($payload['query'], 'getAssetList')
+                && ! isset($payload['variables']['input']['condition']);
         });
     }
 

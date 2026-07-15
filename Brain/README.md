@@ -74,6 +74,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-15 | SuperOps Client Admin dashboard now mirrors the working Python API shape: bearer + `CustomerSubDomain`, unfiltered list calls, local `client.accountId` filtering — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-07-15 | M365 directory refresh now reuses user license data and resolves SKU names with one tenant-level Graph request — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-07-15 | Background refresh jobs use database queue + Plesk worker — [Deployment.md](Deployment.md#11-run-the-queue-worker), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-07-15 | Client roles (`client_requester`, `client_billing_admin`, `client_admin`), Client Admin dashboard, async M365 directory — [ClientAdminDashboard.md](ClientAdminDashboard.md); Brain/README terminology aligned (`client_user` role → `client_requester`; pivot table `client_user` kept distinct) |

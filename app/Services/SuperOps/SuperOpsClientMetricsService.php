@@ -169,27 +169,47 @@ class SuperOpsClientMetricsService
 
     private function countAssets(string $accountId): ?int
     {
-        $data = $this->api->query(<<<'GQL'
-            query getAssetList($input: ListInfoInput!) {
-                getAssetList(input: $input) {
-                    listInfo { totalCount }
-                }
-            }
-        GQL, [
-            'input' => [
-                'page' => 1,
-                'pageSize' => 1,
-                'condition' => [
-                    'attribute' => 'client.accountId',
-                    'operator' => 'is',
-                    'value' => $accountId,
-                ],
-            ],
-        ]);
+        $assets = [];
+        $page = 1;
+        $total = null;
 
-        return isset($data['getAssetList']['listInfo']['totalCount'])
-            ? (int) $data['getAssetList']['listInfo']['totalCount']
-            : null;
+        try {
+            do {
+                $data = $this->api->query(<<<'GQL'
+                    query getAssetList($input: ListInfoInput!) {
+                        getAssetList(input: $input) {
+                            assets { client }
+                            listInfo { totalCount page pageSize }
+                        }
+                    }
+                GQL, [
+                    'input' => [
+                        'page' => $page,
+                        'pageSize' => 100,
+                    ],
+                ]);
+
+                $batch = $data['getAssetList']['assets'] ?? [];
+                $total = (int) ($data['getAssetList']['listInfo']['totalCount'] ?? count($batch));
+
+                foreach ($batch as $asset) {
+                    if ($this->belongsToSuperOpsAccount($asset['client'] ?? null, $accountId)) {
+                        $assets[] = $asset;
+                    }
+                }
+
+                $page++;
+            } while (($page - 1) * 100 < $total && $batch !== [] && $page <= 100);
+        } catch (Throwable $e) {
+            Log::warning('SuperOps dashboard asset count unavailable', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        return count($assets);
     }
 
     /**
@@ -205,7 +225,7 @@ class SuperOpsClientMetricsService
             $data = $this->api->query(<<<'GQL'
                 query getTicketList($input: ListInfoInput!) {
                     getTicketList(input: $input) {
-                        tickets { status createdTime resolutionTime }
+                        tickets { status createdTime resolutionTime client }
                         listInfo { totalCount page pageSize }
                     }
                 }
@@ -213,10 +233,9 @@ class SuperOpsClientMetricsService
                 'input' => [
                     'page' => $page,
                     'pageSize' => 100,
-                    'condition' => [
-                        'attribute' => 'client.accountId',
-                        'operator' => 'is',
-                        'value' => $accountId,
+                    'sort' => [
+                        'attribute' => 'displayID',
+                        'order' => 'DESC',
                     ],
                 ],
             ]);
@@ -225,6 +244,10 @@ class SuperOpsClientMetricsService
             $total = (int) ($data['getTicketList']['listInfo']['totalCount'] ?? count($batch));
 
             foreach ($batch as $ticket) {
+                if (! $this->belongsToSuperOpsAccount($ticket['client'] ?? null, $accountId)) {
+                    continue;
+                }
+
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
@@ -233,9 +256,18 @@ class SuperOpsClientMetricsService
             }
 
             $page++;
-        } while (count($tickets) < $total && $batch !== [] && $page <= 100);
+        } while (($page - 1) * 100 < $total && $batch !== [] && $page <= 100);
 
         return $tickets;
+    }
+
+    private function belongsToSuperOpsAccount(mixed $client, string $accountId): bool
+    {
+        if (! is_array($client)) {
+            return false;
+        }
+
+        return (string) ($client['accountId'] ?? '') === $accountId;
     }
 
     /**
