@@ -35,36 +35,42 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                         'getTicketList' => [
                             'tickets' => [
                                 [
+                                    'ticketId' => '1',
                                     'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Open',
                                     'createdTime' => now()->subDays(2)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
                                 [
+                                    'ticketId' => '1',
                                     'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Waiting on Client',
                                     'createdTime' => now()->subDays(10)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
                                 [
+                                    'ticketId' => '1',
                                     'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(3)->toIso8601String(),
                                 ],
                                 [
+                                    'ticketId' => '1',
                                     'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
                                     'resolutionTime' => now()->subDays(20)->toIso8601String(),
                                 ],
                                 [
+                                    'ticketId' => '1',
                                     'client' => ['accountId' => '6976691098608750592', 'name' => '3R Systems Limited'],
                                     'status' => 'Mystery Status',
                                     'createdTime' => now()->subDays(1)->toIso8601String(),
                                     'resolutionTime' => null,
                                 ],
                                 [
+                                    'ticketId' => 'other',
                                     'client' => ['accountId' => 'other-client', 'name' => 'Other Client'],
                                     'status' => 'Open',
                                     'createdTime' => now()->subDays(1)->toIso8601String(),
@@ -106,6 +112,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             $payload = $request->data();
 
             return str_contains($payload['query'], 'getTicketList')
+                && str_contains($payload['query'], 'ticketId')
                 && ! isset($payload['variables']['input']['condition'])
                 && ($payload['variables']['input']['sort']['attribute'] ?? null) === 'displayID';
         });

@@ -60,6 +60,8 @@ Do **not** use `field` / `eq` — the live API rejects those with a ValidationEr
 
 Date-range ticket metrics cannot be filtered server-side (date operators return Internal Server Error). The dashboard pages tickets (`pageSize` 100), keeps only matching `client.accountId`, and computes 7/14/30/all ranges in PHP from `createdTime` / `resolutionTime`.
 
+`getTicketList` must include `ticketId` in the selected fields. Without it, SuperOps returns `totalCount` but an empty `tickets` array (live-verified 2026-07-15).
+
 ### Assets
 
 `getAssetList` is read without a `condition`; the portal requests `assets { client }`, filters by `client.accountId`, and counts the matches. If SuperOps rejects asset list fields, the dashboard logs `SuperOps dashboard asset count unavailable`, stores ticket metrics, and shows assets as unavailable rather than blanking the whole dashboard.

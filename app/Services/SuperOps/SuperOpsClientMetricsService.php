@@ -225,7 +225,7 @@ class SuperOpsClientMetricsService
             $data = $this->api->query(<<<'GQL'
                 query getTicketList($input: ListInfoInput!) {
                     getTicketList(input: $input) {
-                        tickets { status createdTime resolutionTime client }
+                        tickets { ticketId status createdTime resolutionTime updatedTime client }
                         listInfo { totalCount page pageSize }
                     }
                 }
@@ -243,6 +243,13 @@ class SuperOpsClientMetricsService
             $batch = $data['getTicketList']['tickets'] ?? [];
             $total = (int) ($data['getTicketList']['listInfo']['totalCount'] ?? count($batch));
 
+            if ($batch === [] && $total > 0 && $page === 1) {
+                Log::warning('SuperOps dashboard ticket page returned no rows despite totalCount', [
+                    'account_id' => $accountId,
+                    'total_count' => $total,
+                ]);
+            }
+
             foreach ($batch as $ticket) {
                 if (! $this->belongsToSuperOpsAccount($ticket['client'] ?? null, $accountId)) {
                     continue;
@@ -251,7 +258,7 @@ class SuperOpsClientMetricsService
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
-                    'resolutionTime' => $ticket['resolutionTime'] ?? null,
+                    'resolutionTime' => $ticket['resolutionTime'] ?? $ticket['updatedTime'] ?? null,
                 ];
             }
 
