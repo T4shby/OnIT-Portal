@@ -112,7 +112,7 @@ class ExternalServicesService
     public function clearCache(?int $clientId = null): void
     {
         if ($clientId) {
-            foreach (['super_admin', 'account_manager', 'client_admin', 'client_user'] as $role) {
+            foreach (['super_admin', 'account_manager', 'client_admin', 'client_billing_admin', 'client_requester'] as $role) {
                 Cache::forget("portal_links.{$clientId}.{$role}");
             }
         }

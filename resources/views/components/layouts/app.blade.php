@@ -31,6 +31,12 @@
                            class="portal-nav-link {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
                             Dashboard
                         </a>
+                        @can('view-client-admin-dashboard')
+                            <a href="{{ route('client-admin.dashboard') }}"
+                               class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                                Admin
+                            </a>
+                        @endcan
                         @can('view-m365-directory')
                             <a href="{{ route('microsoft-365.directory') }}"
                                class="portal-nav-link {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
@@ -89,6 +95,13 @@
                        class="portal-nav-link touch-target {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
                         Dashboard
                     </a>
+                    @can('view-client-admin-dashboard')
+                        <a href="{{ route('client-admin.dashboard') }}"
+                           @click="menuOpen = false"
+                           class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                            Admin
+                        </a>
+                    @endcan
                     @can('view-m365-directory')
                         <a href="{{ route('microsoft-365.directory') }}"
                            @click="menuOpen = false"

@@ -5,19 +5,29 @@ namespace App\Jobs;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\EntraSync\EntraGroupSyncService;
-use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Runs after the HTTP response is sent (dispatch()->afterResponse()) so nginx does not 504.
+ * Runs Entra group sync for one client via the database queue (not inline on the HTTP request).
  */
-class SyncEntraClientJob
+class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
 {
-    use Dispatchable, Queueable;
+    use Queueable;
+
+    public int $tries = 3;
+
+    public int $uniqueFor = 900;
 
     public function __construct(public int $clientId) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->clientId;
+    }
 
     public function handle(EntraGroupSyncService $sync, ActivityLogService $activityLog): void
     {

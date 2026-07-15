@@ -64,19 +64,29 @@ class SuperOpsSsoService
     public function launchUrlFor(User $user): string
     {
         if ($user->role->isAdmin()) {
-            $base = rtrim((string) config('services.superops.technician_portal_url'), '/');
-            $path = $this->hashLoginPath(
-                config('services.superops.technician_login_path'),
-                '/#/technician/login',
-            );
-
-            return $this->appendLoginHint($base.$path, $user->email);
+            return $this->technicianLaunchUrl($user->email);
         }
 
+        return $this->requesterLaunchUrl($user->email);
+    }
+
+    private function technicianLaunchUrl(?string $email): string
+    {
+        $base = rtrim((string) config('services.superops.technician_portal_url'), '/');
+        $path = $this->hashLoginPath(
+            config('services.superops.technician_login_path'),
+            '/#/technician/login',
+        );
+
+        return $this->appendLoginHint($base.$path, $email);
+    }
+
+    private function requesterLaunchUrl(?string $email): string
+    {
         $configured = config('services.superops.sso_url');
 
         if ($configured && ! $this->isEntraSamlEndpoint($configured) && $this->isAllowedSuperOpsUrl($configured)) {
-            return $this->appendLoginHint($configured, $user->email);
+            return $this->appendLoginHint($configured, $email);
         }
 
         $base = rtrim((string) config('services.superops.requester_portal_url'), '/');
@@ -85,7 +95,7 @@ class SuperOpsSsoService
             '/#/requester/login',
         );
 
-        return $this->appendLoginHint($base.$path, $user->email);
+        return $this->appendLoginHint($base.$path, $email);
     }
 
     /**
@@ -123,8 +133,6 @@ class SuperOpsSsoService
             [$before, $fragment] = explode('#', $url, 2);
             $separator = str_contains($fragment, '?') ? '&' : '?';
 
-            // Keep login_hint inside the hash fragment so SuperOps SPA routes to
-            // /#/technician/login or /#/requester/login instead of /#/login chooser.
             return $before.'#'.$fragment.$separator.$hint;
         }
 

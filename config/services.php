@@ -80,6 +80,9 @@ return [
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),
+        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 10),
+        'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 1440),
+        'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
     ],
 
     'entra_sync' => [
@@ -87,6 +90,9 @@ return [
         'client_id' => env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID')),
         'client_secret' => env('ENTRA_SYNC_CLIENT_SECRET', env('MICROSOFT_CLIENT_SECRET')),
         'directory_cache_minutes' => env('ENTRA_DIRECTORY_CACHE_MINUTES', 15),
+        'directory_stale_minutes' => env('ENTRA_DIRECTORY_STALE_MINUTES', 1440),
+        'directory_refresh_lock_seconds' => env('ENTRA_DIRECTORY_REFRESH_LOCK_SECONDS', 600),
+        'directory_refresh_cooldown_seconds' => env('ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS', 60),
         'maintain_superops_group' => env('ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP', true),
         'superops_name_extension_attribute' => (int) env('ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE', 1),
         'superops_provision_on_demand' => env('ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND', true),

@@ -65,7 +65,10 @@ class User extends Authenticatable
         return match ($this->role) {
             UserRole::SuperAdmin => true,
             UserRole::AccountManager => $this->assignedClients()->where('clients.id', $clientId)->exists(),
-            UserRole::ClientAdmin, UserRole::ClientUser => $this->client_id === $clientId,
+            UserRole::ClientAdmin,
+            UserRole::ClientBillingAdmin,
+            UserRole::ClientRequester,
+            UserRole::ClientUser => $this->client_id === $clientId,
         };
     }
 
@@ -74,7 +77,10 @@ class User extends Authenticatable
         return match ($this->role) {
             UserRole::SuperAdmin => Client::pluck('id')->toArray(),
             UserRole::AccountManager => $this->assignedClients()->pluck('clients.id')->toArray(),
-            UserRole::ClientAdmin, UserRole::ClientUser => $this->client_id ? [$this->client_id] : [],
+            UserRole::ClientAdmin,
+            UserRole::ClientBillingAdmin,
+            UserRole::ClientRequester,
+            UserRole::ClientUser => $this->client_id ? [$this->client_id] : [],
         };
     }
 
@@ -83,17 +89,68 @@ class User extends Authenticatable
         return $this->role->isAdmin();
     }
 
+    public function isClientRequester(): bool
+    {
+        return $this->role->isClientRequester();
+    }
+
+    public function isClientBillingAdmin(): bool
+    {
+        return $this->role->isClientBillingAdmin();
+    }
+
+    public function isClientAdmin(): bool
+    {
+        return $this->role->isClientAdmin();
+    }
+
+    public function canUseClientSupport(): bool
+    {
+        return $this->role->isClientFacing();
+    }
+
+    public function canAccessClientBilling(): bool
+    {
+        return $this->role->canAccessClientBilling();
+    }
+
+    public function canViewClientAdminDashboard(): bool
+    {
+        return $this->role->canViewClientAdminDashboard();
+    }
+
+    public function canViewMicrosoft365Directory(): bool
+    {
+        return $this->role->canViewMicrosoft365Directory();
+    }
+
+    public function canViewOrganisationTickets(): bool
+    {
+        return $this->role->canViewOrganisationTickets();
+    }
+
+    public function canViewClientAssets(): bool
+    {
+        return $this->role->canViewClientAssets();
+    }
+
     public function meetsRoleRequirement(?string $requiredRole): bool
     {
         if ($requiredRole === null) {
             return true;
         }
 
+        if ($requiredRole === UserRole::ClientUser->value) {
+            $requiredRole = UserRole::ClientRequester->value;
+        }
+
         $hierarchy = [
+            UserRole::ClientRequester->value => 1,
             UserRole::ClientUser->value => 1,
-            UserRole::ClientAdmin->value => 2,
-            UserRole::AccountManager->value => 3,
-            UserRole::SuperAdmin->value => 4,
+            UserRole::ClientBillingAdmin->value => 2,
+            UserRole::ClientAdmin->value => 3,
+            UserRole::AccountManager->value => 4,
+            UserRole::SuperAdmin->value => 5,
         ];
 
         $userLevel = $hierarchy[$this->role->value] ?? 0;

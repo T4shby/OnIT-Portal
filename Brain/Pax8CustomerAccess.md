@@ -82,7 +82,7 @@ Use for **new sales**; use **company view** (portal tile) for **existing subscri
 - [ ] Pax8 company exists
 - [ ] Company users created in Pax8 (matching portal emails)
 - [ ] Portal client: `pax8_company_id` + **Pax8 access enabled**
-- [ ] Portal users: `client_user` or `client_admin`
+- [ ] Portal users: `client_requester`, `client_billing_admin`, or `client_admin`
 - [ ] Test in private window as customer (not technician)
 
 ---
@@ -92,7 +92,7 @@ Use for **new sales**; use **company view** (portal tile) for **existing subscri
 | Symptom | Fix |
 |---|---|
 | No Pax8 tile | Enable Pax8 access + company ID on client |
-| Access denied flash | Same — or user not `client_user` / `client_admin` |
+| Access denied flash | Same — or user not a customer role (`client_requester`, `client_billing_admin`, `client_admin`) |
 | Wrong company / access error | Wrong company ID; user not Pax8 company user |
 | Password login at Pax8 | Expected — no customer Microsoft SSO yet |
 | Sees partner pricing | User has partner role in Pax8 — use company user only |

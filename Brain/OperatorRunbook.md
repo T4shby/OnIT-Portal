@@ -135,7 +135,7 @@ Use this every time someone new needs the portal.
 
 1. **Admin** → **Users** → **Create**
 2. Email = their **work Microsoft address** (must match what they will sign in with)
-3. Role: `client_user` or `client_admin`
+3. Role: `client_requester`, `client_billing_admin`, or `client_admin`
 4. Client: select their organisation
 5. **Save**
 

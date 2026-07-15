@@ -107,7 +107,9 @@ Reason:
 Covers the organisational hierarchy: platform administrators, On IT account managers, client IT leads, and client end users. Each role has clearly defined access boundaries.
 
 Consequences:
-Role checks required on every route and policy. Account managers use client_user pivot for multi-client access. Role enum stored as string in database.
+Role checks required on every route and policy. Account managers use pivot table `client_user` for multi-client access. Role enum stored as string in database.
+
+**Superseded (2026-07-15) by [ADR-021](#adr-021):** customer-facing `client_user` renamed to `client_requester`; added `client_billing_admin`. Staff roles (`super_admin`, `account_manager`) and pivot table `client_user` are unchanged.
 
 ---
 
@@ -288,3 +290,18 @@ Patching `displayName` polluted M365 Admin Center Active users. SCIM can carry t
 
 Consequences:
 `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE` (default `1`). One-time SCIM **Direct** mapping: **name.familyName** ← extensionAttribute1 per customer SuperOps app. `portal:revert-entra-display-names` restores mistaken M365 suffixes. Sync output: `SuperOps last names updated N` and `SuperOps SCIM provision requested for N user(s)` (one Entra provision-on-demand call per user). Documented in [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+
+---
+
+## ADR-021
+
+Date: 2026-07-15
+
+Decision:
+Split customer-facing access into `client_requester`, `client_billing_admin`, and `client_admin` with explicit capability helpers and gates. Migrate legacy `client_user` → `client_requester`. Serve M365 directory and SuperOps dashboard metrics from per-client cache with queued background refresh jobs (`ShouldQueue` + database queue), not blocking Graph/API calls on page load.
+
+Reason:
+Client Admins need organisation-wide SuperOps visibility without exposing MSP credentials. M365 directory blocked HTTP requests on cache expiry (~300 serial Graph calls). Entra sync must not downgrade manually promoted roles.
+
+Consequences:
+Migration `2026_07_15_120000_migrate_client_user_to_client_requester`. New routes `/client-admin`, async M365 refresh. Documented in [ClientAdminDashboard.md](ClientAdminDashboard.md). ADR-007 role list superseded for client-facing roles.

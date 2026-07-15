@@ -27,7 +27,7 @@ class SuperOpsTicketService
                 'page' => $page,
                 'pageSize' => 20,
                 'condition' => $this->requesterCondition($user),
-                'sort' => [['field' => 'updatedTime', 'order' => 'DESC']],
+                'sort' => [['attribute' => 'updatedTime', 'order' => 'DESC']],
             ]),
         ]);
 
@@ -92,10 +92,19 @@ class SuperOpsTicketService
 
     private function requesterCondition(User $user): array
     {
+        // Live SuperOps RuleConditionInput uses attribute/operator/value with operator "is".
         if ($user->superops_user_id) {
-            return ['field' => 'requester.userId', 'operator' => 'eq', 'value' => $user->superops_user_id];
+            return [
+                'attribute' => 'requester.userId',
+                'operator' => 'is',
+                'value' => $user->superops_user_id,
+            ];
         }
 
-        return ['field' => 'requester.email', 'operator' => 'eq', 'value' => $user->email];
+        return [
+            'attribute' => 'requester.email',
+            'operator' => 'is',
+            'value' => $user->email,
+        ];
     }
 }

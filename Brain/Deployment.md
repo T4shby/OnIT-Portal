@@ -95,6 +95,8 @@ SESSION_DRIVER=database
 SESSION_LIFETIME=120
 SESSION_SECURE_COOKIE=true
 
+QUEUE_CONNECTION=database
+
 MICROSOFT_CLIENT_ID=your-client-id
 MICROSOFT_CLIENT_SECRET=your-client-secret
 MICROSOFT_TENANT_ID=organizations
@@ -158,7 +160,64 @@ In Plesk → Scheduled Tasks, add:
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### 11. SSL Certificate
+### 11. Run the queue worker
+
+Background work (M365 directory refresh, SuperOps dashboard metrics, admin Entra sync) uses Laravel's **database queue** — not `dispatch()->afterResponse()`. Jobs are written to the `jobs` table when `QUEUE_CONNECTION=database`.
+
+**Required `.env`:**
+
+```env
+QUEUE_CONNECTION=database
+```
+
+PHPUnit sets `QUEUE_CONNECTION=sync` in `phpunit.xml` so tests still run jobs inline.
+
+**Worker command (production):**
+
+```bash
+php artisan queue:work database --sleep=1 --tries=3
+```
+
+Run this **continuously** — choose one:
+
+| Option | When to use |
+|---|---|
+| **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts |
+| **Plesk scheduled task** | No Supervisor; run every minute with `--stop-when-empty` (see below) |
+
+**Supervisor example** (`/etc/supervisor/conf.d/onit-portal-queue.conf`):
+
+```ini
+[program:onit-portal-queue]
+process_name=%(program_name)s
+command=/opt/plesk/php/8.3/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --sleep=1 --tries=3
+autostart=true
+autorestart=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker.log
+```
+
+Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-portal-queue`
+
+**Plesk scheduled task fallback** (every minute — less ideal than Supervisor):
+
+```
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+```
+
+Use the same Plesk PHP binary as in [Updating the Application](#updating-the-application). After deploy, restart the Supervisor program or wait for the next scheduled task tick.
+
+**Queued jobs:**
+
+| Job | Trigger |
+|---|---|
+| `RefreshM365DirectoryJob` | Stale M365 directory cache, manual refresh |
+| `RefreshSuperOpsDashboardJob` | Stale SuperOps dashboard cache |
+| `SyncEntraClientJob` | Admin → Clients → Sync Entra users |
+
+### 12. SSL Certificate
 
 1. Plesk → SSL/TLS Certificates
 2. Install Let's Encrypt (free)
@@ -198,6 +257,7 @@ In Plesk → Scheduled Tasks, add:
 - [ ] Technician Pax8 → partner portal; client with `pax8_company_id` → company view
 - [ ] `APP_DEBUG=false` — no stack traces on errors
 - [ ] SSL certificate valid and HTTP redirects to HTTPS
+- [ ] Queue worker running (`QUEUE_CONNECTION=database`; `jobs` table draining)
 
 ## Updating the Application
 
@@ -274,6 +334,7 @@ Then run the deploy block above. Set **Pax8 company ID** per client in Admin →
 | Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists (`php artisan tinker --execute="echo Schema::hasTable('sessions') ? 'yes' : 'no';"`), `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset). After deploy, set `MICROSOFT_OAUTH_STATELESS=true` in `.env` and `php artisan config:clear` if login still fails with session-lost message. |
 | CSS not loading / unstyled page | See **CSS not loading** below |
 | Permission denied | `chmod -R 775 storage bootstrap/cache` |
+| M365 directory / SuperOps dashboard never updates | Confirm `QUEUE_CONNECTION=database` in `.env`, `jobs` table exists (`php artisan migrate`), and queue worker is running — see [Run the queue worker](#11-run-the-queue-worker) |
 | cURL SSL error on **local Windows only** | Not a production issue — see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |
 
 ### CSS not loading (unstyled HTML)

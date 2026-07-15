@@ -18,9 +18,9 @@
 
 Client-scoped CMS tables with `is_active`, ordering, and scheduling fields on notices.
 
-### client_user
+### pivot table `client_user`
 
-Account manager ↔ client pivot.
+Account manager ↔ client many-to-many pivot (not a user role).
 
 ### activity_logs, settings, sessions
 

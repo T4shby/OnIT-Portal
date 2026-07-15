@@ -103,7 +103,7 @@ class ClientEntraSyncTest extends TestCase
 
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $response = $this->actingAs($user)
@@ -139,7 +139,7 @@ class ClientEntraSyncTest extends TestCase
         User::factory()->create([
             'client_id' => $client->id,
             'email' => 'staff@acme.com',
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'is_active' => true,
             'portal_login_enabled' => true,
             'entra_object_id' => 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
@@ -178,7 +178,7 @@ class ClientEntraSyncTest extends TestCase
         User::factory()->create([
             'client_id' => $client->id,
             'email' => 'accounts@acme.com',
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'is_active' => true,
             'portal_login_enabled' => false,
             'entra_object_id' => 'dddddddd-dddd-dddd-dddd-dddddddddddd',
@@ -289,6 +289,9 @@ class ClientEntraSyncTest extends TestCase
                 'userPrincipalName' => $user['userPrincipalName'],
                 'displayName' => $user['displayName'],
                 'accountEnabled' => $user['accountEnabled'],
+                'assignedLicenses' => ($user['licensed'] ?? false)
+                    ? [['skuId' => 'test-sku']]
+                    : [],
             ];
         }
 
@@ -303,12 +306,9 @@ class ClientEntraSyncTest extends TestCase
                 return Http::response(['value' => $list]);
             }
 
-            if (preg_match('#/users/([0-9a-f-]+)/licenseDetails$#', $url, $matches)) {
-                $userId = $matches[1];
-                $licensed = $usersById[$userId]['licensed'] ?? false;
-
+            if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/subscribedSkus')) {
                 return Http::response([
-                    'value' => $licensed ? [['skuId' => 'test-sku', 'skuPartNumber' => 'O365_BUSINESS']] : [],
+                    'value' => [['skuId' => 'test-sku', 'skuPartNumber' => 'O365_BUSINESS']],
                 ]);
             }
 

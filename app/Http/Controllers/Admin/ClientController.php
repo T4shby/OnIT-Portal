@@ -166,7 +166,7 @@ class ClientController extends Controller
 
         $lock->release();
 
-        SyncEntraClientJob::dispatch($client->id)->afterResponse();
+        SyncEntraClientJob::dispatch($client->id);
 
         return back()->with(
             'success',

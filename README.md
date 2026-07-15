@@ -104,8 +104,9 @@ MICROSOFT_REDIRECT_URI=http://localhost:8000/auth/microsoft/callback
 |---|---|
 | `super_admin` | Full platform access |
 | `account_manager` | Admin for assigned clients |
+| `client_requester` | Standard client user (portal, support, SSO launch) |
+| `client_billing_admin` | Client user with billing capability |
 | `client_admin` | Client organisation admin |
-| `client_user` | Standard client user |
 
 Users must be pre-provisioned by an administrator before they can log in.
 

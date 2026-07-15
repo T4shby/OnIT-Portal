@@ -17,7 +17,7 @@ class AdminUsersIndexTest extends TestCase
         $client = Client::factory()->create(['name' => 'Acme Corp']);
         User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);

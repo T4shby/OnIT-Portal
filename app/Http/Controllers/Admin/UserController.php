@@ -60,7 +60,7 @@ class UserController extends Controller
         $client = Client::findOrFail($request->query('client'));
         $this->authorize('view', $client);
 
-        $roles = array_filter(UserRole::cases(), fn (UserRole $role) => $role->isClientFacing());
+        $roles = UserRole::assignableClientRoles();
 
         return view('admin.users.create', [
             'client' => $client,
@@ -91,7 +91,7 @@ class UserController extends Controller
 
         $this->authorize('update', $user);
 
-        $roles = array_filter(UserRole::cases(), fn (UserRole $role) => $role->isClientFacing());
+        $roles = UserRole::assignableClientRoles();
 
         return view('admin.users.edit', compact('user', 'roles'));
     }
@@ -104,9 +104,19 @@ class UserController extends Controller
 
         $this->authorize('update', $user);
 
+        $previousRole = $user->role->value;
         $user->update($request->validated());
 
-        $this->activityLog->log('user.updated', $user, clientId: $user->client_id);
+        $properties = null;
+        if ($previousRole !== $user->role->value) {
+            $properties = [
+                'previous_role' => $previousRole,
+                'new_role' => $user->role->value,
+            ];
+            $this->activityLog->log('user.role_changed', $user, properties: $properties, clientId: $user->client_id);
+        }
+
+        $this->activityLog->log('user.updated', $user, properties: $properties, clientId: $user->client_id);
 
         return redirect()->route('admin.clients.users.index', $user->client_id)
             ->with('success', 'User updated successfully.');

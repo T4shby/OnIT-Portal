@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Http\Controllers\ClientAdminDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
@@ -52,6 +53,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/microsoft-365/directory', [Microsoft365DirectoryController::class, 'index'])
         ->middleware('can:view-m365-directory')
         ->name('microsoft-365.directory');
+
+    Route::post('/microsoft-365/directory/refresh', [Microsoft365DirectoryController::class, 'refresh'])
+        ->middleware(['can:view-m365-directory', 'throttle:6,1'])
+        ->name('microsoft-365.directory.refresh');
+
+    Route::get('/client-admin', [ClientAdminDashboardController::class, 'index'])
+        ->middleware('can:view-client-admin-dashboard')
+        ->name('client-admin.dashboard');
+
+    Route::post('/client-admin/refresh', [ClientAdminDashboardController::class, 'refresh'])
+        ->middleware(['can:view-client-admin-dashboard', 'throttle:6,1'])
+        ->name('client-admin.refresh');
 
     Route::prefix('admin')
         ->name('admin.')

@@ -63,6 +63,7 @@ class EntraGroupSyncServiceTest extends TestCase
             'email' => 'jane@acme.com',
             'name' => 'Jane Smith',
             'client_id' => $client->id,
+            'role' => UserRole::ClientRequester->value,
             'entra_identity_type' => EntraIdentityType::User->value,
             'portal_login_enabled' => true,
             'provisioned_by' => UserProvisionSource::EntraSync->value,
@@ -139,7 +140,7 @@ class EntraGroupSyncServiceTest extends TestCase
         User::factory()->create([
             'client_id' => $client->id,
             'email' => 'gone@acme.com',
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'provisioned_by' => UserProvisionSource::EntraSync,
             'entra_object_id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc',
             'is_active' => true,
@@ -200,7 +201,7 @@ class EntraGroupSyncServiceTest extends TestCase
         User::factory()->create([
             'client_id' => $client->id,
             'email' => 'manual@acme.com',
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'provisioned_by' => UserProvisionSource::Manual,
             'is_active' => true,
         ]);
@@ -212,6 +213,80 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'manual@acme.com',
             'is_active' => true,
+        ]);
+    }
+
+    public function test_sync_does_not_downgrade_client_admin_role(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'admin@acme.com',
+            'role' => UserRole::ClientAdmin,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            'is_active' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'admin@acme.com',
+                'userPrincipalName' => 'admin@acme.com',
+                'displayName' => 'Admin User',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'admin@acme.com',
+            'role' => UserRole::ClientAdmin->value,
+        ]);
+    }
+
+    public function test_sync_does_not_downgrade_client_billing_admin_role(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'billing@acme.com',
+            'role' => UserRole::ClientBillingAdmin,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            'is_active' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => [
+                'mail' => 'billing@acme.com',
+                'userPrincipalName' => 'billing@acme.com',
+                'displayName' => 'Billing Admin',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'billing@acme.com',
+            'role' => UserRole::ClientBillingAdmin->value,
         ]);
     }
 
@@ -615,6 +690,9 @@ class EntraGroupSyncServiceTest extends TestCase
                 'userPrincipalName' => $user['userPrincipalName'],
                 'displayName' => $user['displayName'],
                 'accountEnabled' => $user['accountEnabled'],
+                'assignedLicenses' => ($user['licensed'] ?? false)
+                    ? [['skuId' => 'test-sku']]
+                    : [],
             ];
         }
 
@@ -800,12 +878,9 @@ class EntraGroupSyncServiceTest extends TestCase
                 return Http::response(null, 204);
             }
 
-            if (preg_match('#/users/([0-9a-f-]+)/licenseDetails$#', $url, $matches)) {
-                $userId = $matches[1];
-                $licensed = $usersById[$userId]['licensed'] ?? false;
-
+            if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/subscribedSkus')) {
                 return Http::response([
-                    'value' => $licensed ? [['skuId' => 'test-sku', 'skuPartNumber' => 'O365_BUSINESS']] : [],
+                    'value' => [['skuId' => 'test-sku', 'skuPartNumber' => 'O365_BUSINESS']],
                 ]);
             }
 

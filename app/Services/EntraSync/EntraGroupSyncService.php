@@ -198,7 +198,7 @@ class EntraGroupSyncService
                 User::create(array_merge($attributes, [
                     'client_id' => $client->id,
                     'email' => $email,
-                    'role' => UserRole::ClientUser,
+                    'role' => UserRole::ClientRequester,
                 ]));
                 $created++;
             }

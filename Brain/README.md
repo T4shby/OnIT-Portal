@@ -43,6 +43,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Deployment.md](Deployment.md) | Plesk production, `.env`, Entra + SuperOps setup |
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
+| [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps metrics cache, async M365 directory** |
 
 ## Implementation Map
 
@@ -58,7 +59,9 @@ Read these documents before changing application code. **Update Brain for every 
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
 | Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
 | Portal links | `app/Models/PortalLink.php`, `ExternalServicesService.php` |
-| Config | `config/services.php` |
+| Client Admin dashboard | `ClientAdminDashboardController`, `SuperOpsClientMetricsService`, `RefreshSuperOpsDashboardJob` |
+| M365 directory (async) | `M365DirectoryService`, `RefreshM365DirectoryJob` |
+| Client roles | `App\Enums\UserRole`, `User` capability helpers, gates in `AuthServiceProvider` |
 
 ## Change Protocol
 
@@ -71,6 +74,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-15 | M365 directory refresh now reuses user license data and resolves SKU names with one tenant-level Graph request — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-07-15 | Background refresh jobs use database queue + Plesk worker — [Deployment.md](Deployment.md#11-run-the-queue-worker), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-07-15 | Client roles (`client_requester`, `client_billing_admin`, `client_admin`), Client Admin dashboard, async M365 directory — [ClientAdminDashboard.md](ClientAdminDashboard.md); Brain/README terminology aligned (`client_user` role → `client_requester`; pivot table `client_user` kept distinct) |
 | 2026-07-14 | Client onboarding UI copy cleaned to short product language (Brain keeps policy docs) |
 | 2026-07-14 | Client setup guide header shortened to product copy (policy lecture kept in Brain only) |
 | 2026-07-14 | Migration resets legacy step 08 completions; every existing customer must complete the new Client SSO checklist |

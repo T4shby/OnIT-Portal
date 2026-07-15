@@ -22,7 +22,7 @@
                 <label class="block text-sm font-medium text-slate-700 mb-1">Role <span class="text-red-500">*</span></label>
                 <select name="role" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-onit focus:ring-onit">
                     @foreach($roles as $role)
-                        <option value="{{ $role->value }}" @selected(old('role', \App\Enums\UserRole::ClientUser->value) === $role->value)>{{ $role->label() }}</option>
+                        <option value="{{ $role->value }}" @selected(old('role', \App\Enums\UserRole::ClientRequester->value) === $role->value)>{{ $role->label() }}</option>
                     @endforeach
                 </select>
             </div>

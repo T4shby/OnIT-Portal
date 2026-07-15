@@ -24,15 +24,41 @@
             description="Check that Entra tenant ID is set, Graph permissions are granted, and admin consent was completed in the customer tenant."
         />
     </x-card>
+@elseif($display && ! $directory)
+    <x-card>
+        <x-empty-state
+            title="Directory synchronising"
+            description="Microsoft 365 directory data is being loaded in the background. Refresh this page in a moment."
+        />
+    </x-card>
 @elseif($directory)
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <p class="portal-body-muted text-xs">
-            Last refreshed {{ $directory->refreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
-            · cached {{ config('services.entra_sync.directory_cache_minutes', 15) }} minutes
-        </p>
-        <a href="{{ request()->fullUrlWithQuery(['refresh' => 1]) }}" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
-            Refresh now
-        </a>
+        <div class="space-y-1">
+            @if($display?->lastRefreshedAt)
+                <p class="portal-body-muted text-xs">
+                    Last refreshed {{ $display->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
+                    · cached {{ config('services.entra_sync.directory_cache_minutes', 15) }} minutes
+                </p>
+            @endif
+            @if($display?->statusMessage)
+                <p class="portal-body-muted text-xs text-amber-300/90">{{ $display->statusMessage }}</p>
+            @endif
+            @if($display?->refreshInProgress)
+                <p class="portal-body-muted text-xs">Refresh in progress.</p>
+            @endif
+        </div>
+        @if(! $adminContext)
+            <form method="POST" action="{{ route('microsoft-365.directory.refresh') }}">
+                @csrf
+                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
+                    Refresh now
+                </button>
+            </form>
+        @else
+            <a href="{{ request()->fullUrlWithQuery(['refresh' => 1]) }}" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
+                Queue refresh
+            </a>
+        @endif
     </div>
 
     <div x-data="{ tab: 'people', peopleFilter: 'all', groupFilter: 'all' }" class="space-y-6">

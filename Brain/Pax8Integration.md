@@ -15,7 +15,7 @@ No new dashboard or page. The existing **Pax8 tile** on `/dashboard` works like 
 | User type | Portal role | Pax8 destination |
 |---|---|---|
 | On IT technicians | `super_admin`, `account_manager` | Partner login (`https://app.pax8.com/login` + `login_hint`) |
-| Customer users | `client_admin`, `client_user` | Company view (`PAX8_COMPANY_URL_TEMPLATE` + `client.pax8_company_id`) when `pax8_sso_enabled` |
+| Customer users | `client_requester`, `client_billing_admin`, `client_admin` | Company view (`PAX8_COMPANY_URL_TEMPLATE` + `client.pax8_company_id`) when `pax8_sso_enabled` |
 
 If a client user's organisation has no **Pax8 company ID** or **Pax8 access** is disabled, the Pax8 tile is hidden on the dashboard. A direct hit to the launch URL redirects back with an error flash.
 

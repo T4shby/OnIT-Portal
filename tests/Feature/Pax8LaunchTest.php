@@ -66,7 +66,7 @@ class Pax8LaunchTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $response = $this->actingAs($user)->get(route('integrations.pax8.launch'));
@@ -87,7 +87,7 @@ class Pax8LaunchTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $response = $this->actingAs($user)->get(route('integrations.pax8.launch'));

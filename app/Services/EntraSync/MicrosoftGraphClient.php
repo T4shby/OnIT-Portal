@@ -31,27 +31,35 @@ class MicrosoftGraphClient
      *     displayName: ?string,
      *     accountEnabled: bool,
      *     identityType: EntraIdentityType,
+     *     licenseSkuPartNumbers: list<string>,
      * }>
      */
     public function listSyncEligibleUsers(string $tenantId): array
     {
         $eligible = [];
+        $users = $this->listTenantMemberUsers($tenantId);
+        $skuPartNumbersById = $users === [] ? [] : $this->listSubscribedSkuPartNumbersById($tenantId);
 
-        foreach ($this->listTenantMemberUsers($tenantId) as $user) {
+        foreach ($users as $user) {
             $mailboxPurpose = $this->getMailboxUserPurpose($tenantId, $user['id']);
-            $hasActiveLicense = $this->hasActiveLicense($tenantId, $user['id']);
+            $licenseSkuPartNumbers = array_values(array_unique(array_filter(array_map(
+                static fn (string $skuId): ?string => $skuPartNumbersById[strtolower($skuId)] ?? null,
+                $user['assignedLicenseSkuIds'],
+            ))));
 
             if ($mailboxPurpose === 'shared') {
                 $eligible[] = array_merge($user, [
                     'identityType' => EntraIdentityType::SharedMailbox,
+                    'licenseSkuPartNumbers' => $licenseSkuPartNumbers,
                 ]);
 
                 continue;
             }
 
-            if ($hasActiveLicense) {
+            if ($user['assignedLicenseSkuIds'] !== []) {
                 $eligible[] = array_merge($user, [
                     'identityType' => EntraIdentityType::User,
+                    'licenseSkuPartNumbers' => $licenseSkuPartNumbers,
                 ]);
             }
         }
@@ -60,7 +68,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * @return list<array{id: string, mail: ?string, userPrincipalName: ?string, displayName: ?string, accountEnabled: bool}>
+     * @return list<array{id: string, mail: ?string, userPrincipalName: ?string, displayName: ?string, accountEnabled: bool, assignedLicenseSkuIds: list<string>}>
      */
     public function listTenantMemberUsers(string $tenantId): array
     {
@@ -68,7 +76,7 @@ class MicrosoftGraphClient
         $url = 'https://graph.microsoft.com/v1.0/users';
         $query = [
             '$filter' => "userType eq 'Member'",
-            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled',
+            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled,assignedLicenses',
             '$top' => 999,
         ];
 
@@ -93,6 +101,10 @@ class MicrosoftGraphClient
                     'givenName' => $user['givenName'] ?? null,
                     'surname' => $user['surname'] ?? null,
                     'accountEnabled' => (bool) ($user['accountEnabled'] ?? true),
+                    'assignedLicenseSkuIds' => array_values(array_filter(array_map(
+                        static fn (array $license): string => (string) ($license['skuId'] ?? ''),
+                        is_array($user['assignedLicenses'] ?? null) ? $user['assignedLicenses'] : [],
+                    ))),
                 ];
             }
 
@@ -139,6 +151,36 @@ class MicrosoftGraphClient
         }
 
         return $groups;
+    }
+
+    /**
+     * @return array<string, string> lowercase skuId => skuPartNumber
+     */
+    public function listSubscribedSkuPartNumbersById(string $tenantId): array
+    {
+        $response = $this->request($tenantId)
+            ->get('https://graph.microsoft.com/v1.0/subscribedSkus', [
+                '$select' => 'skuId,skuPartNumber',
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph subscribedSkus failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $skus = [];
+
+        foreach ($response->json('value') ?? [] as $sku) {
+            $skuId = strtolower((string) ($sku['skuId'] ?? ''));
+            $skuPartNumber = (string) ($sku['skuPartNumber'] ?? '');
+
+            if ($skuId !== '' && $skuPartNumber !== '') {
+                $skus[$skuId] = $skuPartNumber;
+            }
+        }
+
+        return $skus;
     }
 
     /**

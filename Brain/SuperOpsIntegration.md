@@ -23,7 +23,7 @@ Microsoft Entra ID → On IT Portal session
 
 - Route: `GET /integrations/superops/launch`
 - **Technicians** (`super_admin`, `account_manager`) → same host as requester (`portal.onit.ltd`) + `/#/technician/login`
-- **Client users** (`client_user`, `client_admin`) → requester portal + `/#/requester/login` (when `superops_sso_enabled`)
+- **Client users** (`client_requester`, `client_billing_admin`, `client_admin`) → requester portal + `/#/requester/login` (when `superops_sso_enabled`)
 - Launch URL priority (requester path):
   1. `SUPEROPS_REQUESTER_PORTAL_URL` or `https://{subdomain}.superops.ai` + `/#/requester/login`
   2. Optional `SUPEROPS_SSO_URL` only if it is a **SuperOps** URL (never `login.microsoftonline.com`)
@@ -84,12 +84,12 @@ Configure via `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login` (default).
 
 | Button | Who | On IT Portal equivalent |
 |---|---|---|
-| **Login as requester** | Client/end-user — view and raise tickets for their organisation | `client_user`, `client_admin` |
+| **Login as requester** | Client/end-user — view and raise tickets for their organisation | `client_requester`, `client_billing_admin`, `client_admin` |
 | **Login as technician** | MSP staff — manage all clients, RMM, PSA | On IT internal staff (not portal clients) |
 
 **Portal users:** clients use **requester**; On IT technicians use **technician** launch from the same dashboard tile (role-based routing, same pattern as Pax8).
 
-**Testing requester SSO:** Use `portal.test@onit.ltd` (`client_user` on On IT Technology Partners). Do **not** use `tom.ashby@onit.ltd` for requester validation — Tom is an MSP technician in SuperOps.
+**Testing requester SSO:** Use `portal.test@onit.ltd` (`client_requester` on On IT Technology Partners). Do **not** use `tom.ashby@onit.ltd` for requester validation — Tom is an MSP technician in SuperOps.
 
 **Testing technician launch:** Use `tom.ashby@onit.ltd` (`super_admin`) — portal redirects to `portal.onit.ltd/#/technician/login` (same host as requester, different path).
 
@@ -155,7 +155,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | Role | Tile visible when | Launch destination |
 |---|---|---|
 | `super_admin`, `account_manager` | `SUPEROPS_SUBDOMAIN` or requester URL set | Same SuperOps host as requester (`portal.onit.ltd`) + `/#/technician/login` |
-| `client_user`, `client_admin` | `superops_sso_enabled` on client | Requester portal `/#/requester/login` |
+| `client_requester`, `client_billing_admin`, `client_admin` | `superops_sso_enabled` on client | Requester portal `/#/requester/login` |
 
 **The portal cannot pass its Laravel session to SuperOps.** Seamless login uses the **same Microsoft account** already signed into the portal:
 
@@ -172,7 +172,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 |---|---|
 | Role chooser (requester vs technician) | Wrong launch path — portal must use `/#/requester/login`, not `/#/login` or `/#/login/requester` |
 | SuperOps card missing for admin | Set `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` in `.env`; run `php artisan config:clear` |
-| SuperOps card missing for client | Client needs `superops_sso_enabled`; user must be `client_user` or `client_admin` |
+| SuperOps card missing for client | Client needs `superops_sso_enabled`; user must be `client_requester`, `client_billing_admin`, or `client_admin` |
 | **Error 1027** | Entra `email` claim missing — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore — use portal or `/#/requester/login` flow (SP-initiated) |
 | **Login with Email** on requester login | Client SSO is not enabled for that SuperOps client |

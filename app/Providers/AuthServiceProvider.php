@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\ClientNotice;
@@ -44,17 +43,25 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('manage-all-clients', function (User $user) {
-            return $user->role === UserRole::SuperAdmin;
+            return $user->role === \App\Enums\UserRole::SuperAdmin;
         });
 
         Gate::define('view-m365-directory', function (User $user) {
-            if ($user->role !== UserRole::ClientAdmin) {
+            if (! $user->canViewMicrosoft365Directory()) {
                 return false;
             }
 
             return filled($user->client?->entra_tenant_id)
                 && filled(config('services.entra_sync.client_id'))
                 && filled(config('services.entra_sync.client_secret'));
+        });
+
+        Gate::define('view-client-admin-dashboard', function (User $user) {
+            return $user->canViewClientAdminDashboard() && filled($user->client_id);
+        });
+
+        Gate::define('access-client-billing', function (User $user) {
+            return $user->canAccessClientBilling();
         });
     }
 }

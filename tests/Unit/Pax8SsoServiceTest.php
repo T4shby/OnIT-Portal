@@ -53,7 +53,7 @@ class Pax8SsoServiceTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'email' => 'approver@customer.example',
         ]);
 
@@ -72,7 +72,7 @@ class Pax8SsoServiceTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $this->assertFalse($this->service->isEnabledForUser($user));
@@ -139,7 +139,7 @@ class Pax8SsoServiceTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $this->assertFalse($this->service->isEnabledForUser($user));
@@ -159,7 +159,7 @@ class Pax8SsoServiceTest extends TestCase
         ]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'email' => 'approver@customer.example',
         ]);
 

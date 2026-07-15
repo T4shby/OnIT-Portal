@@ -12,7 +12,7 @@
 | External links | Pax8, M365, KB, Billing (launch-only) |
 | Admin CRUD | Clients, users, links, content, settings, activity logs |
 | Multi-tenant isolation | Strict `client_id` scoping |
-| RBAC | super_admin, account_manager, client_admin, client_user |
+| RBAC | super_admin, account_manager, client_requester, client_billing_admin, client_admin |
 
 ### Out of Scope
 
@@ -24,7 +24,7 @@
 
 ## User Stories
 
-### Client User
+### Client Requester
 
 - Log in with Microsoft work account
 - View dashboard with organisation content

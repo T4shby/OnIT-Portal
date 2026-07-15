@@ -50,7 +50,7 @@ class SuperOpsLaunchTest extends TestCase
         $client = Client::factory()->create(['superops_sso_enabled' => true]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
             'email' => 'portal.test@onit.ltd',
         ]);
 
@@ -64,7 +64,7 @@ class SuperOpsLaunchTest extends TestCase
         $client = Client::factory()->create(['superops_sso_enabled' => false]);
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $response = $this->actingAs($user)->get(route('integrations.superops.launch'));

@@ -25,7 +25,7 @@ class OnItTechnologyPartnersSeeder extends Seeder
             [
                 'client_id' => $client->id,
                 'name' => 'Portal Test',
-                'role' => UserRole::ClientUser,
+                'role' => UserRole::ClientRequester,
                 'is_active' => true,
             ],
         );

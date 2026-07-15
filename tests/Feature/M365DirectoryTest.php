@@ -60,6 +60,15 @@ class M365DirectoryTest extends TestCase
             ],
         ]);
 
+        $directory = app(\App\Services\M365\M365DirectoryService::class);
+        $directory->buildAndStoreSnapshot($client);
+
+        Http::assertSent(fn ($request) => str_starts_with(
+            $request->url(),
+            'https://graph.microsoft.com/v1.0/subscribedSkus',
+        ));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/licenseDetails'));
+
         $response = $this->actingAs($admin)->get(route('microsoft-365.directory'));
 
         $response->assertOk();
@@ -68,13 +77,13 @@ class M365DirectoryTest extends TestCase
         $response->assertSee('Distribution list');
     }
 
-    public function test_client_user_cannot_view_directory(): void
+    public function test_client_requester_cannot_view_directory(): void
     {
         $client = Client::factory()->create(['entra_tenant_id' => $this->tenantId]);
 
         $user = User::factory()->create([
             'client_id' => $client->id,
-            'role' => UserRole::ClientUser,
+            'role' => UserRole::ClientRequester,
         ]);
 
         $this->actingAs($user)
@@ -111,6 +120,10 @@ class M365DirectoryTest extends TestCase
                 'userPrincipalName' => $user['userPrincipalName'],
                 'displayName' => $user['displayName'],
                 'accountEnabled' => $user['accountEnabled'],
+                'assignedLicenses' => array_map(
+                    static fn (string $sku): array => ['skuId' => $sku],
+                    $user['skus'] ?? [],
+                ),
             ];
         }
 
@@ -129,12 +142,17 @@ class M365DirectoryTest extends TestCase
                 return Http::response(['value' => $groups]);
             }
 
-            if (preg_match('#/users/([0-9a-f-]+)/licenseDetails$#', $url, $matches)) {
-                $userId = $matches[1];
-                $skus = $usersById[$userId]['skus'] ?? [];
-
+            if (str_starts_with($url, 'https://graph.microsoft.com/v1.0/subscribedSkus')) {
+                $skus = array_values(array_unique(array_reduce(
+                    $usersById,
+                    static fn (array $skus, array $user): array => array_merge($skus, $user['skus'] ?? []),
+                    [],
+                )));
                 return Http::response([
-                    'value' => array_map(fn ($sku) => ['skuPartNumber' => $sku], $skus),
+                    'value' => array_map(
+                        static fn (string $sku): array => ['skuId' => $sku, 'skuPartNumber' => $sku],
+                        $skus,
+                    ),
                 ]);
             }
 
