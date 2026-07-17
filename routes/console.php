@@ -11,10 +11,10 @@ Artisan::command('inspire', function () {
 Schedule::command('portal:sync-entra-users')
     ->hourly()
     ->when(fn () => (bool) config('services.entra_sync.enabled'))
-    ->withoutOverlapping()
+    ->withoutOverlapping(10)
     ->onOneServer();
 
 Schedule::command('portal:prewarm-client-dashboards')
     ->everyTenMinutes()
-    ->withoutOverlapping()
+    ->withoutOverlapping(5)
     ->onOneServer();

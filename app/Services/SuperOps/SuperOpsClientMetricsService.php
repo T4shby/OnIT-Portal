@@ -137,7 +137,7 @@ class SuperOpsClientMetricsService
             return false;
         }
 
-        Cache::put('superops_dashboard.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('superops_dashboard.refresh_queued.'.$client->id, true, now()->addMinutes(5));
         RefreshSuperOpsDashboardJob::dispatch($client->id);
 
         return true;
@@ -262,7 +262,7 @@ class SuperOpsClientMetricsService
                 }
 
                 $page++;
-            } while ($hasMore && $batch !== [] && $page <= 100);
+            } while ($hasMore && $batch !== [] && $page <= (int) config('services.superops.dashboard_max_pages', 20));
 
             return ['total' => $total, 'online' => $online, 'offline' => $offline];
         } catch (Throwable $e) {
@@ -344,7 +344,7 @@ class SuperOpsClientMetricsService
             }
 
             $page++;
-        } while ($hasMore && $batch !== [] && $page <= 100);
+        } while ($hasMore && $batch !== [] && $page <= (int) config('services.superops.dashboard_max_pages', 20));
 
         return $tickets;
     }

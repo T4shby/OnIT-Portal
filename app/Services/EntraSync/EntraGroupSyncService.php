@@ -409,14 +409,22 @@ class EntraGroupSyncService
             return $this->triggerSuperOpsScimProvision($client, $userIds);
         }
 
-        ProvisionSuperOpsScimUsersJob::dispatch($client->id, $userIds);
+        $pendingKey = 'entra_scim_provision_pending.'.$client->id;
+        $pending = Cache::get($pendingKey, []);
+        $merged = array_values(array_unique(array_merge(
+            is_array($pending) ? $pending : [],
+            $userIds,
+        )));
+        Cache::put($pendingKey, $merged, now()->addMinutes(30));
+
+        ProvisionSuperOpsScimUsersJob::dispatch($client->id);
 
         Log::info('Queued SuperOps SCIM provision on demand', [
             'client_id' => $client->id,
-            'user_count' => count($userIds),
+            'user_count' => count($merged),
         ]);
 
-        return [count($userIds), []];
+        return [count($merged), []];
     }
 
     /**

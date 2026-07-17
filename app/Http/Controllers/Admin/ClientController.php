@@ -153,7 +153,12 @@ class ClientController extends Controller
         }
 
         if ($dryRun) {
-            return $this->finishEntraSyncResponse($client, $sync->syncClient($client, true), dryRun: true);
+            SyncEntraClientJob::dispatch($client->id, dryRun: true);
+
+            return back()->with(
+                'success',
+                'Dry run started in the background. Refresh this page in 1–2 minutes; the latest result is stored for this client.',
+            );
         }
 
         $lock = Cache::lock(

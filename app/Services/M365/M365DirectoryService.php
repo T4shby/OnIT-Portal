@@ -74,7 +74,7 @@ class M365DirectoryService
             return false;
         }
 
-        Cache::put('m365_directory.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('m365_directory.refresh_queued.'.$client->id, true, now()->addMinutes(5));
 
         RefreshM365DirectoryJob::dispatch($client->id);
 

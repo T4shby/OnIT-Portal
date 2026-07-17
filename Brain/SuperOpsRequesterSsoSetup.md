@@ -92,7 +92,7 @@ Using GDAP:
 Use the values copied from that customer's SuperOps Client SSO configuration:
 
 - **Identifier (Entity ID):** client-specific SuperOps Entity ID; mark Default.
-- **Reply URL (ACS):** client-specific SuperOps Consumer Service URL; mark Default.
+- **Reply URL (ACS):** client-specific SuperOps Consumer Service URL; mark Default. Leave **Index** blank (not required for a single ACS URL).
 - **Sign on URL:** blank.
 - **Relay State:** blank.
 - **Logout URL:** blank.
@@ -192,6 +192,7 @@ The deployment migration clears that checkpoint on existing clients because any 
 
 | Date | Change |
 |---|---|
+| 2026-07-17 | Leave Reply URL Index blank; documented in Basic SAML steps |
 | 2026-07-14 | Existing step 08 completion is reset during migration so old Global Accept records cannot masquerade as completed Client SSO |
 | 2026-07-14 | Replaced unsupported Global SSO Multitenant adminconsent design with SuperOps Client SSO per customer tenant |
 | 2026-07-14 | Added distinct per-client SSO Application ID for Entra Free automatic user assignment |

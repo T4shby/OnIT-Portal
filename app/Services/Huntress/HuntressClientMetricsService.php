@@ -97,7 +97,7 @@ class HuntressClientMetricsService
             return false;
         }
 
-        Cache::put('huntress_security.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('huntress_security.refresh_queued.'.$client->id, true, now()->addMinutes(5));
         RefreshHuntressSecurityJob::dispatch($client->id);
 
         return true;

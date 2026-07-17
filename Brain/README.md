@@ -75,6 +75,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-17 | Reliability pass: skip/batch mailboxSettings N+1; hourly Entra sync queues per-client jobs; dry-run queued; job timeouts; shorter refresh_queued flags; SuperOps page cap; prewarm skips when queue deep — [Deployment.md](Deployment.md#10-configure-cron), [EntraGroupSync.md](EntraGroupSync.md) |
 | 2026-07-17 | Entra SCIM provision-on-demand kept, but fixed hang: only changed/newly-assigned users are provisioned, and provision runs via `ProvisionSuperOpsScimUsersJob` so hourly sync can finish — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-07-17 | Added missing `failed_jobs` table migration — production queue was processing jobs but failed-job tooling errored without the table — [Deployment.md](Deployment.md#11-run-the-queue-worker) |
 | 2026-07-17 | Production cron must use root crontab over SSH — Plesk UI Scheduled Tasks fail with `ld.so` on `/opt/plesk/php/8.3/bin/php`; keep scheduler + queue worker entries in root crontab — [Deployment.md](Deployment.md#10-configure-cron) |

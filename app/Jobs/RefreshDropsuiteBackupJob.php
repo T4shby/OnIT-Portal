@@ -7,6 +7,7 @@ use App\Services\Dropsuite\DropsuiteClientMetricsService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class RefreshDropsuiteBackupJob implements ShouldQueue, ShouldBeUnique
@@ -14,6 +15,8 @@ class RefreshDropsuiteBackupJob implements ShouldQueue, ShouldBeUnique
     use Queueable;
 
     public int $tries = 3;
+
+    public int $timeout = 120;
 
     public int $uniqueFor = 300;
 
@@ -40,5 +43,10 @@ class RefreshDropsuiteBackupJob implements ShouldQueue, ShouldBeUnique
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Cache::forget('dropsuite_backup.refresh_queued.'.$this->clientId);
     }
 }

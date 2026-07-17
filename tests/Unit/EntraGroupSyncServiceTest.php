@@ -883,7 +883,28 @@ class EntraGroupSyncServiceTest extends TestCase
                 ]);
             }
 
-            if ($servicePrincipalId && $request->method() === 'POST' && str_contains($url, '/provisionOnDemand')) {
+            if ($request->method() === 'POST' && str_contains($url, '/$batch')) {
+                $responses = [];
+
+                foreach ($request->data()['requests'] ?? [] as $batchRequest) {
+                    $batchUrl = (string) ($batchRequest['url'] ?? '');
+                    $purpose = null;
+
+                    if (preg_match('#/users/([0-9a-f-]+)/mailboxSettings#', $batchUrl, $matches)) {
+                        $purpose = $usersById[$matches[1]]['mailboxPurpose'] ?? null;
+                    }
+
+                    $responses[] = [
+                        'id' => (string) ($batchRequest['id'] ?? ''),
+                        'status' => 200,
+                        'body' => ['userPurpose' => $purpose],
+                    ];
+                }
+
+                return Http::response(['responses' => $responses]);
+            }
+
+            if ($request->method() === 'POST' && str_contains($url, '/provisionOnDemand')) {
                 return Http::response(['value' => []]);
             }
 

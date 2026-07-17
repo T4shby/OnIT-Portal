@@ -19,6 +19,8 @@ class RefreshM365DirectoryJob implements ShouldQueue, ShouldBeUnique
 
     public int $tries = 3;
 
+    public int $timeout = 300;
+
     public int $uniqueFor = 600;
 
     public function __construct(public int $clientId) {}
@@ -65,5 +67,10 @@ class RefreshM365DirectoryJob implements ShouldQueue, ShouldBeUnique
             Cache::forget('m365_directory.refresh_queued.'.$client->id);
             $lock->release();
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Cache::forget('m365_directory.refresh_queued.'.$this->clientId);
     }
 }

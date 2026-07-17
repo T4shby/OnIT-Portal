@@ -41,8 +41,20 @@ class MicrosoftGraphClient
         $users = $this->listTenantMemberUsers($tenantId);
         $skuPartNumbersById = $users === [] ? [] : $this->listSubscribedSkuPartNumbersById($tenantId);
 
+        // Shared mailboxes are almost always unlicensed. Skip mailboxSettings for licensed
+        // users (was N sequential Graph calls and the main Entra/M365 hang).
+        $unlicensedIds = [];
+
         foreach ($users as $user) {
-            $mailboxPurpose = $this->getMailboxUserPurpose($tenantId, $user['id']);
+            if ($user['assignedLicenseSkuIds'] === []) {
+                $unlicensedIds[] = $user['id'];
+            }
+        }
+
+        $mailboxPurposes = $this->getMailboxUserPurposesBatched($tenantId, $unlicensedIds);
+
+        foreach ($users as $user) {
+            $mailboxPurpose = $mailboxPurposes[$user['id']] ?? null;
             $licenseSkuPartNumbers = array_values(array_unique(array_filter(array_map(
                 static fn (string $skuId): ?string => $skuPartNumbersById[strtolower($skuId)] ?? null,
                 $user['assignedLicenseSkuIds'],
@@ -66,6 +78,88 @@ class MicrosoftGraphClient
         }
 
         return $eligible;
+    }
+
+    /**
+     * Resolve mailbox userPurpose for many users via Graph JSON batch (max 20 per request).
+     *
+     * @param  list<string>  $userIds
+     * @return array<string, string|null> userId => purpose
+     */
+    public function getMailboxUserPurposesBatched(string $tenantId, array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter($userIds)));
+        $purposes = [];
+
+        if ($userIds === []) {
+            return $purposes;
+        }
+
+        foreach (array_chunk($userIds, 20) as $chunk) {
+            $requests = [];
+
+            foreach ($chunk as $index => $userId) {
+                $requests[] = [
+                    'id' => (string) ($index + 1),
+                    'method' => 'GET',
+                    'url' => "/users/{$userId}/mailboxSettings?\$select=userPurpose",
+                ];
+            }
+
+            $response = $this->request($tenantId)->timeout(60)->post(
+                'https://graph.microsoft.com/v1.0/$batch',
+                ['requests' => $requests],
+            );
+
+            if ($response->failed()) {
+                Log::warning('Microsoft Graph mailboxSettings batch failed; falling back per user', [
+                    'tenant_id' => $tenantId,
+                    'status' => $response->status(),
+                    'chunk_size' => count($chunk),
+                ]);
+
+                foreach ($chunk as $userId) {
+                    $purposes[$userId] = $this->getMailboxUserPurpose($tenantId, $userId);
+                }
+
+                continue;
+            }
+
+            $responsesById = [];
+
+            foreach ($response->json('responses') ?? [] as $item) {
+                if (isset($item['id'])) {
+                    $responsesById[(string) $item['id']] = $item;
+                }
+            }
+
+            foreach ($chunk as $index => $userId) {
+                $item = $responsesById[(string) ($index + 1)] ?? null;
+                $status = (int) ($item['status'] ?? 0);
+
+                if ($status === 404 || $item === null) {
+                    $purposes[$userId] = null;
+
+                    continue;
+                }
+
+                if ($status < 200 || $status >= 300) {
+                    Log::warning('Microsoft Graph mailboxSettings batch item failed; treating as non-shared', [
+                        'tenant_id' => $tenantId,
+                        'user_id' => $userId,
+                        'status' => $status,
+                    ]);
+                    $purposes[$userId] = null;
+
+                    continue;
+                }
+
+                $purpose = $item['body']['userPurpose'] ?? null;
+                $purposes[$userId] = is_string($purpose) ? strtolower($purpose) : null;
+            }
+        }
+
+        return $purposes;
     }
 
     /**

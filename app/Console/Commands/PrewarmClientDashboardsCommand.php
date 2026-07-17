@@ -9,6 +9,8 @@ use App\Services\M365\M365DirectoryService;
 use App\Services\M365\M365InsightsService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PrewarmClientDashboardsCommand extends Command
 {
@@ -23,6 +25,18 @@ class PrewarmClientDashboardsCommand extends Command
         HuntressClientMetricsService $huntress,
         DropsuiteClientMetricsService $dropsuite,
     ): int {
+        $maxPending = 40;
+
+        if (Schema::hasTable('jobs')) {
+            $pending = (int) DB::table('jobs')->count();
+
+            if ($pending >= $maxPending) {
+                $this->warn("Skipping prewarm: {$pending} jobs already queued (max {$maxPending}).");
+
+                return self::SUCCESS;
+            }
+        }
+
         $clientsProcessed = 0;
         $jobsQueued = 0;
 

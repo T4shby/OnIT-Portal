@@ -7,6 +7,7 @@ use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class RefreshSuperOpsDashboardJob implements ShouldQueue, ShouldBeUnique
@@ -14,6 +15,8 @@ class RefreshSuperOpsDashboardJob implements ShouldQueue, ShouldBeUnique
     use Queueable;
 
     public int $tries = 3;
+
+    public int $timeout = 180;
 
     public int $uniqueFor = 300;
 
@@ -40,5 +43,10 @@ class RefreshSuperOpsDashboardJob implements ShouldQueue, ShouldBeUnique
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Cache::forget('superops_dashboard.refresh_queued.'.$this->clientId);
     }
 }

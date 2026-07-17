@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
@@ -11,7 +12,8 @@ class SyncEntraGroupUsers extends Command
 {
     protected $signature = 'portal:sync-entra-users
                             {--client= : Sync a single client by ID}
-                            {--dry-run : Show changes without writing to the database}';
+                            {--dry-run : Show changes without writing to the database}
+                            {--inline : Run synchronously in this process instead of queueing}';
 
     protected $description = 'Sync portal users from Microsoft Entra and maintain SuperOps SCIM group membership';
 
@@ -25,9 +27,14 @@ class SyncEntraGroupUsers extends Command
 
         $clientId = $this->option('client') ? (int) $this->option('client') : null;
         $dryRun = (bool) $this->option('dry-run');
+        $inline = (bool) $this->option('inline') || $dryRun || config('queue.default') === 'sync';
 
         if ($dryRun) {
             $this->warn('Dry run: no database changes will be made.');
+        }
+
+        if (! $inline) {
+            return $this->dispatchQueued($clientId, $dryRun);
         }
 
         $results = $sync->syncAll($clientId, $dryRun, function (Client $client): void {
@@ -40,6 +47,44 @@ class SyncEntraGroupUsers extends Command
             return self::SUCCESS;
         }
 
+        return $this->reportResults($results);
+    }
+
+    private function dispatchQueued(?int $clientId, bool $dryRun): int
+    {
+        $query = Client::query()
+            ->where('is_active', true)
+            ->where('entra_sync_enabled', true)
+            ->whereNotNull('entra_tenant_id')
+            ->orderBy('id');
+
+        if ($clientId) {
+            $query->whereKey($clientId);
+        }
+
+        $clients = $query->get(['id', 'name']);
+
+        if ($clients->isEmpty()) {
+            $this->warn('No clients found with Entra sync enabled and configured.');
+
+            return self::SUCCESS;
+        }
+
+        foreach ($clients as $client) {
+            SyncEntraClientJob::dispatch($client->id, $dryRun);
+            $this->info("Queued Entra sync for {$client->name} (#{$client->id}).");
+        }
+
+        $this->info("Queued {$clients->count()} Entra sync job(s). Queue worker will process them.");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  array<int, array{client: string, result: EntraSyncResult}>  $results
+     */
+    private function reportResults(array $results): int
+    {
         $hadFailure = false;
 
         foreach ($results as $id => $entry) {

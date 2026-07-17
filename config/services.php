@@ -90,6 +90,8 @@ return [
         'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 10),
         'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 1440),
         'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
+        // Cap GraphQL pagination so one refresh cannot exceed the queue worker window.
+        'dashboard_max_pages' => max(1, (int) env('SUPEROPS_DASHBOARD_MAX_PAGES', 20)),
     ],
 
     'huntress' => [

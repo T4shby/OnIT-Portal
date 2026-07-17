@@ -20,13 +20,18 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
 
     public int $tries = 3;
 
+    public int $timeout = 600;
+
     public int $uniqueFor = 900;
 
-    public function __construct(public int $clientId) {}
+    public function __construct(
+        public int $clientId,
+        public bool $dryRun = false,
+    ) {}
 
     public function uniqueId(): string
     {
-        return (string) $this->clientId;
+        return $this->clientId.($this->dryRun ? ':dry' : '');
     }
 
     public function handle(EntraGroupSyncService $sync, ActivityLogService $activityLog): void
@@ -37,22 +42,23 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $result = $sync->syncClient($client, dryRun: false);
+        $result = $sync->syncClient($client, dryRun: $this->dryRun);
 
         Cache::put(
             'entra_sync.last_result.'.$client->id,
             [
-                'summary' => $result->summary(),
+                'summary' => $result->summary($this->dryRun),
                 'failed' => $result->failed(),
                 'warnings' => $result->hasWarnings(),
                 'errors' => array_slice($result->errors, 0, 5),
+                'dry_run' => $this->dryRun,
                 'finished_at' => now()->toIso8601String(),
             ],
             now()->addDay(),
         );
 
         $activityLog->log(
-            'client.entra_synced',
+            $this->dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
             $client,
             properties: [
                 'created' => $result->created,
@@ -61,6 +67,7 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
                 'skipped' => $result->skipped,
                 'warnings' => count($result->errors),
                 'async' => true,
+                'dry_run' => $this->dryRun,
             ],
             clientId: $client->id,
         );
@@ -68,6 +75,7 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
         if ($result->failed()) {
             Log::error('Background Entra sync failed', [
                 'client_id' => $client->id,
+                'dry_run' => $this->dryRun,
                 'errors' => $result->errors,
             ]);
         }

@@ -73,7 +73,7 @@ php artisan optimize
 
 Edit server `.env` (see [Step 4](#step-4-server-env) below). Set `ENTRA_SYNC_ENABLED=true`.
 
-**Cron:** `schedule:run` every minute ([Deployment.md](Deployment.md)). Sync runs **hourly** when enabled.
+**Cron:** `schedule:run` every minute ([Deployment.md](Deployment.md)). Hourly `portal:sync-entra-users` **queues one `SyncEntraClientJob` per enabled client** (does not run Graph inline). Use `--inline` for a foreground sync when debugging. Mailbox purpose is only fetched for **unlicensed** users (shared mailboxes), in Graph `$batch` chunks of 20.
 
 ---
 
@@ -207,15 +207,20 @@ SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [
 
 **Clients → Edit client → Dry run sync** → check counts → **Sync now**
 
-While sync runs, **Sync now** returns immediately and the sync continues **in the background** (avoids nginx 504). Refresh the page in 1–2 minutes for **Last synced**. **Dry run** still runs inline.
+While sync runs, **Sync now** and **Dry run** return immediately and continue **in the background** (avoids nginx 504). Refresh the page in 1–2 minutes for **Last synced** / dry-run result.
 
 If a sync is stuck after a timeout: `php artisan portal:release-entra-sync-lock {client-id}`
 
 ### CLI (SSH)
 
 ```bash
-php artisan portal:sync-entra-users --client={id} --dry-run
+# Production default: queue jobs (then let queue worker run)
 php artisan portal:sync-entra-users --client={id}
+php artisan portal:sync-entra-users --client={id} --dry-run
+
+# Foreground (debugging)
+php artisan portal:sync-entra-users --client={id} --inline
+php artisan portal:sync-entra-users --client={id} --dry-run --inline
 ```
 
 Check **Admin → Users**. Expect licensed users + shared mailboxes from the **whole tenant**. Sync output may show:
@@ -224,21 +229,22 @@ Check **Admin → Users**. Expect licensed users + shared mailboxes from the **w
 - `SuperOps app: +N / -M users` when `entra_superops_app_id` is set (licensed users + shared mailboxes)
 - `SuperOps SSO access: +N / -M active licensed users` when step 08 is complete and `entra_superops_sso_app_id` is set
 - `SuperOps last names updated N` when full last name written to `extensionAttribute1`
-- `SuperOps SCIM provision requested for N user(s)` — one Entra provision-on-demand call per user (matches Entra UI); confirm Updates in **Provisioning logs**
+- `SuperOps SCIM provision requested for N changed user(s)` — provision-on-demand only for changed/newly assigned users; confirm Updates in **Provisioning logs**
 
 ---
 
 ## Commands reference
 
 ```bash
-# All clients with sync enabled
+# Queue sync for all enabled clients (hourly schedule does this)
 php artisan portal:sync-entra-users
 
-# One client
+# Queue one client
 php artisan portal:sync-entra-users --client=4
 
-# Preview only
-php artisan portal:sync-entra-users --client=4 --dry-run
+# Foreground / preview
+php artisan portal:sync-entra-users --client=4 --inline
+php artisan portal:sync-entra-users --client=4 --dry-run --inline
 ```
 
 ---

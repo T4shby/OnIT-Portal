@@ -82,7 +82,7 @@ class DropsuiteClientMetricsService
             return false;
         }
 
-        Cache::put('dropsuite_backup.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('dropsuite_backup.refresh_queued.'.$client->id, true, now()->addMinutes(5));
         RefreshDropsuiteBackupJob::dispatch($client->id);
 
         return true;

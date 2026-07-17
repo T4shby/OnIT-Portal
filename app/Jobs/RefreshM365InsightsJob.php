@@ -7,6 +7,7 @@ use App\Services\M365\M365InsightsService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class RefreshM365InsightsJob implements ShouldBeUnique, ShouldQueue
@@ -14,6 +15,8 @@ class RefreshM365InsightsJob implements ShouldBeUnique, ShouldQueue
     use Queueable;
 
     public int $tries = 3;
+
+    public int $timeout = 180;
 
     public int $uniqueFor = 300;
 
@@ -40,5 +43,10 @@ class RefreshM365InsightsJob implements ShouldBeUnique, ShouldQueue
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Cache::forget('m365_insights.refresh_queued.'.$this->clientId);
     }
 }

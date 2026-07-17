@@ -78,7 +78,7 @@ class M365InsightsService
             return false;
         }
 
-        Cache::put('m365_insights.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('m365_insights.refresh_queued.'.$client->id, true, now()->addMinutes(5));
         RefreshM365InsightsJob::dispatch($client->id);
 
         return true;
