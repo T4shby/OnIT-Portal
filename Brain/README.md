@@ -75,6 +75,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-07-17 | Entra SCIM provision-on-demand kept, but fixed hang: only changed/newly-assigned users are provisioned, and provision runs via `ProvisionSuperOpsScimUsersJob` so hourly sync can finish — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| 2026-07-17 | Added missing `failed_jobs` table migration — production queue was processing jobs but failed-job tooling errored without the table — [Deployment.md](Deployment.md#11-run-the-queue-worker) |
+| 2026-07-17 | Production cron must use root crontab over SSH — Plesk UI Scheduled Tasks fail with `ld.so` on `/opt/plesk/php/8.3/bin/php`; keep scheduler + queue worker entries in root crontab — [Deployment.md](Deployment.md#10-configure-cron) |
 | 2026-07-15 | Microsoft 365 Directory page now uses the same wide (`96rem`) layout as the Client Admin dashboard so its people/groups tables are not squished — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-07-15 | Client Admin dashboard now uses a wide compact layout and automatically pre-warms every active client’s integration caches every ten minutes — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md#10-configure-cron) |
 | 2026-07-15 | Added Phase 2 M365 insights service layer: subscribed SKU inventory, cached utilisation summary, and unique background refresh — [ClientAdminDashboard.md](ClientAdminDashboard.md#microsoft-365-insights-phase-2-service-layer) |

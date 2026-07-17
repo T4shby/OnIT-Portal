@@ -32,6 +32,7 @@ class MicrosoftGraphClient
      *     accountEnabled: bool,
      *     identityType: EntraIdentityType,
      *     licenseSkuPartNumbers: list<string>,
+     *     superOpsNameHint: ?string,
      * }>
      */
     public function listSyncEligibleUsers(string $tenantId): array
@@ -76,7 +77,7 @@ class MicrosoftGraphClient
         $url = 'https://graph.microsoft.com/v1.0/users';
         $query = [
             '$filter' => "userType eq 'Member'",
-            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled,assignedLicenses',
+            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled,assignedLicenses,onPremisesExtensionAttributes',
             '$top' => 999,
         ];
 
@@ -93,6 +94,14 @@ class MicrosoftGraphClient
             $data = $response->json();
 
             foreach ($data['value'] ?? [] as $user) {
+                $extensionAttributes = is_array($user['onPremisesExtensionAttributes'] ?? null)
+                    ? $user['onPremisesExtensionAttributes']
+                    : [];
+
+                $attributeNumber = (int) config('services.entra_sync.superops_name_extension_attribute', 1);
+                $hintKey = 'extensionAttribute'.$attributeNumber;
+                $currentHint = $extensionAttributes[$hintKey] ?? null;
+
                 $users[] = [
                     'id' => (string) $user['id'],
                     'mail' => $user['mail'] ?? null,
@@ -105,6 +114,7 @@ class MicrosoftGraphClient
                         static fn (array $license): string => (string) ($license['skuId'] ?? ''),
                         is_array($user['assignedLicenses'] ?? null) ? $user['assignedLicenses'] : [],
                     ))),
+                    'superOpsNameHint' => filled($currentHint) ? (string) $currentHint : null,
                 ];
             }
 
@@ -817,11 +827,12 @@ class MicrosoftGraphClient
         ];
 
         $maxAttempts = max(1, (int) config('services.entra_sync.superops_provision_max_attempts', 3));
-        $response = $this->request($tenantId)->post($url, $payload);
+        // provisionOnDemand often needs longer than the default Graph 30s timeout (cURL 28 / 0 bytes).
+        $response = $this->request($tenantId)->timeout(90)->post($url, $payload);
 
         for ($attempt = 2; $attempt <= $maxAttempts && $response->status() === 429; $attempt++) {
             usleep(2_100_000 * ($attempt - 1));
-            $response = $this->request($tenantId)->post($url, $payload);
+            $response = $this->request($tenantId)->timeout(90)->post($url, $payload);
         }
 
         return $response;

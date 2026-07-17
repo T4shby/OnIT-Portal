@@ -602,6 +602,54 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
+    public function test_sync_skips_scim_provision_when_name_hints_unchanged(): void
+    {
+        config([
+            'services.entra_sync.superops_provision_delay_after_names_seconds' => 0,
+            'services.entra_sync.superops_provision_interval_us' => 0,
+        ]);
+
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_superops_app_id' => $servicePrincipalId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $janeHint = EntraSyncDisplayName::formatSuperOpsFamilyName(
+            null,
+            null,
+            'Jane Smith',
+            EntraIdentityType::User,
+            'jane@acme.com',
+        );
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                    'superOpsNameHint' => $janeHint,
+                ],
+            ],
+            servicePrincipalId: $servicePrincipalId,
+            initialAppAssignedUsers: ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'],
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->superOpsNameHintsUpdated);
+        $this->assertSame(0, $result->superOpsUsersProvisioned);
+        $this->assertSame(0, $result->superOpsAppUsersAssigned);
+    }
+
     public function test_revert_entra_display_names_strips_mistaken_suffixes(): void
     {
         $tenantId = '11111111-1111-1111-1111-111111111111';
@@ -693,6 +741,9 @@ class EntraGroupSyncServiceTest extends TestCase
                 'assignedLicenses' => ($user['licensed'] ?? false)
                     ? [['skuId' => 'test-sku']]
                     : [],
+                'onPremisesExtensionAttributes' => [
+                    'extensionAttribute1' => $user['superOpsNameHint'] ?? null,
+                ],
             ];
         }
 

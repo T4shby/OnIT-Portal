@@ -5,6 +5,7 @@ namespace App\Services\EntraSync;
 use App\Enums\EntraIdentityType;
 use App\Enums\UserProvisionSource;
 use App\Enums\UserRole;
+use App\Jobs\ProvisionSuperOpsScimUsersJob;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\ExternalServicesService;
@@ -90,6 +91,7 @@ class EntraGroupSyncService
         $desiredGroupMemberIds = [];
         $desiredSuperOpsAppUserIds = [];
         $desiredRequesterSsoUserIds = [];
+        $scimProvisionUserIds = [];
 
         foreach ($graphUsers as $graphUser) {
             $email = $this->resolveEmail($graphUser);
@@ -130,18 +132,24 @@ class EntraGroupSyncService
                     $email,
                 );
 
-                if ($dryRun) {
-                    $superOpsNameHintsUpdated++;
-                } else {
-                    try {
-                        $this->graph->setSuperOpsNameExtensionAttribute(
-                            (string) $client->entra_tenant_id,
-                            $graphUser['id'],
-                            $superOpsFamilyName,
-                        );
+                $currentHint = $graphUser['superOpsNameHint'] ?? null;
+
+                if ($currentHint !== $superOpsFamilyName) {
+                    if ($dryRun) {
                         $superOpsNameHintsUpdated++;
-                    } catch (Throwable $e) {
-                        $errors[] = "Failed to set SuperOps last name for {$email}: {$e->getMessage()}";
+                        $scimProvisionUserIds[] = $graphUser['id'];
+                    } else {
+                        try {
+                            $this->graph->setSuperOpsNameExtensionAttribute(
+                                (string) $client->entra_tenant_id,
+                                $graphUser['id'],
+                                $superOpsFamilyName,
+                            );
+                            $superOpsNameHintsUpdated++;
+                            $scimProvisionUserIds[] = $graphUser['id'];
+                        } catch (Throwable $e) {
+                            $errors[] = "Failed to set SuperOps last name for {$email}: {$e->getMessage()}";
+                        }
                     }
                 }
             }
@@ -226,8 +234,10 @@ class EntraGroupSyncService
             $errors = array_merge($errors, $groupErrors);
         }
 
+        $newlyAssignedScimUserIds = [];
+
         if ($this->shouldMaintainSuperOpsAppUsers($client)) {
-            [$superOpsAppUsersAssigned, $superOpsAppUsersRemoved, $appErrors] = $this->syncSuperOpsAppUserAssignments(
+            [$superOpsAppUsersAssigned, $superOpsAppUsersRemoved, $appErrors, $newlyAssignedScimUserIds] = $this->syncSuperOpsAppUserAssignments(
                 $client,
                 $desiredSuperOpsAppUserIds,
                 $dryRun,
@@ -247,19 +257,26 @@ class EntraGroupSyncService
         $superOpsUsersProvisioned = 0;
 
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
-            if ($superOpsNameHintsUpdated > 0) {
-                $delaySeconds = max(0, (int) config('services.entra_sync.superops_provision_delay_after_names_seconds', 3));
+            $scimProvisionUserIds = array_values(array_unique(array_merge(
+                $scimProvisionUserIds,
+                $newlyAssignedScimUserIds,
+            )));
 
-                if ($delaySeconds > 0) {
-                    sleep($delaySeconds);
+            if ($scimProvisionUserIds !== []) {
+                if ($superOpsNameHintsUpdated > 0) {
+                    $delaySeconds = max(0, (int) config('services.entra_sync.superops_provision_delay_after_names_seconds', 3));
+
+                    if ($delaySeconds > 0 && config('queue.default') === 'sync') {
+                        sleep($delaySeconds);
+                    }
                 }
-            }
 
-            [$superOpsUsersProvisioned, $provisionErrors] = $this->triggerSuperOpsScimProvision(
-                $client,
-                $desiredSuperOpsAppUserIds,
-            );
-            $errors = array_merge($errors, $provisionErrors);
+                [$superOpsUsersProvisioned, $provisionErrors] = $this->queueOrRunSuperOpsScimProvision(
+                    $client,
+                    $scimProvisionUserIds,
+                );
+                $errors = array_merge($errors, $provisionErrors);
+            }
         }
 
         if (! $dryRun) {
@@ -362,6 +379,44 @@ class EntraGroupSyncService
     {
         return config('services.entra_sync.superops_provision_on_demand')
             && filled($client->entra_superops_app_id);
+    }
+
+    /**
+     * Push updated SuperOps requester names via Entra SCIM provision-on-demand (Graph).
+     *
+     * @param  list<string>  $userIds
+     * @return array{0: int, 1: list<string>}
+     */
+    public function provisionSuperOpsScimUsers(Client $client, array $userIds): array
+    {
+        return $this->triggerSuperOpsScimProvision($client, $userIds);
+    }
+
+    /**
+     * @param  list<string>  $userIds
+     * @return array{0: int, 1: list<string>}
+     */
+    private function queueOrRunSuperOpsScimProvision(Client $client, array $userIds): array
+    {
+        $userIds = array_values(array_unique($userIds));
+
+        if ($userIds === []) {
+            return [0, []];
+        }
+
+        // PHPUnit uses QUEUE_CONNECTION=sync — keep provision inline so tests assert counts.
+        if (config('queue.default') === 'sync') {
+            return $this->triggerSuperOpsScimProvision($client, $userIds);
+        }
+
+        ProvisionSuperOpsScimUsersJob::dispatch($client->id, $userIds);
+
+        Log::info('Queued SuperOps SCIM provision on demand', [
+            'client_id' => $client->id,
+            'user_count' => count($userIds),
+        ]);
+
+        return [count($userIds), []];
     }
 
     /**
@@ -478,7 +533,7 @@ class EntraGroupSyncService
      * When the customer cannot assign security groups to enterprise apps, SCIM only provisions assigned users.
      *
      * @param  list<string>  $desiredUserIds
-     * @return array{0: int, 1: int, 2: list<string>}
+     * @return array{0: int, 1: int, 2: list<string>, 3: list<string>}
      */
     private function syncSuperOpsAppUserAssignments(Client $client, array $desiredUserIds, bool $dryRun): array
     {
@@ -506,7 +561,7 @@ class EntraGroupSyncService
                 'error' => $e->getMessage(),
             ]);
 
-            return [0, 0, ['SuperOps app user sync failed: '.$e->getMessage()]];
+            return [0, 0, ['SuperOps app user sync failed: '.$e->getMessage()], []];
         }
 
         $desired = array_values(array_unique($desiredUserIds));
@@ -516,17 +571,19 @@ class EntraGroupSyncService
         $toRemove = array_values(array_diff($currentUserIds, $desired));
 
         if ($dryRun) {
-            return [count($toAssign), count($toRemove), []];
+            return [count($toAssign), count($toRemove), [], $toAssign];
         }
 
         $assigned = 0;
         $removed = 0;
         $errors = [];
+        $newlyAssigned = [];
 
         foreach ($toAssign as $userId) {
             try {
                 $this->graph->assignUserToEnterpriseApp($tenantId, $servicePrincipalId, $userId, $appRoleId);
                 $assigned++;
+                $newlyAssigned[] = $userId;
             } catch (Throwable $e) {
                 $errors[] = "Failed to assign {$userId} to SuperOps app: {$e->getMessage()}";
             }
@@ -547,7 +604,7 @@ class EntraGroupSyncService
             }
         }
 
-        return [$assigned, $removed, $errors];
+        return [$assigned, $removed, $errors, $newlyAssigned];
     }
 
     /**
@@ -672,7 +729,7 @@ class EntraGroupSyncService
         return strtolower($email);
     }
 
-    public function syncAll(?int $clientId = null, bool $dryRun = false): array
+    public function syncAll(?int $clientId = null, bool $dryRun = false, ?callable $beforeClient = null): array
     {
         $query = Client::query()
             ->where('is_active', true)
@@ -685,7 +742,11 @@ class EntraGroupSyncService
 
         $results = [];
 
-        foreach ($query->get() as $client) {
+        foreach ($query->orderBy('id')->get() as $client) {
+            if ($beforeClient !== null) {
+                $beforeClient($client);
+            }
+
             $results[$client->id] = [
                 'client' => $client->name,
                 'result' => $this->syncClient($client, $dryRun),

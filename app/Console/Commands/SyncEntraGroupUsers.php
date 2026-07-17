@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Client;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
 use Illuminate\Console\Command;
@@ -29,7 +30,9 @@ class SyncEntraGroupUsers extends Command
             $this->warn('Dry run: no database changes will be made.');
         }
 
-        $results = $sync->syncAll($clientId, $dryRun);
+        $results = $sync->syncAll($clientId, $dryRun, function (Client $client): void {
+            $this->info("Syncing {$client->name} (#{$client->id})...");
+        });
 
         if ($results === []) {
             $this->warn('No clients found with Entra sync enabled and configured.');

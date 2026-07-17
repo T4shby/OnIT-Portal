@@ -131,7 +131,7 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 **Remove** any Expression on `name.familyName` — portal already sends the full last name.
 
-**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)`). Portal triggers Entra **provision on demand once per user** (same as the Entra UI) after a short delay so `extensionAttribute1` replicates — check **Provisioning logs** for each Update. While sync runs, the button shows **Syncing…** with a spinner; large tenants may take several minutes.
+**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provision requested for N changed user(s)`). Portal writes `extensionAttribute1` only when the SuperOps last-name hint changed, then queues Entra **provision on demand** for those changed users (and newly assigned SCIM users) via `ProvisionSuperOpsScimUsersJob` — not every user on every hourly run. Check **Provisioning logs** for each Update. While the main sync job runs, the button shows **Syncing…**; SCIM provision continues in the queue worker.
 
 ### Graph permissions required (portal OAuth app)
 
@@ -242,6 +242,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 
 | Date | Change |
 |------|--------|
+| 2026-07-17 | SCIM provision-on-demand kept; only changed name hints + newly assigned users; runs via queue job so hourly sync no longer hangs |
 | 2026-07-14 | Requester login changed from Global SSO Accept to customer Client SSO app in checklist 08 |
 | 2026-07-14 | MSP ownership explicit: On IT technicians complete customer-tenant Accept and setup through GDAP |
 | 2026-07-14 | Entra ID Free: portal Sync assigns active licensed users to the saved customer Client SSO app |

@@ -159,17 +159,28 @@ php artisan optimize
 
 ### 10. Configure Cron
 
-In **Plesk → Websites & Domains → app.onit.ltd → Scheduled Tasks**, add a
-**Run a command** task with schedule **Cron style** `* * * * *`:
+**Production note (app.onit.ltd on Plesk):** Plesk UI **Scheduled Tasks → Run a command** fails for `/opt/plesk/php/8.3/bin/php` with:
+
+`Inconsistency detected by ld.so: … _dl_call_libc_early_init … Assertion 'sym != NULL' failed!`
+
+That is Plesk’s jailed task runner, not Laravel. Do **not** rely on the Plesk UI for scheduler/queue on this host. Use **root’s crontab over SSH** instead, and disable/delete any duplicate Laravel tasks in the Plesk UI.
+
+As root on the Plesk server:
+
+```bash
+crontab -e
+```
+
+Add these two lines (keep unrelated entries such as `ntpdate`):
 
 ```
-cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=120 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
 ```
 
-The scheduler queues dashboard cache pre-warming every ten minutes via
+`--max-time=120` gives SCIM provision-on-demand jobs room when several users change in one sync. The scheduler queues dashboard cache pre-warming every ten minutes via
 `portal:prewarm-client-dashboards`; it also runs the existing hourly Entra sync.
-This scheduled task queues work but does not process it — the queue worker below
-is a separate required Plesk task.
+The scheduler queues work but does not process it — the queue worker line above is required.
 
 ### 11. Run the queue worker
 
@@ -180,6 +191,8 @@ Background work (M365 directory refresh, SuperOps dashboard metrics, admin Entra
 ```env
 QUEUE_CONNECTION=database
 ```
+
+Production must have both the `jobs` and `failed_jobs` tables. `jobs` ships in the base portal migration; if `failed_jobs` is missing, run migrations after deploying the `create_failed_jobs_table` migration (otherwise `queue:failed` / failed-job counts error with `Table '…failed_jobs' doesn't exist`).
 
 PHPUnit sets `QUEUE_CONNECTION=sync` in `phpunit.xml` so tests still run jobs inline.
 
@@ -216,9 +229,10 @@ Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-
 the same Plesk Scheduled Tasks screen, also using Cron style `* * * * *`:
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=120 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
 ```
 
+`--max-time=120` gives SCIM provision-on-demand jobs enough time when several users change.
 Use the same Plesk PHP binary as in [Updating the Application](#updating-the-application). After deploy, restart the Supervisor program or wait for the next scheduled task tick.
 
 **Queued jobs:**
