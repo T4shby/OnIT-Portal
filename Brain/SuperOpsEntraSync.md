@@ -6,6 +6,30 @@ See also: [AccessAndSync.md](AccessAndSync.md) | [EntraGroupSync.md](EntraGroupS
 
 ---
 
+## Free vs P1 on the portal client
+
+| Portal tier | When | SCIM / SSO assignment |
+|---|---|---|
+| **Entra ID Free** | True Free directory only | Users assigned to SuperOps apps by portal Sync |
+| **Entra ID P1 or higher** | Explicit AAD Premium, EMS, E3/E5 suites, or **Microsoft 365 Business Premium (SPB)** | Assign group `On IT Portal - {Company}` once; portal fills group |
+
+**Business Premium is P1 for assignment.** User licence codes like `SPB` on the M365 directory are suite SKUs; they do not appear as the word “P1” on the people table. Bootstrap detects SPB / M365_BUSINESS_PREMIUM as P1. If an older client still shows Free after Connect, set **Entra ID P1 or higher** → Save client.
+
+Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
+
+### SuperOps names not updating
+
+Required path:
+
+1. Edit client → **Entra sync enabled** → Save
+2. **Sync now** (writes `extensionAttribute1` = surname + `(User Mailbox)` / `(Shared Mailbox)`)
+3. Entra SCIM mapping: `name.familyName` **Direct** ← `extensionAttribute1` (default `[surname]` if null)
+4. Provisioning On; wait for cycle or provision-on-demand after Sync
+
+If step 3 is still default `surname` only, SuperOps first/last stay plain. Mapping is not set by Apply SCIM (Graph secrets + start only).
+
+---
+
 ## Architecture
 
 ```

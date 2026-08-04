@@ -220,8 +220,8 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Entra directory tier used by portal Free vs P1 assignment path (not M365 user SKUs alone).
-     * AAD_PREMIUM / AAD_PREMIUM_P2 / EMS premium suites imply group assignment is available.
+     * Entra directory tier used by portal Free vs P1 assignment path (not M365 "user licence" marketing alone).
+     * Entra ID P1 rights show up as standalone AAD_PREMIUM* SKUs or embedded in M365 suites (e.g. Business Premium / SPB).
      */
     public function detectEntraDirectoryLicenseTier(string $tenantId): string
     {
@@ -231,6 +231,7 @@ class MicrosoftGraphClient
         );
 
         foreach ($partNumbers as $sku) {
+            // Explicit Entra / EMS premium directory SKUs
             if (
                 str_contains($sku, 'AAD_PREMIUM')
                 || $sku === 'EMS'
@@ -238,6 +239,13 @@ class MicrosoftGraphClient
                 || $sku === 'ENTERPRISEPREMIUM'
                 || $sku === 'SPE_E5'
                 || $sku === 'SPE_E3'
+                // Microsoft 365 suites that include Entra ID P1 (group-based app assignment)
+                || $sku === 'SPB' // Microsoft 365 Business Premium (directory often shows SPB)
+                || $sku === 'O365_BUSINESS_PREMIUM'
+                || $sku === 'M365_BUSINESS_PREMIUM'
+                || str_contains($sku, 'BUSINESS_PREMIUM')
+                || $sku === 'ENTERPRISEPACK' // Microsoft 365 E3
+                || $sku === 'ENTERPRISEPREMIUM_NOPSTNCONF'
             ) {
                 return 'p1';
             }

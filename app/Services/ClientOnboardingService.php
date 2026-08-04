@@ -833,7 +833,9 @@ class ClientOnboardingService
                 'Optional. Dropsuite / NinjaOne SaaS Backup → Organizations → copy the organization ID for dashboard backup metrics.',
             ],
             'entra_license_tier' => [
-                'Match the customer Entra Overview → License. Free vs P1 changes steps 07–08.',
+                'Entra directory tier for Free vs P1 assignment (not the user SKU list alone).',
+                'Microsoft 365 Business Premium (SPB) includes Entra ID P1 — choose P1, not Free.',
+                'Mismatch: leave Free and the portal assigns users one-by-one; P1 uses the security group.',
             ],
             'entra_tenant_id' => [
                 'Private browser → customer tenant → Microsoft Entra ID → Overview → Tenant ID.',

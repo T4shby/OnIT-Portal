@@ -75,6 +75,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Entra tier detection treats Microsoft 365 Business Premium / SPB as P1 (includes Entra ID P1); SuperOps names require Sync now + SCIM `name.familyName`←extensionAttribute1 — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | SCIM Apply + Client SSO Configure forms moved into checklist steps 07/08 (not left column only) — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-08-04 | Edit Client **Configure SAML in Entra**: paste SuperOps Entity ID + ACS once; Graph sets SAML mode/URLs/cert; shows Login URL + certificate for SuperOps paste — [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |
 | 2026-08-04 | Edit Client **Apply SCIM credentials + start**: paste SuperOps Tenant URL + secret once; Graph writes Entra provisioning secrets and starts job (`Synchronization.ReadWrite.All`); secret not stored — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md), [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
