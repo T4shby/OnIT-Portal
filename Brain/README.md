@@ -75,7 +75,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-04 | Apply SCIM now sets SuperOps name mappings (familyName ← extensionAttribute1) and queues portal Sync so requesters get (User Mailbox)/(Shared Mailbox) like manual Ductec/3R — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| 2026-08-04 | Apply SCIM name-mapping fix: Graph `attributeMapping` has no `mappingType` (400 RequestParameterInvalid); remove customer examples from product-facing SCIM copy — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| 2026-08-04 | Apply SCIM now sets SuperOps name mappings (familyName ← extensionAttribute1) and queues portal Sync so requesters get (User Mailbox)/(Shared Mailbox) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | Entra tier detection treats Microsoft 365 Business Premium / SPB as P1 (includes Entra ID P1); SuperOps names require Sync now + SCIM `name.familyName`←extensionAttribute1 — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | SCIM Apply + Client SSO Configure forms moved into checklist steps 07/08 (not left column only) — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-08-04 | Edit Client **Configure SAML in Entra**: paste SuperOps Entity ID + ACS once; Graph sets SAML mode/URLs/cert; shows Login URL + certificate for SuperOps paste — [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |

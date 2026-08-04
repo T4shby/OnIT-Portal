@@ -19,11 +19,13 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 
 ### SuperOps names not updating
 
-**Manual Ductec/3R path (what produced suffixes):** SCIM mapping `name.familyName` ← `extensionAttribute1` **and** portal Sync writing that attribute.
+**Required path (standard for every client):**
 
-**Portal Apply SCIM (current):** writes Tenant URL + secret, **sets the same name mappings**, starts provisioning, and **queues Sync now** when tenant + group exist — so SuperOps should match Ductec/3R after the background sync finishes (minutes).
+1. SCIM mapping **`name.familyName` Direct ← `extensionAttribute1`** (default `[surname]` if null)
+2. Portal **Sync now** writes surname + `(User Mailbox)` / `(Shared Mailbox)` into `extensionAttribute1`
+3. Entra provisioning pushes that into SuperOps
 
-If names stay plain: re-run step 07 Apply SCIM (or set mapping in Azure + **Sync now**), confirm queue worker is running, check Entra Provisioning logs for Updates.
+**Portal Apply SCIM** should do (1) via Graph schema update, (2) by queuing Sync when tenant + group exist, then start provisioning. If the schema update fails, fix mapping in Entra Provisioning (or re-run Apply after a deploy that fixes Graph payload fields) and run **Sync now**.
 
 ---
 

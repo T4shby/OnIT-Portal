@@ -53,7 +53,7 @@
                 Apply SCIM credentials + start
             </button>
             <p class="portal-body-muted text-xs leading-relaxed">
-                Same as manual Ductec/3R: applies SuperOps name mapping (familyName ← extensionAttribute1) and queues portal Sync so SuperOps shows (User Mailbox) / (Shared Mailbox).
+                Sets SuperOps name mapping (name.familyName ← extensionAttribute1) and queues portal Sync so SuperOps last names can include (User Mailbox) / (Shared Mailbox).
             </p>
         </form>
     </div>

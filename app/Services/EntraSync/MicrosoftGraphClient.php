@@ -1490,7 +1490,7 @@ class MicrosoftGraphClient
                 'error' => $e->getMessage(),
             ]);
             $warnings[] = 'Name attribute mapping not auto-applied: '.$e->getMessage()
-                .' — in Azure set name.familyName Direct ← extensionAttribute1 (as on Ductec/3R).';
+                .' — set SCIM name.familyName Direct ← extensionAttribute1 in Entra Provisioning if SuperOps last names stay plain.';
         }
 
         $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
@@ -1511,8 +1511,9 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Match manual Ductec/3R mapping: SuperOps last name carries (User Mailbox)/(Shared Mailbox)
-     * via portal-written extensionAttribute1.
+     * Align SCIM name mappings with the known SuperOps pattern:
+     * portal writes surname + (User Mailbox)/(Shared Mailbox) to extensionAttribute1;
+     * SCIM maps name.familyName from that attribute.
      *
      * @return array{configured: bool, details: list<string>}
      */
@@ -1578,7 +1579,6 @@ class MicrosoftGraphClient
                 $sourceObject = strtolower((string) ($objectMapping['sourceObjectName'] ?? ''));
                 $targetObject = strtolower((string) ($objectMapping['targetObjectName'] ?? ''));
 
-                // User → SuperOps user (SCIM). Skip groups.
                 if (! str_contains($sourceObject, 'user') && ! str_contains($targetObject, 'user')) {
                     continue;
                 }
@@ -1596,22 +1596,22 @@ class MicrosoftGraphClient
                         continue;
                     }
 
-                    $target = strtolower((string) ($attributeMapping['targetAttributeName'] ?? ''));
+                    $targetName = (string) ($attributeMapping['targetAttributeName'] ?? '');
+                    $target = strtolower($targetName);
                     $desiredKey = null;
 
                     if (str_contains($target, 'familyname') || $target === 'surname' || str_ends_with($target, 'family_name')) {
                         $desiredKey = 'familyname';
                     } elseif (str_contains($target, 'givenname') || $target === 'given_name' || $target === 'firstname') {
                         $desiredKey = 'givenname';
-                    } elseif (str_contains($target, 'formatted') || $target === 'displayname' || str_contains($target, 'display_name')) {
-                        // Prefer SCIM name.formatted over generic displayName if both exist;
-                        // only map targets that look like format / display display for SuperOps name.
-                        if (str_contains($target, 'formatted') || str_contains($target, 'displayname')) {
-                            $desiredKey = 'formatted';
-                        }
+                    } elseif (str_contains($target, 'formatted') || str_contains($target, 'displayname')) {
+                        $desiredKey = 'formatted';
                     }
 
-                    if ($desiredKey === null) {
+                    if ($desiredKey === null || $targetName === '') {
+                        // Graph rejects unknown properties on write — keep original mapping only.
+                        $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
+
                         continue;
                     }
 
@@ -1619,44 +1619,38 @@ class MicrosoftGraphClient
                     $source = is_array($attributeMapping['source'] ?? null) ? $attributeMapping['source'] : [];
                     $currentSourceName = strtolower((string) ($source['name'] ?? ''));
                     $currentExpression = strtolower((string) ($source['expression'] ?? ''));
-                    $mappingType = strtolower((string) ($attributeMapping['mappingType'] ?? 'Direct'));
 
-                    $alreadyOk = $mappingType === 'direct'
-                        && (
-                            $currentSourceName === strtolower($want['sourceName'])
-                            || str_contains($currentExpression, strtolower($want['sourceName']))
-                        );
+                    $alreadyOk = (
+                        $currentSourceName === strtolower($want['sourceName'])
+                        || str_contains($currentExpression, strtolower($want['sourceName']))
+                    );
 
-                    if ($alreadyOk && $desiredKey !== 'familyname') {
+                    $needsDefault = ($want['defaultValue'] ?? null) !== null
+                        && (string) ($attributeMapping['defaultValue'] ?? '') !== (string) $want['defaultValue'];
+
+                    if ($alreadyOk && ! $needsDefault) {
+                        $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
+
                         continue;
                     }
 
-                    if ($alreadyOk && $desiredKey === 'familyname') {
-                        // Still ensure default / always flow for familyName.
-                        $needsDefault = ($want['defaultValue'] ?? null) !== null
-                            && (string) ($attributeMapping['defaultValue'] ?? '') !== (string) $want['defaultValue'];
-                        if (! $needsDefault) {
-                            continue;
-                        }
-                    }
-
-                    $sourcePayload = [
-                        'expression' => null,
-                        'name' => $want['sourceName'],
-                        'type' => 'Attribute',
-                        'parameters' => [],
-                    ];
-
-                    $attributeMappings[$attrIndex] = array_merge($attributeMapping, [
-                        'mappingType' => 'Direct',
-                        'source' => array_merge($source, $sourcePayload),
+                    $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite([
                         'defaultValue' => $want['defaultValue'],
+                        'exportMissingReferences' => $attributeMapping['exportMissingReferences'] ?? false,
                         'flowBehavior' => $attributeMapping['flowBehavior'] ?? 'FlowWhenChanged',
                         'flowType' => 'Always',
+                        'matchingPriority' => $attributeMapping['matchingPriority'] ?? 0,
+                        'source' => [
+                            'expression' => '['.$want['sourceName'].']',
+                            'name' => $want['sourceName'],
+                            'parameters' => [],
+                            'type' => 'Attribute',
+                        ],
+                        'targetAttributeName' => $targetName,
                     ]);
 
                     $changed = true;
-                    $touched[] = ($attributeMapping['targetAttributeName'] ?? $target).' ← '.$want['sourceName'];
+                    $touched[] = $targetName.' ← '.$want['sourceName'];
                 }
 
                 $objectMappings[$mapIndex]['attributeMappings'] = $attributeMappings;
@@ -1668,10 +1662,12 @@ class MicrosoftGraphClient
         if (! $changed) {
             return [
                 'configured' => true,
-                'details' => ['SCIM name mappings already match SuperOps extensionAttribute1 path'],
+                'details' => ['SCIM name mappings already use extensionAttribute1 for SuperOps last names'],
             ];
         }
 
+        // Strip illegal read-only / UI-only fields Graph rejects on PUT of the full schema.
+        $schema = $this->sanitizeSynchronizationSchemaForWrite($schema);
         $schema['synchronizationRules'] = $rules;
 
         $put = $this->graphPut(
@@ -1689,9 +1685,79 @@ class MicrosoftGraphClient
         return [
             'configured' => true,
             'details' => [
-                'SCIM SuperOps name mappings set (same as manual Ductec/3R): '.implode('; ', array_unique($touched)),
+                'SCIM SuperOps name mappings updated: '.implode('; ', array_unique($touched)),
             ],
         ];
+    }
+
+    /**
+     * Graph attributeMapping has no mappingType — only defaultValue, flowBehavior, flowType, source, targetAttributeName, …
+     *
+     * @param  array<string, mixed>  $mapping
+     * @return array<string, mixed>
+     */
+    private function sanitizeAttributeMappingForWrite(array $mapping): array
+    {
+        $source = is_array($mapping['source'] ?? null) ? $mapping['source'] : [];
+
+        $out = [
+            'defaultValue' => $mapping['defaultValue'] ?? null,
+            'exportMissingReferences' => (bool) ($mapping['exportMissingReferences'] ?? false),
+            'flowBehavior' => (string) ($mapping['flowBehavior'] ?? 'FlowWhenChanged'),
+            'flowType' => (string) ($mapping['flowType'] ?? 'Always'),
+            'matchingPriority' => (int) ($mapping['matchingPriority'] ?? 0),
+            'source' => [
+                'expression' => $source['expression'] ?? null,
+                'name' => $source['name'] ?? null,
+                'parameters' => is_array($source['parameters'] ?? null) ? $source['parameters'] : [],
+                'type' => $source['type'] ?? 'Attribute',
+            ],
+            'targetAttributeName' => (string) ($mapping['targetAttributeName'] ?? ''),
+        ];
+
+        // Drop nulls Graph sometimes rejects as "required missing".
+        if ($out['defaultValue'] === null) {
+            unset($out['defaultValue']);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    private function sanitizeSynchronizationSchemaForWrite(array $schema): array
+    {
+        unset($schema['@odata.context'], $schema['@odata.type'], $schema['id'], $schema['version']);
+
+        if (isset($schema['synchronizationRules']) && is_array($schema['synchronizationRules'])) {
+            foreach ($schema['synchronizationRules'] as $i => $rule) {
+                if (! is_array($rule)) {
+                    continue;
+                }
+                unset($rule['@odata.type'], $rule['metadata']);
+                if (isset($rule['objectMappings']) && is_array($rule['objectMappings'])) {
+                    foreach ($rule['objectMappings'] as $j => $om) {
+                        if (! is_array($om)) {
+                            continue;
+                        }
+                        unset($om['@odata.type']);
+                        if (isset($om['attributeMappings']) && is_array($om['attributeMappings'])) {
+                            foreach ($om['attributeMappings'] as $k => $am) {
+                                if (is_array($am)) {
+                                    $om['attributeMappings'][$k] = $this->sanitizeAttributeMappingForWrite($am);
+                                }
+                            }
+                        }
+                        $rule['objectMappings'][$j] = $om;
+                    }
+                }
+                $schema['synchronizationRules'][$i] = $rule;
+            }
+        }
+
+        return $schema;
     }
 
     private function ensureScimSynchronizationJob(string $tenantId, string $servicePrincipalId): string

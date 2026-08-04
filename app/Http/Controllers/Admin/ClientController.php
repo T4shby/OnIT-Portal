@@ -307,7 +307,7 @@ class ClientController extends Controller
             'superops_scim_provisioning' => true,
         ]);
 
-        // Write extensionAttribute1 + provision-on-demand so SuperOps shows (User Mailbox) like Ductec/3R.
+        // Write extensionAttribute1 + provision-on-demand so SuperOps last names include mailbox type suffixes.
         $syncQueued = false;
         if (config('services.entra_sync.enabled') && filled($client->entra_tenant_id) && filled($client->entra_group_id)) {
             if (! $client->entra_sync_enabled) {
