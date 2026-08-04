@@ -1442,9 +1442,17 @@ class MicrosoftGraphClient
 
     /**
      * Ensure a SCIM provisioning job exists, write SuperOps Tenant URL + secret into Entra,
-     * then start the job. Secret is never stored in our database.
+     * set SuperOps name mappings (familyName ← extensionAttribute1), then start the job.
+     * Secret is never stored in our database.
      *
-     * @return array{jobId: string, servicePrincipalId: string, started: bool, details: list<string>}
+     * @return array{
+     *     jobId: string,
+     *     servicePrincipalId: string,
+     *     started: bool,
+     *     nameMappingsConfigured: bool,
+     *     details: list<string>,
+     *     warnings: list<string>
+     * }
      */
     public function applySuperOpsScimCredentials(
         string $tenantId,
@@ -1456,6 +1464,7 @@ class MicrosoftGraphClient
         $scimTenantUrl = rtrim(trim($scimTenantUrl), '/');
         $scimSecretToken = trim($scimSecretToken);
         $details = [];
+        $warnings = [];
 
         if ($scimTenantUrl === '' || $scimSecretToken === '') {
             throw new RuntimeException('SuperOps SCIM Tenant URL and Secret Token are required.');
@@ -1470,6 +1479,20 @@ class MicrosoftGraphClient
         $this->putScimSynchronizationSecrets($tenantId, $servicePrincipalId, $scimTenantUrl, $scimSecretToken);
         $details[] = 'SCIM BaseAddress + SecretToken written to Entra';
 
+        $nameMappingsConfigured = false;
+        try {
+            $mappingResult = $this->ensureSuperOpsScimNameAttributeMappings($tenantId, $servicePrincipalId, $jobId);
+            $nameMappingsConfigured = $mappingResult['configured'];
+            $details = array_merge($details, $mappingResult['details']);
+        } catch (Throwable $e) {
+            Log::warning('SCIM SuperOps name mappings failed', [
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+            $warnings[] = 'Name attribute mapping not auto-applied: '.$e->getMessage()
+                .' — in Azure set name.familyName Direct ← extensionAttribute1 (as on Ductec/3R).';
+        }
+
         $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
         $details[] = $started
             ? 'Start provisioning requested'
@@ -1481,7 +1504,193 @@ class MicrosoftGraphClient
             'jobId' => $jobId,
             'servicePrincipalId' => $servicePrincipalId,
             'started' => $started,
+            'nameMappingsConfigured' => $nameMappingsConfigured,
             'details' => $details,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * Match manual Ductec/3R mapping: SuperOps last name carries (User Mailbox)/(Shared Mailbox)
+     * via portal-written extensionAttribute1.
+     *
+     * @return array{configured: bool, details: list<string>}
+     */
+    public function ensureSuperOpsScimNameAttributeMappings(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $jobId,
+    ): array {
+        $schemaResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/schema",
+        );
+
+        if ($schemaResponse->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph read SCIM schema failed: '.$schemaResponse->status().' '.$schemaResponse->body()
+            );
+        }
+
+        $schema = $schemaResponse->json();
+        if (! is_array($schema)) {
+            throw new RuntimeException('Microsoft Graph SCIM schema response was empty.');
+        }
+
+        $desired = [
+            'familyname' => [
+                'sourceName' => 'extensionAttribute1',
+                'defaultValue' => '[surname]',
+            ],
+            'givenname' => [
+                'sourceName' => 'givenName',
+                'defaultValue' => null,
+            ],
+            'formatted' => [
+                'sourceName' => 'displayName',
+                'defaultValue' => null,
+            ],
+        ];
+
+        $changed = false;
+        $touched = [];
+        $rules = $schema['synchronizationRules'] ?? [];
+
+        if (! is_array($rules)) {
+            throw new RuntimeException('SCIM schema has no synchronizationRules.');
+        }
+
+        foreach ($rules as $ruleIndex => $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+
+            $objectMappings = $rule['objectMappings'] ?? [];
+            if (! is_array($objectMappings)) {
+                continue;
+            }
+
+            foreach ($objectMappings as $mapIndex => $objectMapping) {
+                if (! is_array($objectMapping)) {
+                    continue;
+                }
+
+                $sourceObject = strtolower((string) ($objectMapping['sourceObjectName'] ?? ''));
+                $targetObject = strtolower((string) ($objectMapping['targetObjectName'] ?? ''));
+
+                // User → SuperOps user (SCIM). Skip groups.
+                if (! str_contains($sourceObject, 'user') && ! str_contains($targetObject, 'user')) {
+                    continue;
+                }
+                if (str_contains($sourceObject, 'group') || str_contains($targetObject, 'group')) {
+                    continue;
+                }
+
+                $attributeMappings = $objectMapping['attributeMappings'] ?? [];
+                if (! is_array($attributeMappings)) {
+                    continue;
+                }
+
+                foreach ($attributeMappings as $attrIndex => $attributeMapping) {
+                    if (! is_array($attributeMapping)) {
+                        continue;
+                    }
+
+                    $target = strtolower((string) ($attributeMapping['targetAttributeName'] ?? ''));
+                    $desiredKey = null;
+
+                    if (str_contains($target, 'familyname') || $target === 'surname' || str_ends_with($target, 'family_name')) {
+                        $desiredKey = 'familyname';
+                    } elseif (str_contains($target, 'givenname') || $target === 'given_name' || $target === 'firstname') {
+                        $desiredKey = 'givenname';
+                    } elseif (str_contains($target, 'formatted') || $target === 'displayname' || str_contains($target, 'display_name')) {
+                        // Prefer SCIM name.formatted over generic displayName if both exist;
+                        // only map targets that look like format / display display for SuperOps name.
+                        if (str_contains($target, 'formatted') || str_contains($target, 'displayname')) {
+                            $desiredKey = 'formatted';
+                        }
+                    }
+
+                    if ($desiredKey === null) {
+                        continue;
+                    }
+
+                    $want = $desired[$desiredKey];
+                    $source = is_array($attributeMapping['source'] ?? null) ? $attributeMapping['source'] : [];
+                    $currentSourceName = strtolower((string) ($source['name'] ?? ''));
+                    $currentExpression = strtolower((string) ($source['expression'] ?? ''));
+                    $mappingType = strtolower((string) ($attributeMapping['mappingType'] ?? 'Direct'));
+
+                    $alreadyOk = $mappingType === 'direct'
+                        && (
+                            $currentSourceName === strtolower($want['sourceName'])
+                            || str_contains($currentExpression, strtolower($want['sourceName']))
+                        );
+
+                    if ($alreadyOk && $desiredKey !== 'familyname') {
+                        continue;
+                    }
+
+                    if ($alreadyOk && $desiredKey === 'familyname') {
+                        // Still ensure default / always flow for familyName.
+                        $needsDefault = ($want['defaultValue'] ?? null) !== null
+                            && (string) ($attributeMapping['defaultValue'] ?? '') !== (string) $want['defaultValue'];
+                        if (! $needsDefault) {
+                            continue;
+                        }
+                    }
+
+                    $sourcePayload = [
+                        'expression' => null,
+                        'name' => $want['sourceName'],
+                        'type' => 'Attribute',
+                        'parameters' => [],
+                    ];
+
+                    $attributeMappings[$attrIndex] = array_merge($attributeMapping, [
+                        'mappingType' => 'Direct',
+                        'source' => array_merge($source, $sourcePayload),
+                        'defaultValue' => $want['defaultValue'],
+                        'flowBehavior' => $attributeMapping['flowBehavior'] ?? 'FlowWhenChanged',
+                        'flowType' => 'Always',
+                    ]);
+
+                    $changed = true;
+                    $touched[] = ($attributeMapping['targetAttributeName'] ?? $target).' ← '.$want['sourceName'];
+                }
+
+                $objectMappings[$mapIndex]['attributeMappings'] = $attributeMappings;
+            }
+
+            $rules[$ruleIndex]['objectMappings'] = $objectMappings;
+        }
+
+        if (! $changed) {
+            return [
+                'configured' => true,
+                'details' => ['SCIM name mappings already match SuperOps extensionAttribute1 path'],
+            ];
+        }
+
+        $schema['synchronizationRules'] = $rules;
+
+        $put = $this->graphPut(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/schema",
+            $schema,
+        );
+
+        if ($put->failed() && $put->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph update SCIM schema failed: '.$put->status().' '.$put->body()
+            );
+        }
+
+        return [
+            'configured' => true,
+            'details' => [
+                'SCIM SuperOps name mappings set (same as manual Ductec/3R): '.implode('; ', array_unique($touched)),
+            ],
         ];
     }
 

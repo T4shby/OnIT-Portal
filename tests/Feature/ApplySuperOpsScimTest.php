@@ -37,7 +37,9 @@ class ApplySuperOpsScimTest extends TestCase
                 'jobId' => 'job-1',
                 'servicePrincipalId' => 'sp-1',
                 'started' => true,
+                'nameMappingsConfigured' => true,
                 'details' => ['SCIM BaseAddress + SecretToken written to Entra'],
+                'warnings' => [],
             ]);
         $this->app->instance(MicrosoftGraphClient::class, $graph);
 

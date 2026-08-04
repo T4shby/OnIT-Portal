@@ -307,28 +307,56 @@ class ClientController extends Controller
             'superops_scim_provisioning' => true,
         ]);
 
+        // Write extensionAttribute1 + provision-on-demand so SuperOps shows (User Mailbox) like Ductec/3R.
+        $syncQueued = false;
+        if (config('services.entra_sync.enabled') && filled($client->entra_tenant_id) && filled($client->entra_group_id)) {
+            if (! $client->entra_sync_enabled) {
+                $client->update(['entra_sync_enabled' => true]);
+                $client->refresh();
+            }
+
+            Cache::put('entra_sync.in_flight.'.$client->id, true, now()->addMinutes(15));
+            SyncEntraClientJob::dispatch($client->id, dryRun: false);
+            $syncQueued = true;
+        }
+
         $this->activityLog->log(
             'client.scim_credentials_applied',
             $client,
             properties: [
                 'job_id' => $result['jobId'],
                 'started' => $result['started'],
+                'name_mappings' => $result['nameMappingsConfigured'] ?? false,
+                'sync_queued' => $syncQueued,
                 'details' => $result['details'],
-                // Never log secret or full SCIM URL with embeddable tokens.
                 'scim_host' => parse_url($request->validated('scim_tenant_url'), PHP_URL_HOST),
             ],
             clientId: $client->id,
         );
 
-        $message = 'SuperOps SCIM credentials written to Entra and provisioning start requested.';
-        if ($result['details'] !== []) {
-            $message .= ' '.implode(' · ', $result['details']);
+        $message = 'SuperOps SCIM credentials written to Entra';
+        if ($result['nameMappingsConfigured'] ?? false) {
+            $message .= ', SuperOps name mappings set (familyName ← extensionAttribute1)';
         }
-        $message .= ' Optional: confirm name.familyName → extensionAttribute1 Direct mapping if requester last names look wrong.';
+        $message .= ', provisioning start requested.';
+        if ($result['details'] !== []) {
+            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
+        }
+        if ($syncQueued) {
+            $message .= ' Portal Sync now is running in the background to write SuperOps last names — refresh SuperOps Requesters in a few minutes.';
+        } else {
+            $message .= ' Enable Entra sync and run Sync now so extensionAttribute1 is written and names update in SuperOps.';
+        }
 
-        return redirect()->route('admin.clients.edit', $client)
+        $redirect = redirect()->route('admin.clients.edit', $client)
             ->with('success', $message)
-            ->with('warning', 'Still required for Client SSO: SuperOps Client SSO configuration + paste Entity ID/ACS into portal Configure SAML (or step 08).');
+            ->with('warning', 'Still required for Client SSO: step 08 Configure SAML (Entity ID + ACS) if not done.');
+
+        if (! empty($result['warnings'])) {
+            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 3)));
+        }
+
+        return $redirect;
     }
 
     public function applyClientSso(ApplyClientSsoSamlRequest $request, Client $client): RedirectResponse
