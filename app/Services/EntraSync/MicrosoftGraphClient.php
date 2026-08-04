@@ -337,7 +337,12 @@ class MicrosoftGraphClient
         }
 
         $appId = (string) $app['appId'];
-        $spId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+
+        try {
+            $spId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+        } catch (RuntimeException) {
+            $spId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
+        }
 
         return [
             'appId' => $appId,
@@ -347,12 +352,67 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Non-gallery enterprise app via applicationTemplates instantiate.
+     * Non-gallery app registration + enterprise service principal.
+     * Prefers POST /applications (with User app role) over template instantiate — more reliable
+     * against directory replication 404s when immediately reading/patching the new object.
      *
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
      */
     public function createNonGalleryApplication(string $tenantId, string $displayName): array
     {
+        $userRoleId = (string) Str::uuid();
+        $response = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
+            'displayName' => $displayName,
+            'signInAudience' => 'AzureADMyOrg',
+            'appRoles' => [
+                [
+                    'allowedMemberTypes' => ['User'],
+                    'description' => 'Default access for On IT Portal / SuperOps SCIM users',
+                    'displayName' => 'User',
+                    'id' => $userRoleId,
+                    'isEnabled' => true,
+                    'value' => 'User',
+                ],
+            ],
+        ]);
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot create enterprise apps — add Application.ReadWrite.All '
+                .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
+            );
+        }
+
+        // Legacy path when POST /applications is blocked but template instantiate still works.
+        if ($response->failed()) {
+            return $this->createNonGalleryApplicationViaTemplate($tenantId, $displayName, $response);
+        }
+
+        $appId = (string) ($response->json('appId') ?? '');
+        $applicationObjectId = (string) ($response->json('id') ?? '');
+
+        if ($appId === '' || $applicationObjectId === '') {
+            throw new RuntimeException('Microsoft Graph create app returned incomplete application payload.');
+        }
+
+        $servicePrincipalId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
+        $resolved = $this->waitForApplicationByAppId($tenantId, $appId, $applicationObjectId);
+
+        return [
+            'appId' => $resolved['appId'],
+            'applicationObjectId' => $resolved['applicationObjectId'],
+            'servicePrincipalId' => $servicePrincipalId,
+        ];
+    }
+
+    /**
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
+     */
+    private function createNonGalleryApplicationViaTemplate(
+        string $tenantId,
+        string $displayName,
+        Response $failedDirectCreate,
+    ): array {
         // Gallery template ID for "Non-gallery" / custom LOB apps.
         $templateId = '8adf8e6e-67b2-4cf2-a259-e3dc5476c621';
         $response = $this->graphPost(
@@ -370,7 +430,9 @@ class MicrosoftGraphClient
 
         if ($response->failed()) {
             throw new RuntimeException(
-                'Microsoft Graph create non-gallery app failed: '.$response->status().' '.$response->body()
+                'Microsoft Graph create non-gallery app failed: direct='
+                .$failedDirectCreate->status().' '.$failedDirectCreate->body()
+                .'; template='.$response->status().' '.$response->body()
             );
         }
 
@@ -385,14 +447,92 @@ class MicrosoftGraphClient
         }
 
         if ($servicePrincipalId === '') {
-            $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+            $servicePrincipalId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
         }
 
+        $resolved = $this->waitForApplicationByAppId($tenantId, $appId, $applicationObjectId);
+
         return [
-            'appId' => $appId,
-            'applicationObjectId' => $applicationObjectId,
+            'appId' => $resolved['appId'],
+            'applicationObjectId' => $resolved['applicationObjectId'],
             'servicePrincipalId' => $servicePrincipalId,
         ];
+    }
+
+    private function ensureServicePrincipalForAppId(string $tenantId, string $appId): string
+    {
+        $existing = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals(appId='{$appId}')",
+            ['$select' => 'id'],
+        );
+
+        if ($existing->successful() && filled($existing->json('id'))) {
+            return (string) $existing->json('id');
+        }
+
+        $create = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/servicePrincipals', [
+            'appId' => $appId,
+        ]);
+
+        if ($create->status() === 201 && filled($create->json('id'))) {
+            return (string) $create->json('id');
+        }
+
+        // Concurrent create or eventual consistency — resolve again.
+        return $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+    }
+
+    /**
+     * @return array{appId: string, applicationObjectId: string}
+     */
+    private function waitForApplicationByAppId(
+        string $tenantId,
+        string $appId,
+        ?string $objectIdHint = null,
+        int $maxAttempts = 8,
+    ): array {
+        $escapedAppId = str_replace("'", "''", $appId);
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            if (filled($objectIdHint)) {
+                $byId = $this->graphGet(
+                    $tenantId,
+                    "https://graph.microsoft.com/v1.0/applications/{$objectIdHint}",
+                    ['$select' => 'id,appId'],
+                );
+
+                if ($byId->successful() && filled($byId->json('id')) && filled($byId->json('appId'))) {
+                    return [
+                        'appId' => (string) $byId->json('appId'),
+                        'applicationObjectId' => (string) $byId->json('id'),
+                    ];
+                }
+            }
+
+            $byAppId = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
+                '$filter' => "appId eq '{$escapedAppId}'",
+                '$select' => 'id,appId',
+                '$top' => 1,
+            ]);
+
+            $row = ($byAppId->json('value') ?? [])[0] ?? null;
+
+            if (is_array($row) && ! empty($row['id']) && ! empty($row['appId'])) {
+                return [
+                    'appId' => (string) $row['appId'],
+                    'applicationObjectId' => (string) $row['id'],
+                ];
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep(250_000 * $attempt);
+            }
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph created app '.$appId.' but it is not yet readable (replication). Retry Connect / Re-run Entra bootstrap in a few seconds.'
+        );
     }
 
     /**
@@ -400,15 +540,43 @@ class MicrosoftGraphClient
      */
     public function ensureNamedEnterpriseApplication(string $tenantId, string $displayName): array
     {
-        return $this->findApplicationByDisplayName($tenantId, $displayName)
-            ?? $this->createNonGalleryApplication($tenantId, $displayName);
+        $existing = $this->findApplicationByDisplayName($tenantId, $displayName);
+
+        if ($existing !== null) {
+            // Re-resolve object id in case a stale list entry races (common after partial bootstrap).
+            $resolved = $this->waitForApplicationByAppId(
+                $tenantId,
+                $existing['appId'],
+                $existing['applicationObjectId'],
+            );
+
+            return [
+                'appId' => $resolved['appId'],
+                'applicationObjectId' => $resolved['applicationObjectId'],
+                'servicePrincipalId' => $existing['servicePrincipalId'] !== ''
+                    ? $existing['servicePrincipalId']
+                    : $this->ensureServicePrincipalForAppId($tenantId, $resolved['appId']),
+            ];
+        }
+
+        return $this->createNonGalleryApplication($tenantId, $displayName);
     }
 
     /**
      * Ensure app role Value "User" exists (required for Free Sync app assignments).
      */
-    public function ensureApplicationUserRole(string $tenantId, string $applicationObjectId): string
+    public function ensureApplicationUserRole(string $tenantId, string $applicationObjectId, ?string $appId = null): string
     {
+        if (filled($appId)) {
+            $applicationObjectId = $this->waitForApplicationByAppId(
+                $tenantId,
+                $appId,
+                $applicationObjectId,
+            )['applicationObjectId'];
+        } else {
+            $applicationObjectId = $this->waitForApplicationObjectReadable($tenantId, $applicationObjectId);
+        }
+
         $response = $this->graphGet(
             $tenantId,
             "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}",
@@ -454,6 +622,14 @@ class MicrosoftGraphClient
             );
         }
 
+        // Directory sometimes 404s immediately after create; retry a few times.
+        for ($attempt = 1; $attempt <= 4 && $patch->status() === 404; $attempt++) {
+            usleep(300_000 * $attempt);
+            $patch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}", [
+                'appRoles' => $roles,
+            ]);
+        }
+
         if ($patch->failed() && $patch->status() !== 204) {
             throw new RuntimeException(
                 'Microsoft Graph create app role User failed: '.$patch->status().' '.$patch->body()
@@ -461,6 +637,27 @@ class MicrosoftGraphClient
         }
 
         return $roleId;
+    }
+
+    private function waitForApplicationObjectReadable(string $tenantId, string $applicationObjectId, int $maxAttempts = 8): string
+    {
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $response = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}",
+                ['$select' => 'id'],
+            );
+
+            if ($response->successful() && filled($response->json('id'))) {
+                return (string) $response->json('id');
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep(250_000 * $attempt);
+            }
+        }
+
+        return $applicationObjectId;
     }
 
     public function assignGroupToEnterpriseApp(

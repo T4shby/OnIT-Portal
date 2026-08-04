@@ -299,12 +299,14 @@ class ClientOnboardingService
                         'Mark complete on this portal',
                         'https://app.onit.ltd → this checklist (right)',
                         [
-                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                            'Tick **Mark this step complete** — it saves automatically (or press **Save checklist** at the bottom).',
+                            'Do **not** use **Save client** for this tick — that only saves SuperOps / Entra IDs on the left.',
                         ],
                     ),
                 ],
                 verify: [
                     'You have Tenant URL + Secret Token for '.$client->name.' ready to paste.',
+                    'Step 05 shows **Done** after the tick saves.',
                 ],
             )),
 
@@ -457,7 +459,7 @@ class ClientOnboardingService
                         'Mark complete if needed',
                         'https://app.onit.ltd → this checklist (right)',
                         [
-                            'If Last synced is set, this step is Done. If Sync now already ran, tick **Mark this step complete** → **Save checklist** (right).',
+                            'If Last synced is set, this step is Done. If Sync now already ran, tick **Mark this step complete** — saves automatically (or **Save checklist**).',
                         ],
                     ),
                 ],
@@ -497,7 +499,7 @@ class ClientOnboardingService
                             'Click the **SuperOps** tile on the dashboard.',
                             'It must open the requester portal (not technician role chooser).',
                             'If Microsoft prompts again, sign in with the same customer email.',
-                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                            'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
                         ],
                     ),
                 ],
@@ -523,7 +525,7 @@ class ClientOnboardingService
                             'Email or ticket the customer contact.',
                             'Tell them: open https://app.onit.ltd → Sign in with Microsoft → use their work email.',
                             'Tell them they must be a licensed M365 user (shared mailboxes cannot sign in).',
-                            'Tick **Mark this step complete** → **Save checklist** (right).',
+                            'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
                         ],
                     ),
                 ],
@@ -641,7 +643,7 @@ class ClientOnboardingService
                 'Entra left **Manage** → **Enterprise applications** → **'.$appName.'** → app **Manage** → **Provisioning**.',
                 'Click toolbar **Start provisioning**.',
                 'Confirm the status shows provisioning is on / started.',
-                'Tick **Mark this step complete** → **Save checklist** (right).',
+                'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
             ],
         );
 
@@ -735,7 +737,7 @@ class ClientOnboardingService
                     'Mark complete on this portal',
                     'https://app.onit.ltd → this checklist (right)',
                     [
-                        'Tick **Mark this step complete** → **Save checklist** (right).',
+                        'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
                     ],
                 ),
             ],

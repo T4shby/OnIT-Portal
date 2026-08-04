@@ -14,8 +14,9 @@
 
         <p class="portal-body-muted text-sm leading-relaxed">
             Work the open step.
-            <strong class="text-white/80">Save client</strong> left ·
-            <strong class="text-white/80">Save checklist</strong> right.
+            <strong class="text-white/80">Save client</strong> (left) stores IDs and flags only.
+            Ticking a step on the right saves the checklist automatically — or use
+            <strong class="text-white/80">Save checklist</strong> below.
         </p>
 
         @if(! empty($adminConsentUrl))
@@ -59,6 +60,7 @@
 
     @if($hasManualCheckboxes)
         <form
+            id="onboarding-checklist-form"
             method="POST"
             action="{{ route('admin.clients.onboarding.update', $client) }}"
             class="onboarding-panel__body"
@@ -73,8 +75,27 @@
             ])
             <div class="onboarding-panel__actions">
                 <button type="submit" class="cta-btn text-sm">Save checklist</button>
+                <p class="portal-body-muted mt-2 text-xs leading-relaxed">
+                    Tick “Mark this step complete” and it saves immediately.
+                    <strong class="text-white/70">Save client</strong> on the left does not save these ticks.
+                </p>
             </div>
         </form>
+        <script>
+            (function () {
+                var form = document.getElementById('onboarding-checklist-form');
+                if (!form) return;
+                form.querySelectorAll('input[type="checkbox"][name^="checkpoints"]').forEach(function (box) {
+                    box.addEventListener('change', function () {
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    });
+                });
+            })();
+        </script>
     @else
         <div class="onboarding-panel__body">
             @include('admin.clients._onboarding-steps', [

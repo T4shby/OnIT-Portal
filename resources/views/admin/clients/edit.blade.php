@@ -49,6 +49,9 @@
                     <button type="submit" class="cta-btn text-sm px-6 py-3">Save client</button>
                     <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
                 </div>
+                <p class="portal-body-muted mt-3 text-xs leading-relaxed">
+                    Saves SuperOps / Entra fields on this form only. Checklist ticks are on the right and save when you tick them.
+                </p>
             </form>
 
             @if($client->entra_tenant_id && config('services.entra_sync.client_id'))

@@ -17,7 +17,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 | Button | Where | What it saves |
 |---|---|---|
 | **Save client** | Left (orange) | IDs, licence tier, sync settings |
-| **Save checklist** | Right | Step ticks |
+| **Save checklist** / tick | Right | Step ticks — ticking **Mark this step complete** auto-saves (Save checklist still works too) |
 
 | Tool allowed | Not needed |
 |---|---|

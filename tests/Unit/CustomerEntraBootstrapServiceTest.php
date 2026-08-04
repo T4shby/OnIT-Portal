@@ -57,7 +57,14 @@ class CustomerEntraBootstrapServiceTest extends TestCase
                 'applicationObjectId' => $ssoObjectId,
                 'servicePrincipalId' => $ssoSpId,
             ]);
-        $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn($roleId);
+        $graph->shouldReceive('ensureApplicationUserRole')
+            ->once()
+            ->with($tenantId, $scimObjectId, $scimAppId)
+            ->andReturn($roleId);
+        $graph->shouldReceive('ensureApplicationUserRole')
+            ->once()
+            ->with($tenantId, $ssoObjectId, $ssoAppId)
+            ->andReturn($roleId);
         $graph->shouldReceive('resolveAssignableAppRoleId')->twice()->andReturn($roleId);
         $graph->shouldReceive('assignGroupToEnterpriseApp')->twice();
 

@@ -112,10 +112,19 @@ class CustomerEntraBootstrapService
 
         try {
             $scim = $this->graph->ensureNamedEnterpriseApplication($tenantId, $scimAppName);
-            $this->graph->ensureApplicationUserRole($tenantId, $scim['applicationObjectId']);
             $fields['entra_superops_app_id'] = $scim['appId'];
             $details[] = "SCIM app «{$scimAppName}»: {$scim['appId']}";
             $checklist['superops_scim_app'] = true;
+
+            try {
+                $this->graph->ensureApplicationUserRole(
+                    $tenantId,
+                    $scim['applicationObjectId'],
+                    $scim['appId'],
+                );
+            } catch (Throwable $e) {
+                $warnings[] = 'SCIM app role User incomplete (app ID is saved): '.$e->getMessage();
+            }
 
             if ($usesGroupScim) {
                 try {
@@ -141,9 +150,18 @@ class CustomerEntraBootstrapService
 
         try {
             $sso = $this->graph->ensureNamedEnterpriseApplication($tenantId, $ssoAppName);
-            $this->graph->ensureApplicationUserRole($tenantId, $sso['applicationObjectId']);
             $fields['entra_superops_sso_app_id'] = $sso['appId'];
             $details[] = "Client SSO app «{$ssoAppName}»: {$sso['appId']}";
+
+            try {
+                $this->graph->ensureApplicationUserRole(
+                    $tenantId,
+                    $sso['applicationObjectId'],
+                    $sso['appId'],
+                );
+            } catch (Throwable $e) {
+                $warnings[] = 'Client SSO app role User incomplete (app ID is saved): '.$e->getMessage();
+            }
 
             if ($usesGroupScim) {
                 try {
