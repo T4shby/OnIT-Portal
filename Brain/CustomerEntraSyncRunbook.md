@@ -1,6 +1,6 @@
 # Customer Entra sync — complete runbook (re-do from scratch)
 
-**Use this** when onboarding a new MSP customer (e.g. Ductec LTD) or if you need to rebuild Entra sync, SCIM, and SSO from zero.
+**Use this** when onboarding a new MSP customer or if you need to rebuild Entra sync, SCIM, and SSO from zero.
 
 **In-app wizard:** **Admin → Clients → Edit** — checklist on the **right** (full instructions per step). **Not all steps are on the portal** — see table below.
 
@@ -174,11 +174,11 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 
 ## Step 2 — Empty security group (customer tenant)
 
-1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant (e.g. Ductec Ltd). Do **not** open On IT Technology Partners LTD first and switch.
+1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant. Do **not** open On IT Technology Partners LTD first and switch.
 2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**
 3. Fill in:
    - **Group type:** Security
-   - **Group name:** `On IT Portal - {Company}` (e.g. `On IT Portal - Ductec LTD`)
+   - **Group name:** `On IT Portal - {Company}`
    - **Membership type:** Assigned
 4. **Leave Members empty** — do not add anyone
 5. Click **Create**
@@ -236,12 +236,12 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={P
 
 ## Step 5–7 — SuperOps SCIM app only — checklist **05** + **06** + **07**
 
-App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
+App name: **`SuperOps - {Company}`**
 
 ### 5a — SuperOps SCIM tokens
 
 1. SuperOps MSP console → **Integrations → Microsoft Entra ID**
-2. **Generate Tokens** → select this client (e.g. **Ductec LTD**)
+2. **Generate Tokens** → select this SuperOps client
 3. Copy **Tenant URL** and **Secret Token** (Auth Token) — store in password manager; regenerate if exposed
 
 ### 5b — Create app and SCIM (customer tenant)
@@ -251,7 +251,7 @@ App name: **`SuperOps - {Company}`** (e.g. `SuperOps - Ductec LTD`)
 3. **Provisioning** → **Provisioning** → Mode: **Automatic**
 4. **Admin Credentials:** Authentication method = **Bearer authentication** (default). **Tenant URL** + **Secret Token** (Auth Token) from SuperOps → **Test Connection** → must succeed → **Save**
 5. **App role (required on Entra ID Free — portal sync assigns users via Graph):**
-   - **App registrations** → open the SuperOps app (same name, e.g. `OnIT X Superops` or `SuperOps - {Company}`)
+   - **App registrations** → open the SuperOps app (same name: `SuperOps - {Company}`)
    - **App roles** → if no enabled role exists, **Create app role**:
      - **Display name:** `User`
      - **Allowed member types:** Users/Groups
@@ -320,12 +320,12 @@ MICROSOFT_CLIENT_SECRET=<secret>
 
 ### Portal client fields (Edit → Microsoft Entra sync)
 
-| Field | Ductec example |
-|---|---|
-| Entra tenant ID | Customer tenant GUID |
-| Entra group ID | `On IT Portal - Ductec LTD` group Object ID |
-| SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` — **required on Entra ID Free** |
-| Entra sync enabled | ✓ |
+| Field | Where it comes from |
+|---------|--------|
+| Entra tenant ID | Customer Azure Overview |
+| Entra group ID | `On IT Portal - {Company}` group Object ID |
+| SuperOps Application (client) ID | App registrations → `SuperOps - {Company}` → Application (client) ID (required on Free) |
+| Entra sync enabled | Tick after prerequisites are set |
 
 ### Run sync in portal UI
 
@@ -343,7 +343,7 @@ php artisan portal:sync-entra-users --client={id}
 
 ---
 
-## Step 8 — Validation (Ductec / any client)
+## Step 8 — Validation
 
 | # | Check | Pass when |
 |---|--------|-----------|
@@ -367,7 +367,7 @@ php artisan portal:sync-entra-users --client={id}
 | Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
 | Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
 | Requester plain name (no suffix) | `name.familyName` not Direct from `extensionAttribute1` | Direct map **name.familyName** ← extensionAttribute1 (default `[surname]`); Sync now |
-| `extensionAttribute1` set (e.g. `Munns (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
+| `extensionAttribute1` set (e.g. `Smith (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
 | Connect bootstrap: tenant/group OK but SCIM/SSO apps fail with Graph **404** `Request_ResourceNotFound` on app/roles | Create returned an object that was not yet readable (template instantiate race) | Fixed in code: create via `POST /applications` + wait/retry, save client IDs even if role lag. Deploy latest, then **Re-run Entra bootstrap**. Or create `SuperOps - {Company}` manually once and paste Application (client) ID. |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
@@ -387,20 +387,6 @@ php artisan portal:sync-entra-users --client={id}
 
 **Not per customer:** On IT technician SSO and portal OAuth registration itself.
 
----
-
-## Reference — Ductec LTD (pilot)
-
-| Item | Value |
-|------|--------|
-| SuperOps Account ID | `3425667307281944576` (verify in SuperOps URL) |
-| Entra Tenant ID | On client record in portal |
-| Group name | `On IT Portal - Ductec LTD` |
-| SuperOps app name | `OnIT X Superops` (or `SuperOps - Ductec LTD`) |
-| SuperOps Application (client) ID | `8c46a344-a010-4c78-99b9-df8b9caaba2f` (App registrations → OnIT X Superops → Overview) |
-| Entra ID tier | Free — portal assigns users via Application (client) ID + `Application.Read.All` |
-| Requester name format | `Name (User Mailbox)` or `Name (Shared Mailbox)` in SuperOps only — portal → `extensionAttribute1` → SCIM **name.familyName** Direct |
-
 Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now** to patch plain names, then SCIM cycle.
 
 ---
@@ -409,6 +395,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-08-04 | Scrub pilot client names and GUIDs from steps; placeholders `{Company}` only |
 | 2026-07-14 | Step 08 changed from Global SSO Accept to per-customer SuperOps Client SSO |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform customer-tenant consent and all setup via GDAP |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns active licensed users using the saved Client SSO Application ID |

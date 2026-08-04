@@ -679,11 +679,11 @@ class EntraGroupSyncServiceTest extends TestCase
     public function test_format_super_ops_family_name_uses_surname(): void
     {
         $this->assertSame(
-            'Munns (User Mailbox)',
+            'Smith (User Mailbox)',
             EntraSyncDisplayName::formatSuperOpsFamilyName(
-                'Munns',
-                'Hannah',
-                'Hannah Munns',
+                'Smith',
+                'Jane',
+                'Jane Smith',
                 EntraIdentityType::User,
             ),
         );
@@ -761,7 +761,7 @@ class EntraGroupSyncServiceTest extends TestCase
             if ($applicationClientId && $servicePrincipalId && $request->method() === 'GET' && str_contains($url, "servicePrincipals(appId='{$applicationClientId}')")) {
                 return Http::response([
                     'id' => $servicePrincipalId,
-                    'displayName' => 'OnIT X Superops',
+                    'displayName' => 'SuperOps - Acme Ltd',
                     'appId' => $applicationClientId,
                     'appRoles' => [
                         [

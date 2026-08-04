@@ -75,6 +75,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Dashboard always pre-filled: cold SuperOps never skipped on deep queue; `high` worker queue; no page-view stampede — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
+| 2026-08-04 | Scrub real customer names from live steps product copy and Brain runbook examples (use `{Company}` placeholders only); SuperOps names after background Sync (minutes) |
 | 2026-08-04 | Apply SCIM name-mapping fix: Graph `attributeMapping` has no `mappingType` (400 RequestParameterInvalid); remove customer examples from product-facing SCIM copy — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | Apply SCIM now sets SuperOps name mappings (familyName ← extensionAttribute1) and queues portal Sync so requesters get (User Mailbox)/(Shared Mailbox) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | Entra tier detection treats Microsoft 365 Business Premium / SPB as P1 (includes Entra ID P1); SuperOps names require Sync now + SCIM `name.familyName`←extensionAttribute1 — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |

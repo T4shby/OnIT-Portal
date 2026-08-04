@@ -27,19 +27,12 @@ class M365InsightsService
         $cached = Cache::get($this->cacheKey($client->id));
 
         if (is_array($cached)) {
-            $summary = $this->summaryFromCache($client->id, $cached);
-
             if ($manualRefresh) {
                 $this->queueRefresh($client, respectCooldown: true);
-
-                return $this->summaryFromCache($client->id, $cached);
             }
 
-            if ($summary->isStale && ! $summary->refreshInProgress) {
-                $this->queueRefresh($client);
-            }
-
-            return $summary;
+            // Serve cache on every visit; prewarm refreshes freshness.
+            return $this->summaryFromCache($client->id, $cached);
         }
 
         $this->queueRefresh($client, respectCooldown: $manualRefresh);

@@ -28,11 +28,19 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Setting | Env | Default |
 |---------|-----|---------|
-| Fresh TTL | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | 10 minutes |
-| Stale retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` | 1440 minutes |
+| Fresh TTL (stale banner) | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | 60 minutes |
+| Cache retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` | 10080 minutes (7 days) |
 | Manual refresh cooldown | `SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
+| GraphQL page cap | `SUPEROPS_DASHBOARD_MAX_PAGES` | 10 pages × 100 rows |
 
-Background refresh: `RefreshSuperOpsDashboardJob` — queued to the `jobs` table (`QUEUE_CONNECTION=database` in production). Requires a queue worker on Plesk; see [Deployment.md — Run the queue worker](Deployment.md#11-run-the-queue-worker).
+Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (before Entra/SCIM on `default`). Worker must run `--queue=high,default` — [Deployment.md](Deployment.md#11-run-the-queue-worker).
+
+**Data should exist before anyone opens the page:**
+
+1. Scheduler runs `portal:prewarm-client-dashboards` **every 5 minutes**.
+2. **Cold SuperOps caches always queue**, even when the jobs table is deep (Entra backlog). Optional refreshes only when spare capacity (&lt; 40 pending jobs).
+3. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
+4. Page views **serve cache only** — they do not re-queue every time metrics are &gt; 1 hour old (that stampeded the worker and kept demos empty).
 
 The dashboard uses a wide (`96rem`) layout and compact responsive grids so desktop
 and tablet widths show multiple cards per row. The **Microsoft 365 Directory** page
@@ -41,15 +49,14 @@ its people/groups tables are not squished. The rest of the portal retains the
 standard `64rem` content width via the `content-class` prop default (`max-w-portal`)
 on `x-app-layout`.
 
-`portal:prewarm-client-dashboards` queues all configured integration refresh jobs
-for every active client. Laravel schedules it every ten minutes, so dashboard
-data is populated before a client visits. Production requires both Plesk tasks:
+`portal:prewarm-client-dashboards` prioritises missing SuperOps snapshots for every
+active client with a SuperOps Account ID. Production requires both Plesk tasks:
 minute-by-minute `schedule:run` and the separate queue worker documented in
 [Deployment.md](Deployment.md#10-configure-cron).
 
 ### Open ticket statuses
 
-Verified against live SuperOps data (3R Systems, 2026-07-15):
+Verified against live SuperOps status enums (2026-07-15):
 
 `Open`, `In Progress`, `On Hold`, `Pending`, `Reopened`, `Waiting on Client`, `Waiting on Customer`, `Waiting on Vendor`
 
@@ -193,3 +200,9 @@ On IT staff (`account_manager`, `super_admin`) assign roles in **Admin → Clien
 ## Testing safely
 
 PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in staging, use a client with `superops_account_id` / `huntress_organization_id` and Entra tenant configured; open `/client-admin` as a `client_admin` user.
+
+## Change log
+
+| Date | Change |
+|------|--------|
+| 2026-08-04 | Dashboard metrics pre-stored: cold SuperOps always prewarms (even under deep queue), `high` queue before Entra, page views no longer stampede refresh, 7-day cache retention |

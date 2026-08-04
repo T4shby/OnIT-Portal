@@ -27,6 +27,8 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 
 **Portal Apply SCIM** should do (1) via Graph schema update, (2) by queuing Sync when tenant + group exist, then start provisioning. If the schema update fails, fix mapping in Entra Provisioning (or re-run Apply after a deploy that fixes Graph payload fields) and run **Sync now**.
 
+**Timing:** SuperOps Requester names update only after background Sync writes `extensionAttribute1` **and** Entra SCIM completes Updates — usually a few minutes. Refresh SuperOps; do not expect instant renames after Apply.
+
 ---
 
 ## Architecture
@@ -46,7 +48,7 @@ Customer M365 tenant
 
 ---
 
-## Per-client setup (e.g. Ductec)
+## Per-client setup
 
 > **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05–07 (SCIM)** and **08 (Client SSO)** contain the full install-manual instructions. This doc is the reference copy.
 
@@ -54,7 +56,7 @@ Customer M365 tenant
 
 Used for **SuperOps SCIM** (and Portal group visibility) — portal sync **maintains membership** when `entra_group_id` is saved on the client. Requester **login** is the separate customer Client SSO app from checklist **08** — not SAML on this SCIM app.
 
-1. Customer tenant (e.g. Ductec) → **Entra ID → Manage → Groups**
+1. Customer tenant → **Entra ID → Manage → Groups**
 2. Create security group: `On IT Portal - {Company}` — type **Security**, membership **Assigned**
 3. **Leave the group empty** — `portal:sync-entra-users` adds licensed users and shared mailboxes via Microsoft Graph (same scope as portal users)
 4. Copy **Object ID** → **Entra group ID** on the portal client record
@@ -77,12 +79,12 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 ### 2–3. One Entra app: SCIM only
 
-**Default per customer:** one non-gallery enterprise app (e.g. `SuperOps - Ductec LTD`) with **Provisioning** and **SAML** on the same object. Assign the security group **once**.
+**Default per customer:** one non-gallery enterprise app (e.g. `SuperOps - {Company}`) with **Provisioning**. Assign the security group **once** when on P1.
 
 #### 2a. SuperOps — SCIM credentials
 
 1. SuperOps MSP console → **Integrations → Microsoft Entra ID**
-2. **Generate Tokens** → select the SuperOps client (e.g. **Ductec LTD**)
+2. **Generate Tokens** → select the SuperOps client for this customer
 3. Copy **Tenant URL** and **Auth Token**
 
 #### 2b. Customer Entra — create app and SCIM
@@ -129,9 +131,9 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 | User removed from group / app scope | Requester deprovisioned |
 | Account disabled | Handled per SuperOps SCIM rules |
 
-**Requester name format:** Portal writes the full **Last name** to `extensionAttribute1` (e.g. `Munns (User Mailbox)`). Entra SCIM maps it **Direct** to `name.familyName`. First name stays plain via `givenName`.
+**Requester name format:** Portal writes the full **Last name** to `extensionAttribute1` (e.g. `Smith (User Mailbox)`). Entra SCIM maps it **Direct** to `name.familyName`. First name stays plain via `givenName`.
 
-Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by SCIM — not duplicated.
+Existing requesters in SuperOps are matched and updated by SCIM — not duplicated.
 
 ---
 
@@ -143,10 +145,10 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 | Step | System | What happens |
 |---|---|---|
-| 1 | **Portal** | `formatSuperOpsFamilyName()` → `Munns (User Mailbox)` or `Accounts (Shared Mailbox)` |
+| 1 | **Portal** | `formatSuperOpsFamilyName()` → e.g. `Smith (User Mailbox)` or `Accounts (Shared Mailbox)` |
 | 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` |
 | 3 | **Entra SCIM** | `name.familyName` **Direct** ← `extensionAttribute1` (fallback `[surname]`) |
-| 4 | **SuperOps** | First `Hannah`, Last `Munns (User Mailbox)` |
+| 4 | **SuperOps** | First name plain; last name includes mailbox type when mapped |
 
 ### Entra SCIM attribute mapping — Direct only (no Expression)
 
@@ -164,7 +166,7 @@ Existing requesters (e.g. Ductec already in SuperOps) are matched and updated by
 
 | Permission | Purpose |
 |---|---|
-| `User.ReadWrite.All` | Write SuperOps last name (e.g. `Munns (User Mailbox)`) to `extensionAttribute1` |
+| `User.ReadWrite.All` | Write SuperOps last name (e.g. `Smith (User Mailbox)`) to `extensionAttribute1` |
 | `Application.Read.All` | Resolve SuperOps Application (client) ID → enterprise app |
 | `AppRoleAssignment.ReadWrite.All` | Assign users to SuperOps enterprise app on Entra ID Free |
 | `Synchronization.ReadWrite.All` | Trigger SCIM provision-on-demand after portal Sync now |
@@ -191,7 +193,9 @@ ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US=1500000  # 1.5s between calls (~35s fo
 
 Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps name labels to `extensionAttribute1` (last names stay plain in SuperOps).
 
-### Fix mistaken M365 display names (e.g. Ductec)
+### Fix mistaken M365 display names
+
+If someone previously patched Entra `displayName` with mailbox suffixes, strip them in the customer tenant only (portal and SuperOps keep the correct SCIM last-name path).
 
 If a previous sync incorrectly appended `(User Mailbox)` to Entra `displayName`:
 
@@ -206,7 +210,7 @@ Then configure SCIM attribute mapping above and run **Sync now** so extension at
 
 | Type | Portal user | SuperOps group | SuperOps app (Free) | SuperOps requester name |
 |---|---|---|---|---|
-| Licensed active user | ✅ can sign in | ✅ | ✅ | Last name `Munns (User Mailbox)` |
+| Licensed active user | ✅ can sign in | ✅ | ✅ | Last name `Smith (User Mailbox)` |
 | Shared mailbox | ✅ directory only | ✅ | ✅ | Last name `Accounts (Shared Mailbox)` |
 | Disabled licensed user | ❌ inactive | ❌ removed from group | ❌ removed from app | SCIM deprovisions |
 
@@ -269,6 +273,7 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 
 | Date | Change |
 |------|--------|
+| 2026-08-04 | Scrub real customer names from examples (use `{Company}` / `Smith` placeholders); SuperOps names update after background Sync + SCIM (minutes) |
 | 2026-07-17 | SCIM provision-on-demand kept; only changed name hints + newly assigned users; runs via queue job so hourly sync no longer hangs |
 | 2026-07-14 | Requester login changed from Global SSO Accept to customer Client SSO app in checklist 08 |
 | 2026-07-14 | MSP ownership explicit: On IT technicians complete customer-tenant Accept and setup through GDAP |
@@ -280,4 +285,4 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 | 2026-06-25 | Entra ID Free: portal auto-assigns users via `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` |
 | 2026-06-25 | Bearer authentication on SCIM admin credentials |
 | 2026-06-19 | Auto-maintain group; single app SCIM+SAML default; link to [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
-| 2026-06-19 | Document two-sync model; SuperOps SCIM per client (Ductec, On IT) |
+| 2026-06-19 | Document two-sync model; SuperOps SCIM per client |

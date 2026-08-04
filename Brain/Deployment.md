@@ -175,10 +175,10 @@ Add these two lines (keep unrelated entries such as `ntpdate`):
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
 ```
 
-`--max-time=300` covers Entra sync / SCIM / SuperOps refresh job timeouts. The scheduler only **queues** work (hourly Entra per-client jobs + 10-minute dashboard prewarm); the worker processes it.
+`--queue=high,default` runs SuperOps dashboard prewarm **before** Entra/SCIM (default). `--max-time=300` covers long Entra jobs. The scheduler queues work; the worker processes it.
 
 ### 11. Run the queue worker
 
@@ -197,7 +197,7 @@ PHPUnit sets `QUEUE_CONNECTION=sync` in `phpunit.xml` so tests still run jobs in
 **Worker command (production):**
 
 ```bash
-php artisan queue:work database --sleep=1 --tries=3
+php artisan queue:work database --queue=high,default --sleep=1 --tries=3
 ```
 
 Run this **continuously** — choose one:
@@ -212,7 +212,7 @@ Run this **continuously** — choose one:
 ```ini
 [program:onit-portal-queue]
 process_name=%(program_name)s
-command=/opt/plesk/php/8.3/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --sleep=1 --tries=3
+command=/opt/plesk/php/8.3/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --queue=high,default --sleep=1 --tries=3
 autostart=true
 autorestart=true
 user=www-data
@@ -227,10 +227,11 @@ Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-
 the same Plesk Scheduled Tasks screen, also using Cron style `* * * * *`:
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
 ```
 
-`--max-time=300` matches job timeouts for Entra / SCIM / SuperOps.
+`--queue=high,default` so SuperOps dashboard jobs win over Entra when both are pending.
+`--max-time=300` matches typical worker windows.
 Use the same Plesk PHP binary as in [Updating the Application](#updating-the-application). After deploy, restart the Supervisor program or wait for the next scheduled task tick.
 
 **Queued jobs:**
@@ -238,7 +239,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 | Job | Trigger |
 |---|---|
 | `RefreshM365DirectoryJob` | Stale M365 directory cache, manual refresh |
-| `RefreshSuperOpsDashboardJob` | Stale SuperOps dashboard cache |
+| `RefreshSuperOpsDashboardJob` (`high` queue) | Prewarm / cold SuperOps cache / manual refresh |
 | `RefreshHuntressSecurityJob` | Stale Huntress security metrics cache |
 | `SyncEntraClientJob` | Admin → Clients → Sync Entra users |
 

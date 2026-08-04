@@ -20,7 +20,11 @@ class RefreshSuperOpsDashboardJob implements ShouldQueue, ShouldBeUnique
 
     public int $uniqueFor = 300;
 
-    public function __construct(public int $clientId) {}
+    public function __construct(public int $clientId)
+    {
+        // Ahead of Entra/SCIM (default queue) so dashboards stay warm under backlog.
+        $this->onQueue('high');
+    }
 
     public function uniqueId(): string
     {

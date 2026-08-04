@@ -304,7 +304,7 @@ Per-client work is checklist **08**. P1 assigns `On IT Portal - {Company}` once;
 
 ## Part 6 — Client SSO rollout status
 
-The former On IT Global SSO test is historical and must not be used as proof that customer-tenant login works. Validate the new model with a real customer Client SSO configuration, starting with 3R.
+The former On IT Global SSO test is historical and must not be used as proof that customer-tenant login works. Validate the new model with a real customer Client SSO configuration.
 
 **Launch path:** `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login` — **not** `/#/login/requester` (invalid; shows role chooser).
 
@@ -338,6 +338,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Live steps/brain: no real customer names in onboarding copy (only this client’s `{name}`); SuperOps Requester suffixes after background Sync + SCIM (minutes) |
 | 2026-07-14 | Replaced requester Global SSO multitenant Accept with customer-owned SuperOps Client SSO; no On IT guest accounts |
 | 2026-07-14 | Retired AADSTS1003031 requester Accept troubleshooting with the Global SSO design |
 | 2026-07-14 | Step 03: read customer Entra Overview → License before setting portal tier |

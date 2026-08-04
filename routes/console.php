@@ -15,6 +15,6 @@ Schedule::command('portal:sync-entra-users')
     ->onOneServer();
 
 Schedule::command('portal:prewarm-client-dashboards')
-    ->everyTenMinutes()
-    ->withoutOverlapping(5)
+    ->everyFiveMinutes()
+    ->withoutOverlapping(4)
     ->onOneServer();

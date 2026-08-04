@@ -49,17 +49,17 @@ SuperOps states that Global SSO must be disabled before Client SSO can be used.
 3. Record the existing Global SSO Login URL and certificate for rollback.
 4. Disable **Global SSO**.
 5. Do not delete the old On IT Entra app until the first Client SSO pilot passes.
-6. Configure 3R as the pilot using the procedure below.
+6. Configure the first customer using the procedure below.
 7. After successful testing, leave Global SSO disabled and roll out Client SSO customer by customer.
 8. Retire the old shared Entra app only after no customer depends on it.
 
 ## Per-customer checklist 08
 
-Example names:
+Naming pattern (use the real company name):
 
-- SuperOps configuration: `3R Systems Limited Entra SSO`
-- Customer Entra app: `SuperOps Requester SSO - 3R Systems Limited`
-- Access group: `On IT Portal - 3R Systems Limited`
+- SuperOps configuration: `{Company} Entra SSO`
+- Customer Entra app: `SuperOps Requester SSO - {Company}`
+- Access group: `On IT Portal - {Company}`
 
 ### A. Generate client-specific SuperOps values
 
@@ -207,6 +207,7 @@ The deployment migration clears that checkpoint on existing clients because any 
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Pilot client names removed from checklist 08 examples; use `{Company}` pattern only |
 | 2026-07-17 | Leave Reply URL Index blank; documented in Basic SAML steps |
 | 2026-07-14 | Existing step 08 completion is reset during migration so old Global Accept records cannot masquerade as completed Client SSO |
 | 2026-07-14 | Replaced unsupported Global SSO Multitenant adminconsent design with SuperOps Client SSO per customer tenant |

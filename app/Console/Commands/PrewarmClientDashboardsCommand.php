@@ -12,11 +12,20 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Keep client dashboard caches filled so metrics exist before anyone opens the page.
+ *
+ * Cold SuperOps caches are always queued (high queue). Optional warm refreshes and
+ * other integrations only when the jobs table is under capacity — never thrash Entra work.
+ */
 class PrewarmClientDashboardsCommand extends Command
 {
     protected $signature = 'portal:prewarm-client-dashboards';
 
-    protected $description = 'Queue dashboard cache refreshes for active clients';
+    protected $description = 'Ensure active clients have SuperOps (and other) dashboard caches ready';
+
+    /** Spare-capacity threshold for optional (non-cold) prewarm work. */
+    private const MAX_PENDING_BEFORE_OPTIONAL = 40;
 
     public function handle(
         SuperOpsClientMetricsService $superOps,
@@ -25,20 +34,12 @@ class PrewarmClientDashboardsCommand extends Command
         HuntressClientMetricsService $huntress,
         DropsuiteClientMetricsService $dropsuite,
     ): int {
-        $maxPending = 40;
-
-        if (Schema::hasTable('jobs')) {
-            $pending = (int) DB::table('jobs')->count();
-
-            if ($pending >= $maxPending) {
-                $this->warn("Skipping prewarm: {$pending} jobs already queued (max {$maxPending}).");
-
-                return self::SUCCESS;
-            }
-        }
+        $pending = $this->pendingJobs();
+        $queueDeep = $pending >= self::MAX_PENDING_BEFORE_OPTIONAL;
 
         $clientsProcessed = 0;
-        $jobsQueued = 0;
+        $coldQueued = 0;
+        $optionalQueued = 0;
 
         Client::query()
             ->where('is_active', true)
@@ -49,25 +50,57 @@ class PrewarmClientDashboardsCommand extends Command
                 $m365Insights,
                 $huntress,
                 $dropsuite,
+                $queueDeep,
                 &$clientsProcessed,
-                &$jobsQueued,
+                &$coldQueued,
+                &$optionalQueued,
             ): void {
                 foreach ($clients as $client) {
                     $clientsProcessed++;
 
-                    $jobsQueued += (int) $superOps->queueRefresh($client);
-                    $jobsQueued += (int) $m365Insights->queueRefresh($client);
-                    $jobsQueued += (int) $huntress->queueRefresh($client);
-                    $jobsQueued += (int) $dropsuite->queueRefresh($client);
+                    // 1) Always fill missing SuperOps snapshots first.
+                    if ($superOps->needsColdPrewarm($client) && $superOps->queueRefresh($client)) {
+                        $coldQueued++;
+                    }
+
+                    if ($queueDeep) {
+                        continue;
+                    }
+
+                    // 2) Refresh existing SuperOps data past the fresh window when spare capacity.
+                    if ($superOps->needsBackgroundRefresh($client) && $superOps->queueRefresh($client)) {
+                        $optionalQueued++;
+                    }
+
+                    $optionalQueued += (int) $m365Insights->queueRefresh($client);
+                    $optionalQueued += (int) $huntress->queueRefresh($client);
+                    $optionalQueued += (int) $dropsuite->queueRefresh($client);
 
                     if ($m365Directory->isAvailableForClient($client)) {
-                        $jobsQueued += (int) $m365Directory->queueRefresh($client);
+                        $optionalQueued += (int) $m365Directory->queueRefresh($client);
                     }
                 }
             });
 
-        $this->info("Queued {$jobsQueued} dashboard refresh job(s) across {$clientsProcessed} active client(s).");
+        $this->info(
+            "Dashboard prewarm: {$coldQueued} cold SuperOps, {$optionalQueued} optional, "
+            ."across {$clientsProcessed} active client(s)"
+            .($queueDeep ? ' (queue deep — cold SuperOps only).' : '.')
+        );
+
+        if ($queueDeep) {
+            $this->warn("Optional prewarm skipped: {$pending} jobs already queued (max ".self::MAX_PENDING_BEFORE_OPTIONAL.').');
+        }
 
         return self::SUCCESS;
+    }
+
+    private function pendingJobs(): int
+    {
+        if (! Schema::hasTable('jobs')) {
+            return 0;
+        }
+
+        return (int) DB::table('jobs')->count();
     }
 }

@@ -68,14 +68,14 @@ SUPEROPS_SSO_ENABLED=true
 
 ## Phase A — SuperOps requester Client SSO rollout
 
-Global requester SSO is retired. Start with 3R as the pilot:
+Global requester SSO is retired. Roll out Client SSO customer by customer:
 
-1. SuperOps → Requester Login → SSO Protected → disable **Global SSO**.
-2. **Client SSO → + Configuration** → select 3R → generate Entity ID + Consumer Service URL.
-3. Through GDAP create `SuperOps Requester SSO - 3R Systems Limited` in the 3R Entra tenant.
+1. SuperOps → Requester Login → SSO Protected → disable **Global SSO** (if still on).
+2. **Client SSO → + Configuration** → select the customer → generate Entity ID + Consumer Service URL.
+3. Through GDAP create `SuperOps Requester SSO - {Company}` in that customer's Entra tenant.
 4. Configure customer-specific SAML, exact claims, Azure Login URL and certificate.
-5. Assign `On IT Portal - 3R Systems Limited` (P1).
-6. Test in an InPrivate window with a real 3R requester.
+5. Assign `On IT Portal - {Company}` (P1).
+6. Test in an InPrivate window with a real requester for that client.
 
 Full click path: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) and live checklist step 08.
 

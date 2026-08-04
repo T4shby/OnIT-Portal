@@ -10,6 +10,9 @@ use App\Jobs\RefreshSuperOpsDashboardJob;
 use App\Models\Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PrewarmClientDashboardsTest extends TestCase
@@ -49,5 +52,69 @@ class PrewarmClientDashboardsTest extends TestCase
         Bus::assertDispatched(RefreshM365InsightsJob::class, fn ($job) => $job->clientId === $client->id);
         Bus::assertDispatched(RefreshHuntressSecurityJob::class, fn ($job) => $job->clientId === $client->id);
         Bus::assertDispatched(RefreshDropsuiteBackupJob::class, fn ($job) => $job->clientId === $client->id);
+    }
+
+    public function test_cold_superops_prewarm_even_when_jobs_queue_is_deep(): void
+    {
+        Bus::fake();
+
+        config([
+            'services.superops.api_token' => 'token',
+            'services.superops.subdomain' => 'onitltd',
+        ]);
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'superops_account_id' => 'superops-client',
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'huntress_organization_id' => 'huntress-client',
+        ]);
+
+        if (Schema::hasTable('jobs')) {
+            for ($i = 0; $i < 45; $i++) {
+                DB::table('jobs')->insert([
+                    'queue' => 'default',
+                    'payload' => '{}',
+                    'attempts' => 0,
+                    'reserved_at' => null,
+                    'available_at' => time(),
+                    'created_at' => time(),
+                ]);
+            }
+        }
+
+        $this->artisan('portal:prewarm-client-dashboards')->assertSuccessful();
+
+        Bus::assertDispatched(RefreshSuperOpsDashboardJob::class, fn ($job) => $job->clientId === $client->id);
+        Bus::assertNotDispatched(RefreshM365DirectoryJob::class);
+        Bus::assertNotDispatched(RefreshHuntressSecurityJob::class);
+    }
+
+    public function test_does_not_requeue_superops_when_cache_already_warm(): void
+    {
+        Bus::fake();
+
+        config([
+            'services.superops.api_token' => 'token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.superops.dashboard_cache_minutes' => 60,
+        ]);
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'superops_account_id' => 'superops-client',
+        ]);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 5,
+            'open_tickets_total' => 1,
+            'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
+            'tickets_closed' => ['7' => 0, '14' => 0, '30' => 0, 'all' => 0],
+            'last_refreshed_at' => now()->toIso8601String(),
+        ], now()->addDay());
+
+        $this->artisan('portal:prewarm-client-dashboards')->assertSuccessful();
+
+        Bus::assertNotDispatched(RefreshSuperOpsDashboardJob::class);
     }
 }

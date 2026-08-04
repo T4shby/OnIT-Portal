@@ -14,6 +14,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
+use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +26,7 @@ class ClientController extends Controller
     public function __construct(
         private ActivityLogService $activityLog,
         private ClientOnboardingService $onboarding,
+        private SuperOpsClientMetricsService $superOpsMetrics,
     ) {}
 
     public function index(Request $request): View
@@ -90,6 +92,10 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
+        if ($this->superOpsMetrics->needsColdPrewarm($client)) {
+            $this->superOpsMetrics->queueRefresh($client);
+        }
+
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', 'Client created. Start with step 01 on the right.');
     }
@@ -130,6 +136,11 @@ class ClientController extends Controller
         $this->onboarding->syncAutoCheckpointsFromClient($client);
 
         $this->activityLog->log('client.updated', $client, clientId: $client->id);
+
+        // Keep SuperOps dashboard filled once the client is linked — no need for a first visit.
+        if ($this->superOpsMetrics->needsColdPrewarm($client)) {
+            $this->superOpsMetrics->queueRefresh($client);
+        }
 
         $message = 'Client updated successfully.';
 
@@ -343,7 +354,7 @@ class ClientController extends Controller
             $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
         }
         if ($syncQueued) {
-            $message .= ' Portal Sync now is running in the background to write SuperOps last names — refresh SuperOps Requesters in a few minutes.';
+            $message .= ' Portal Sync is running in the background. SuperOps Requester names update after that Sync and SCIM finish — usually a few minutes; refresh SuperOps then.';
         } else {
             $message .= ' Enable Entra sync and run Sync now so extensionAttribute1 is written and names update in SuperOps.';
         }

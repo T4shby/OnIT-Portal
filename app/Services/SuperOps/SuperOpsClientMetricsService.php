@@ -76,27 +76,26 @@ class SuperOpsClientMetricsService
         }
 
         $cacheKey = $this->cacheKey($client->id);
+        $cached = Cache::get($cacheKey);
+
+        // Always serve stored metrics when present. Stale refresh is prewarm/manual only —
+        // page views must not stampede the queue for every client with data older than 10 minutes.
+        if (is_array($cached) && ! $manualRefresh) {
+            return $this->summaryFromCache($client->id, $cached);
+        }
 
         if ($manualRefresh) {
             $this->queueRefresh($client);
-        } else {
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
-                $summary = $this->summaryFromCache($client->id, $cached);
-                if ($summary->isStale && ! $summary->refreshInProgress) {
-                    $this->queueRefresh($client);
-                }
-
-                return $summary;
+                return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
             }
+        } else {
+            $this->queueRefresh($client);
         }
 
-        $this->queueRefresh($client);
-
-        $stale = Cache::get($cacheKey);
-
-        if (is_array($stale)) {
-            return $this->summaryFromCache($client->id, $stale, refreshInProgress: true);
+        if (is_array($cached)) {
+            return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
         }
 
         return new ClientOperationsSummary(
@@ -115,6 +114,44 @@ class SuperOpsClientMetricsService
             refreshInProgress: true,
             unavailableReason: 'Data has not been synchronised yet.',
         );
+    }
+
+    /**
+     * True when SuperOps is linked and a dashboard payload is already in cache.
+     */
+    public function hasStoredSummary(Client $client): bool
+    {
+        if (empty($client->superops_account_id) || ! $this->isAvailable()) {
+            return false;
+        }
+
+        return is_array(Cache::get($this->cacheKey($client->id)));
+    }
+
+    /**
+     * True when SuperOps is linked but there is no cache yet (must prewarm).
+     */
+    public function needsColdPrewarm(Client $client): bool
+    {
+        if (empty($client->superops_account_id) || ! $this->isAvailable()) {
+            return false;
+        }
+
+        return ! $this->hasStoredSummary($client);
+    }
+
+    /**
+     * True when cache exists but is past the fresh window (optional refresh when spare capacity).
+     */
+    public function needsBackgroundRefresh(Client $client): bool
+    {
+        if (! $this->hasStoredSummary($client)) {
+            return false;
+        }
+
+        $summary = $this->summaryFromCache($client->id, Cache::get($this->cacheKey($client->id)));
+
+        return $summary->isStale && ! $summary->refreshInProgress;
     }
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
@@ -207,39 +244,18 @@ class SuperOpsClientMetricsService
     private function summariseClientAssetHealth(string $accountId): array
     {
         try {
-            $data = $this->api->query(<<<'GQL'
-                query getAssetList($input: ListInfoInput!) {
-                    getAssetList(input: $input) {
-                        assets { assetId status }
-                        listInfo { totalCount hasMore }
-                    }
-                }
-            GQL, [
-                'input' => [
-                    'page' => 1,
-                    'pageSize' => 1,
-                    'condition' => $this->clientAccountCondition($accountId),
-                ],
-            ]);
-
-            $total = isset($data['getAssetList']['listInfo']['totalCount'])
-                ? (int) $data['getAssetList']['listInfo']['totalCount']
-                : null;
-
-            if ($total === null || $total === 0) {
-                return ['total' => $total, 'online' => $total === 0 ? 0 : null, 'offline' => $total === 0 ? 0 : null];
-            }
-
             $online = 0;
             $offline = 0;
+            $total = null;
             $page = 1;
+            $maxPages = (int) config('services.superops.dashboard_max_pages', 10);
 
             do {
                 $pageData = $this->api->query(<<<'GQL'
                     query getAssetList($input: ListInfoInput!) {
                         getAssetList(input: $input) {
                             assets { assetId status }
-                            listInfo { hasMore }
+                            listInfo { totalCount hasMore }
                         }
                     }
                 GQL, [
@@ -249,6 +265,13 @@ class SuperOpsClientMetricsService
                         'condition' => $this->clientAccountCondition($accountId),
                     ],
                 ]);
+
+                if ($page === 1 && isset($pageData['getAssetList']['listInfo']['totalCount'])) {
+                    $total = (int) $pageData['getAssetList']['listInfo']['totalCount'];
+                    if ($total === 0) {
+                        return ['total' => 0, 'online' => 0, 'offline' => 0];
+                    }
+                }
 
                 $batch = $pageData['getAssetList']['assets'] ?? [];
                 $hasMore = (bool) ($pageData['getAssetList']['listInfo']['hasMore'] ?? false);
@@ -262,7 +285,11 @@ class SuperOpsClientMetricsService
                 }
 
                 $page++;
-            } while ($hasMore && $batch !== [] && $page <= (int) config('services.superops.dashboard_max_pages', 20));
+            } while ($hasMore && $batch !== [] && $page <= $maxPages);
+
+            if ($total === null) {
+                $total = $online + $offline;
+            }
 
             return ['total' => $total, 'online' => $online, 'offline' => $offline];
         } catch (Throwable $e) {
@@ -344,7 +371,7 @@ class SuperOpsClientMetricsService
             }
 
             $page++;
-        } while ($hasMore && $batch !== [] && $page <= (int) config('services.superops.dashboard_max_pages', 20));
+        } while ($hasMore && $batch !== [] && $page <= (int) config('services.superops.dashboard_max_pages', 10));
 
         return $tickets;
     }

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Client;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -94,19 +95,9 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                         'getAssetList' => [
                             'assets' => [
                                 ['assetId' => 'a1', 'status' => 'ONLINE'],
-                            ],
-                            'listInfo' => ['totalCount' => 23, 'hasMore' => false],
-                        ],
-                    ],
-                ])
-                ->push([
-                    'data' => [
-                        'getAssetList' => [
-                            'assets' => [
-                                ['assetId' => 'a1', 'status' => 'ONLINE'],
                                 ['assetId' => 'a2', 'status' => 'OFFLINE'],
                             ],
-                            'listInfo' => ['hasMore' => false],
+                            'listInfo' => ['totalCount' => 23, 'hasMore' => false],
                         ],
                     ],
                 ]),
@@ -207,6 +198,27 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(14, $summary->assetsTotal);
         $this->assertSame(6, $summary->openTicketsTotal);
         $this->assertTrue($summary->isStale);
+    }
+
+    public function test_page_view_serves_cache_without_requeueing_when_stale(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create(['superops_account_id' => '111']);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 14,
+            'open_tickets_total' => 6,
+            'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
+            'tickets_closed' => ['7' => 2, '14' => 6, '30' => 10, 'all' => 171],
+            'last_refreshed_at' => now()->subHours(3)->toIso8601String(),
+        ], now()->addDays(7));
+
+        $summary = app(SuperOpsClientMetricsService::class)->summaryForClient($client);
+
+        $this->assertSame(14, $summary->assetsTotal);
+        $this->assertTrue($summary->isStale);
+        Bus::assertNotDispatched(\App\Jobs\RefreshSuperOpsDashboardJob::class);
     }
 
     public function test_api_client_strips_bearer_prefix_from_env_token(): void

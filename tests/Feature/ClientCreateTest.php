@@ -18,13 +18,13 @@ class ClientCreateTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->post(route('admin.clients.store'), [
-                'name' => 'Ductec LTD',
+                'name' => 'Acme Ltd',
                 'superops_account_id' => '3425667307281944576',
                 'superops_sso_enabled' => '1',
                 'is_active' => '1',
             ]);
 
-        $client = Client::where('name', 'Ductec LTD')->firstOrFail();
+        $client = Client::where('name', 'Acme Ltd')->firstOrFail();
 
         $response->assertRedirect(route('admin.clients.edit', $client));
     }
@@ -78,13 +78,13 @@ class ClientCreateTest extends TestCase
     public function test_edit_page_uses_update_not_create(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
-        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+        $client = Client::factory()->create(['name' => 'Acme Ltd']);
 
         $response = $this->actingAs($admin)
             ->get(route('admin.clients.edit', $client));
 
         $response->assertOk();
-        $response->assertSee('Edit Client — Ductec LTD', false);
+        $response->assertSee('Edit Client — Acme Ltd', false);
         $response->assertSee('Save client', false);
         $response->assertDontSee('Create client', false);
     }
@@ -92,11 +92,11 @@ class ClientCreateTest extends TestCase
     public function test_updating_client_redirects_back_to_edit(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
-        $client = Client::factory()->create(['name' => 'Ductec LTD']);
+        $client = Client::factory()->create(['name' => 'Acme Ltd']);
 
         $response = $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
-                'name' => 'Ductec LTD',
+                'name' => 'Acme Ltd',
                 'superops_account_id' => '3425667307281944576',
                 'superops_sso_enabled' => '1',
                 'entra_superops_sso_app_id' => '4d8b28c0-79ae-4fa6-b7ef-5bd03e704296',
@@ -125,13 +125,15 @@ class ClientCreateTest extends TestCase
         $response->assertSee('Connect Microsoft tenant', false);
         $response->assertSee('MXVI', false);
         $response->assertDontSee('Ductec', false);
+        $response->assertDontSee('3R Systems', false);
+        $response->assertDontSee('Munns', false);
     }
 
     public function test_saving_entra_group_id_completes_security_group_step(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
-            'name' => 'Ductec LTD',
+            'name' => 'Acme Ltd',
             'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
             'entra_group_id' => null,
         ]);
@@ -140,7 +142,7 @@ class ClientCreateTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
-                'name' => 'Ductec LTD',
+                'name' => 'Acme Ltd',
                 'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
                 'entra_group_id' => ' '.$groupId.' ',
                 'entra_sync_enabled' => '1',

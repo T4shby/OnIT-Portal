@@ -43,27 +43,24 @@ class HuntressClientMetricsService
         }
 
         $cacheKey = $this->cacheKey($client->id);
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached) && ! $manualRefresh) {
+            return $this->summaryFromCache($client->id, $cached);
+        }
 
         if ($manualRefresh) {
             $this->queueRefresh($client);
-        } else {
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
-                $summary = $this->summaryFromCache($client->id, $cached);
-                if ($summary->isStale && ! $summary->refreshInProgress) {
-                    $this->queueRefresh($client);
-                }
-
-                return $summary;
+                return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
             }
+        } else {
+            $this->queueRefresh($client);
         }
 
-        $this->queueRefresh($client);
-
-        $stale = Cache::get($cacheKey);
-
-        if (is_array($stale)) {
-            return $this->summaryFromCache($client->id, $stale, refreshInProgress: true);
+        if (is_array($cached)) {
+            return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
         }
 
         return new HuntressClientSecuritySummary(

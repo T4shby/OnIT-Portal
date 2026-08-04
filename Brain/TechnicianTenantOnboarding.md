@@ -45,10 +45,10 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tokens generated (copy ready) |
 | 06 | SuperOps SCIM app | Usually auto after Connect; confirm Application (client) ID left | App ID on portal |
-| 07 | Apply SCIM tokens + start | Guide step 07 form (Tenant URL + secret) | Apply succeeds / provisioning On |
+| 07 | Apply SCIM tokens + start | Guide step 07 form (Tenant URL + secret) | Apply succeeds / provisioning On; name mappings set; **background Sync** queues for SuperOps last names |
 | 08 | Configure SuperOps Client SSO (SAML) | Guide step 08 form (Entity ID + ACS) → paste Login URL + cert into SuperOps | SuperOps Client SSO enabled |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
-| 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
+| 10 | Run Dry run then Sync now | Portal left buttons → wait minutes → verify Azure group/logs + SuperOps Requesters (`(User Mailbox)` / `(Shared Mailbox)`) | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
 | 12 | Hand off to the customer | Email / ticket | Tick complete |
 
@@ -101,6 +101,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-08-04 | SuperOps last names after Apply SCIM / Sync now: expect minutes (background Sync + SCIM); no real customer names in steps — use `{Company}` / this client only |
 | 2026-08-04 | Connect Microsoft tenant: Accept + Graph bootstrap fills tenant/licence/group/app IDs (steps 03–04/06–08 Entra side) |
 | 2026-08-04 | Customer Azure steps: private browser + log straight into customer tenant (no On IT→switch); Entra left **Manage** before Groups / Enterprise apps |
 | 2026-07-14 | Replaced requester Global SSO Accept with customer-owned Client SSO in step 08 |

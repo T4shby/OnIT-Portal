@@ -87,11 +87,13 @@ return [
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),
-        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 10),
-        'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 1440),
+        // Fresh window for "stale" banner only — data remains served from cache while refreshing.
+        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 60),
+        // Keep last successful snapshot long enough that deploys/backlogs do not empty demos.
+        'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 10080),
         'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
         // Cap GraphQL pagination so one refresh cannot exceed the queue worker window.
-        'dashboard_max_pages' => max(1, (int) env('SUPEROPS_DASHBOARD_MAX_PAGES', 20)),
+        'dashboard_max_pages' => max(1, (int) env('SUPEROPS_DASHBOARD_MAX_PAGES', 10)),
     ],
 
     'huntress' => [
