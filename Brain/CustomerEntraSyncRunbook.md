@@ -136,9 +136,11 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | `LicenseAssignment` | **LicenseAssignment.Read.All** | Read all license assignments |
 | `MailboxSettings` | **MailboxSettings.Read** | Read all user mailbox settings |
 | `Group.Read` | **Group.Read.All** | Read all groups |
+| `Group` | **Group.ReadWrite.All** | Create portal security group on Connect Microsoft |
 | `GroupMember` | **GroupMember.ReadWrite.All** | Read and write all group memberships |
-| `AppRoleAssignment` | **AppRoleAssignment.ReadWrite.All** | Assign users to SuperOps enterprise app on Entra ID Free |
+| `AppRoleAssignment` | **AppRoleAssignment.ReadWrite.All** | Assign users/groups to SuperOps enterprise apps |
 | `Application.Read` | **Application.Read.All** | Resolve SuperOps Application (client) ID → enterprise app during sync |
+| `Application.ReadWrite` | **Application.ReadWrite.All** | Create SuperOps SCIM + Client SSO non-gallery apps + App role User on Connect |
 | `Synchronization.ReadWrite` | **Synchronization.ReadWrite.All** | Trigger SCIM provision-on-demand when portal Sync now runs |
 
 5. Click **Add permissions** at the bottom of the panel
@@ -151,10 +153,12 @@ All **Application** rows must show:
 
 - **Status:** green tick — **Granted for On IT Technology Partners LTD**
 
-Expected **13** Microsoft Graph permissions total:
+Expected Microsoft Graph permissions:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (9):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All
+**Application (11):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All
+
+> **Connect Microsoft** (checklist 03/04) needs the two new Application permissions above. After adding them in the **On IT** tenant, re-run Connect / Accept once per customer so those permissions are consented there.
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`
 
@@ -170,8 +174,8 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 
 ## Step 2 — Empty security group (customer tenant)
 
-1. Azure Portal → top-right directory picker → switch to **customer tenant** (e.g. Ductec Ltd)
-2. **Microsoft Entra ID** → **Groups** → **New group**
+1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant (e.g. Ductec Ltd). Do **not** open On IT Technology Partners LTD first and switch.
+2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**
 3. Fill in:
    - **Group type:** Security
    - **Group name:** `On IT Portal - {Company}` (e.g. `On IT Portal - Ductec LTD`)
@@ -179,7 +183,7 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 4. **Leave Members empty** — do not add anyone
 5. Click **Create**
 6. Open the new group → **Overview** → copy **Object ID** (GUID)
-7. **Entra ID → Overview** → copy **Tenant ID** (GUID) if not already on the portal client
+7. Entra left **Overview** → copy **Tenant ID** (GUID) if not already on the portal client
 
 ---
 

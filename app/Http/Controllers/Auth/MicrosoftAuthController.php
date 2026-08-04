@@ -179,21 +179,48 @@ class MicrosoftAuthController extends Controller
         ]);
 
         $client = $this->clientFromAdminConsentState($request->query('state'));
+        $tenantFromConsent = is_string($request->query('tenant'))
+            ? strtolower(trim($request->query('tenant')))
+            : null;
+
+        $bootstrapResult = null;
 
         if ($client) {
-            app(ClientOnboardingService::class)->updateChecklist($client, [
-                'entra_admin_consent_granted' => true,
-            ]);
+            $bootstrapResult = app(\App\Services\EntraSync\CustomerEntraBootstrapService::class)
+                ->bootstrap($client, $tenantFromConsent);
+            $client = $client->fresh();
         }
 
         if (Auth::check() && $client) {
-            return redirect()->route('admin.clients.edit', $client)
-                ->with('success', 'Admin consent granted in the customer tenant. Verify Entra → Enterprise applications → OnIT Portal for Portals → Permissions, then run Dry run sync.');
+            $message = $bootstrapResult['summary']
+                ?? 'Admin consent granted in the customer tenant.';
+
+            if (! empty($bootstrapResult['details'])) {
+                $message .= ' '.implode(' · ', array_slice($bootstrapResult['details'], 0, 6));
+            }
+
+            $redirect = redirect()->route('admin.clients.edit', $client);
+
+            if ($bootstrapResult && ($bootstrapResult['ok'] ?? false)) {
+                $redirect = $redirect->with('success', $message);
+            } else {
+                $redirect = $redirect->with('error', $message);
+            }
+
+            if (! empty($bootstrapResult['warnings'])) {
+                $redirect = $redirect->with(
+                    'warning',
+                    implode(' ', array_slice($bootstrapResult['warnings'], 0, 4)),
+                );
+            }
+
+            return $redirect;
         }
 
         return view('auth.admin-consent-complete', [
             'tenant' => $request->query('tenant'),
             'client' => $client,
+            'bootstrap' => $bootstrapResult,
         ]);
     }
 

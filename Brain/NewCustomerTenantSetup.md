@@ -115,8 +115,8 @@ These steps happen in the **customer's** Microsoft Entra tenant — **not** On I
 
 ### 3a — Empty security group
 
-1. Azure Portal → switch to **customer** directory (top-right).  
-2. **Microsoft Entra ID → Groups → New group**.  
+1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant (do not open On IT then switch).  
+2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**.  
 3. Name: `On IT Portal - {Company}`. Type: **Security**. Membership: **Assigned**.  
 4. **Do not add members** — portal sync fills the group automatically.  
 5. Copy group **Object ID** → portal **Entra group ID**.  

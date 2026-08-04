@@ -75,6 +75,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Connect Microsoft tenant bootstrap after Accept: auto tenant ID, Free/P1, portal group, SuperOps SCIM + Client SSO Entra apps; adds Graph Group.ReadWrite.All + Application.ReadWrite.All — [ClientOnboarding.md](ClientOnboarding.md), [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
+| 2026-08-04 | Onboarding checklist Azure paths: private browser + land on customer tenant directly (no On IT→switch); Entra **Manage** before Groups / Enterprise apps — [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-07-17 | Reliability pass: skip/batch mailboxSettings N+1; hourly Entra sync queues per-client jobs; dry-run queued; job timeouts; shorter refresh_queued flags; SuperOps page cap; prewarm skips when queue deep — [Deployment.md](Deployment.md#10-configure-cron), [EntraGroupSync.md](EntraGroupSync.md) |
 | 2026-07-17 | Entra SCIM provision-on-demand kept, but fixed hang: only changed/newly-assigned users are provisioned, and provision runs via `ProvisionSuperOpsScimUsersJob` so hourly sync can finish — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-07-17 | Added missing `failed_jobs` table migration — production queue was processing jobs but failed-job tooling errored without the table — [Deployment.md](Deployment.md#11-run-the-queue-worker) |

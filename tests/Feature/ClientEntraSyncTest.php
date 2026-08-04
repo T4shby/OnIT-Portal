@@ -195,22 +195,38 @@ class ClientEntraSyncTest extends TestCase
 
     public function test_admin_consent_callback_shows_success_page_and_ticks_checklist(): void
     {
+        config([
+            'services.entra_sync.client_id' => 'portal-app-id',
+            'services.entra_sync.client_secret' => 'secret',
+        ]);
+
         $client = Client::factory()->create([
-            'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
+            'name' => 'Consent Client',
+            'entra_tenant_id' => null,
+        ]);
+
+        $tenantId = 'f95a6006-f34e-4634-8678-32ab856d9756';
+
+        Http::fake([
+            "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token" => Http::response([
+                'access_token' => 'token',
+                'expires_in' => 3600,
+            ]),
+            'https://graph.microsoft.com/*' => Http::response(['value' => []], 200),
         ]);
 
         $response = $this->get(route('auth.microsoft.callback', [
             'admin_consent' => 'True',
-            'tenant' => $client->entra_tenant_id,
+            'tenant' => $tenantId,
             'state' => \App\Support\AdminConsentState::encode($client->id),
         ]));
 
         $response->assertOk();
         $response->assertSee('Admin consent granted', false);
-        $response->assertSee('not</strong> a failed login', false);
 
         $client->refresh();
-        $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted']);
+        $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted'] ?? false);
+        $this->assertSame($tenantId, $client->entra_tenant_id);
     }
 
     public function test_super_admin_can_save_onboarding_checklist(): void

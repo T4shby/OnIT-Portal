@@ -17,7 +17,9 @@
             $stepNumber = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
             $isDone = $step['complete'];
             $isBlocked = $step['blocked'] && ! $step['complete'];
-            $showGraphAccept = $step['key'] === 'entra_admin_consent_granted' && ! $isDone && ! $isBlocked;
+            $showGraphAccept = in_array($step['key'], ['entra_group_created', 'entra_admin_consent_granted'], true)
+                && ! $isDone
+                && ! $isBlocked;
         @endphp
 
         <article
@@ -71,7 +73,7 @@
                                 target="_blank"
                                 rel="noopener"
                                 class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
-                            >Open Portal Accept for customer tenant</a>
+                            >Connect Microsoft tenant</a>
                             <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <input
                                     type="text"
@@ -90,7 +92,7 @@
                         </div>
                     @else
                         <p class="onboarding-guide__note mb-4 text-sm text-onit border border-onit/40 bg-onit/10 rounded px-4 py-3">
-                            Save the Entra tenant ID on the left to unlock Accept.
+                            Portal Microsoft app client ID is not configured. Add MICROSOFT_CLIENT_ID to .env.
                         </p>
                     @endif
                 @endif

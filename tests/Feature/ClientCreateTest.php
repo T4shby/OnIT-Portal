@@ -122,10 +122,8 @@ class ClientCreateTest extends TestCase
             ->get(route('admin.clients.edit', $client));
 
         $response->assertOk();
-        $response->assertSee(
-            'Sign in with the On IT technician account that has GDAP for MXVI',
-            false,
-        );
+        $response->assertSee('Connect Microsoft tenant', false);
+        $response->assertSee('MXVI', false);
         $response->assertDontSee('Ductec', false);
     }
 

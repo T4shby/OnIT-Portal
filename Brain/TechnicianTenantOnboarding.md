@@ -27,24 +27,26 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 ## Live checklist (Edit page)
 
-**Before step 03 — check licence in customer Entra Overview:**
+**Before steps 03–04 — Connect Microsoft (preferred):**
 
-1. Azure → customer directory → **Microsoft Entra ID → Overview**.
-2. Read **License** (e.g. **Microsoft Entra ID Free** or **Microsoft Entra ID P1**).
-3. On the portal left, set **Customer Entra license tier** to match → **Save client**.
+1. **Private/incognito browser**.
+2. Edit Client checklist → orange **Connect Microsoft tenant** (Accept Portal Graph).
+3. Sign in with On IT **GDAP** so you land in the **customer** tenant (do **not** open On IT then switch).
+4. **Accept** permissions.
+5. Portal writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
 
-Wrong tier breaks Free vs P1 paths on steps 07–08 (group assign vs Application ID / Sync now).
+Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 
 | # | Step | Where you work | Done when |
 |---|---|---|---|
 | 01 | Link SuperOps client | SuperOps **Clients** → paste Account ID on portal left | SuperOps Account ID saved |
 | 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
-| 03 | Create Portal group + save Entra IDs | Confirm licence on Entra Overview → set portal tier → Customer Azure **Groups** → paste Tenant + group IDs | Tenant ID + group ID saved |
-| 04 | Accept Portal access in customer tenant | On IT technician clicks orange Accept using GDAP → verify **OnIT Portal for Portals** permissions | Accept used / or first sync later |
+| 03 | Connect Microsoft tenant | **Connect Microsoft tenant** → bootstrap | Tenant ID + group ID saved |
+| 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
-| 06 | Create SuperOps SCIM app in Entra | Customer Azure **Enterprise applications → New application** → Provisioning Admin Credentials → **Test Connection** | Tick complete |
-| 07 | Azure SCIM mappings + Application ID (Free) / assign group (P1) + start | Customer Azure Attribute mapping + App roles + start provisioning | Tick complete |
-| 08 | Configure SuperOps Client SSO | Generate client-specific values in SuperOps → create customer Entra SAML app using GDAP → claims/cert/Login URL → P1 assign group; Free save SSO Application ID | Client SSO enabled and app access configured |
+| 06 | SuperOps SCIM app | Usually auto after Connect; confirm Application (client) ID left | App ID on portal |
+| 07 | SCIM tokens + mappings + start | Customer Azure Provisioning (paste SuperOps tokens) | Tick complete |
+| 08 | Configure SuperOps Client SSO | SuperOps Client SSO + SAML on Entra app shell from Connect | Client SSO enabled |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
@@ -59,7 +61,7 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 | On IT Portal | https://app.onit.ltd → **Admin → Clients → Edit {Company}** |
 | SuperOps MSP | SuperOps portal URL from config (technician console) → **Clients** / **Integrations** |
 | Pax8 | https://app.pax8.com → **Companies** |
-| Customer Azure | https://portal.azure.com → top-right directory switcher → **customer name** (never stay in On IT Technology Partners LTD) |
+| Customer Azure | **Private/incognito browser** → https://portal.azure.com → sign in with GDAP into the **customer** tenant directly (never open On IT first then switch). Entra left **Manage** → Groups / Enterprise applications / App registrations |
 
 ### Step 07 Free vs P1 (do not mix)
 
@@ -99,6 +101,8 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-08-04 | Connect Microsoft tenant: Accept + Graph bootstrap fills tenant/licence/group/app IDs (steps 03–04/06–08 Entra side) |
+| 2026-08-04 | Customer Azure steps: private browser + log straight into customer tenant (no On IT→switch); Entra left **Manage** before Groups / Enterprise apps |
 | 2026-07-14 | Replaced requester Global SSO Accept with customer-owned Client SSO in step 08 |
 | 2026-07-14 | Licence check from Entra Overview before step 03 |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform all setup via GDAP; customers receive no setup tasks or Accept links |

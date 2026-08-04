@@ -32,8 +32,20 @@
                     </p>
 
                     <ul class="support-list mb-6 text-sm portal-body-muted">
-                        <li>In <strong class="text-white/80">customer</strong> Entra → Enterprise applications → OnIT Portal for Portals → Permissions — confirm all show <strong class="text-white/80">Granted</strong></li>
-                        <li>Return to the portal checklist and continue with SuperOps SCIM, then Dry run sync</li>
+                        @if(! empty($bootstrap['details']))
+                            @foreach($bootstrap['details'] as $line)
+                                <li>{{ $line }}</li>
+                            @endforeach
+                        @else
+                            <li>In <strong class="text-white/80">customer</strong> Entra → Enterprise applications → OnIT Portal for Portals → Permissions — confirm all show <strong class="text-white/80">Granted</strong></li>
+                        @endif
+                        @if(! empty($bootstrap['warnings']))
+                            @foreach($bootstrap['warnings'] as $line)
+                                <li class="text-onit">{{ $line }}</li>
+                            @endforeach
+                        @else
+                            <li>Return to the portal checklist — SuperOps SCIM tokens and Client SSO SAML still need SuperOps UI steps</li>
+                        @endif
                     </ul>
 
                     @if($client)

@@ -259,18 +259,20 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 4. Certificates & secrets → New client secret → note the value
 5. API permissions → Add:
    - **Delegated:** `Microsoft Graph` → `openid`, `profile`, `email`, `User.Read` (portal login)
-   - **Application:** `Microsoft Graph` → all **nine** permissions below (Entra sync — full list in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0):
+   - **Application:** `Microsoft Graph` → all **eleven** permissions below (Entra sync + Connect bootstrap — full list in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0):
      - `User.Read.All`
      - `User.ReadWrite.All`
      - `LicenseAssignment.Read.All`
      - `MailboxSettings.Read`
      - `Group.Read.All`
+     - `Group.ReadWrite.All`
      - `GroupMember.ReadWrite.All`
      - `AppRoleAssignment.ReadWrite.All`
      - `Application.Read.All`
+     - `Application.ReadWrite.All`
      - `Synchronization.ReadWrite.All`
 6. Grant admin consent in the On IT home tenant
-7. Grant admin consent in **each customer tenant** where you sync (consent URL on client Edit — checklist step 04)
+7. Customer tenants: checklist orange **Connect Microsoft tenant** (or re-consent after adding permissions)
 
 ## Post-Deployment Verification
 

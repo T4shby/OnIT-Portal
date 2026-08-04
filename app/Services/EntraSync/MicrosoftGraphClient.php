@@ -218,6 +218,282 @@ class MicrosoftGraphClient
         return $users;
     }
 
+    /**
+     * Entra directory tier used by portal Free vs P1 assignment path (not M365 user SKUs alone).
+     * AAD_PREMIUM / AAD_PREMIUM_P2 / EMS premium suites imply group assignment is available.
+     */
+    public function detectEntraDirectoryLicenseTier(string $tenantId): string
+    {
+        $partNumbers = array_map(
+            static fn (string $sku): string => strtoupper($sku),
+            array_values($this->listSubscribedSkuPartNumbersById($tenantId)),
+        );
+
+        foreach ($partNumbers as $sku) {
+            if (
+                str_contains($sku, 'AAD_PREMIUM')
+                || $sku === 'EMS'
+                || $sku === 'EMSPREMIUM'
+                || $sku === 'ENTERPRISEPREMIUM'
+                || $sku === 'SPE_E5'
+                || $sku === 'SPE_E3'
+            ) {
+                return 'p1';
+            }
+        }
+
+        return 'free';
+    }
+
+    public function findSecurityGroupIdByDisplayName(string $tenantId, string $displayName): ?string
+    {
+        $escaped = str_replace("'", "''", $displayName);
+        $response = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/groups', [
+            '$filter' => "displayName eq '{$escaped}'",
+            '$select' => 'id,displayName,securityEnabled',
+            '$top' => 5,
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph group lookup failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        foreach ($response->json('value') ?? [] as $group) {
+            if ((bool) ($group['securityEnabled'] ?? false) && ! empty($group['id'])) {
+                return (string) $group['id'];
+            }
+        }
+
+        return null;
+    }
+
+    public function createSecurityGroup(string $tenantId, string $displayName, ?string $description = null): string
+    {
+        $mailNickname = 'onit'.substr(sha1($displayName.microtime(true)), 0, 12);
+
+        $response = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/groups', [
+            'displayName' => $displayName,
+            'description' => $description ?? 'Managed by On IT Portal — membership filled by sync.',
+            'mailEnabled' => false,
+            'mailNickname' => $mailNickname,
+            'securityEnabled' => true,
+        ]);
+
+        if ($response->status() === 201 && filled($response->json('id'))) {
+            return (string) $response->json('id');
+        }
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot create security groups — add Group.ReadWrite.All (or Group.Create) '
+                .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
+            );
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph create group failed: '.$response->status().' '.$response->body()
+        );
+    }
+
+    /**
+     * Find or create empty security group for portal sync membership.
+     */
+    public function ensurePortalSecurityGroup(string $tenantId, string $displayName): string
+    {
+        return $this->findSecurityGroupIdByDisplayName($tenantId, $displayName)
+            ?? $this->createSecurityGroup($tenantId, $displayName);
+    }
+
+    /**
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}|null
+     */
+    public function findApplicationByDisplayName(string $tenantId, string $displayName): ?array
+    {
+        $escaped = str_replace("'", "''", $displayName);
+        $response = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
+            '$filter' => "displayName eq '{$escaped}'",
+            '$select' => 'id,appId,displayName',
+            '$top' => 5,
+        ]);
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot list applications — Application.Read.All missing or not consented for this tenant.'
+            );
+        }
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph applications lookup failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $app = ($response->json('value') ?? [])[0] ?? null;
+
+        if (! is_array($app) || empty($app['appId']) || empty($app['id'])) {
+            return null;
+        }
+
+        $appId = (string) $app['appId'];
+        $spId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+
+        return [
+            'appId' => $appId,
+            'applicationObjectId' => (string) $app['id'],
+            'servicePrincipalId' => $spId,
+        ];
+    }
+
+    /**
+     * Non-gallery enterprise app via applicationTemplates instantiate.
+     *
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
+     */
+    public function createNonGalleryApplication(string $tenantId, string $displayName): array
+    {
+        // Gallery template ID for "Non-gallery" / custom LOB apps.
+        $templateId = '8adf8e6e-67b2-4cf2-a259-e3dc5476c621';
+        $response = $this->graphPost(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/applicationTemplates/{$templateId}/instantiate",
+            ['displayName' => $displayName],
+        );
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot create enterprise apps — add Application.ReadWrite.All '
+                .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
+            );
+        }
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph create non-gallery app failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $application = $response->json('application') ?? [];
+        $servicePrincipal = $response->json('servicePrincipal') ?? [];
+        $appId = (string) ($application['appId'] ?? '');
+        $applicationObjectId = (string) ($application['id'] ?? '');
+        $servicePrincipalId = (string) ($servicePrincipal['id'] ?? '');
+
+        if ($appId === '' || $applicationObjectId === '') {
+            throw new RuntimeException('Microsoft Graph create app returned incomplete application payload.');
+        }
+
+        if ($servicePrincipalId === '') {
+            $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+        }
+
+        return [
+            'appId' => $appId,
+            'applicationObjectId' => $applicationObjectId,
+            'servicePrincipalId' => $servicePrincipalId,
+        ];
+    }
+
+    /**
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
+     */
+    public function ensureNamedEnterpriseApplication(string $tenantId, string $displayName): array
+    {
+        return $this->findApplicationByDisplayName($tenantId, $displayName)
+            ?? $this->createNonGalleryApplication($tenantId, $displayName);
+    }
+
+    /**
+     * Ensure app role Value "User" exists (required for Free Sync app assignments).
+     */
+    public function ensureApplicationUserRole(string $tenantId, string $applicationObjectId): string
+    {
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}",
+            ['$select' => 'id,appRoles'],
+        );
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph read application roles failed: '.$response->status().' '.$response->body()
+            );
+        }
+
+        $roles = is_array($response->json('appRoles')) ? $response->json('appRoles') : [];
+
+        foreach ($roles as $role) {
+            if (
+                strcasecmp((string) ($role['value'] ?? ''), 'User') === 0
+                && ($role['isEnabled'] ?? true)
+                && ! empty($role['id'])
+            ) {
+                return (string) $role['id'];
+            }
+        }
+
+        $roleId = (string) Str::uuid();
+        $roles[] = [
+            'allowedMemberTypes' => ['User'],
+            'description' => 'Default access for On IT Portal / SuperOps SCIM users',
+            'displayName' => 'User',
+            'id' => $roleId,
+            'isEnabled' => true,
+            'origin' => 'Application',
+            'value' => 'User',
+        ];
+
+        $patch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}", [
+            'appRoles' => $roles,
+        ]);
+
+        if ($patch->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot update app roles — add Application.ReadWrite.All, re-consent, retry Connect.'
+            );
+        }
+
+        if ($patch->failed() && $patch->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph create app role User failed: '.$patch->status().' '.$patch->body()
+            );
+        }
+
+        return $roleId;
+    }
+
+    public function assignGroupToEnterpriseApp(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $groupId,
+        string $appRoleId,
+    ): void {
+        $response = $this->graphPost($tenantId, "https://graph.microsoft.com/v1.0/groups/{$groupId}/appRoleAssignments", [
+            'principalId' => $groupId,
+            'resourceId' => $servicePrincipalId,
+            'appRoleId' => $appRoleId,
+        ]);
+
+        if ($response->status() === 201) {
+            return;
+        }
+
+        if ($response->status() === 400 && str_contains($response->body(), 'already exists')) {
+            return;
+        }
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot assign group to app — AppRoleAssignment.ReadWrite.All missing or not consented.'
+            );
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph assign group to enterprise app failed: '.$response->status().' '.$response->body()
+        );
+    }
+
     public function listTenantGroups(string $tenantId): array
     {
         $groups = [];

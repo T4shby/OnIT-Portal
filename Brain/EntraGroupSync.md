@@ -92,15 +92,17 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 
 1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
 2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
-3. Add all nine Application permissions:
+3. Add all Application permissions (see full table in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0), including Connect bootstrap:
    - `User.Read.All`
    - `User.ReadWrite.All`
    - `LicenseAssignment.Read.All`
    - `MailboxSettings.Read`
    - `Group.Read.All`
+   - `Group.ReadWrite.All` (create portal group on Connect)
    - `GroupMember.ReadWrite.All`
    - `AppRoleAssignment.ReadWrite.All`
    - `Application.Read.All`
+   - `Application.ReadWrite.All` (create SuperOps SCIM + Client SSO apps)
    - `Synchronization.ReadWrite.All`
 4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
@@ -109,7 +111,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 | Type | Permissions | Status |
 |------|-------------|--------|
 | Delegated (4) | email, openid, profile, User.Read | Granted |
-| Application (9) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Synchronization.ReadWrite.All | Granted |
+| Application (11) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, Group.ReadWrite.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Application.ReadWrite.All, Synchronization.ReadWrite.All | Granted |
 
 ### Consent error fix
 
@@ -135,8 +137,8 @@ For each client you sync (start with your 100-user pilot tenant):
 
 ### 2a. Create the security group (in the **customer** tenant)
 
-1. Azure Portal → switch directory to **customer tenant** (top-right account picker)
-2. **Entra ID → Groups → New group**
+1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant (do not open On IT then switch)
+2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**
 3. Type: **Security**, Membership: **Assigned**
 4. Name: `On IT Portal` (or `On IT Portal - {Company}`)
 5. **Do not add members manually** — portal sync fills the group via Graph on each run

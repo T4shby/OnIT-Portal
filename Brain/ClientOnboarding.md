@@ -33,7 +33,7 @@ Every step is performed by **On IT MSP technicians on the customer’s behalf**.
 | Label in app | Where | Examples |
 |--------------|-------|----------|
 | **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
-| **On IT technician (customer Entra / GDAP)** | portal.azure.com in the **customer** tenant | Security group, SCIM app, Portal Graph Accept (04), SuperOps Client SSO app (08) |
+| **On IT technician (customer Entra / GDAP)** | **Private browser** → portal.azure.com signed **directly** into the **customer** tenant via GDAP (never On IT first then switch). Entra left **Manage** → Groups / Enterprise applications | Security group, SCIM app, Portal Graph Accept (04), SuperOps Client SSO app (08) |
 
 If On IT does not have the required delegated / GDAP role, stop and escalate internally until access is corrected. Do **not** hand setup actions or Accept URLs to the customer.
 
@@ -65,12 +65,12 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 |---|------|-----|
 | 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
 | 02 | Link Pax8 (or skip) | On IT technician (portal / SuperOps) |
-| 03 | Create Portal group + save Entra IDs | On IT technician (customer Entra / GDAP) |
-| 04 | Accept Portal access in customer tenant | On IT technician (customer Entra / GDAP) |
+| 03 | Connect Microsoft tenant (tenant / licence / group auto) | On IT technician (customer Entra / GDAP) |
+| 04 | Accept Portal Graph (starts bootstrap) | On IT technician (customer Entra / GDAP) |
 | 05 | Get SuperOps SCIM tokens | On IT technician (customer Entra / GDAP) |
-| 06 | Create SuperOps SCIM app in Entra | On IT technician (customer Entra / GDAP) |
-| 07 | Azure SCIM mappings + Application ID / group + start | On IT technician (customer Entra / GDAP) |
-| 08 | Configure SuperOps Client SSO | On IT technician (SuperOps + customer Entra / GDAP) |
+| 06 | SuperOps SCIM app (auto-created on Connect; confirm ID) | On IT technician (customer Entra / GDAP) |
+| 07 | SCIM tokens into Provisioning + mappings + start | On IT technician (customer Entra / GDAP) |
+| 08 | Configure SuperOps Client SSO (Entra app shell auto; SAML + SuperOps manual) | On IT technician (SuperOps + customer Entra / GDAP) |
 | 09 | Turn on portal sync | On IT technician (portal / SuperOps) |
 | 10 | Run Dry run then Sync now | On IT technician (portal / SuperOps) |
 | 11 | Test as a customer user | On IT technician (portal / SuperOps) |
@@ -80,7 +80,7 @@ Deployment resets existing step 08 completions because they represented the reti
 
 **Before step 01:** **Admin → Clients → Add Client** → **Create client**.
 
-**Before step 03:** open customer **Microsoft Entra ID → Overview**, read **License** (Free / P1), set **Customer Entra license tier** on the portal left to match, then **Save client**.
+**Steps 03–04 (preferred):** orange **Connect Microsoft tenant** — private browser / GDAP → Accept once. Portal bootstraps: `entra_tenant_id`, Free/P1 from `subscribedSkus`, creates/finds portal group, creates SuperOps SCIM + Client SSO Entra apps (App role User), saves Application (client) IDs. Requires platform Graph **Group.ReadWrite.All** + **Application.ReadWrite.All** (see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0).
 
 ### Auto vs manual checklist steps
 
@@ -88,10 +88,12 @@ Deployment resets existing step 08 completions because they represented the reti
 |------|------------------------------|----------------------|
 | 01 SuperOps linked | SuperOps Account ID saved | — |
 | 02 Pax8 | Pax8 off, or company ID saved | — |
-| 03 Portal group + Entra IDs | Tenant ID + group ID saved | Done in Azure but IDs not pasted yet |
-| 04 Portal Accept | Sync has run successfully | Accept done but sync not run yet |
-| 05–07 SCIM | Legacy `superops_scim_configured` marks all three Done | Tick each substep for new clients |
-| 08 SuperOps Accept | — | Accept + assign users/group |
+| 03 Tenant + group | Tenant ID + group ID saved (Connect bootstrap) | Legacy paste if Graph create failed |
+| 04 Portal Accept | Consent + bootstrap, or Sync has run successfully | — |
+| 05 SCIM tokens | — | SuperOps Generate Tokens |
+| 06 SCIM app | `entra_superops_app_id` filled | Tick if app exists but ID not saved |
+| 07 SCIM provisioning | — | Tokens + mappings + Start provisioning |
+| 08 Client SSO | — | SuperOps Client SSO config + SAML values (Entra shell often from Connect) |
 | 09 Enable sync | Prerequisites saved + Entra sync enabled | — |
 | 10 Run sync | `entra_synced_at` set after Sync now | Tick after Sync now if Last synced lagging |
 | 11 Test | — | You tested in incognito |
@@ -288,6 +290,8 @@ Per-client work is checklist **08**. P1 assigns `On IT Portal - {Company}` once;
 
 | Don't | Why |
 |---|---|
+| Sign into On IT Azure first, then switch to the customer | Wrong habit — technicians open a **private browser** and land on the **customer** tenant via GDAP |
+| Skip Entra left **Manage** and hunt for Groups | Groups / Enterprise applications sit under **Manage** on the Entra Overview sidebar |
 | Test requester SSO as `tom.ashby@onit.ltd` | SuperOps maps Tom to **technician** — misleading results |
 | Assign technicians to Requester SSO app | Technician ≠ requester |
 | Reuse portal OAuth app for SuperOps SAML | Wrong protocol and URLs |

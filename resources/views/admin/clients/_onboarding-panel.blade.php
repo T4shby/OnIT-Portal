@@ -18,6 +18,29 @@
             <strong class="text-white/80">Save checklist</strong> right.
         </p>
 
+        @if(! empty($adminConsentUrl))
+            <div class="mt-4 space-y-2">
+                <a
+                    href="{{ $adminConsentUrl }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
+                >Connect Microsoft tenant</a>
+                <p class="portal-body-muted text-xs leading-relaxed">
+                    Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong> · Accept once.
+                    Portal saves tenant, licence, group and SuperOps Entra app IDs automatically.
+                </p>
+                @if(filled($client->entra_tenant_id))
+                    <form method="POST" action="{{ route('admin.clients.bootstrap-entra', $client) }}">
+                        @csrf
+                        <button type="submit" class="cta-btn-ghost w-full px-4 py-2 text-xs">
+                            Re-run Entra bootstrap (tenant already connected)
+                        </button>
+                    </form>
+                @endif
+            </div>
+        @endif
+
         <div class="onboarding-panel__progress">
             <div class="flex items-end justify-between gap-4">
                 <div>

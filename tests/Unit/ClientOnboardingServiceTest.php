@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Client;
 use App\Services\ClientOnboardingService;
+use App\Support\AdminConsentState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -40,8 +41,9 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'superops_scim_provisioning');
 
         $titles = collect($step['guide']['sections'])->pluck('title')->all();
+        $this->assertContains('Paste SuperOps SCIM tokens into the auto-created app', $titles);
         $this->assertContains('Edit SCIM attribute mappings', $titles);
-        $this->assertContains('Create App role Value User', $titles);
+        $this->assertContains('App role Value User (usually automatic)', $titles);
         $this->assertContains('Copy Application (client) ID into this portal (Entra Free)', $titles);
         $this->assertContains('Start provisioning in Azure', $titles);
         $this->assertStringContainsString('extensionAttribute1', implode(' ', $step['instructions']));
@@ -123,6 +125,23 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertSame(\App\Support\AdminConsentState::encode($client->id), $query['state']);
     }
 
+    public function test_admin_consent_url_uses_organizations_when_tenant_unknown(): void
+    {
+        config(['services.entra_sync.client_id' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee']);
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => null,
+        ]);
+
+        $url = app(ClientOnboardingService::class)->adminConsentUrl($client);
+
+        $this->assertStringStartsWith(
+            'https://login.microsoftonline.com/organizations/adminconsent',
+            $url,
+        );
+        $this->assertStringContainsString(AdminConsentState::encode($client->id), $url);
+    }
+
     public function test_progress_counts_auto_completed_steps(): void
     {
         $client = Client::factory()->create([
@@ -196,7 +215,7 @@ class ClientOnboardingServiceTest extends TestCase
 
         $this->assertFalse($step['complete']);
         $this->assertFalse($step['auto_detected']);
-        $this->assertSame('Create Portal group + save Entra IDs', $step['title']);
+        $this->assertSame('Connect Microsoft tenant (IDs + group + licence)', $step['title']);
     }
 
     public function test_group_id_auto_completes_security_group_step(): void
@@ -238,13 +257,13 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'superops_scim_provisioning');
         $text = implode(' ', $step['instructions']);
 
-        $this->assertSame('Azure SCIM mappings + copy Application ID + start', $step['title']);
+        $this->assertSame('SCIM tokens + mappings + Application ID + start', $step['title']);
         $this->assertStringContainsString('Application (client) ID', $text);
         $this->assertStringContainsString('App registrations', $text);
         $this->assertStringContainsString('Object ID', $text);
         $this->assertStringContainsString('Save client', $text);
         $this->assertStringContainsString('Start provisioning', $text);
-        $this->assertStringNotContainsString('Assign group', $text);
+        $this->assertStringContainsString('Test Connection', $text);
         $this->assertStringNotContainsString('Part C', $text);
         $this->assertStringNotContainsString('Munns', $text);
     }
@@ -260,26 +279,23 @@ class ClientOnboardingServiceTest extends TestCase
             )->firstWhere('key', 'superops_scim_provisioning');
         $text = implode(' ', $step['instructions']);
 
-        $this->assertSame('Azure SCIM mappings + assign group + start', $step['title']);
+        $this->assertSame('SCIM tokens + mappings + start provisioning', $step['title']);
         $this->assertStringContainsString('On IT Portal - Acme Ltd', $text);
         $this->assertStringContainsString('Start provisioning', $text);
-        $this->assertStringNotContainsString('SuperOps Application (client) ID', $text);
-        $this->assertStringNotContainsString('Entra ID Free:', $text);
+        $this->assertStringContainsString('Test Connection', $text);
     }
 
-    public function test_scim_app_step_includes_test_connection(): void
+    public function test_scim_app_step_is_auto_after_connect(): void
     {
         $client = Client::factory()->create(['name' => 'Ductec LTD']);
 
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
             )->firstWhere('key', 'superops_scim_app')['instructions']);
 
-        $this->assertStringContainsString('Test Connection', $text);
+        $this->assertStringContainsString('Connect Microsoft', $text);
         $this->assertStringContainsString('SuperOps - Ductec LTD', $text);
-        $this->assertStringContainsString('Bearer Authentication', $text);
-        $this->assertStringContainsString('Create your own application', $text);
-        $this->assertStringContainsString('Admin Credentials', $text);
-        $this->assertStringContainsString('Non-gallery', $text);
+        $this->assertStringContainsString('SuperOps Application (client) ID', $text);
+        $this->assertStringContainsString('Application.ReadWrite.All', $text);
         $this->assertStringNotContainsString('Entity ID', $text);
         $this->assertStringNotContainsString('Client SSO', $text);
     }
@@ -342,15 +358,11 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
             )->firstWhere('key', 'entra_group_created')['instructions']);
 
-        $this->assertStringContainsString('New group', $text);
-        $this->assertStringContainsString('License', $text);
-        $this->assertStringContainsString('Entra license tier', $text);
+        $this->assertStringContainsString('Connect Microsoft tenant', $text);
+        $this->assertStringContainsString('automatically', $text);
+        $this->assertStringContainsString('GDAP', $text);
         $this->assertStringContainsString('On IT Portal - Ductec LTD', $text);
-        $this->assertStringContainsString('Members', $text);
-        $this->assertStringContainsString('Object ID', $text);
-        $this->assertStringContainsString('Tenant ID', $text);
-        $this->assertStringContainsString('Save client', $text);
-        $this->assertStringContainsString('portal.azure.com', $text);
+        $this->assertStringNotContainsString('switch directory', $text);
         $this->assertStringNotContainsString('9 Graph permissions', $text);
     }
 
@@ -361,8 +373,8 @@ class ClientOnboardingServiceTest extends TestCase
         $text = implode(' ', collect(app(ClientOnboardingService::class)->steps($client)
             )->firstWhere('key', 'entra_admin_consent_granted')['instructions']);
 
-        $this->assertStringContainsString('Open Portal Accept for customer tenant', $text);
-        $this->assertStringContainsString('On IT technician account that has GDAP', $text);
+        $this->assertStringContainsString('Connect Microsoft tenant', $text);
+        $this->assertStringContainsString('Accept', $text);
         $this->assertStringContainsString('OnIT Portal for Portals', $text);
         $this->assertStringContainsString('Enterprise applications', $text);
         $this->assertStringNotContainsString('User.Read.All', $text);
@@ -405,14 +417,15 @@ class ClientOnboardingServiceTest extends TestCase
             ->implode(' ');
 
         $this->assertSame(
-            'Accept Portal access in customer tenant',
+            'Accept Portal Graph (starts auto setup)',
             $steps->firstWhere('key', 'entra_admin_consent_granted')['title'],
         );
         $this->assertSame(
             'Configure SuperOps Client SSO',
             $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
         );
-        $this->assertStringContainsString('On IT technician account that has GDAP', $allText);
+        $this->assertStringContainsString('On IT **GDAP**', $allText);
+        $this->assertStringContainsString('private/incognito', $allText);
         $this->assertStringNotContainsString('Customer Accepts', $allText);
         $this->assertStringNotContainsString('customer Global Admin', $allText);
         $this->assertStringNotContainsString('send it to them', $allText);

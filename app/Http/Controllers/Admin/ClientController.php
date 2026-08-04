@@ -236,6 +236,44 @@ class ClientController extends Controller
             ->with('success', 'Setup checklist saved.');
     }
 
+    public function bootstrapEntra(Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'No tenant ID yet. Use Connect Microsoft tenant first.');
+        }
+
+        $result = app(\App\Services\EntraSync\CustomerEntraBootstrapService::class)
+            ->bootstrap($client, $client->entra_tenant_id);
+
+        $this->activityLog->log(
+            'client.entra_bootstrap',
+            $client,
+            properties: [
+                'ok' => $result['ok'],
+                'details' => $result['details'],
+                'warnings' => $result['warnings'],
+            ],
+            clientId: $client->id,
+        );
+
+        $message = $result['summary'];
+        if ($result['details'] !== []) {
+            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
+        }
+
+        $redirect = redirect()->route('admin.clients.edit', $client)
+            ->with($result['ok'] ? 'success' : 'error', $message);
+
+        if ($result['warnings'] !== []) {
+            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 4)));
+        }
+
+        return $redirect;
+    }
+
     public function destroy(Client $client): RedirectResponse
     {
         $this->authorize('delete', $client);

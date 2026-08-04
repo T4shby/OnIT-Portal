@@ -80,6 +80,8 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.sync-entra');
             Route::put('clients/{client}/onboarding', [ClientController::class, 'updateOnboarding'])
                 ->name('clients.onboarding.update');
+            Route::post('clients/{client}/bootstrap-entra', [ClientController::class, 'bootstrapEntra'])
+                ->name('clients.bootstrap-entra');
             Route::get('clients/{client}/users', [UserController::class, 'forClient'])
                 ->name('clients.users.index');
             Route::get('users', [UserController::class, 'index'])->name('users.index');
