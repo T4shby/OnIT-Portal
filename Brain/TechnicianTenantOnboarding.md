@@ -46,7 +46,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tokens generated (copy ready) |
 | 06 | SuperOps SCIM app | Usually auto after Connect; confirm Application (client) ID left | App ID on portal |
 | 07 | SCIM tokens + mappings + start | Portal left **Apply SCIM credentials + start** (or Azure Provisioning) | Apply succeeds / provisioning On |
-| 08 | Configure SuperOps Client SSO | SuperOps Client SSO + SAML on Entra app shell from Connect | Client SSO enabled |
+| 08 | Configure SuperOps Client SSO | Portal left **Configure SAML in Entra** (Entity ID + ACS from SuperOps) → paste Login URL + cert into SuperOps | SuperOps Client SSO enabled |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
 | 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |

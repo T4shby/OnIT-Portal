@@ -75,6 +75,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | Edit Client **Configure SAML in Entra**: paste SuperOps Entity ID + ACS once; Graph sets SAML mode/URLs/cert; shows Login URL + certificate for SuperOps paste — [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |
 | 2026-08-04 | Edit Client **Apply SCIM credentials + start**: paste SuperOps Tenant URL + secret once; Graph writes Entra provisioning secrets and starts job (`Synchronization.ReadWrite.All`); secret not stored — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md), [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-04 | Connect bootstrap: create SuperOps Entra apps via `POST /applications` + wait/retry (fix Graph 404 on app role after template instantiate); save Application (client) IDs even if role patch lags — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-04 | Edit Client: checklist **Mark this step complete** auto-saves on tick; clarified Save client (left) vs checklist (right) — does not share one form — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |

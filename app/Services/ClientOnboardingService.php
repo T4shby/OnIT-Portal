@@ -674,42 +674,38 @@ class ClientOnboardingService
 
         return OnboardingManual::build(
             notes: [
-                'Connect Microsoft creates the Entra app shell **'.$appName.'** and saves its Application ID. You still configure SuperOps Client SSO + SAML values (no SuperOps API for this yet).',
+                'Preferred: SuperOps generate Entity ID + Consumer URL → portal left **Configure SAML in Entra** → copy Login URL + certificate shown → paste into SuperOps. Azure step by step only if Apply fails.',
+                'Connect Microsoft creates the Entra app shell **'.$appName.'** and saves its Application ID.',
             ],
             sections: [
                 OnboardingManual::section(
-                    'Generate this customer’s SSO values in SuperOps',
+                    'Generate SuperOps Entity ID + Consumer URL',
                     'SuperOps MSP → Settings → Requester Login → SSO Protected → Client SSO',
                     [
-                        'Click **+ Configuration**.',
-                        'Give it a clear name such as **'.$clientName.' Entra SSO**.',
-                        'Select client **'.$clientName.'**.',
-                        'Generate the client-specific values.',
-                        'Copy **Entity ID** and **Consumer Service URL**. Keep this SuperOps configuration open.',
+                        'Click **+ Configuration** (or open existing **'.$clientName.'** config).',
+                        'Select client **'.$clientName.'**. Generate values if needed.',
+                        'Copy **Entity ID** and **Consumer Service URL**. Keep SuperOps open.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Finish SAML on the customer Entra app (created by Connect)',
+                    'Configure SAML from this portal (preferred)',
+                    'https://app.onit.ltd → Admin → Clients → Edit '.$clientName.' (left)',
+                    [
+                        'Find **Configure Client SSO SAML in Entra**.',
+                        'Paste SuperOps **Entity ID** and **Consumer Service URL**.',
+                        'Click **Configure SAML in Entra**.',
+                        'Copy the **IDP Login URL** and **Certificate** shown on this page into SuperOps step 3 → **Save / Enable**.',
+                        'Do not reuse another customer’s Login URL or certificate.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Only if Configure SAML fails — Azure manually',
                     $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName),
                     [
                         ...$this->openCustomerAzureSteps($clientName),
-                        'Azure top search → **Microsoft Entra ID** → open it.',
-                        'Left **Manage** → **Enterprise applications** → open **'.$appName.'** (created by Connect if Application.ReadWrite.All was consented).',
-                        'App left menu → **Manage** → **Single sign-on** → **SAML**.',
-                        'Basic SAML Configuration → **Identifier (Entity ID)** = client-specific Entity ID from SuperOps; mark Default.',
-                        '**Reply URL** = client-specific Consumer Service URL from SuperOps; mark Default.',
-                        'Leave Sign on URL, Relay State and Logout URL empty → **Save**.',
-                    ],
-                ),
-                OnboardingManual::section(
-                    'Add exact claims and connect Azure back to SuperOps',
-                    'Still in customer Azure SAML page ↔ SuperOps Client SSO configuration',
-                    [
-                        'Azure **Attributes & Claims** → add exact lowercase claims: `email` = `user.mail`, `firstname` = `user.givenname`, `lastname` = `user.surname`.',
-                        'Azure **SAML Certificates** → download **Certificate (Base64)** → open it → copy the certificate text without BEGIN/END marker lines.',
-                        'Azure SAML page section **Set up '.$appName.'** → copy **Login URL**.',
-                        'Return to the open SuperOps Client SSO configuration.',
-                        'Paste the Azure **Login URL** and certificate; confirm client **'.$clientName.'** is selected → **Save / Enable**.',
+                        'Enterprise applications → **'.$appName.'** → Single sign-on → SAML.',
+                        'Identifier = SuperOps Entity ID; Reply URL = Consumer Service URL → Save.',
+                        'Claims: email / firstname / lastname → copy Login URL + Base64 cert into SuperOps.',
                     ],
                 ),
                 $assignSection,
@@ -717,14 +713,14 @@ class ClientOnboardingService
                     'Mark complete on this portal',
                     'https://app.onit.ltd → this checklist (right)',
                     [
-                        'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
+                        'Configure SAML success marks step 08; otherwise tick **Mark this step complete** after SuperOps Save.',
                     ],
                 ),
             ],
             verify: [
                 $usesGroupScim
-                    ? 'SuperOps Client SSO is enabled for '.$clientName.' and '.$groupName.' is assigned to '.$appName.'.'
-                    : 'SuperOps Client SSO is enabled for '.$clientName.' and its Application (client) ID is saved for automatic assignment by Sync now.',
+                    ? 'SuperOps Client SSO enabled for '.$clientName.'; portal/group assignment ready.'
+                    : 'SuperOps Client SSO enabled; Client SSO Application ID on portal for Sync now assignment.',
             ],
         );
     }

@@ -75,9 +75,20 @@ Example names:
 
 These values are customer-specific. Do not substitute the old Global Entity ID or Reply URL.
 
-### B. Create the customer's Entra SAML application
+### B. Configure SAML from the portal (preferred)
 
-Using GDAP:
+**Admin → Clients → Edit {Company}** → **Configure Client SSO SAML in Entra**:
+
+1. Paste SuperOps **Entity ID** and **Consumer Service URL**.
+2. Click **Configure SAML in Entra**.
+3. Copy **IDP Login URL** and **Certificate** shown on that page.
+4. Paste into SuperOps Client SSO step 3 → Save / enable.
+
+Graph uses Application.ReadWrite.All (and optionally Policy.ReadWrite.ApplicationConfiguration for claims). Azure Enterprise apps SAML blade is fallback only if Configure fails.
+
+### C. Create the customer's Entra SAML application (legacy / fallback)
+
+Using GDAP only when portal Configure SAML is unavailable:
 
 1. Open Azure and switch to the customer directory.
 2. Microsoft Entra ID → **Enterprise applications → New application**.
@@ -87,7 +98,7 @@ Using GDAP:
 6. Create the application.
 7. **Single sign-on → SAML**.
 
-### C. Basic SAML configuration
+### D. Basic SAML configuration (legacy / fallback)
 
 Use the values copied from that customer's SuperOps Client SSO configuration:
 
@@ -106,9 +117,9 @@ Do not use:
 - The On IT portal consent-complete URL.
 - A Reply URL from another customer.
 
-### D. Exact SAML claims
+### E. Exact SAML claims
 
-Azure **Attributes & Claims**:
+Azure **Attributes & Claims** (portal Configure tries to set these via claims mapping policy):
 
 | Claim name | Source |
 |---|---|
@@ -118,7 +129,11 @@ Azure **Attributes & Claims**:
 
 Claim names are lowercase and case-sensitive.
 
-### E. Connect Azure back to SuperOps
+### F. Connect Azure back to SuperOps
+
+**Preferred:** use Login URL + certificate from the portal after Configure SAML.
+
+**Fallback:**
 
 1. Azure **SAML Certificates** → download **Certificate (Base64)**.
 2. Open it as text.
@@ -133,7 +148,7 @@ Claim names are lowercase and case-sensitive.
 
 Do not reuse the On IT Global SSO Login URL or certificate. SuperOps explicitly says Azure credentials are not reusable between Global and Client SSO.
 
-### F. Assign requester access
+### G. Assign requester access
 
 #### Entra ID P1 or higher
 

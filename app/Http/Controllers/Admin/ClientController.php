@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ApplyClientSsoSamlRequest;
 use App\Http\Requests\Admin\ApplySuperOpsScimRequest;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
@@ -327,7 +328,72 @@ class ClientController extends Controller
 
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', $message)
-            ->with('warning', 'Still required for Client SSO: SuperOps Client SSO configuration + SAML Identifier / Reply URL / Login URL + cert (step 08).');
+            ->with('warning', 'Still required for Client SSO: SuperOps Client SSO configuration + paste Entity ID/ACS into portal Configure SAML (or step 08).');
+    }
+
+    public function applyClientSso(ApplyClientSsoSamlRequest $request, Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_sso_app_id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'Connect Microsoft / bootstrap first so Client SSO Application (client) ID is saved.');
+        }
+
+        try {
+            $result = app(\App\Services\EntraSync\MicrosoftGraphClient::class)
+                ->applyClientSsoSamlConfiguration(
+                    $client->entra_tenant_id,
+                    $client->entra_superops_sso_app_id,
+                    $request->validated('entity_id'),
+                    $request->validated('consumer_service_url'),
+                );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('admin.clients.edit', $client)
+                ->withInput()
+                ->with('error', 'Could not configure Client SSO SAML in Entra: '.$e->getMessage());
+        }
+
+        cache()->put('client_sso_idp.'.$client->id, [
+            'loginUrl' => $result['loginUrl'],
+            'certificateBase64' => $result['certificateBase64'],
+            'entityId' => $request->validated('entity_id'),
+            'consumerServiceUrl' => $request->validated('consumer_service_url'),
+            'configuredAt' => now()->toIso8601String(),
+        ], now()->addDays(14));
+
+        $this->onboarding->updateChecklist($client, [
+            'superops_client_sso_configured' => true,
+        ]);
+
+        $this->activityLog->log(
+            'client.client_sso_saml_configured',
+            $client,
+            properties: [
+                'login_host' => parse_url($result['loginUrl'], PHP_URL_HOST),
+                'details' => $result['details'],
+                'warnings' => $result['warnings'],
+            ],
+            clientId: $client->id,
+        );
+
+        $message = 'Client SSO SAML configured in Entra. Copy Login URL + certificate below into SuperOps Client SSO and Save.';
+        if ($result['details'] !== []) {
+            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 5));
+        }
+
+        $redirect = redirect()->route('admin.clients.edit', $client)
+            ->with('success', $message)
+            ->with('client_sso_login_url', $result['loginUrl'])
+            ->with('client_sso_certificate', $result['certificateBase64']);
+
+        if ($result['warnings'] !== []) {
+            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 3)));
+        }
+
+        return $redirect;
     }
 
     public function destroy(Client $client): RedirectResponse

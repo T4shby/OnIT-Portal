@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class MicrosoftGraphClient
 {
@@ -1640,6 +1641,246 @@ class MicrosoftGraphClient
         ]);
 
         return false;
+    }
+
+    /**
+     * Configure SAML on SuperOps Client SSO Entra app so technicians only paste Login URL + cert into SuperOps.
+     * SuperOps Entity ID + ACS still come from SuperOps (no SuperOps API).
+     *
+     * @return array{
+     *     loginUrl: string,
+     *     certificateBase64: string,
+     *     azureAdIdentifier: string,
+     *     servicePrincipalId: string,
+     *     applicationObjectId: string,
+     *     details: list<string>,
+     *     warnings: list<string>
+     * }
+     */
+    public function applyClientSsoSamlConfiguration(
+        string $tenantId,
+        string $ssoAppClientId,
+        string $entityId,
+        string $consumerServiceUrl,
+    ): array {
+        $tenantId = strtolower(trim($tenantId));
+        $ssoAppClientId = strtolower(trim($ssoAppClientId));
+        $entityId = trim($entityId);
+        $consumerServiceUrl = rtrim(trim($consumerServiceUrl), '/');
+        $details = [];
+        $warnings = [];
+
+        if ($entityId === '' || $consumerServiceUrl === '') {
+            throw new RuntimeException('SuperOps Entity ID and Consumer Service URL are required.');
+        }
+
+        $application = $this->waitForApplicationByAppId($tenantId, $ssoAppClientId);
+        $applicationObjectId = $application['applicationObjectId'];
+        $servicePrincipalId = $this->ensureServicePrincipalForAppId($tenantId, $ssoAppClientId);
+        $details[] = 'Client SSO app registration and service principal ready';
+
+        $modePatch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}", [
+            'preferredSingleSignOnMode' => 'saml',
+        ]);
+
+        if ($modePatch->failed() && $modePatch->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph could not set SAML SSO mode: '.$modePatch->status().' '.$modePatch->body()
+            );
+        }
+        $details[] = 'preferredSingleSignOnMode=saml';
+
+        $appPatch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}", [
+            'identifierUris' => [$entityId],
+            'web' => [
+                'redirectUris' => [$consumerServiceUrl],
+            ],
+        ]);
+
+        if ($appPatch->failed() && $appPatch->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph could not set Entity ID / Reply URL: '.$appPatch->status().' '.$appPatch->body()
+                .' (Entity ID and ACS must match SuperOps Client SSO for this customer only.)'
+            );
+        }
+        $details[] = 'Entity ID + Reply URL (ACS) set on application';
+
+        $spPatch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}", [
+            'replyUrls' => [$consumerServiceUrl],
+            'loginUrl' => null,
+            'logoutUrl' => null,
+        ]);
+
+        if ($spPatch->failed() && $spPatch->status() !== 204) {
+            $warnings[] = 'Service principal reply URL update soft-failed: '.$spPatch->status();
+        }
+
+        try {
+            $this->ensureBasicSamlClaimsMappingPolicy($tenantId, $servicePrincipalId);
+            $details[] = 'SAML claims email/firstname/lastname policy assigned (or already present)';
+        } catch (Throwable $e) {
+            $warnings[] = 'SAML claims not auto-applied: '.$e->getMessage()
+                .' — if SuperOps fails login, set Attributes & Claims in Azure: email=user.mail, firstname=user.givenname, lastname=user.surname.';
+        }
+
+        $certificateBase64 = $this->ensureTokenSigningCertificateBase64($tenantId, $servicePrincipalId);
+        $details[] = 'Token signing certificate ready';
+
+        $loginUrl = "https://login.microsoftonline.com/{$tenantId}/saml2";
+        $azureAdIdentifier = "https://sts.windows.net/{$tenantId}/";
+
+        return [
+            'loginUrl' => $loginUrl,
+            'certificateBase64' => $certificateBase64,
+            'azureAdIdentifier' => $azureAdIdentifier,
+            'servicePrincipalId' => $servicePrincipalId,
+            'applicationObjectId' => $applicationObjectId,
+            'details' => $details,
+            'warnings' => $warnings,
+        ];
+    }
+
+    private function ensureTokenSigningCertificateBase64(string $tenantId, string $servicePrincipalId): string
+    {
+        $existing = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
+            ['$select' => 'id,keyCredentials'],
+        );
+
+        if ($existing->successful()) {
+            foreach ($existing->json('keyCredentials') ?? [] as $credential) {
+                $usage = strtolower((string) ($credential['usage'] ?? ''));
+                $type = strtolower((string) ($credential['type'] ?? ''));
+                $key = (string) ($credential['key'] ?? '');
+
+                if ($key !== '' && str_contains($usage, 'sign') && str_contains($type, 'x509')) {
+                    return $this->normalizeCertificateBody($key);
+                }
+            }
+
+            // Any AsymmetricX509Cert with key material.
+            foreach ($existing->json('keyCredentials') ?? [] as $credential) {
+                $key = (string) ($credential['key'] ?? '');
+                $type = strtolower((string) ($credential['type'] ?? ''));
+                if ($key !== '' && str_contains($type, 'x509')) {
+                    return $this->normalizeCertificateBody($key);
+                }
+            }
+        }
+
+        $create = $this->graphPost(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/addTokenSigningCertificate",
+            [
+                'displayName' => 'CN=OnIT SuperOps Client SSO',
+                'endDateTime' => now()->addYears(3)->toIso8601String(),
+            ],
+        );
+
+        if ($create->failed() || empty($create->json('key'))) {
+            throw new RuntimeException(
+                'Microsoft Graph addTokenSigningCertificate failed: '.$create->status().' '.$create->body()
+            );
+        }
+
+        return $this->normalizeCertificateBody((string) $create->json('key'));
+    }
+
+    private function normalizeCertificateBody(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if (str_contains($raw, 'BEGIN CERTIFICATE')) {
+            $raw = preg_replace('/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+/', '', $raw) ?? $raw;
+        }
+
+        // Graph may return raw base64 of DER; SuperOps wants the same single-line body (no markers).
+        return preg_replace('/\s+/', '', $raw) ?? $raw;
+    }
+
+    private function ensureBasicSamlClaimsMappingPolicy(string $tenantId, string $servicePrincipalId): void
+    {
+        $policyName = 'OnIT SuperOps Client SSO claims';
+        $definitionJson = json_encode([
+            'ClaimsMappingPolicy' => [
+                'Version' => 1,
+                'IncludeBasicClaimSet' => 'true',
+                'ClaimsSchema' => [
+                    [
+                        'Source' => 'user',
+                        'ID' => 'mail',
+                        'SamlClaimType' => 'email',
+                    ],
+                    [
+                        'Source' => 'user',
+                        'ID' => 'givenname',
+                        'SamlClaimType' => 'firstname',
+                    ],
+                    [
+                        'Source' => 'user',
+                        'ID' => 'surname',
+                        'SamlClaimType' => 'lastname',
+                    ],
+                ],
+            ],
+        ], JSON_UNESCAPED_SLASHES);
+
+        $existingAssigned = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/claimsMappingPolicies",
+        );
+
+        if ($existingAssigned->successful()) {
+            foreach ($existingAssigned->json('value') ?? [] as $policy) {
+                if (strcasecmp((string) ($policy['displayName'] ?? ''), $policyName) === 0) {
+                    return;
+                }
+            }
+        }
+
+        $create = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies', [
+            'definition' => [$definitionJson],
+            'displayName' => $policyName,
+            'isOrganizationDefault' => false,
+        ]);
+
+        if ($create->status() === 403) {
+            throw new RuntimeException(
+                'Policy.ReadWrite.ApplicationConfiguration missing — add it to OnIT Portal for Portals (Application), re-consent Find, then retry; or set claims manually in Azure.'
+            );
+        }
+
+        if ($create->failed() || empty($create->json('id'))) {
+            // Reuse if already exists by display name
+            $list = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies', [
+                '$filter' => "displayName eq '".str_replace("'", "''", $policyName)."'",
+            ]);
+            $policyId = (string) (($list->json('value')[0]['id'] ?? ''));
+            if ($policyId === '') {
+                throw new RuntimeException(
+                    'Create claims mapping policy failed: '.$create->status().' '.$create->body()
+                );
+            }
+        } else {
+            $policyId = (string) $create->json('id');
+        }
+
+        $assign = $this->graphPost(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/claimsMappingPolicies/\$ref",
+            [
+                '@odata.id' => "https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies/{$policyId}",
+            ],
+        );
+
+        if ($assign->failed() && $assign->status() !== 204
+            && ! str_contains($assign->body(), 'already')
+            && $assign->status() !== 400) {
+            throw new RuntimeException(
+                'Assign claims mapping policy failed: '.$assign->status().' '.$assign->body()
+            );
+        }
     }
 
     /**
