@@ -13,10 +13,8 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            Work the open step.
-            <strong class="text-white/80">Save client</strong> (left) stores IDs and flags only.
-            Ticking a step on the right saves the checklist automatically — or use
-            <strong class="text-white/80">Save checklist</strong> below.
+            Work the open step on the right. Action forms for SCIM (07) and Client SSO (08) live inside those steps.
+            <strong class="text-white/80">Save client</strong> (left) only stores IDs and flags.
         </p>
 
         @if(! empty($adminConsentUrl))
@@ -58,34 +56,40 @@
         </div>
     </div>
 
+    {{-- Checklist form sits empty here so step action forms (SCIM/SSO) are not nested. Checkboxes use form="…". --}}
+    <form
+        id="onboarding-checklist-form"
+        method="POST"
+        action="{{ route('admin.clients.onboarding.update', $client) }}"
+        class="hidden"
+        aria-hidden="true"
+    >
+        @csrf
+        @method('PUT')
+    </form>
+
+    <div class="onboarding-panel__body">
+        @include('admin.clients._onboarding-steps', [
+            'client' => $client,
+            'onboardingSteps' => $onboardingSteps,
+            'adminConsentUrl' => $adminConsentUrl,
+            'showCheckboxes' => $hasManualCheckboxes,
+        ])
+    </div>
+
     @if($hasManualCheckboxes)
-        <form
-            id="onboarding-checklist-form"
-            method="POST"
-            action="{{ route('admin.clients.onboarding.update', $client) }}"
-            class="onboarding-panel__body"
-        >
-            @csrf
-            @method('PUT')
-            @include('admin.clients._onboarding-steps', [
-                'client' => $client,
-                'onboardingSteps' => $onboardingSteps,
-                'adminConsentUrl' => $adminConsentUrl,
-                'showCheckboxes' => true,
-            ])
-            <div class="onboarding-panel__actions">
-                <button type="submit" class="cta-btn text-sm">Save checklist</button>
-                <p class="portal-body-muted mt-2 text-xs leading-relaxed">
-                    Tick “Mark this step complete” and it saves immediately.
-                    <strong class="text-white/70">Save client</strong> on the left does not save these ticks.
-                </p>
-            </div>
-        </form>
+        <div class="onboarding-panel__actions">
+            <button type="submit" form="onboarding-checklist-form" class="cta-btn text-sm">Save checklist</button>
+            <p class="portal-body-muted mt-2 text-xs leading-relaxed">
+                Tick “Mark this step complete” and it saves immediately.
+                SCIM / Client SSO action buttons are inside steps 07 and 08.
+            </p>
+        </div>
         <script>
             (function () {
                 var form = document.getElementById('onboarding-checklist-form');
                 if (!form) return;
-                form.querySelectorAll('input[type="checkbox"][name^="checkpoints"]').forEach(function (box) {
+                document.querySelectorAll('input[type="checkbox"][name^="checkpoints"][form="onboarding-checklist-form"]').forEach(function (box) {
                     box.addEventListener('change', function () {
                         if (typeof form.requestSubmit === 'function') {
                             form.requestSubmit();
@@ -96,14 +100,5 @@
                 });
             })();
         </script>
-    @else
-        <div class="onboarding-panel__body">
-            @include('admin.clients._onboarding-steps', [
-                'client' => $client,
-                'onboardingSteps' => $onboardingSteps,
-                'adminConsentUrl' => $adminConsentUrl,
-                'showCheckboxes' => false,
-            ])
-        </div>
     @endif
 </div>

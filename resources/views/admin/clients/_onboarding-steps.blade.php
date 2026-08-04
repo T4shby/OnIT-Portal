@@ -20,6 +20,8 @@
             $showGraphAccept = in_array($step['key'], ['entra_group_created', 'entra_admin_consent_granted'], true)
                 && ! $isDone
                 && ! $isBlocked;
+            $showScimApply = ($step['key'] ?? '') === 'superops_scim_provisioning' && ! $isBlocked;
+            $showClientSsoApply = ($step['key'] ?? '') === 'superops_client_sso_configured' && ! $isBlocked;
         @endphp
 
         <article
@@ -97,6 +99,24 @@
                     @endif
                 @endif
 
+                @if($showScimApply)
+                    <div class="onboarding-guide__extra mb-4">
+                        @include('admin.clients._scim-apply-form', [
+                            'client' => $client,
+                            'inStep' => true,
+                        ])
+                    </div>
+                @endif
+
+                @if($showClientSsoApply)
+                    <div class="onboarding-guide__extra mb-4">
+                        @include('admin.clients._client-sso-apply-form', [
+                            'client' => $client,
+                            'inStep' => true,
+                        ])
+                    </div>
+                @endif
+
                 @include('admin.clients._onboarding-manual', [
                     'guide' => $step['guide'] ?? null,
                     'instructions' => $step['instructions'] ?? [],
@@ -117,6 +137,7 @@
                             type="checkbox"
                             name="checkpoints[{{ $step['key'] }}]"
                             value="1"
+                            form="onboarding-checklist-form"
                             class="border-onit-border bg-onit-surface text-onit focus:ring-onit"
                             @checked($checkpointSaved)
                         >

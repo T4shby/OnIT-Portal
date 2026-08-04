@@ -54,10 +54,6 @@
                 </p>
             </form>
 
-            @include('admin.clients._scim-apply-form', ['client' => $client])
-
-            @include('admin.clients._client-sso-apply-form', ['client' => $client])
-
             @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
                 <div class="mt-4">
                     <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">

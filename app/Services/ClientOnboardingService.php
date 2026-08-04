@@ -350,8 +350,8 @@ class ClientOnboardingService
             $this->withManual([
                 'key' => 'superops_scim_provisioning',
                 'title' => $usesGroupScim
-                    ? 'SCIM tokens + mappings + start provisioning'
-                    : 'SCIM tokens + mappings + Application ID + start',
+                    ? 'Apply SCIM tokens + start provisioning'
+                    : 'Apply SCIM tokens + start (Free)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $scimProvisioningComplete,
                 'manual' => true,
@@ -361,7 +361,7 @@ class ClientOnboardingService
 
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
-                'title' => 'Configure SuperOps Client SSO',
+                'title' => 'Configure SuperOps Client SSO (SAML)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $ssoComplete,
                 'manual' => true,
@@ -568,7 +568,7 @@ class ClientOnboardingService
     {
         return OnboardingManual::build(
             notes: [
-                'Preferred: left form → **Push SuperOps SCIM to Entra** — paste SuperOps Tenant URL + Secret once → **Apply SCIM credentials + start**. Secret is not stored in the portal.',
+                'Use the form at the top of this step (not the left form). Apply SuperOps Tenant URL + Secret → portal starts Entra SCIM.',
                 'Connect Microsoft already creates **'.$appName.'**, App role User, and P1 group assignment when possible.',
                 $usesGroupScim
                     ? 'P1: group assign is usually already Done after Connect.'
@@ -576,15 +576,14 @@ class ClientOnboardingService
             ],
             sections: [
                 OnboardingManual::section(
-                    'Apply tokens from this portal (preferred)',
-                    'https://app.onit.ltd → Admin → Clients → Edit '.$clientName.' (left)',
+                    'Apply tokens on this step (preferred)',
+                    'This checklist step → form at the top',
                     [
                         'Generate tokens in SuperOps (step 05) if you have not already.',
-                        'On this page left: **Push SuperOps SCIM to Entra**.',
-                        'Paste SuperOps **Tenant URL** and **Secret Token**.',
+                        'At the top of this step: paste SuperOps **Tenant URL** and **Secret Token**.',
                         'Click **Apply SCIM credentials + start**.',
                         'Portal writes credentials into Entra app **'.$appName.'** and starts provisioning.',
-                        'Steps 05–07 mark complete automatically when Apply succeeds.',
+                        'This step marks complete when Apply succeeds.',
                     ],
                 ),
                 OnboardingManual::section(
@@ -638,7 +637,7 @@ class ClientOnboardingService
                     ),
             ],
             verify: [
-                'Left **Apply SCIM** succeeded (or Azure Provisioning shows On), steps 05–07 Done.',
+                'Apply SCIM succeeded (or Azure Provisioning shows On), step Done.',
             ],
         );
     }
@@ -674,7 +673,7 @@ class ClientOnboardingService
 
         return OnboardingManual::build(
             notes: [
-                'Preferred: SuperOps generate Entity ID + Consumer URL → portal left **Configure SAML in Entra** → copy Login URL + certificate shown → paste into SuperOps. Azure step by step only if Apply fails.',
+                'Use the form at the top of this step. SuperOps Entity ID + Consumer URL → Configure SAML → copy Login URL + cert into SuperOps. Azure only if that fails.',
                 'Connect Microsoft creates the Entra app shell **'.$appName.'** and saves its Application ID.',
             ],
             sections: [
@@ -684,17 +683,16 @@ class ClientOnboardingService
                     [
                         'Click **+ Configuration** (or open existing **'.$clientName.'** config).',
                         'Select client **'.$clientName.'**. Generate values if needed.',
-                        'Copy **Entity ID** and **Consumer Service URL**. Keep SuperOps open.',
+                        'Copy full HTTPS **Entity ID** and **Consumer Service URL**. Keep SuperOps open.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Configure SAML from this portal (preferred)',
-                    'https://app.onit.ltd → Admin → Clients → Edit '.$clientName.' (left)',
+                    'Configure SAML on this step (preferred)',
+                    'This checklist step → form at the top',
                     [
-                        'Find **Configure Client SSO SAML in Entra**.',
-                        'Paste SuperOps **Entity ID** and **Consumer Service URL**.',
+                        'Paste SuperOps **Entity ID** and **Consumer Service URL** into the form above.',
                         'Click **Configure SAML in Entra**.',
-                        'Copy the **IDP Login URL** and **Certificate** shown on this page into SuperOps step 3 → **Save / Enable**.',
+                        'Copy the **IDP Login URL** and **Certificate** shown into SuperOps step 3 → **Save / Enable**.',
                         'Do not reuse another customer’s Login URL or certificate.',
                     ],
                 ),
@@ -711,9 +709,9 @@ class ClientOnboardingService
                 $assignSection,
                 OnboardingManual::section(
                     'Mark complete on this portal',
-                    'https://app.onit.ltd → this checklist (right)',
+                    'This checklist step',
                     [
-                        'Configure SAML success marks step 08; otherwise tick **Mark this step complete** after SuperOps Save.',
+                        'Configure SAML success marks this step; otherwise tick **Mark this step complete** after SuperOps Save.',
                     ],
                 ),
             ],

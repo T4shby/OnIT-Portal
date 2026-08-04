@@ -1,29 +1,32 @@
 @php
-    $ssoReady = filled($client->entra_tenant_id ?? null) && filled($client->entra_superops_sso_app_id ?? null);
+    $inStep = (bool) ($inStep ?? false);
+    $idPrefix = $inStep ? 'step_' : 'side_';
+    $ssoReady = isset($client) && $client->exists
+        && filled($client->entra_tenant_id ?? null)
+        && filled($client->entra_superops_sso_app_id ?? null);
     $ssoCache = $ssoReady ? cache('client_sso_idp.'.$client->id) : null;
     $ssoLoginUrl = session('client_sso_login_url') ?? ($ssoCache['loginUrl'] ?? null);
     $ssoCertificate = session('client_sso_certificate') ?? ($ssoCache['certificateBase64'] ?? null);
 @endphp
 
-@if(isset($client) && $client->exists && $ssoReady)
-    <div class="mt-6 border-t border-white/10 pt-6">
-        <p class="portal-label mb-2">Configure Client SSO SAML in Entra</p>
+@if($ssoReady)
+    <div @class(['mt-6 border-t border-white/10 pt-6' => ! $inStep])>
+        <p class="portal-label mb-2">@if($inStep) Do this now @else Configure Client SSO SAML in Entra @endif</p>
         <p class="mb-4 text-sm leading-relaxed text-white/75">
             From SuperOps Client SSO, paste <strong class="text-white/90">Entity ID</strong> and
-            <strong class="text-white/90">Consumer Service URL</strong>. Portal configures
-            <strong class="text-white/90">SuperOps Requester SSO - {{ $client->name }}</strong> automatically,
-            then shows <strong class="text-white/90">Login URL + certificate</strong> to paste back into SuperOps.
-            You do not open Azure for step 08 SAML unless this fails.
+            <strong class="text-white/90">Consumer Service URL</strong> (full HTTPS URLs).
+            Portal configures <strong class="text-white/90">SuperOps Requester SSO - {{ $client->name }}</strong>,
+            then shows <strong class="text-white/90">Login URL + certificate</strong> for SuperOps.
         </p>
 
         <form method="POST" action="{{ route('admin.clients.apply-client-sso', $client) }}" class="space-y-4">
             @csrf
             <div>
-                <label for="entity_id" class="portal-label mb-2 block">SuperOps Entity ID</label>
+                <label for="{{ $idPrefix }}entity_id" class="portal-label mb-2 block">SuperOps Entity ID</label>
                 <input
                     type="url"
                     name="entity_id"
-                    id="entity_id"
+                    id="{{ $idPrefix }}entity_id"
                     value="{{ old('entity_id', $ssoCache['entityId'] ?? '') }}"
                     required
                     autocomplete="off"
@@ -35,11 +38,11 @@
                 @enderror
             </div>
             <div>
-                <label for="consumer_service_url" class="portal-label mb-2 block">SuperOps Consumer Service URL</label>
+                <label for="{{ $idPrefix }}consumer_service_url" class="portal-label mb-2 block">SuperOps Consumer Service URL</label>
                 <input
                     type="url"
                     name="consumer_service_url"
-                    id="consumer_service_url"
+                    id="{{ $idPrefix }}consumer_service_url"
                     value="{{ old('consumer_service_url', $ssoCache['consumerServiceUrl'] ?? '') }}"
                     required
                     autocomplete="off"
@@ -57,24 +60,23 @@
 
         @if(filled($ssoLoginUrl) && filled($ssoCertificate))
             <div class="mt-6 space-y-4 border border-onit/35 bg-onit/10 p-4">
-                <p class="portal-label">Paste these into SuperOps Client SSO (step 3)</p>
+                <p class="portal-label">Paste into SuperOps Client SSO</p>
                 <div>
                     <label class="portal-label mb-2 block">IDP Login URL</label>
                     <textarea readonly rows="2" class="admin-input text-xs" onclick="this.select()">{{ $ssoLoginUrl }}</textarea>
                 </div>
                 <div>
-                    <label class="portal-label mb-2 block">Certificate (Base64 body — no BEGIN/END lines)</label>
+                    <label class="portal-label mb-2 block">Certificate (Base64 body — no BEGIN/END)</label>
                     <textarea readonly rows="6" class="admin-input font-mono text-xs" onclick="this.select()">{{ $ssoCertificate }}</textarea>
                 </div>
                 <p class="portal-body-muted text-xs leading-relaxed">
-                    SuperOps Client SSO → paste Login URL + certificate → Save / enable. Logout URL can stay empty.
-                    Then assign users (Free: Sync now; P1: group on SSO app).
+                    SuperOps → paste Login URL + certificate → Save / enable. Then portal Sync now (Free) or group assign (P1).
                 </p>
             </div>
         @endif
     </div>
 @elseif(isset($client) && $client->exists && filled($client->entra_tenant_id) && blank($client->entra_superops_sso_app_id))
-    <p class="portal-body-muted mt-6 text-xs">
-        Re-run Entra bootstrap so Client SSO Application (client) ID is saved — then SAML configure appears here.
+    <p class="portal-body-muted @if(! $inStep) mt-6 @endif text-xs">
+        Re-run Entra bootstrap so Client SSO Application (client) ID is saved — then this form appears.
     </p>
 @endif
