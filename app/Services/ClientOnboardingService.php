@@ -566,99 +566,79 @@ class ClientOnboardingService
      */
     private function scimProvisioningGuide(string $clientName, string $groupName, string $appName, bool $usesGroupScim): array
     {
-        $sections = [
-            OnboardingManual::section(
-                'Paste SuperOps SCIM tokens into the auto-created app',
-                $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
-                [
-                    'Finish **step 05** first (SuperOps Generate Tokens) if you have not already.',
-                    ...$this->openCustomerAzureSteps($clientName),
-                    'Azure top search → **Microsoft Entra ID** → open it.',
-                    'Left **Manage** → **Enterprise applications** → open **'.$appName.'**.',
-                    'App **Manage** → **Provisioning** → mode **Automatic**.',
-                    'Expand **Admin Credentials** → paste SuperOps Tenant URL + Secret Token → **Test Connection** → **Save**.',
-                ],
-            ),
-            OnboardingManual::section(
-                'Edit SCIM attribute mappings',
-                $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
-                [
-                    'Still on **'.$appName.'** → **Provisioning**.',
-                    'Under Provisioning, open **Attribute mapping** (sometimes labelled **Mappings**).',
-                    'Click **Provision Microsoft Entra ID Users**.',
-                    'For **name.givenName**: click the row → Mapping type **Direct** → Source attribute **givenName** → Apply this mapping **Always** → OK.',
-                    'For **name.familyName**: click the row → Mapping type **Direct** (delete any Expression if present) → Source attribute **extensionAttribute1** → Default if null **[surname]** → Apply **Always** → OK.',
-                    'For **name.formatted**: click the row → Mapping type **Direct** → Source attribute **displayName** → Apply **Always** → OK.',
-                    'Do **not** paste an Expression into “Default value if null” on a Direct mapping — it will not run.',
-                    'Click **Save** at the top of the attribute mapping page.',
-                ],
-            ),
-            OnboardingManual::section(
-                'App role Value User (usually automatic)',
-                $this->customerAzureWhere($clientName, 'Manage → App registrations → '.$appName.' → App roles'),
-                [
-                    'Connect Microsoft creates App role **User** automatically. Skip this unless Sync now errors about app roles.',
-                    'Still in tenant **'.$clientName.'** if you must fix manually.',
-                    'Entra left **Manage** → **App registrations** → **'.$appName.'** → **App roles** → Value **User** enabled.',
-                ],
-            ),
-        ];
-
-        if ($usesGroupScim) {
-            $sections[] = OnboardingManual::section(
-                'Assign Portal group to the enterprise app',
-                $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Users and groups'),
-                [
-                    'Still in tenant **'.$clientName.'**.',
-                    'Entra left **Manage** → **Enterprise applications** → **'.$appName.'**.',
-                    'App left menu → **Manage** → **Users and groups**.',
-                    'Click **Add user/group**.',
-                    'Under Users and groups → **None Selected** → open **Groups**.',
-                    'Select **'.$groupName.'** → **Select** → **Assign**.',
-                ],
-            );
-        } else {
-            $sections[] = OnboardingManual::section(
-                'Copy Application (client) ID into this portal (Entra Free)',
-                'Azure App registrations Overview → then https://app.onit.ltd Edit Client (left)',
-                [
-                    'Still in tenant **'.$clientName.'**.',
-                    'Entra left **Manage** → **App registrations** → **All applications**.',
-                    'Search **'.$appName.'** → open it.',
-                    'Stay on **Overview**.',
-                    'Copy **Application (client) ID** (GUID under that exact label).',
-                    'Do **not** copy **Object ID** on the same page.',
-                    'Return to this portal tab: **Admin → Clients → Edit '.$clientName.'**.',
-                    'Left column → **SuperOps Application (client) ID** → paste.',
-                    'Click orange **Save client** (left).',
-                ],
-            );
-        }
-
-        $sections[] = OnboardingManual::section(
-            'Start provisioning in Azure',
-            $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
-            [
-                'Still in tenant **'.$clientName.'**.',
-                'Entra left **Manage** → **Enterprise applications** → **'.$appName.'** → app **Manage** → **Provisioning**.',
-                'Click toolbar **Start provisioning**.',
-                'Confirm the status shows provisioning is on / started.',
-                'Tick **Mark this step complete** — saves automatically (or **Save checklist**). Not **Save client**.',
-            ],
-        );
-
         return OnboardingManual::build(
             notes: [
-                'Connect Microsoft already creates **'.$appName.'**, App role User, and P1 group assignment when possible. This step is SuperOps tokens + SCIM mapping + Start.',
+                'Preferred: left form → **Push SuperOps SCIM to Entra** — paste SuperOps Tenant URL + Secret once → **Apply SCIM credentials + start**. Secret is not stored in the portal.',
+                'Connect Microsoft already creates **'.$appName.'**, App role User, and P1 group assignment when possible.',
                 $usesGroupScim
                     ? 'P1: group assign is usually already Done after Connect.'
                     : 'Free: Application (client) ID is usually already on the left after Connect.',
             ],
-            sections: $sections,
-            verify: [
+            sections: [
+                OnboardingManual::section(
+                    'Apply tokens from this portal (preferred)',
+                    'https://app.onit.ltd → Admin → Clients → Edit '.$clientName.' (left)',
+                    [
+                        'Generate tokens in SuperOps (step 05) if you have not already.',
+                        'On this page left: **Push SuperOps SCIM to Entra**.',
+                        'Paste SuperOps **Tenant URL** and **Secret Token**.',
+                        'Click **Apply SCIM credentials + start**.',
+                        'Portal writes credentials into Entra app **'.$appName.'** and starts provisioning.',
+                        'Steps 05–07 mark complete automatically when Apply succeeds.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Only if Apply fails — paste in Azure',
+                    $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
+                    [
+                        'Finish **step 05** first (SuperOps Generate Tokens) if you have not already.',
+                        ...$this->openCustomerAzureSteps($clientName),
+                        'Azure top search → **Microsoft Entra ID** → open it.',
+                        'Left **Manage** → **Enterprise applications** → open **'.$appName.'**.',
+                        'App **Manage** → **Provisioning** → mode **Automatic**.',
+                        'Expand **Admin Credentials** → paste SuperOps Tenant URL + Secret Token → **Test Connection** → **Save**.',
+                        'Click toolbar **Start provisioning**.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'Edit SCIM attribute mappings (once per client if names wrong)',
+                    $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
+                    [
+                        'Still on **'.$appName.'** → **Provisioning**.',
+                        'Under Provisioning, open **Attribute mapping** (sometimes labelled **Mappings**).',
+                        'Click **Provision Microsoft Entra ID Users**.',
+                        'For **name.givenName**: Mapping type **Direct** → Source **givenName** → Always → OK.',
+                        'For **name.familyName**: Mapping type **Direct** → Source **extensionAttribute1** → Default if null **[surname]** → Always → OK.',
+                        'For **name.formatted**: Mapping type **Direct** → Source **displayName** → Always → OK.',
+                        'Save mappings at the top of the attribute mapping page.',
+                    ],
+                ),
+                OnboardingManual::section(
+                    'App role Value User (usually automatic)',
+                    $this->customerAzureWhere($clientName, 'Manage → App registrations → '.$appName.' → App roles'),
+                    [
+                        'Connect Microsoft creates App role **User** automatically. Skip unless Sync now errors about app roles.',
+                        'If missing: App registrations → **'.$appName.'** → **App roles** → Value **User** enabled.',
+                    ],
+                ),
                 $usesGroupScim
-                    ? 'Tokens tested, mappings saved, group assigned, provisioning started.'
-                    : 'Tokens tested, mappings saved, SuperOps Application (client) ID on portal, provisioning started.',
+                    ? OnboardingManual::section(
+                        'Assign Portal group to the enterprise app',
+                        $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Users and groups'),
+                        [
+                            'Usually Done after Connect. If not: **Users and groups** → Add → **'.$groupName.'** → Assign.',
+                        ],
+                    )
+                    : OnboardingManual::section(
+                        'Application (client) ID on portal (Entra Free)',
+                        'https://app.onit.ltd Edit Client left',
+                        [
+                            'Usually already filled after Connect as **SCIM Application (client) ID**. Confirm it matches App registrations → **'.$appName.'**.',
+                        ],
+                    ),
+            ],
+            verify: [
+                'Left **Apply SCIM** succeeded (or Azure Provisioning shows On), steps 05–07 Done.',
             ],
         );
     }

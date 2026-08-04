@@ -64,6 +64,10 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 #### 2b. Customer Entra — create app and SCIM
 
+**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal uses Graph (`Synchronization.ReadWrite.All`) to write secrets and start the job. Secret is **not** stored on the portal.
+
+**Fallback (Azure UI):**
+
 1. **Entra ID → Enterprise applications → New application**
 2. Non-gallery: `SuperOps - {Company}` → Create
 3. **Provisioning** → Automatic

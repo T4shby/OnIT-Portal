@@ -1432,6 +1432,217 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Ensure a SCIM provisioning job exists, write SuperOps Tenant URL + secret into Entra,
+     * then start the job. Secret is never stored in our database.
+     *
+     * @return array{jobId: string, servicePrincipalId: string, started: bool, details: list<string>}
+     */
+    public function applySuperOpsScimCredentials(
+        string $tenantId,
+        string $entraSuperopsAppId,
+        string $scimTenantUrl,
+        string $scimSecretToken,
+    ): array {
+        $tenantId = strtolower(trim($tenantId));
+        $scimTenantUrl = rtrim(trim($scimTenantUrl), '/');
+        $scimSecretToken = trim($scimSecretToken);
+        $details = [];
+
+        if ($scimTenantUrl === '' || $scimSecretToken === '') {
+            throw new RuntimeException('SuperOps SCIM Tenant URL and Secret Token are required.');
+        }
+
+        $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $entraSuperopsAppId);
+        $details[] = 'Service principal resolved';
+
+        $jobId = $this->ensureScimSynchronizationJob($tenantId, $servicePrincipalId);
+        $details[] = 'Provisioning job: '.$jobId;
+
+        $this->putScimSynchronizationSecrets($tenantId, $servicePrincipalId, $scimTenantUrl, $scimSecretToken);
+        $details[] = 'SCIM BaseAddress + SecretToken written to Entra';
+
+        $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
+        $details[] = $started
+            ? 'Start provisioning requested'
+            : 'Job credentials saved — Start provisioning may already be running (check Entra if needed)';
+
+        $this->clearSuperOpsScimProvisioningContextCache($tenantId, $servicePrincipalId);
+
+        return [
+            'jobId' => $jobId,
+            'servicePrincipalId' => $servicePrincipalId,
+            'started' => $started,
+            'details' => $details,
+        ];
+    }
+
+    private function ensureScimSynchronizationJob(string $tenantId, string $servicePrincipalId): string
+    {
+        $jobsResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
+        );
+
+        if ($jobsResponse->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot manage Entra provisioning — add Synchronization.ReadWrite.All '
+                .'on OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry.'
+            );
+        }
+
+        if ($jobsResponse->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph list provisioning jobs failed: '.$jobsResponse->status().' '.$jobsResponse->body()
+            );
+        }
+
+        $jobs = $jobsResponse->json('value') ?? [];
+        $existingId = $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
+
+        if ($existingId !== '') {
+            return $existingId;
+        }
+
+        $templateId = $this->pickScimSynchronizationTemplateId($tenantId, $servicePrincipalId);
+
+        $create = $this->graphPost(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
+            ['templateId' => $templateId],
+        );
+
+        if ($create->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot create a SCIM provisioning job — Synchronization.ReadWrite.All missing or not consented.'
+            );
+        }
+
+        if ($create->failed() || empty($create->json('id'))) {
+            throw new RuntimeException(
+                'Microsoft Graph create SCIM provisioning job failed: '.$create->status().' '.$create->body()
+            );
+        }
+
+        return (string) $create->json('id');
+    }
+
+    private function pickScimSynchronizationTemplateId(string $tenantId, string $servicePrincipalId): string
+    {
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/templates",
+        );
+
+        if ($response->successful()) {
+            $templates = $response->json('value') ?? [];
+            $best = null;
+            $bestScore = PHP_INT_MIN;
+
+            foreach (is_array($templates) ? $templates : [] as $template) {
+                $id = (string) ($template['id'] ?? '');
+                if ($id === '') {
+                    continue;
+                }
+
+                $name = strtolower((string) ($template['metadata']['applicationId'] ?? $template['id'] ?? ''));
+                $score = 0;
+
+                if (str_contains(strtolower($id), 'scim') || str_contains($name, 'scim')) {
+                    $score += 50;
+                }
+                if (str_contains(strtolower($id), 'custom')) {
+                    $score += 20;
+                }
+                // Prefer outbound / user provisioning templates when labeled.
+                if (str_contains(strtolower(json_encode($template)), 'user')) {
+                    $score += 5;
+                }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $id;
+                }
+            }
+
+            if ($best !== null) {
+                return $best;
+            }
+
+            $first = is_array($templates) ? ($templates[0]['id'] ?? null) : null;
+            if (filled($first)) {
+                return (string) $first;
+            }
+        }
+
+        // Non-gallery SCIM apps commonly use this built-in template id when the list is empty.
+        return 'customappsso';
+    }
+
+    private function putScimSynchronizationSecrets(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $scimTenantUrl,
+        string $scimSecretToken,
+    ): void {
+        $response = $this->graphPut($tenantId, "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/secrets", [
+            'value' => [
+                ['key' => 'BaseAddress', 'value' => $scimTenantUrl],
+                ['key' => 'SecretToken', 'value' => $scimSecretToken],
+                ['key' => 'SyncNotificationSettings', 'value' => '{"Enabled":false,"DeleteThresholdEnabled":false}'],
+                // Scope to assigned users/groups (matches Free + portal app assign / P1 group assign).
+                ['key' => 'SyncAll', 'value' => 'false'],
+            ],
+        ]);
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot write SCIM secrets — Synchronization.ReadWrite.All missing or not consented in this customer tenant.'
+            );
+        }
+
+        if ($response->failed() && $response->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph write SCIM secrets failed: '.$response->status().' '.$response->body()
+            );
+        }
+    }
+
+    private function startScimSynchronizationJob(string $tenantId, string $servicePrincipalId, string $jobId): bool
+    {
+        $response = $this->graphPost(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/start",
+        );
+
+        // 204 = started; 400 already active is also OK
+        if ($response->status() === 204 || $response->successful()) {
+            return true;
+        }
+
+        if ($response->status() === 400 && (
+            str_contains($response->body(), 'already')
+            || str_contains(strtolower($response->body()), 'active')
+        )) {
+            return true;
+        }
+
+        if ($response->status() === 403) {
+            throw new RuntimeException(
+                'Microsoft Graph cannot start SCIM provisioning — Synchronization.ReadWrite.All missing or not consented.'
+            );
+        }
+
+        Log::warning('Microsoft Graph start SCIM job non-success', [
+            'tenant_id' => $tenantId,
+            'job_id' => $jobId,
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        return false;
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $jobs
      */
     private function pickSynchronizationJobId(array $jobs): string
@@ -1554,6 +1765,20 @@ class MicrosoftGraphClient
 
         if ($this->shouldRefreshTokenOnResponse($response)) {
             $response = $this->request($tenantId, refreshToken: true)->get($url, $query);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function graphPut(string $tenantId, string $url, array $data = []): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request($tenantId)->put($url, $data);
+
+        if ($this->shouldRefreshTokenOnResponse($response)) {
+            $response = $this->request($tenantId, refreshToken: true)->put($url, $data);
         }
 
         return $response;

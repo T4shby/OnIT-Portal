@@ -82,6 +82,9 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.onboarding.update');
             Route::post('clients/{client}/bootstrap-entra', [ClientController::class, 'bootstrapEntra'])
                 ->name('clients.bootstrap-entra');
+            Route::post('clients/{client}/apply-scim', [ClientController::class, 'applyScim'])
+                ->middleware('throttle:10,1')
+                ->name('clients.apply-scim');
             Route::get('clients/{client}/users', [UserController::class, 'forClient'])
                 ->name('clients.users.index');
             Route::get('users', [UserController::class, 'index'])->name('users.index');

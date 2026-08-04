@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ApplySuperOpsScimRequest;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
@@ -272,6 +273,61 @@ class ClientController extends Controller
         }
 
         return $redirect;
+    }
+
+    public function applyScim(ApplySuperOpsScimRequest $request, Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_app_id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'Connect Microsoft first so Tenant ID and SuperOps SCIM Application (client) ID are saved.');
+        }
+
+        try {
+            $result = app(\App\Services\EntraSync\MicrosoftGraphClient::class)
+                ->applySuperOpsScimCredentials(
+                    $client->entra_tenant_id,
+                    $client->entra_superops_app_id,
+                    $request->validated('scim_tenant_url'),
+                    $request->validated('scim_secret_token'),
+                );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('admin.clients.edit', $client)
+                ->withInput($request->except('scim_secret_token'))
+                ->with('error', 'Could not push SCIM credentials to Entra: '.$e->getMessage());
+        }
+
+        $this->onboarding->updateChecklist($client, [
+            'superops_scim_tokens' => true,
+            'superops_scim_app' => true,
+            'superops_scim_provisioning' => true,
+        ]);
+
+        $this->activityLog->log(
+            'client.scim_credentials_applied',
+            $client,
+            properties: [
+                'job_id' => $result['jobId'],
+                'started' => $result['started'],
+                'details' => $result['details'],
+                // Never log secret or full SCIM URL with embeddable tokens.
+                'scim_host' => parse_url($request->validated('scim_tenant_url'), PHP_URL_HOST),
+            ],
+            clientId: $client->id,
+        );
+
+        $message = 'SuperOps SCIM credentials written to Entra and provisioning start requested.';
+        if ($result['details'] !== []) {
+            $message .= ' '.implode(' · ', $result['details']);
+        }
+        $message .= ' Optional: confirm name.familyName → extensionAttribute1 Direct mapping if requester last names look wrong.';
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', $message)
+            ->with('warning', 'Still required for Client SSO: SuperOps Client SSO configuration + SAML Identifier / Reply URL / Login URL + cert (step 08).');
     }
 
     public function destroy(Client $client): RedirectResponse

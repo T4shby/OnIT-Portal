@@ -185,8 +185,7 @@ class CustomerEntraBootstrapService
             $warnings[] = 'Client SSO Entra app not ready: '.$e->getMessage();
         }
 
-        $warnings[] = 'Still required in SuperOps: SCIM Generate Tokens → paste into SCIM app Provisioning, then Start provisioning (step 05–07).';
-        $warnings[] = 'Still required for Client SSO: SuperOps Client SSO configuration + SAML Identifier / Reply URL / Login URL + cert (step 08).';
+        $warnings[] = 'Still required: paste SuperOps SCIM Tenant URL + Secret on Edit Client → **Apply SCIM credentials + start** (or Azure Provisioning). Then Client SSO SAML (step 08).';
 
         $client->update($fields);
         $client = $client->fresh();

@@ -43,9 +43,9 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
 | 03 | Connect Microsoft tenant | **Connect Microsoft tenant** → bootstrap | Tenant ID + group ID saved |
 | 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
-| 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tick complete |
+| 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tokens generated (copy ready) |
 | 06 | SuperOps SCIM app | Usually auto after Connect; confirm Application (client) ID left | App ID on portal |
-| 07 | SCIM tokens + mappings + start | Customer Azure Provisioning (paste SuperOps tokens) | Tick complete |
+| 07 | SCIM tokens + mappings + start | Portal left **Apply SCIM credentials + start** (or Azure Provisioning) | Apply succeeds / provisioning On |
 | 08 | Configure SuperOps Client SSO | SuperOps Client SSO + SAML on Entra app shell from Connect | Client SSO enabled |
 | 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
 | 10 | Run Dry run then Sync now | Portal left buttons → verify Azure group/logs + SuperOps Requesters | Last synced shows |
