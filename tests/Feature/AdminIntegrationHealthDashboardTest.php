@@ -41,10 +41,13 @@ class AdminIntegrationHealthDashboardTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Integration refresh health', false);
-        $response->assertSee('Live · updates every 5s', false);
+        $response->assertSee('Live · 5s', false);
+        $response->assertSee('Why isn\'t it resetting?', false);
+        $response->assertSee('Prewarm heartbeat', false);
         $response->assertSee('Acme Ltd', false);
         $response->assertSee('stuck', false);
         $response->assertSee('M365 directory', false);
+        $response->assertSee('flag=', false);
     }
 
     public function test_integration_health_fragment_endpoint_polls_for_admins(): void

@@ -41,6 +41,22 @@ Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
 
 **Live UI:** `/admin` polls `GET /admin/integration-health` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + queue pending card. No full-page F5 required while a sync runs.
 
+### Pipeline visibility (technician)
+
+When data looks “stuck”, the live panel answers **why** without SSH:
+
+| Panel | What it shows |
+|-------|----------------|
+| Prewarm heartbeat | Last `portal:prewarm-client-dashboards` time, SuperOps/other jobs queued that run, queue-deep skip |
+| Queue workers | pending / reserved / high / default / failed + worker-lag notice if jobs sit ≥90s with nothing reserved |
+| Why isn’t it resetting? | Auto notices (orphaned flags cleared, due SuperOps, aging, stuck, last failure text) |
+| Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
+| failed_jobs | Last failures with first error line |
+| Per-cell flags | `flag=Y/n · job=Y/n · res · jobAge` plus `rq ≥Xm · client ≤Xm` |
+| Status **due** | SuperOps past requeue age (default 10m) but under client window — waiting prewarm/workers (not silent OK) |
+
+Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
+
 **Entra sync visibility:** `SyncEntraClientJob::dispatchMarked()` sets `entra_sync.refresh_queued.{id}` **at dispatch time** (not only when the worker starts), so Active/Stuck shows **queued** immediately after Run Sync / Apply SCIM / artisan queue.
 
 **Orphaned “queued”:** health status is not cache-only. If `refresh_queued` is set but there is **no matching row in `jobs`** and the job has not started, the flag is cleared on the next health read (unique-job discard, killed worker, stale cache). Queue pending = 0 with Active/Stuck “queued” was this bug.
@@ -296,6 +312,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Integration Health pipeline panel: prewarm heartbeat, live jobs, flags, DUE status, blocker text |
 | 2026-08-05 | Client-friendly vs technician copy on Client Admin + M365 directory; SuperOps requeue at 10m (before 15m client note); Integration Health **aging** past SLA — reduces ~20m lag from 15+5 cadence |
 | 2026-08-05 | Technician Integration Health table on Admin Dashboard; dual queue workers; M365 directory/insights on `high`; clear stuck queue flags; no stale page-view auto-queue |
 | 2026-08-05 | Auto-reload browser every 8s while M365 directory / Client Admin refresh is in progress |

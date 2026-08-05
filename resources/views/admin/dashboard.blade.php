@@ -86,7 +86,13 @@
                         'high ' + (el.dataset.queueHigh || '0') +
                         ' · default ' + (el.dataset.queueDefault || '0') +
                         ' · failed ' + (el.dataset.queueFailed || '0') +
-                        formatOldest(el.dataset.queueOldest);
+                        formatOldest(el.dataset.queueOldest) +
+                        (el.dataset.dueCount && Number(el.dataset.dueCount) > 0
+                            ? ' · due ' + el.dataset.dueCount
+                            : '') +
+                        (el.dataset.agingCount && Number(el.dataset.agingCount) > 0
+                            ? ' · aging ' + el.dataset.agingCount
+                            : '');
                 }
             }
 

@@ -7,8 +7,10 @@ use App\Services\Dropsuite\DropsuiteClientMetricsService;
 use App\Services\Huntress\HuntressClientMetricsService;
 use App\Services\M365\M365DirectoryService;
 use App\Services\M365\M365InsightsService;
+use App\Services\Admin\IntegrationHealthService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -95,6 +97,16 @@ class PrewarmClientDashboardsCommand extends Command
         if ($queueDeep) {
             $this->warn("Optional prewarm skipped: {$pending} jobs already queued (max ".self::MAX_PENDING_BEFORE_OPTIONAL.').');
         }
+
+        // Heartbeat for Integration Health pipeline panel (technicians).
+        Cache::put(IntegrationHealthService::PREWARM_CACHE_KEY, [
+            'at' => now()->toIso8601String(),
+            'superops_queued' => $superOpsQueued,
+            'optional_queued' => $optionalQueued,
+            'clients' => $clientsProcessed,
+            'queue_deep' => $queueDeep,
+            'pending_before' => $pending,
+        ], now()->addDay());
 
         return self::SUCCESS;
     }

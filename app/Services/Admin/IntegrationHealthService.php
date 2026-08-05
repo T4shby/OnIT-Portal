@@ -9,13 +9,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Technician-only view of per-client background refresh health.
+ * Technician-only view of per-client background refresh health + pipeline visibility.
  * Not shown to client_admin / end customers.
  */
 class IntegrationHealthService
 {
     /** Consider a queued flag "stuck" after this many minutes. */
     public const STUCK_AFTER_MINUTES = 5;
+
+    public const PREWARM_CACHE_KEY = 'portal.prewarm.last_run';
 
     /**
      * Job class fragment used to match database queue payloads.
@@ -32,13 +34,20 @@ class IntegrationHealthService
     /**
      * @param  list<int>|null  $accessibleClientIds  empty = all clients (super admin)
      * @return array{
-     *     queue: array{pending: int, failed: int, high: int, default: int, oldest_pending_seconds: ?int},
+     *     queue: array<string, mixed>,
+     *     pipeline: array<string, mixed>,
+     *     notices: list<string>,
      *     clients: list<array<string, mixed>>,
      *     stuck_count: int,
+     *     aging_count: int,
+     *     due_count: int,
+     *     cleared_orphans: int,
      * }
      */
     public function overview(?array $accessibleClientIds = null): array
     {
+        $clearedOrphans = 0;
+
         $clients = Client::query()
             ->where('is_active', true)
             ->when(
@@ -48,18 +57,41 @@ class IntegrationHealthService
             ->orderBy('name')
             ->get();
 
-        $rows = $clients->map(fn (Client $client): array => $this->clientRow($client))->values()->all();
+        $rows = $clients->map(function (Client $client) use (&$clearedOrphans): array {
+            return $this->clientRow($client, $clearedOrphans);
+        })->values()->all();
+
         $stuckCount = collect($rows)->where('is_stuck', true)->count();
+        $agingCount = collect($rows)->sum(fn (array $row): int => (int) ($row['aging_count'] ?? 0));
+        $dueCount = collect($rows)->sum(fn (array $row): int => (int) ($row['due_count'] ?? 0));
+
+        $queue = $this->queueSummary();
+        $pipeline = $this->pipelineSummary($queue);
+        $notices = $this->buildNotices($pipeline, $rows, $clearedOrphans, $stuckCount, $agingCount, $dueCount);
 
         return [
-            'queue' => $this->queueSummary(),
+            'queue' => $queue,
+            'pipeline' => $pipeline,
+            'notices' => $notices,
             'clients' => $rows,
             'stuck_count' => $stuckCount,
+            'aging_count' => $agingCount,
+            'due_count' => $dueCount,
+            'cleared_orphans' => $clearedOrphans,
         ];
     }
 
     /**
-     * @return array{pending: int, failed: int, high: int, default: int, oldest_pending_seconds: ?int}
+     * @return array{
+     *     pending: int,
+     *     failed: int,
+     *     high: int,
+     *     default: int,
+     *     reserved: int,
+     *     oldest_pending_seconds: ?int,
+     *     jobs: list<array<string, mixed>>,
+     *     recent_failures: list<array<string, mixed>>,
+     * }
      */
     public function queueSummary(): array
     {
@@ -69,13 +101,17 @@ class IntegrationHealthService
                 'failed' => 0,
                 'high' => 0,
                 'default' => 0,
+                'reserved' => 0,
                 'oldest_pending_seconds' => null,
+                'jobs' => [],
+                'recent_failures' => [],
             ];
         }
 
         $pending = (int) DB::table('jobs')->count();
         $high = (int) DB::table('jobs')->where('queue', 'high')->count();
         $default = (int) DB::table('jobs')->where('queue', 'default')->count();
+        $reserved = (int) DB::table('jobs')->whereNotNull('reserved_at')->count();
         $oldest = DB::table('jobs')->min('created_at');
         $oldestSeconds = $oldest !== null ? max(0, time() - (int) $oldest) : null;
 
@@ -88,20 +124,133 @@ class IntegrationHealthService
             'failed' => $failed,
             'high' => $high,
             'default' => $default,
+            'reserved' => $reserved,
             'oldest_pending_seconds' => $oldestSeconds,
+            'jobs' => $this->listJobs(20),
+            'recent_failures' => $this->recentFailures(8),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $queue
+     * @return array<string, mixed>
+     */
+    private function pipelineSummary(array $queue): array
+    {
+        $prewarm = Cache::get(self::PREWARM_CACHE_KEY);
+        $prewarmAt = is_array($prewarm) && filled($prewarm['at'] ?? null)
+            ? Carbon::parse($prewarm['at'])
+            : null;
+        $prewarmAgeSeconds = $prewarmAt?->diffInSeconds(now());
+        $prewarmAgeMinutes = $prewarmAgeSeconds !== null ? (int) round($prewarmAgeSeconds / 60) : null;
+
+        $superOpsRequeueAfter = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
+        $superOpsClientWindow = max(1, (int) config('services.superops.dashboard_cache_minutes', 15));
+
+        // Workers: if jobs sit >90s and nothing reserved, workers are likely not draining.
+        $workerLagSuspect = ($queue['pending'] ?? 0) > 0
+            && ($queue['reserved'] ?? 0) === 0
+            && ($queue['oldest_pending_seconds'] ?? 0) >= 90;
+
+        return [
+            'generated_at' => now(),
+            'superops_requeue_after_minutes' => $superOpsRequeueAfter,
+            'superops_client_window_minutes' => $superOpsClientWindow,
+            'prewarm' => [
+                'last_at' => $prewarmAt,
+                'age_minutes' => $prewarmAgeMinutes,
+                'superops_queued' => is_array($prewarm) ? (int) ($prewarm['superops_queued'] ?? 0) : null,
+                'optional_queued' => is_array($prewarm) ? (int) ($prewarm['optional_queued'] ?? 0) : null,
+                'clients' => is_array($prewarm) ? (int) ($prewarm['clients'] ?? 0) : null,
+                'queue_deep' => is_array($prewarm) ? (bool) ($prewarm['queue_deep'] ?? false) : null,
+                'pending_before' => is_array($prewarm) ? (int) ($prewarm['pending_before'] ?? 0) : null,
+                'interval_minutes' => 5,
+                'overdue' => $prewarmAgeMinutes !== null && $prewarmAgeMinutes > 7,
+                'never_ran' => $prewarmAt === null,
+            ],
+            'workers' => [
+                'expect' => 'cron every minute · queue:work --queue=high,default --stop-when-empty --max-time=55 ×2',
+                'lag_suspect' => $workerLagSuspect,
+                'reserved' => (int) ($queue['reserved'] ?? 0),
+                'pending' => (int) ($queue['pending'] ?? 0),
+                'oldest_pending_seconds' => $queue['oldest_pending_seconds'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $pipeline
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<string>
+     */
+    private function buildNotices(
+        array $pipeline,
+        array $rows,
+        int $clearedOrphans,
+        int $stuckCount,
+        int $agingCount,
+        int $dueCount,
+    ): array {
+        $notices = [];
+
+        if ($pipeline['prewarm']['never_ran'] ?? false) {
+            $notices[] = 'Prewarm has never recorded a run. Scheduler may not be executing portal:prewarm-client-dashboards.';
+        } elseif ($pipeline['prewarm']['overdue'] ?? false) {
+            $age = $pipeline['prewarm']['age_minutes'] ?? '?';
+            $notices[] = "Prewarm last ran {$age}m ago (expect ≤5–7m). Scheduler / schedule:run may be missing ticks.";
+        }
+
+        if ($pipeline['workers']['lag_suspect'] ?? false) {
+            $oldest = $pipeline['workers']['oldest_pending_seconds'] ?? 0;
+            $pending = $pipeline['workers']['pending'] ?? 0;
+            $notices[] = "Queue has {$pending} job(s) sitting ≥90s with none reserved — workers are not draining (cron queue:work / max-time stacking). Oldest pending ~".(int) round($oldest / 60).'m.';
+        }
+
+        if ($clearedOrphans > 0) {
+            $notices[] = "Cleared {$clearedOrphans} orphaned refresh_queued flag(s) this poll (flag set, no matching jobs row).";
+        }
+
+        if ($stuckCount > 0) {
+            $notices[] = "{$stuckCount} client integration(s) stuck (started >".self::STUCK_AFTER_MINUTES.'m).';
+        }
+
+        if ($agingCount > 0) {
+            $notices[] = "{$agingCount} integration cell(s) past client freshness target (AGING).";
+        }
+
+        if ($dueCount > 0) {
+            $requeue = $pipeline['superops_requeue_after_minutes'] ?? 10;
+            $notices[] = "{$dueCount} SuperOps cell(s) DUE for requeue (age ≥{$requeue}m) but not yet running — waiting for prewarm and/or workers.";
+        }
+
+        foreach ($rows as $row) {
+            foreach ($row['integrations'] as $cell) {
+                if (($cell['status'] ?? '') === 'queued' && empty($cell['job_in_db'])) {
+                    $notices[] = "{$row['client_name']} · {$cell['label']}: cache says queued but no jobs row (race or unique discard).";
+                }
+                if (($cell['status'] ?? '') === 'failed' && filled($cell['error'] ?? null)) {
+                    $notices[] = "{$row['client_name']} · {$cell['label']}: last run failed — {$cell['error']}";
+                }
+            }
+        }
+
+        if ($notices === []) {
+            $notices[] = 'No pipeline blockers detected on this poll.';
+        }
+
+        return array_values(array_unique($notices));
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function clientRow(Client $client): array
+    public function clientRow(Client $client, int &$clearedOrphans = 0): array
     {
         $integrations = [
-            $this->superOps($client),
-            $this->m365Directory($client),
-            $this->m365Insights($client),
-            $this->entraSync($client),
+            $this->superOps($client, $clearedOrphans),
+            $this->m365Directory($client, $clearedOrphans),
+            $this->m365Insights($client, $clearedOrphans),
+            $this->entraSync($client, $clearedOrphans),
         ];
 
         $active = collect($integrations)->first(
@@ -112,10 +261,18 @@ class IntegrationHealthService
             fn (array $row): bool => ($row['status'] ?? '') === 'stuck',
         );
 
+        $agingCount = collect($integrations)->where('status', 'aging')->count();
+        $dueCount = collect($integrations)->where('status', 'due')->count();
+
         $worstAgeMinutes = collect($integrations)
             ->pluck('age_minutes')
             ->filter(fn ($v) => $v !== null)
             ->max();
+
+        $blockers = collect($integrations)
+            ->flatMap(fn (array $cell): array => $cell['blockers'] ?? [])
+            ->values()
+            ->all();
 
         return [
             'client_id' => $client->id,
@@ -125,14 +282,17 @@ class IntegrationHealthService
             'active_status' => $active['status'] ?? null,
             'active_detail' => $active['detail'] ?? null,
             'worst_age_minutes' => $worstAgeMinutes,
+            'aging_count' => $agingCount,
+            'due_count' => $dueCount,
+            'blockers' => $blockers,
             'integrations' => $integrations,
         ];
     }
 
     /**
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return array<string, mixed>
      */
-    private function superOps(Client $client): array
+    private function superOps(Client $client, int &$clearedOrphans): array
     {
         if (! filled($client->superops_account_id)) {
             return $this->disabled('superops', 'SuperOps dashboard', 'Not linked');
@@ -143,6 +303,8 @@ class IntegrationHealthService
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
         $result = Cache::get('superops_dashboard.last_result.'.$client->id);
+        $requeueAfter = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
+        $clientWindow = max(1, (int) config('services.superops.dashboard_cache_minutes', 15));
 
         return $this->integrationStatus(
             key: 'superops',
@@ -153,13 +315,16 @@ class IntegrationHealthService
             lastSuccessAt: $last,
             lastResult: is_array($result) ? $result : null,
             processHint: 'RefreshSuperOpsDashboardJob (GraphQL tickets + assets)',
+            requeueAfterMinutes: $requeueAfter,
+            clientWindowMinutes: $clientWindow,
+            clearedOrphans: $clearedOrphans,
         );
     }
 
     /**
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return array<string, mixed>
      */
-    private function m365Directory(Client $client): array
+    private function m365Directory(Client $client, int &$clearedOrphans): array
     {
         if (! filled($client->entra_tenant_id)) {
             return $this->disabled('m365_directory', 'M365 directory', 'No Entra tenant');
@@ -170,6 +335,7 @@ class IntegrationHealthService
             ? Carbon::parse($meta['refreshed_at'])
             : null;
         $result = Cache::get('m365_directory.last_result.'.$client->id);
+        $window = max(1, (int) config('services.entra_sync.directory_cache_minutes', 15));
 
         return $this->integrationStatus(
             key: 'm365_directory',
@@ -180,13 +346,16 @@ class IntegrationHealthService
             lastSuccessAt: $last,
             lastResult: is_array($result) ? $result : null,
             processHint: 'RefreshM365DirectoryJob (users + licences + mailbox purpose + groups)',
+            requeueAfterMinutes: $window,
+            clientWindowMinutes: $window,
+            clearedOrphans: $clearedOrphans,
         );
     }
 
     /**
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return array<string, mixed>
      */
-    private function m365Insights(Client $client): array
+    private function m365Insights(Client $client, int &$clearedOrphans): array
     {
         if (! filled($client->entra_tenant_id)) {
             return $this->disabled('m365_insights', 'M365 licences', 'No Entra tenant');
@@ -199,6 +368,7 @@ class IntegrationHealthService
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
         $result = Cache::get('m365_insights.last_result.'.$client->id);
+        $window = max(1, (int) config('services.m365_insights.insights_cache_minutes', 15));
 
         return $this->integrationStatus(
             key: 'm365_insights',
@@ -209,13 +379,16 @@ class IntegrationHealthService
             lastSuccessAt: $last,
             lastResult: is_array($result) ? $result : null,
             processHint: 'RefreshM365InsightsJob (subscribedSkus)',
+            requeueAfterMinutes: $window,
+            clientWindowMinutes: $window,
+            clearedOrphans: $clearedOrphans,
         );
     }
 
     /**
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return array<string, mixed>
      */
-    private function entraSync(Client $client): array
+    private function entraSync(Client $client, int &$clearedOrphans): array
     {
         if (! $client->entra_sync_enabled || ! filled($client->entra_tenant_id)) {
             return $this->disabled('entra_sync', 'Entra portal sync', 'Sync off or no tenant');
@@ -233,12 +406,15 @@ class IntegrationHealthService
             lastSuccessAt: $last instanceof Carbon ? $last : (filled($last) ? Carbon::parse($last) : null),
             lastResult: is_array($result) ? $result : null,
             processHint: 'SyncEntraClientJob (users → portal + group + SCIM names)',
+            requeueAfterMinutes: 90,
+            clientWindowMinutes: 90,
+            clearedOrphans: $clearedOrphans,
         );
     }
 
     /**
      * @param  array<string, mixed>|null  $lastResult
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return array<string, mixed>
      */
     private function integrationStatus(
         string $key,
@@ -249,53 +425,83 @@ class IntegrationHealthService
         ?Carbon $lastSuccessAt,
         ?array $lastResult,
         string $processHint,
+        int $requeueAfterMinutes,
+        int $clientWindowMinutes,
+        int &$clearedOrphans,
     ): array {
-        $queued = Cache::has($queuedKey);
-        $startedAt = Cache::get($startedKey);
-        $started = filled($startedAt) ? Carbon::parse($startedAt) : null;
+        $flagQueued = Cache::has($queuedKey);
+        $startedAtRaw = Cache::get($startedKey);
+        $started = filled($startedAtRaw) ? Carbon::parse($startedAtRaw) : null;
+        $job = $this->findJob($key, $clientId);
+        $jobInDb = $job !== null;
         $durationMs = isset($lastResult['duration_ms']) ? (int) $lastResult['duration_ms'] : null;
         $error = is_string($lastResult['error'] ?? null) ? $lastResult['error'] : null;
+        $lastFailed = is_array($lastResult) && ($lastResult['success'] ?? true) === false;
+        $finishedAt = filled($lastResult['finished_at'] ?? null)
+            ? Carbon::parse($lastResult['finished_at'])
+            : null;
 
-        // Orphaned "queued" cache with nothing in jobs = phantom status (unique discard, killed worker, etc.)
-        if ($queued && $started === null && ! $this->jobPendingInDatabase($key, $clientId)) {
+        if ($flagQueued && $started === null && ! $jobInDb) {
             Cache::forget($queuedKey);
-            $queued = false;
-        }
-
-        $status = 'ok';
-        $detail = $processHint;
-        $slaMinutes = match ($key) {
-            'superops' => max(1, (int) config('services.superops.dashboard_cache_minutes', 15)),
-            'm365_directory' => max(1, (int) config('services.entra_sync.directory_cache_minutes', 15)),
-            'm365_insights' => max(1, (int) config('services.m365_insights.insights_cache_minutes', 15)),
-            'entra_sync' => 90, // hourly command — flag only if multi-hour lag
-            default => null,
-        };
-
-        if ($queued && $started) {
-            $runningFor = $started->diffInMinutes(now());
-            $status = $runningFor >= self::STUCK_AFTER_MINUTES ? 'stuck' : 'running';
-            $detail = $processHint.' · started '.$started->timezone('Europe/London')->format('H:i:s').' UK'
-                .' ('.$runningFor.' min)';
-        } elseif ($queued) {
-            $status = 'queued';
-            $detail = $processHint.' · waiting on queue worker';
-        } elseif ($lastSuccessAt === null) {
-            $status = 'cold';
-            $detail = 'No successful refresh stored yet';
-        } elseif ($error && ($lastResult['success'] ?? true) === false) {
-            $status = 'failed';
-            $detail = $error;
+            $flagQueued = false;
+            $clearedOrphans++;
         }
 
         $ageMinutes = $lastSuccessAt?->diffInMinutes(now());
         $ageRounded = $ageMinutes !== null ? (int) round($ageMinutes) : null;
-        $pastSla = $ageRounded !== null && $slaMinutes !== null && $ageRounded > $slaMinutes;
+        $dueForRequeue = $lastSuccessAt === null
+            || ($ageRounded !== null && $ageRounded >= $requeueAfterMinutes);
+        $pastClientWindow = $ageRounded !== null && $ageRounded > $clientWindowMinutes;
 
-        // Technical-only status: last success older than expected cadence, nothing currently running.
-        if ($status === 'ok' && $pastSla) {
+        $status = 'ok';
+        $detail = $processHint;
+
+        if ($flagQueued && $started) {
+            $runningFor = (int) round($started->diffInMinutes(now()));
+            $status = $runningFor >= self::STUCK_AFTER_MINUTES ? 'stuck' : 'running';
+            $detail = $processHint.' · started '.$started->timezone('Europe/London')->format('H:i:s').' UK'
+                .' ('.$runningFor.' min)';
+        } elseif ($flagQueued) {
+            $status = 'queued';
+            $wait = $job !== null && isset($job['age_seconds'])
+                ? ' in jobs for '.$job['age_seconds'].'s'
+                : '';
+            $detail = $processHint.' · waiting on queue worker'.$wait
+                .($job && $job['reserved'] ? ' (reserved)' : '');
+        } elseif ($lastSuccessAt === null) {
+            $status = 'cold';
+            $detail = 'No successful refresh stored yet';
+        } elseif ($lastFailed) {
+            $status = 'failed';
+            $detail = $error ?: 'Last refresh failed';
+        } elseif ($pastClientWindow) {
             $status = 'aging';
-            $detail = $processHint.' · past '.$slaMinutes.'m target ('.$ageRounded.'m ago)';
+            $detail = $processHint.' · past '.$clientWindowMinutes.'m client window ('.$ageRounded.'m ago)';
+        } elseif ($dueForRequeue && $key === 'superops') {
+            // Between requeue threshold and client window — will enqueue on next prewarm.
+            $status = 'due';
+            $detail = $processHint.' · requeue threshold '.$requeueAfterMinutes.'m hit (age '.$ageRounded.'m)'
+                .' · waiting for prewarm / workers';
+        }
+
+        $blockers = $this->buildBlockers(
+            status: $status,
+            label: $label,
+            ageRounded: $ageRounded,
+            requeueAfterMinutes: $requeueAfterMinutes,
+            clientWindowMinutes: $clientWindowMinutes,
+            flagQueued: $flagQueued,
+            started: $started,
+            job: $job,
+            lastFailed: $lastFailed,
+            error: $error,
+            finishedAt: $finishedAt,
+            dueForRequeue: $dueForRequeue,
+            key: $key,
+        );
+
+        if ($blockers !== [] && ! in_array($status, ['running', 'queued', 'stuck', 'failed', 'cold', 'disabled'], true)) {
+            $detail = implode(' · ', array_slice($blockers, 0, 2));
         }
 
         return [
@@ -304,36 +510,207 @@ class IntegrationHealthService
             'status' => $status,
             'last_success_at' => $lastSuccessAt,
             'age_minutes' => $ageRounded,
-            'sla_minutes' => $slaMinutes,
+            'sla_minutes' => $clientWindowMinutes,
+            'requeue_after_minutes' => $requeueAfterMinutes,
+            'due_for_requeue' => $dueForRequeue,
+            'flag_queued' => $flagQueued,
+            'job_in_db' => $jobInDb,
+            'job_reserved' => (bool) ($job['reserved'] ?? false),
+            'job_age_seconds' => $job['age_seconds'] ?? null,
+            'started_at' => $started,
+            'last_finished_at' => $finishedAt,
             'duration_ms' => $durationMs,
             'detail' => $detail,
             'error' => $error,
+            'blockers' => $blockers,
         ];
     }
 
     /**
-     * True if a matching job row still exists (pending or reserved).
+     * @param  array<string, mixed>|null  $job
+     * @return list<string>
      */
-    private function jobPendingInDatabase(string $integrationKey, int $clientId): bool
+    private function buildBlockers(
+        string $status,
+        string $label,
+        ?int $ageRounded,
+        int $requeueAfterMinutes,
+        int $clientWindowMinutes,
+        bool $flagQueued,
+        ?Carbon $started,
+        ?array $job,
+        bool $lastFailed,
+        ?string $error,
+        ?Carbon $finishedAt,
+        bool $dueForRequeue,
+        string $key,
+    ): array {
+        $lines = [];
+
+        if ($status === 'stuck') {
+            $lines[] = "{$label}: RUNNING >".self::STUCK_AFTER_MINUTES.'m — job likely hung or worker died mid-flight';
+        }
+
+        if ($status === 'queued') {
+            if ($job === null) {
+                $lines[] = "{$label}: flag=queued but no jobs row — unique discard / failed dispatch";
+            } elseif (! empty($job['reserved'])) {
+                $lines[] = "{$label}: reserved by a worker · wait ".$job['age_seconds'].'s · attempts '.$job['attempts'];
+            } else {
+                $lines[] = "{$label}: in {$job['queue']} queue · waiting ".$job['age_seconds'].'s for queue:work'
+                    .(($job['age_seconds'] ?? 0) >= 90 ? ' (WORKER LAG)' : '');
+            }
+        }
+
+        if ($status === 'due' || ($status === 'aging' && $dueForRequeue && ! $flagQueued && $job === null)) {
+            $lines[] = "{$label}: age {$ageRounded}m ≥ requeue {$requeueAfterMinutes}m · not queued · waiting prewarm (every 5m)";
+            if ($status === 'aging') {
+                $lines[] = "{$label}: also past client window {$clientWindowMinutes}m — clients may see soft note";
+            }
+        }
+
+        if ($status === 'cold') {
+            $lines[] = "{$label}: no successful cache yet — prewarm should enqueue cold job";
+        }
+
+        if ($lastFailed && $error) {
+            $lines[] = "{$label}: last error: {$error}"
+                .($finishedAt ? ' @ '.$finishedAt->timezone('Europe/London')->format('H:i:s').' UK' : '');
+        }
+
+        if ($flagQueued && $started === null && $job === null && $status !== 'queued') {
+            $lines[] = "{$label}: phantom flag cleared on this poll";
+        }
+
+        if ($key === 'superops' && $status === 'ok' && $ageRounded !== null && $ageRounded >= max(1, $requeueAfterMinutes - 2)) {
+            $lines[] = "{$label}: fine for now · next requeue when age ≥{$requeueAfterMinutes}m";
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findJob(string $integrationKey, int $clientId): ?array
     {
         if (! Schema::hasTable('jobs')) {
-            return false;
+            return null;
         }
 
         $hint = self::JOB_CLASS_HINT[$integrationKey] ?? null;
         if ($hint === null) {
-            return false;
+            return null;
         }
 
-        // Serialized job payload includes class name + public int $clientId.
-        return DB::table('jobs')
+        $row = DB::table('jobs')
             ->where('payload', 'like', '%'.$hint.'%')
             ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
-            ->exists();
+            ->orderBy('id')
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        return $this->formatJobRow($row);
     }
 
     /**
-     * @return array{key: string, label: string, status: string, last_success_at: ?Carbon, age_minutes: ?int, duration_ms: ?int, detail: ?string, error: ?string}
+     * @return list<array<string, mixed>>
+     */
+    private function listJobs(int $limit): array
+    {
+        if (! Schema::hasTable('jobs')) {
+            return [];
+        }
+
+        return DB::table('jobs')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => $this->formatJobRow($row))
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatJobRow(object $row): array
+    {
+        $payload = (string) ($row->payload ?? '');
+        $displayName = null;
+        if (preg_match('/"displayName"\s*:\s*"([^"]+)"/', $payload, $m)) {
+            $displayName = str_replace('\\\\', '\\', $m[1]);
+        } elseif (preg_match('/(Refresh\w+Job|Sync\w+Job)/', $payload, $m)) {
+            $displayName = $m[1];
+        }
+
+        $clientId = null;
+        if (preg_match('/clientId";i:(\d+);/', $payload, $m)) {
+            $clientId = (int) $m[1];
+        }
+
+        $created = (int) ($row->created_at ?? time());
+        $reservedAt = $row->reserved_at !== null ? (int) $row->reserved_at : null;
+
+        return [
+            'id' => (int) $row->id,
+            'queue' => (string) $row->queue,
+            'attempts' => (int) ($row->attempts ?? 0),
+            'job' => $displayName ?? 'UnknownJob',
+            'client_id' => $clientId,
+            'age_seconds' => max(0, time() - $created),
+            'reserved' => $reservedAt !== null,
+            'reserved_for_seconds' => $reservedAt !== null ? max(0, time() - $reservedAt) : null,
+            'available_at' => (int) ($row->available_at ?? $created),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function recentFailures(int $limit): array
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            return [];
+        }
+
+        return DB::table('failed_jobs')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(function ($row): array {
+                $payload = (string) ($row->payload ?? '');
+                $job = 'UnknownJob';
+                if (preg_match('/"displayName"\s*:\s*"([^"]+)"/', $payload, $m)) {
+                    $job = str_replace('\\\\', '\\', $m[1]);
+                } elseif (preg_match('/(Refresh\w+Job|Sync\w+Job)/', $payload, $m)) {
+                    $job = $m[1];
+                }
+
+                $clientId = null;
+                if (preg_match('/clientId";i:(\d+);/', $payload, $m)) {
+                    $clientId = (int) $m[1];
+                }
+
+                $exception = (string) ($row->exception ?? '');
+                $firstLine = trim(strtok($exception, "\n") ?: $exception);
+
+                return [
+                    'id' => (int) $row->id,
+                    'queue' => (string) ($row->queue ?? 'default'),
+                    'job' => class_basename($job),
+                    'client_id' => $clientId,
+                    'failed_at' => filled($row->failed_at ?? null) ? Carbon::parse($row->failed_at) : null,
+                    'error' => \Illuminate\Support\Str::limit($firstLine, 160),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
      */
     private function disabled(string $key, string $label, string $reason): array
     {
@@ -343,9 +720,19 @@ class IntegrationHealthService
             'status' => 'disabled',
             'last_success_at' => null,
             'age_minutes' => null,
+            'sla_minutes' => null,
+            'requeue_after_minutes' => null,
+            'due_for_requeue' => false,
+            'flag_queued' => false,
+            'job_in_db' => false,
+            'job_reserved' => false,
+            'job_age_seconds' => null,
+            'started_at' => null,
+            'last_finished_at' => null,
             'duration_ms' => null,
             'detail' => $reason,
             'error' => null,
+            'blockers' => [],
         ];
     }
 }

@@ -50,5 +50,37 @@ class IntegrationHealthServiceTest extends TestCase
         $this->assertSame('ok', $entra['status']);
         $this->assertFalse(Cache::has('entra_sync.refresh_queued.'.$client->id));
         $this->assertNull($overview['clients'][0]['active_process']);
+        $this->assertSame(1, $overview['cleared_orphans']);
+        $this->assertNotEmpty($overview['notices']);
+        $this->assertArrayHasKey('pipeline', $overview);
+        $this->assertArrayHasKey('prewarm', $overview['pipeline']);
+    }
+
+    public function test_marks_superops_due_when_past_requeue_before_client_window(): void
+    {
+        config([
+            'services.superops.dashboard_refresh_after_minutes' => 10,
+            'services.superops.dashboard_cache_minutes' => 15,
+        ]);
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'superops_account_id' => 'acc-1',
+        ]);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 3,
+            'last_refreshed_at' => now()->subMinutes(12)->toIso8601String(),
+        ], now()->addDay());
+
+        $overview = app(IntegrationHealthService::class)->overview();
+        $superOps = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'superops');
+
+        $this->assertSame('due', $superOps['status']);
+        $this->assertTrue($superOps['due_for_requeue']);
+        $this->assertSame(1, $overview['due_count']);
+        $this->assertNotEmpty($superOps['blockers']);
+        $this->assertFalse($superOps['flag_queued']);
+        $this->assertFalse($superOps['job_in_db']);
     }
 }

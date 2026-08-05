@@ -76,6 +76,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Integration Health pipeline visibility: prewarm heartbeat, jobs table, flags, due/aging/stuck blockers, auto notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Client vs technician refresh messaging; SuperOps requeue at 10m before 15m client window (stops ~20m “always stale”); Integration Health **aging** — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health reads M365 licence cache v3 (was stuck showing stale v2 timestamps) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | SuperOps stale refresh always prewarms; clear orphaned refresh_queued; workers max-time 55s (no stack); freshness 15m banner — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
