@@ -18,6 +18,18 @@ class IntegrationHealthService
     public const STUCK_AFTER_MINUTES = 5;
 
     /**
+     * Job class fragment used to match database queue payloads.
+     *
+     * @var array<string, string>
+     */
+    private const JOB_CLASS_HINT = [
+        'superops' => 'RefreshSuperOpsDashboardJob',
+        'm365_directory' => 'RefreshM365DirectoryJob',
+        'm365_insights' => 'RefreshM365InsightsJob',
+        'entra_sync' => 'SyncEntraClientJob',
+    ];
+
+    /**
      * @param  list<int>|null  $accessibleClientIds  empty = all clients (super admin)
      * @return array{
      *     queue: array{pending: int, failed: int, high: int, default: int, oldest_pending_seconds: ?int},
@@ -135,6 +147,7 @@ class IntegrationHealthService
         return $this->integrationStatus(
             key: 'superops',
             label: 'SuperOps dashboard',
+            clientId: $client->id,
             queuedKey: 'superops_dashboard.refresh_queued.'.$client->id,
             startedKey: 'superops_dashboard.refresh_started.'.$client->id,
             lastSuccessAt: $last,
@@ -161,6 +174,7 @@ class IntegrationHealthService
         return $this->integrationStatus(
             key: 'm365_directory',
             label: 'M365 directory',
+            clientId: $client->id,
             queuedKey: 'm365_directory.refresh_queued.'.$client->id,
             startedKey: 'm365_directory.refresh_started.'.$client->id,
             lastSuccessAt: $last,
@@ -188,6 +202,7 @@ class IntegrationHealthService
         return $this->integrationStatus(
             key: 'm365_insights',
             label: 'M365 licences',
+            clientId: $client->id,
             queuedKey: 'm365_insights.refresh_queued.'.$client->id,
             startedKey: 'm365_insights.refresh_started.'.$client->id,
             lastSuccessAt: $last,
@@ -211,6 +226,7 @@ class IntegrationHealthService
         return $this->integrationStatus(
             key: 'entra_sync',
             label: 'Entra portal sync',
+            clientId: $client->id,
             queuedKey: 'entra_sync.refresh_queued.'.$client->id,
             startedKey: 'entra_sync.refresh_started.'.$client->id,
             lastSuccessAt: $last instanceof Carbon ? $last : (filled($last) ? Carbon::parse($last) : null),
@@ -226,6 +242,7 @@ class IntegrationHealthService
     private function integrationStatus(
         string $key,
         string $label,
+        int $clientId,
         string $queuedKey,
         string $startedKey,
         ?Carbon $lastSuccessAt,
@@ -237,6 +254,12 @@ class IntegrationHealthService
         $started = filled($startedAt) ? Carbon::parse($startedAt) : null;
         $durationMs = isset($lastResult['duration_ms']) ? (int) $lastResult['duration_ms'] : null;
         $error = is_string($lastResult['error'] ?? null) ? $lastResult['error'] : null;
+
+        // Orphaned "queued" cache with nothing in jobs = phantom status (unique discard, killed worker, etc.)
+        if ($queued && $started === null && ! $this->jobPendingInDatabase($key, $clientId)) {
+            Cache::forget($queuedKey);
+            $queued = false;
+        }
 
         $status = 'ok';
         $detail = $processHint;
@@ -257,16 +280,39 @@ class IntegrationHealthService
             $detail = $error;
         }
 
+        $ageMinutes = $lastSuccessAt?->diffInMinutes(now());
+
         return [
             'key' => $key,
             'label' => $label,
             'status' => $status,
             'last_success_at' => $lastSuccessAt,
-            'age_minutes' => $lastSuccessAt?->diffInMinutes(now()),
+            'age_minutes' => $ageMinutes !== null ? (int) round($ageMinutes) : null,
             'duration_ms' => $durationMs,
             'detail' => $detail,
             'error' => $error,
         ];
+    }
+
+    /**
+     * True if a matching job row still exists (pending or reserved).
+     */
+    private function jobPendingInDatabase(string $integrationKey, int $clientId): bool
+    {
+        if (! Schema::hasTable('jobs')) {
+            return false;
+        }
+
+        $hint = self::JOB_CLASS_HINT[$integrationKey] ?? null;
+        if ($hint === null) {
+            return false;
+        }
+
+        // Serialized job payload includes class name + public int $clientId.
+        return DB::table('jobs')
+            ->where('payload', 'like', '%'.$hint.'%')
+            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
+            ->exists();
     }
 
     /**

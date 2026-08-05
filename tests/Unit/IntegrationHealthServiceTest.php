@@ -32,4 +32,23 @@ class IntegrationHealthServiceTest extends TestCase
         $this->assertTrue($overview['clients'][0]['is_stuck']);
         $this->assertSame('M365 directory', $overview['clients'][0]['active_process']);
     }
+
+    public function test_clears_orphaned_queued_flag_when_jobs_table_empty(): void
+    {
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'entra_sync_enabled' => true,
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_synced_at' => now()->subHour(),
+        ]);
+
+        Cache::put('entra_sync.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+
+        $overview = app(IntegrationHealthService::class)->overview();
+        $entra = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'entra_sync');
+
+        $this->assertSame('ok', $entra['status']);
+        $this->assertFalse(Cache::has('entra_sync.refresh_queued.'.$client->id));
+        $this->assertNull($overview['clients'][0]['active_process']);
+    }
 }

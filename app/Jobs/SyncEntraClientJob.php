@@ -29,6 +29,18 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
         public bool $dryRun = false,
     ) {}
 
+    /**
+     * Mark health dashboard immediately when the job is queued (not only when the worker starts).
+     * Health UI clears this flag if the jobs table has no matching row (orphan / unique discard).
+     */
+    public static function dispatchMarked(int $clientId, bool $dryRun = false): void
+    {
+        Cache::put('entra_sync.refresh_queued.'.$clientId, true, now()->addMinutes(10));
+        Cache::forget('entra_sync.refresh_started.'.$clientId);
+
+        self::dispatch($clientId, $dryRun);
+    }
+
     public function uniqueId(): string
     {
         return $this->clientId.($this->dryRun ? ':dry' : '');
@@ -46,7 +58,7 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
         }
 
         $started = microtime(true);
-        Cache::put('entra_sync.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('entra_sync.refresh_queued.'.$client->id, true, now()->addMinutes(10));
         Cache::put('entra_sync.refresh_started.'.$client->id, now()->toIso8601String(), now()->addMinutes(30));
 
         try {

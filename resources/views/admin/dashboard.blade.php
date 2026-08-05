@@ -16,8 +16,8 @@
         </x-card>
         <x-card>
             <p class="admin-stat-label">Queue pending</p>
-            <p class="admin-stat-value">{{ $integrationHealth['queue']['pending'] }}</p>
-            <p class="mt-2 text-xs text-white/50">
+            <p id="admin-queue-pending" class="admin-stat-value">{{ $integrationHealth['queue']['pending'] }}</p>
+            <p id="admin-queue-detail" class="mt-2 text-xs text-white/50">
                 high {{ $integrationHealth['queue']['high'] }}
                 · default {{ $integrationHealth['queue']['default'] }}
                 · failed {{ $integrationHealth['queue']['failed'] }}
@@ -28,92 +28,8 @@
         </x-card>
     </div>
 
-    {{-- Technician-only: per-client refresh health (not shown to client portal users) --}}
-    <div class="admin-table-wrap mb-8">
-        <div class="border-b border-white/10 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-                <h2 class="admin-section-title mb-0">Integration refresh health</h2>
-                <p class="text-xs text-white/50 mt-1">
-                    On IT technicians only — last successful refresh per client and what is queued / stuck.
-                    @if($integrationHealth['stuck_count'] > 0)
-                        <span class="text-amber-300">{{ $integrationHealth['stuck_count'] }} stuck</span>
-                    @endif
-                </p>
-            </div>
-            <a href="{{ route('admin.dashboard') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Reload</a>
-        </div>
-
-        @if(count($integrationHealth['clients']) === 0)
-            <div class="px-6 py-12"><x-empty-state title="No active clients" /></div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr>
-                            <th class="text-left">Client</th>
-                            <th class="text-left">SuperOps</th>
-                            <th class="text-left">M365 directory</th>
-                            <th class="text-left">M365 licences</th>
-                            <th class="text-left">Entra sync</th>
-                            <th class="text-left">Active / stuck</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($integrationHealth['clients'] as $row)
-                            @php
-                                $byKey = collect($row['integrations'])->keyBy('key');
-                                $statusClass = [
-                                    'ok' => 'text-emerald-400',
-                                    'cold' => 'text-white/40',
-                                    'queued' => 'text-sky-300',
-                                    'running' => 'text-onit',
-                                    'stuck' => 'text-amber-300',
-                                    'failed' => 'text-rose-400',
-                                    'disabled' => 'text-white/30',
-                                ];
-                            @endphp
-                            <tr class="{{ $row['is_stuck'] ? 'bg-amber-500/5' : '' }}">
-                                <td class="align-top">
-                                    <a href="{{ route('admin.clients.edit', $row['client_id']) }}" class="text-white hover:text-onit font-medium">
-                                        {{ $row['client_name'] }}
-                                    </a>
-                                </td>
-                                @foreach(['superops', 'm365_directory', 'm365_insights', 'entra_sync'] as $key)
-                                    @php $cell = $byKey[$key]; @endphp
-                                    <td class="align-top {{ $statusClass[$cell['status']] ?? 'text-white/60' }}">
-                                        <div class="font-medium uppercase text-[10px] tracking-wide">{{ $cell['status'] }}</div>
-                                        @if($cell['last_success_at'])
-                                            <div class="text-white/70">
-                                                {{ $cell['last_success_at']->timezone('Europe/London')->format('d M H:i') }} UK
-                                            </div>
-                                            <div class="text-white/40 text-xs">
-                                                {{ $cell['age_minutes'] }}m ago
-                                                @if($cell['duration_ms'] !== null)
-                                                    · last ran {{ number_format($cell['duration_ms'] / 1000, 1) }}s
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="text-white/40 text-xs">{{ $cell['detail'] }}</div>
-                                        @endif
-                                    </td>
-                                @endforeach
-                                <td class="align-top text-xs">
-                                    @if($row['active_process'])
-                                        <span class="{{ $row['is_stuck'] ? 'text-amber-300' : 'text-sky-300' }}">
-                                            {{ $row['active_process'] }}
-                                        </span>
-                                        <div class="text-white/50 mt-1 max-w-xs">{{ $row['active_detail'] }}</div>
-                                    @else
-                                        <span class="text-white/30">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
-    </div>
+    {{-- Technician-only: live-polled every 5s (not shown to client portal users) --}}
+    @include('admin.partials.integration-health')
 
     <div class="admin-table-wrap">
         <div class="border-b border-white/10 px-6 py-4">
@@ -142,4 +58,80 @@
             <div class="px-6 py-12"><x-empty-state title="No activity yet" /></div>
         @endif
     </div>
+
+    <script>
+        (function () {
+            var url = @json(route('admin.integration-health'));
+            var timer = null;
+
+            function formatOldest(seconds) {
+                if (seconds === '' || seconds === null || typeof seconds === 'undefined') {
+                    return '';
+                }
+                var mins = (Number(seconds) / 60).toFixed(1);
+                return ' · oldest ' + mins + 'm';
+            }
+
+            function applyQueueFrom(el) {
+                if (!el || !el.dataset) {
+                    return;
+                }
+                var pending = document.getElementById('admin-queue-pending');
+                var detail = document.getElementById('admin-queue-detail');
+                if (pending) {
+                    pending.textContent = el.dataset.queuePending || '0';
+                }
+                if (detail) {
+                    detail.textContent =
+                        'high ' + (el.dataset.queueHigh || '0') +
+                        ' · default ' + (el.dataset.queueDefault || '0') +
+                        ' · failed ' + (el.dataset.queueFailed || '0') +
+                        formatOldest(el.dataset.queueOldest);
+                }
+            }
+
+            function poll() {
+                fetch(url, {
+                    headers: {
+                        'Accept': 'text/html',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                })
+                    .then(function (res) {
+                        if (!res.ok) {
+                            throw new Error('health poll failed');
+                        }
+                        return res.text();
+                    })
+                    .then(function (html) {
+                        var wrap = document.createElement('div');
+                        wrap.innerHTML = html.trim();
+                        var next = wrap.firstElementChild;
+                        var current = document.getElementById('integration-health-live');
+                        if (!next || !current || !current.parentNode) {
+                            return;
+                        }
+                        current.parentNode.replaceChild(next, current);
+                        applyQueueFrom(next);
+                    })
+                    .catch(function () {
+                        /* keep last good snapshot */
+                    });
+            }
+
+            timer = setInterval(poll, 5000);
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    if (timer) {
+                        clearInterval(timer);
+                        timer = null;
+                    }
+                } else if (!timer) {
+                    poll();
+                    timer = setInterval(poll, 5000);
+                }
+            });
+        })();
+    </script>
 </x-admin-layout>

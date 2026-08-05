@@ -36,10 +36,30 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        $integrationHealth = $this->integrationHealth->overview(
-            empty($clientIds) ? null : $clientIds,
-        );
+        $integrationHealth = $this->healthOverviewFor($request);
 
         return view('admin.dashboard', compact('stats', 'recentActivity', 'integrationHealth'));
+    }
+
+    /**
+     * HTML fragment for live Integration Health polling (every ~5s on /admin).
+     */
+    public function integrationHealth(Request $request): View
+    {
+        return view('admin.partials.integration-health', [
+            'integrationHealth' => $this->healthOverviewFor($request),
+        ]);
+    }
+
+    /**
+     * @return array{queue: array<string, mixed>, clients: list<array<string, mixed>>, stuck_count: int}
+     */
+    private function healthOverviewFor(Request $request): array
+    {
+        $clientIds = $request->user()->accessibleClientIds();
+
+        return $this->integrationHealth->overview(
+            empty($clientIds) ? null : $clientIds,
+        );
     }
 }

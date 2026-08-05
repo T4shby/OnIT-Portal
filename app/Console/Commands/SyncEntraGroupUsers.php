@@ -71,7 +71,7 @@ class SyncEntraGroupUsers extends Command
         }
 
         foreach ($clients as $client) {
-            SyncEntraClientJob::dispatch($client->id, $dryRun);
+            SyncEntraClientJob::dispatchMarked($client->id, $dryRun);
             $this->info("Queued Entra sync for {$client->name} (#{$client->id}).");
         }
 

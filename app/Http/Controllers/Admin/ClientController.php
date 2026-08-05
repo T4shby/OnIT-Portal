@@ -166,11 +166,11 @@ class ClientController extends Controller
         }
 
         if ($dryRun) {
-            SyncEntraClientJob::dispatch($client->id, dryRun: true);
+            SyncEntraClientJob::dispatchMarked($client->id, dryRun: true);
 
             return back()->with(
                 'success',
-                'Dry run started in the background. Refresh this page in 1–2 minutes; the latest result is stored for this client.',
+                'Dry run started in the background. This Admin Dashboard updates live — Last synced appears when the job finishes.',
             );
         }
 
@@ -188,11 +188,11 @@ class ClientController extends Controller
 
         $lock->release();
 
-        SyncEntraClientJob::dispatch($client->id);
+        SyncEntraClientJob::dispatchMarked($client->id);
 
         return back()->with(
             'success',
-            'Entra sync started in the background. Refresh this page in 1–2 minutes to see Last synced update. Check Entra provisioning logs for each user.',
+            'Entra sync started in the background. Open Admin → Dashboard — Integration Health updates live while it runs.',
         );
     }
 
@@ -327,7 +327,7 @@ class ClientController extends Controller
             }
 
             Cache::put('entra_sync.in_flight.'.$client->id, true, now()->addMinutes(15));
-            SyncEntraClientJob::dispatch($client->id, dryRun: false);
+            SyncEntraClientJob::dispatchMarked($client->id, dryRun: false);
             $syncQueued = true;
         }
 

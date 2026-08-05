@@ -71,6 +71,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:'.implode(',', UserRole::adminRoles()))
         ->group(function () {
             Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('integration-health', [AdminDashboardController::class, 'integrationHealth'])
+                ->name('integration-health');
 
             Route::get('clients/{client}/microsoft-365', [ClientMicrosoft365DirectoryController::class, 'show'])
                 ->name('clients.microsoft-365');

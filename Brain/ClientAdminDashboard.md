@@ -37,6 +37,12 @@ Per **active** client (scoped by account manager access when applicable):
 
 Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
 
+**Live UI:** `/admin` polls `GET /admin/integration-health` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + queue pending card. No full-page F5 required while a sync runs.
+
+**Entra sync visibility:** `SyncEntraClientJob::dispatchMarked()` sets `entra_sync.refresh_queued.{id}` **at dispatch time** (not only when the worker starts), so Active/Stuck shows **queued** immediately after Run Sync / Apply SCIM / artisan queue.
+
+**Orphaned “queued”:** health status is not cache-only. If `refresh_queued` is set but there is **no matching row in `jobs`** and the job has not started, the flag is cleared on the next health read (unique-job discard, killed worker, stale cache). Queue pending = 0 with Active/Stuck “queued” was this bug.
+
 Jobs record `*.refresh_started.{id}`, `*.last_result.{id}` (`duration_ms`, `success`, `error`).
 
 ### Parallelism (one client must not block all others)
@@ -194,6 +200,7 @@ Service: `App\Services\M365\M365DirectoryService`
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
 - Mailbox type detection still reads each user's `mailboxSettings` serially. A future optimisation can use Graph `$batch` in chunks of 20; this remains separate to keep shared-mailbox classification and its per-user error handling unchanged.
 - **Browser auto-reload:** when a directory or Client Admin dashboard refresh is in progress, the page reloads every 8 seconds (max 30 attempts) so technicians/clients do not need a manual F5. When the refresh flag clears, the counter resets.
+- **Admin Integration Health** (`/admin`): separate live poll every 5s (fragment endpoint) — not a static snapshot.
 
 MSP staff view client directory at `/admin/clients/{client}/microsoft-365` (unchanged).
 
