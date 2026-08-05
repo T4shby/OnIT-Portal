@@ -2,8 +2,8 @@
     @include('admin.partials.header', ['title' => 'Integration Health'])
 
     <p class="portal-body-muted text-sm mb-6 max-w-3xl">
-        Live pipeline for SuperOps / M365 / Entra refreshes: prewarm heartbeat, queue workers, job flags, and blockers.
-        Updates every 5 seconds while this tab is open.
+        Plain-language view of auto-refresh: is the clock running, did prewarm fire, and are workers processing jobs?
+        Opens and stays live (updates every 5 seconds).
     </p>
 
     <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -29,18 +29,18 @@
             </p>
         </x-card>
         <x-card>
-            <p class="admin-stat-label">Due requeue</p>
+            <p class="admin-stat-label">Waiting refresh</p>
             <p class="admin-stat-value {{ ($integrationHealth['due_count'] ?? 0) > 0 ? 'text-sky-300' : '' }}">
                 {{ $integrationHealth['due_count'] ?? 0 }}
             </p>
-            <p class="mt-2 text-xs text-white/50">Past SuperOps requeue age, not yet running</p>
+            <p class="mt-2 text-xs text-white/50">Due to requeue, not started</p>
         </x-card>
         <x-card>
-            <p class="admin-stat-label">Aging</p>
+            <p class="admin-stat-label">Getting old</p>
             <p class="admin-stat-value {{ ($integrationHealth['aging_count'] ?? 0) > 0 ? 'text-amber-300' : '' }}">
                 {{ $integrationHealth['aging_count'] ?? 0 }}
             </p>
-            <p class="mt-2 text-xs text-white/50">Past client freshness target</p>
+            <p class="mt-2 text-xs text-white/50">Feeds past freshness target</p>
         </x-card>
     </div>
 

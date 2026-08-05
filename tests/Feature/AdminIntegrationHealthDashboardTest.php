@@ -41,14 +41,12 @@ class AdminIntegrationHealthDashboardTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Integration Health', false);
-        $response->assertSee('Integration refresh health', false);
-        $response->assertSee('Live · 5s', false);
-        $response->assertSee('Why isn\'t it resetting?', false);
-        $response->assertSee('Prewarm heartbeat', false);
+        $response->assertSee('What is going on', false);
+        $response->assertSee('Action list', false);
+        $response->assertSee('Per client', false);
         $response->assertSee('Acme Ltd', false);
-        $response->assertSee('stuck', false);
-        $response->assertSee('M365 directory', false);
-        $response->assertSee('flag=', false);
+        $response->assertSee('Stuck', false);
+        $response->assertSee('Devices & tickets', false);
     }
 
     public function test_admin_dashboard_links_to_integration_health_tab(): void
@@ -81,8 +79,8 @@ class AdminIntegrationHealthDashboardTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Find', false);
-        $response->assertSee('running', false);
-        $response->assertSee('Entra portal sync', false);
+        $response->assertSee('Refreshing now', false);
+        $response->assertSee('Entra sync', false);
     }
 
     public function test_entra_dispatch_marked_sets_queued_flag_immediately(): void

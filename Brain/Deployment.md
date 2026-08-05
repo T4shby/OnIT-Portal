@@ -178,9 +178,13 @@ Add these two lines (keep unrelated entries such as `ntpdate`):
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+# Optional belt-and-suspenders if schedule mutexes misbehave — prewarm also runs from schedule every 5m
+# */5 * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan portal:prewarm-client-dashboards >> storage/logs/prewarm.log 2>&1
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
 ```
+
+**Do not use `onOneServer()`** for scheduled commands on this single host with `CACHE_STORE=database`. A stuck row in `cache_locks` can skip `portal:prewarm-client-dashboards` for tens of minutes (data ages with empty queue). Prewarm clears expired / absurdly long schedule locks on each run.
 
 Two concurrent workers (`queue-worker-1` / `queue-worker-2`) so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
 

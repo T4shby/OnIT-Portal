@@ -4,7 +4,16 @@
     $notices = $integrationHealth['notices'] ?? [];
     $prewarm = $pipeline['prewarm'] ?? [];
     $workers = $pipeline['workers'] ?? [];
+    $scheduler = $pipeline['scheduler'] ?? [];
     $generatedAt = $pipeline['generated_at'] ?? null;
+    $severity = $pipeline['severity_level'] ?? 'ok';
+    $headline = $pipeline['headline'] ?? 'Refresh health';
+    $bannerClass = match ($severity) {
+        'critical' => 'border-rose-400/40 bg-rose-500/10 text-rose-100',
+        'warning' => 'border-amber-400/40 bg-amber-500/10 text-amber-50',
+        'info' => 'border-sky-400/40 bg-sky-500/10 text-sky-50',
+        default => 'border-emerald-400/30 bg-emerald-500/5 text-emerald-50',
+    };
 @endphp
 <div
     id="integration-health-live"
@@ -17,158 +26,150 @@
     data-due-count="{{ $integrationHealth['due_count'] ?? 0 }}"
     data-aging-count="{{ $integrationHealth['aging_count'] ?? 0 }}"
 >
+    {{-- Plain-English system status --}}
+    <div class="mb-6 rounded-lg border px-5 py-4 {{ $bannerClass }}">
+        <p class="text-xs uppercase tracking-wide opacity-70 mb-1">What is going on</p>
+        <p class="text-lg font-condensed font-bold">{{ $headline }}</p>
+        <p class="text-sm opacity-80 mt-2">
+            Auto-refresh runs every 5 minutes. Queue workers run every minute.
+            This page updates every 5 seconds
+            @if($generatedAt)
+                · last poll {{ $generatedAt->timezone('Europe/London')->format('H:i:s') }} UK
+            @endif
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <x-card>
+            <p class="admin-stat-label">1. Scheduler (cron)</p>
+            @if(! empty($scheduler['never']))
+                <p class="text-2xl font-condensed font-bold text-rose-400">Not ticking</p>
+                <p class="text-sm text-white/60 mt-2">Minute job has never reported in.</p>
+            @elseif(! empty($scheduler['ok']))
+                <p class="text-2xl font-condensed font-bold text-emerald-400">OK</p>
+                <p class="text-sm text-white/60 mt-2">Last tick {{ $scheduler['age_minutes'] ?? 0 }}m ago</p>
+            @else
+                <p class="text-2xl font-condensed font-bold text-rose-400">Late</p>
+                <p class="text-sm text-white/60 mt-2">Last tick {{ $scheduler['age_minutes'] ?? '?' }}m ago (want under 2m)</p>
+            @endif
+        </x-card>
+        <x-card>
+            <p class="admin-stat-label">2. Auto-refresh (prewarm)</p>
+            @if(! empty($prewarm['never_ran']))
+                <p class="text-2xl font-condensed font-bold text-rose-400">Never ran</p>
+            @elseif(! empty($prewarm['ok']))
+                <p class="text-2xl font-condensed font-bold text-emerald-400">OK</p>
+                <p class="text-sm text-white/60 mt-2">
+                    {{ $prewarm['age_minutes'] ?? 0 }}m ago · queued SuperOps {{ $prewarm['superops_queued'] ?? 0 }}
+                </p>
+            @else
+                <p class="text-2xl font-condensed font-bold text-amber-300">Late</p>
+                <p class="text-sm text-white/60 mt-2">
+                    Last run {{ $prewarm['age_minutes'] ?? '?' }}m ago (want every 5m).
+                    Data ages until this runs again.
+                </p>
+            @endif
+        </x-card>
+        <x-card>
+            <p class="admin-stat-label">3. Workers (process jobs)</p>
+            @if(! empty($workers['lag_suspect']))
+                <p class="text-2xl font-condensed font-bold text-rose-400">Not draining</p>
+                <p class="text-sm text-white/60 mt-2">{{ $q['pending'] }} waiting, 0 reserved</p>
+            @elseif(($q['pending'] ?? 0) > 0)
+                <p class="text-2xl font-condensed font-bold text-onit">Working</p>
+                <p class="text-sm text-white/60 mt-2">
+                    {{ $q['pending'] }} waiting · {{ $q['reserved'] ?? 0 }} running
+                </p>
+            @else
+                <p class="text-2xl font-condensed font-bold text-emerald-400">Idle</p>
+                <p class="text-sm text-white/60 mt-2">Queue empty · nothing to process</p>
+            @endif
+        </x-card>
+    </div>
+
+    @if(count($notices) > 0)
+        <div class="admin-table-wrap mb-6">
+            <div class="border-b border-white/10 px-6 py-3">
+                <h2 class="admin-section-title mb-0">Action list</h2>
+            </div>
+            <ul class="px-6 py-4 space-y-2 text-sm">
+                @foreach($notices as $notice)
+                    <li class="flex gap-2 {{ str_contains($notice, 'Nothing blocking') ? 'text-emerald-400' : 'text-white/80' }}">
+                        <span class="text-onit shrink-0">•</span>
+                        <span>{{ $notice }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if(! empty($q['jobs']))
+        <div class="admin-table-wrap mb-6">
+            <div class="border-b border-white/10 px-6 py-3">
+                <h2 class="admin-section-title mb-0">Jobs running / waiting right now</h2>
+            </div>
+            <div class="overflow-x-auto px-2 pb-3">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="text-white/50 text-xs">
+                            <th class="text-left px-4 py-2">What</th>
+                            <th class="text-left px-4 py-2">Client</th>
+                            <th class="text-left px-4 py-2">Queue</th>
+                            <th class="text-left px-4 py-2">State</th>
+                            <th class="text-left px-4 py-2">Waiting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($q['jobs'] as $job)
+                            <tr class="border-t border-white/5">
+                                <td class="px-4 py-2 text-white">{{ class_basename($job['job']) }}</td>
+                                <td class="px-4 py-2">#{{ $job['client_id'] ?? '—' }}</td>
+                                <td class="px-4 py-2">{{ $job['queue'] }}</td>
+                                <td class="px-4 py-2 {{ ! empty($job['reserved']) ? 'text-onit' : 'text-sky-300' }}">
+                                    {{ ! empty($job['reserved']) ? 'Worker has it' : 'Waiting for worker' }}
+                                </td>
+                                <td class="px-4 py-2 {{ ($job['age_seconds'] ?? 0) >= 90 ? 'text-rose-400' : '' }}">
+                                    {{ $job['age_seconds'] }}s
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    @if(! empty($q['recent_failures']))
+        <div class="admin-table-wrap mb-6">
+            <div class="border-b border-white/10 px-6 py-3">
+                <h2 class="admin-section-title mb-0 text-rose-300">Recent failures</h2>
+            </div>
+            <ul class="px-6 py-4 space-y-2 text-sm text-rose-200/90">
+                @foreach($q['recent_failures'] as $fail)
+                    <li>
+                        {{ class_basename($fail['job']) }}
+                        @if($fail['client_id']) · client #{{ $fail['client_id'] }} @endif
+                        @if($fail['failed_at'])
+                            · {{ $fail['failed_at']->timezone('Europe/London')->format('d M H:i') }} UK
+                        @endif
+                        — {{ $fail['error'] }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="admin-table-wrap mb-8">
         <div class="border-b border-white/10 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                <h2 class="admin-section-title mb-0">Integration refresh health</h2>
+                <h2 class="admin-section-title mb-0">Per client</h2>
                 <p class="text-xs text-white/50 mt-1">
-                    Technician pipeline — flags, jobs table, prewarm heartbeat, blockers.
-                    SuperOps requeue ≥{{ (int) ($pipeline['superops_requeue_after_minutes'] ?? config('services.superops.dashboard_refresh_after_minutes', 10)) }}m ·
-                    client note ≥{{ (int) ($pipeline['superops_client_window_minutes'] ?? config('services.superops.dashboard_cache_minutes', 15)) }}m.
+                    What each feed is doing now — not raw flags.
                     <span class="text-emerald-400/80">Live · 5s</span>
-                    @if(($integrationHealth['stuck_count'] ?? 0) > 0)
-                        <span class="text-amber-300"> · {{ $integrationHealth['stuck_count'] }} stuck</span>
-                    @endif
-                    @if(($integrationHealth['due_count'] ?? 0) > 0)
-                        <span class="text-sky-300"> · {{ $integrationHealth['due_count'] }} due</span>
-                    @endif
-                    @if(($integrationHealth['aging_count'] ?? 0) > 0)
-                        <span class="text-amber-300"> · {{ $integrationHealth['aging_count'] }} aging</span>
-                    @endif
-                    @if($generatedAt)
-                        <span class="text-white/30"> · polled {{ $generatedAt->timezone('Europe/London')->format('H:i:s') }} UK</span>
-                    @endif
                 </p>
             </div>
             <a href="{{ route('admin.integration-health.index') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Reload</a>
         </div>
-
-        {{-- Pipeline board --}}
-        <div class="border-b border-white/10 px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div>
-                <p class="portal-label mb-2">Prewarm heartbeat</p>
-                @if(! empty($prewarm['never_ran']))
-                    <p class="text-rose-400 font-medium">Never recorded</p>
-                    <p class="text-white/50 mt-1">Scheduler may not run <code class="text-white/40">portal:prewarm-client-dashboards</code>.</p>
-                @else
-                    <p class="{{ ! empty($prewarm['overdue']) ? 'text-amber-300' : 'text-emerald-400' }} font-medium">
-                        Last run
-                        @if(! empty($prewarm['last_at']))
-                            {{ $prewarm['last_at']->timezone('Europe/London')->format('d M H:i:s') }} UK
-                        @endif
-                        · {{ $prewarm['age_minutes'] ?? '?' }}m ago
-                    </p>
-                    <p class="text-white/50 mt-1">
-                        Queued that run: SuperOps {{ $prewarm['superops_queued'] ?? '?' }}
-                        · other {{ $prewarm['optional_queued'] ?? '?' }}
-                        · clients {{ $prewarm['clients'] ?? '?' }}
-                        · pending before {{ $prewarm['pending_before'] ?? '?' }}
-                        @if(! empty($prewarm['queue_deep']))
-                            <span class="text-amber-300"> · queue deep (optional skipped)</span>
-                        @endif
-                    </p>
-                @endif
-            </div>
-            <div>
-                <p class="portal-label mb-2">Queue workers</p>
-                <p class="{{ ! empty($workers['lag_suspect']) ? 'text-rose-400' : 'text-white/80' }} font-medium">
-                    pending {{ $q['pending'] }}
-                    · reserved {{ $q['reserved'] ?? 0 }}
-                    · high {{ $q['high'] }}
-                    · default {{ $q['default'] }}
-                    · failed {{ $q['failed'] }}
-                </p>
-                <p class="text-white/50 mt-1">
-                    @if(($q['oldest_pending_seconds'] ?? null) !== null)
-                        Oldest waiting {{ number_format($q['oldest_pending_seconds'] / 60, 1) }}m.
-                    @else
-                        Queue empty.
-                    @endif
-                    @if(! empty($workers['lag_suspect']))
-                        <span class="text-rose-400 font-medium"> Worker lag: jobs idle with nothing reserved.</span>
-                    @endif
-                </p>
-                <p class="text-white/30 mt-1">{{ $workers['expect'] ?? '' }}</p>
-            </div>
-            <div>
-                <p class="portal-label mb-2">Why isn't it resetting?</p>
-                <ul class="space-y-1 text-white/70 list-disc list-inside">
-                    @foreach($notices as $notice)
-                        <li class="{{ str_contains($notice, 'No pipeline blockers') ? 'text-emerald-400/90 list-none -ml-4' : '' }}">
-                            {{ $notice }}
-                        </li>
-                    @endforeach
-                </ul>
-                @if(($integrationHealth['cleared_orphans'] ?? 0) > 0)
-                    <p class="text-sky-300 mt-2">Orphans cleared this poll: {{ $integrationHealth['cleared_orphans'] }}</p>
-                @endif
-            </div>
-        </div>
-
-        {{-- Live jobs table --}}
-        @if(! empty($q['jobs']))
-            <div class="border-b border-white/10 px-6 py-4">
-                <p class="portal-label mb-2">Jobs table (live) — {{ count($q['jobs']) }} shown</p>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-xs">
-                        <thead>
-                            <tr class="text-white/40">
-                                <th class="text-left py-1 pr-3">ID</th>
-                                <th class="text-left py-1 pr-3">Queue</th>
-                                <th class="text-left py-1 pr-3">Job</th>
-                                <th class="text-left py-1 pr-3">Client</th>
-                                <th class="text-left py-1 pr-3">Age</th>
-                                <th class="text-left py-1 pr-3">State</th>
-                                <th class="text-left py-1">Attempts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($q['jobs'] as $job)
-                                <tr class="border-t border-white/5">
-                                    <td class="py-1 pr-3 text-white/50">{{ $job['id'] }}</td>
-                                    <td class="py-1 pr-3">{{ $job['queue'] }}</td>
-                                    <td class="py-1 pr-3 text-white/80">{{ class_basename($job['job']) }}</td>
-                                    <td class="py-1 pr-3">{{ $job['client_id'] ?? '—' }}</td>
-                                    <td class="py-1 pr-3 {{ ($job['age_seconds'] ?? 0) >= 90 ? 'text-rose-400' : 'text-white/60' }}">
-                                        {{ $job['age_seconds'] }}s
-                                    </td>
-                                    <td class="py-1 pr-3 {{ ! empty($job['reserved']) ? 'text-onit' : 'text-sky-300' }}">
-                                        @if(! empty($job['reserved']))
-                                            reserved {{ $job['reserved_for_seconds'] ?? 0 }}s
-                                        @else
-                                            waiting
-                                        @endif
-                                    </td>
-                                    <td class="py-1">{{ $job['attempts'] }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        @endif
-
-        @if(! empty($q['recent_failures']))
-            <div class="border-b border-white/10 px-6 py-4">
-                <p class="portal-label mb-2">Recent failed_jobs</p>
-                <ul class="space-y-1 text-xs text-rose-300/90">
-                    @foreach($q['recent_failures'] as $fail)
-                        <li>
-                            #{{ $fail['id'] }}
-                            {{ class_basename($fail['job']) }}
-                            @if($fail['client_id'])
-                                client {{ $fail['client_id'] }}
-                            @endif
-                            · {{ $fail['queue'] }}
-                            @if($fail['failed_at'])
-                                · {{ $fail['failed_at']->timezone('Europe/London')->format('d M H:i') }} UK
-                            @endif
-                            — {{ $fail['error'] }}
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
 
         @if(count($integrationHealth['clients']) === 0)
             <div class="px-6 py-12"><x-empty-state title="No active clients" /></div>
@@ -178,11 +179,11 @@
                     <thead>
                         <tr>
                             <th class="text-left">Client</th>
-                            <th class="text-left">SuperOps</th>
-                            <th class="text-left">M365 directory</th>
+                            <th class="text-left">Devices & tickets</th>
+                            <th class="text-left">M365 people</th>
                             <th class="text-left">M365 licences</th>
                             <th class="text-left">Entra sync</th>
-                            <th class="text-left">Blockers / active</th>
+                            <th class="text-left">Needs attention</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -209,68 +210,29 @@
                                     <a href="{{ route('admin.clients.edit', $row['client_id']) }}" class="text-white hover:text-onit font-medium">
                                         {{ $row['client_name'] }}
                                     </a>
-                                    <div class="text-white/30 text-[10px] mt-1">id {{ $row['client_id'] }}</div>
                                 </td>
                                 @foreach(['superops', 'm365_directory', 'm365_insights', 'entra_sync'] as $key)
                                     @php $cell = $byKey[$key]; @endphp
-                                    <td class="align-top {{ $statusClass[$cell['status']] ?? 'text-white/60' }}">
-                                        <div class="font-medium uppercase text-[10px] tracking-wide">{{ $cell['status'] }}</div>
-                                        @if($cell['last_success_at'])
-                                            <div class="text-white/70">
-                                                {{ $cell['last_success_at']->timezone('Europe/London')->format('d M H:i') }} UK
-                                            </div>
-                                            <div class="text-white/40 text-xs">
-                                                {{ $cell['age_minutes'] }}m ago
-                                                @if(! empty($cell['requeue_after_minutes']))
-                                                    · rq ≥{{ $cell['requeue_after_minutes'] }}m
-                                                @endif
-                                                @if(! empty($cell['sla_minutes']))
-                                                    · client ≤{{ $cell['sla_minutes'] }}m
-                                                @endif
-                                                @if($cell['duration_ms'] !== null)
-                                                    · ran {{ number_format($cell['duration_ms'] / 1000, 1) }}s
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="text-white/40 text-xs">{{ $cell['detail'] }}</div>
+                                    <td class="align-top {{ $statusClass[$cell['status']] ?? 'text-white/60' }} max-w-[14rem]">
+                                        <div class="font-medium">{{ $cell['status_label'] ?? strtoupper($cell['status']) }}</div>
+                                        @if(($cell['age_minutes'] ?? null) !== null)
+                                            <div class="text-white/50 text-xs mt-0.5">{{ $cell['age_minutes'] }}m since success</div>
                                         @endif
-                                        <div class="text-white/30 text-[10px] mt-1 font-mono">
-                                            flag={{ ! empty($cell['flag_queued']) ? 'Y' : 'n' }}
-                                            · job={{ ! empty($cell['job_in_db']) ? 'Y' : 'n' }}
-                                            @if(! empty($cell['job_reserved']))
-                                                · res
-                                            @endif
-                                            @if(($cell['job_age_seconds'] ?? null) !== null)
-                                                · jobAge {{ $cell['job_age_seconds'] }}s
-                                            @endif
-                                        </div>
-                                        @if(! empty($cell['last_finished_at']))
-                                            <div class="text-white/25 text-[10px]">
-                                                last finish {{ $cell['last_finished_at']->timezone('Europe/London')->format('H:i:s') }} UK
-                                                @if(! empty($cell['error']))
-                                                    · err
-                                                @endif
-                                            </div>
-                                        @endif
-                                        @if(in_array($cell['status'], ['queued', 'running', 'stuck', 'aging', 'due', 'failed'], true))
-                                            <div class="text-white/50 text-xs mt-1">{{ $cell['detail'] }}</div>
+                                        <div class="text-white/70 text-xs mt-1">{{ $cell['what_it_is_doing'] ?? '' }}</div>
+                                        @if(in_array($cell['status'], ['due', 'aging', 'queued', 'running', 'stuck', 'failed', 'cold'], true))
+                                            <div class="text-white/50 text-xs mt-1">→ {{ $cell['what_next'] ?? '' }}</div>
                                         @endif
                                     </td>
                                 @endforeach
-                                <td class="align-top text-xs">
-                                    @if($row['active_process'])
-                                        <span class="{{ $row['is_stuck'] ? 'text-rose-400' : 'text-sky-300' }}">
-                                            {{ $row['active_process'] }} · {{ $row['active_status'] }}
-                                        </span>
-                                    @endif
-                                    @if(! empty($row['blockers']))
-                                        <ul class="mt-1 space-y-1 text-white/60 list-disc list-inside max-w-xs">
-                                            @foreach(array_slice($row['blockers'], 0, 4) as $blocker)
+                                <td class="align-top text-xs text-white/60 max-w-xs">
+                                    @if($row['is_stuck'] || ($row['aging_count'] ?? 0) > 0 || ($row['due_count'] ?? 0) > 0 || ! empty($row['blockers']))
+                                        <ul class="space-y-1 list-disc list-inside">
+                                            @foreach(array_slice($row['blockers'] ?? [], 0, 3) as $blocker)
                                                 <li>{{ $blocker }}</li>
                                             @endforeach
                                         </ul>
-                                    @elseif(! $row['active_process'])
-                                        <span class="text-white/30">—</span>
+                                    @else
+                                        <span class="text-emerald-400/80">Healthy</span>
                                     @endif
                                 </td>
                             </tr>

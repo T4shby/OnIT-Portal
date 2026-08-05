@@ -54,6 +54,8 @@ class IntegrationHealthServiceTest extends TestCase
         $this->assertNotEmpty($overview['notices']);
         $this->assertArrayHasKey('pipeline', $overview);
         $this->assertArrayHasKey('prewarm', $overview['pipeline']);
+        $this->assertArrayHasKey('scheduler', $overview['pipeline']);
+        $this->assertArrayHasKey('headline', $overview['pipeline']);
     }
 
     public function test_marks_superops_due_when_past_requeue_before_client_window(): void
@@ -77,6 +79,7 @@ class IntegrationHealthServiceTest extends TestCase
         $superOps = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'superops');
 
         $this->assertSame('due', $superOps['status']);
+        $this->assertSame('Waiting to refresh', $superOps['status_label']);
         $this->assertTrue($superOps['due_for_requeue']);
         $this->assertSame(1, $overview['due_count']);
         $this->assertNotEmpty($superOps['blockers']);

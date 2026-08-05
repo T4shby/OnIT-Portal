@@ -76,6 +76,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Prewarm stall: stuck schedule `cache_locks` / `onOneServer` removed; scheduler tick; plain-English Integration Health — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
 | 2026-08-05 | Integration Health own Staff Admin sidebar tab + live fragment; portal nav Organisation / Staff Admin labels — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health pipeline visibility: prewarm heartbeat, jobs table, flags, due/aging/stuck blockers, auto notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Client vs technician refresh messaging; SuperOps requeue at 10m before 15m client window (stops ~20m “always stale”); Integration Health **aging** — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -36,6 +36,9 @@ class PrewarmClientDashboardsCommand extends Command
         HuntressClientMetricsService $huntress,
         DropsuiteClientMetricsService $dropsuite,
     ): int {
+        // Stale schedule mutexes block everyFiveMinutes for hours (seen with onOneServer + CACHE database).
+        $this->releaseStaleScheduleLocks();
+
         $pending = $this->pendingJobs();
         $queueDeep = $pending >= self::MAX_PENDING_BEFORE_OPTIONAL;
 
@@ -109,6 +112,27 @@ class PrewarmClientDashboardsCommand extends Command
         ], now()->addDay());
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Drop schedule mutex rows that have expired, or schedule locks that are absurdly far in the future
+     * (orphans that block withoutOverlapping / historical onOneServer locks).
+     */
+    private function releaseStaleScheduleLocks(): void
+    {
+        if (! Schema::hasTable('cache_locks')) {
+            return;
+        }
+
+        $now = time();
+        DB::table('cache_locks')->where('expiration', '<', $now)->delete();
+
+        // Safety: any lock held for the schedule framework that is set more than 30 minutes into the future
+        // is almost always an orphan (normal withoutOverlapping is 8 minutes).
+        DB::table('cache_locks')
+            ->where('key', 'like', '%framework/schedule%')
+            ->where('expiration', '>', $now + 1800)
+            ->delete();
     }
 
     private function pendingJobs(): int

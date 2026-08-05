@@ -19,6 +19,8 @@ class IntegrationHealthService
 
     public const PREWARM_CACHE_KEY = 'portal.prewarm.last_run';
 
+    public const SCHEDULER_TICK_KEY = 'portal.scheduler.last_tick';
+
     /**
      * Job class fragment used to match database queue payloads.
      *
@@ -144,18 +146,58 @@ class IntegrationHealthService
         $prewarmAgeSeconds = $prewarmAt?->diffInSeconds(now());
         $prewarmAgeMinutes = $prewarmAgeSeconds !== null ? (int) round($prewarmAgeSeconds / 60) : null;
 
+        $tickRaw = Cache::get(self::SCHEDULER_TICK_KEY);
+        $tickAt = filled($tickRaw) ? Carbon::parse($tickRaw) : null;
+        $tickAgeSeconds = $tickAt?->diffInSeconds(now());
+        $tickAgeMinutes = $tickAgeSeconds !== null ? (int) round($tickAgeSeconds / 60) : null;
+
         $superOpsRequeueAfter = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
         $superOpsClientWindow = max(1, (int) config('services.superops.dashboard_cache_minutes', 15));
 
-        // Workers: if jobs sit >90s and nothing reserved, workers are likely not draining.
         $workerLagSuspect = ($queue['pending'] ?? 0) > 0
             && ($queue['reserved'] ?? 0) === 0
             && ($queue['oldest_pending_seconds'] ?? 0) >= 90;
 
+        $scheduleLocks = $this->scheduleLockRows();
+        $stuckScheduleLocks = collect($scheduleLocks)
+            ->filter(fn (array $lock): bool => ($lock['held_for_seconds'] ?? 0) > 300)
+            ->values()
+            ->all();
+
+        $schedulerOk = $tickAt !== null && ($tickAgeMinutes ?? 99) <= 2;
+        $prewarmOk = $prewarmAt !== null && ($prewarmAgeMinutes ?? 99) <= 7;
+
+        $headline = 'All systems refreshing normally';
+        $severityLevel = 'ok';
+        if (! $schedulerOk) {
+            $headline = 'Minute scheduler is not ticking — cron schedule:run may be dead';
+            $severityLevel = 'critical';
+        } elseif ($stuckScheduleLocks !== []) {
+            $headline = 'A schedule lock is stuck — auto-refresh cannot start until it is cleared';
+            $severityLevel = 'critical';
+        } elseif (! $prewarmOk) {
+            $headline = 'Auto-refresh (prewarm) is late — client data will age until it runs again';
+            $severityLevel = 'warning';
+        } elseif ($workerLagSuspect) {
+            $headline = 'Jobs are waiting but no worker is processing them';
+            $severityLevel = 'critical';
+        } elseif (($queue['pending'] ?? 0) > 0) {
+            $headline = 'Refresh jobs are in the queue and should finish shortly';
+            $severityLevel = 'info';
+        }
+
         return [
             'generated_at' => now(),
+            'headline' => $headline,
+            'severity_level' => $severityLevel,
             'superops_requeue_after_minutes' => $superOpsRequeueAfter,
             'superops_client_window_minutes' => $superOpsClientWindow,
+            'scheduler' => [
+                'last_at' => $tickAt,
+                'age_minutes' => $tickAgeMinutes,
+                'ok' => $schedulerOk,
+                'never' => $tickAt === null,
+            ],
             'prewarm' => [
                 'last_at' => $prewarmAt,
                 'age_minutes' => $prewarmAgeMinutes,
@@ -165,17 +207,50 @@ class IntegrationHealthService
                 'queue_deep' => is_array($prewarm) ? (bool) ($prewarm['queue_deep'] ?? false) : null,
                 'pending_before' => is_array($prewarm) ? (int) ($prewarm['pending_before'] ?? 0) : null,
                 'interval_minutes' => 5,
-                'overdue' => $prewarmAgeMinutes !== null && $prewarmAgeMinutes > 7,
+                'overdue' => ! $prewarmOk,
                 'never_ran' => $prewarmAt === null,
+                'ok' => $prewarmOk,
             ],
             'workers' => [
-                'expect' => 'cron every minute · queue:work --queue=high,default --stop-when-empty --max-time=55 ×2',
+                'expect' => 'Every minute: two queue:work processes on high,default',
                 'lag_suspect' => $workerLagSuspect,
                 'reserved' => (int) ($queue['reserved'] ?? 0),
                 'pending' => (int) ($queue['pending'] ?? 0),
                 'oldest_pending_seconds' => $queue['oldest_pending_seconds'] ?? null,
+                'ok' => ! $workerLagSuspect,
             ],
+            'schedule_locks' => $scheduleLocks,
+            'stuck_schedule_locks' => $stuckScheduleLocks,
         ];
+    }
+
+    /**
+     * @return list<array{key: string, age_seconds: int, held_for_seconds: int, expiration: int}>
+     */
+    private function scheduleLockRows(): array
+    {
+        if (! Schema::hasTable('cache_locks')) {
+            return [];
+        }
+
+        $now = time();
+
+        return DB::table('cache_locks')
+            ->orderBy('key')
+            ->get()
+            ->map(function ($row) use ($now): array {
+                $exp = (int) ($row->expiration ?? 0);
+
+                return [
+                    'key' => (string) $row->key,
+                    'expiration' => $exp,
+                    'age_seconds' => max(0, $exp > $now ? 0 : ($now - $exp)),
+                    // Approximate held time only if we know expiry was set far ahead; use remaining as signal.
+                    'held_for_seconds' => $exp > $now ? max(0, (int) ($exp - $now)) : max(0, $now - $exp),
+                    'seconds_until_release' => max(0, $exp - $now),
+                ];
+            })
+            ->all();
     }
 
     /**
@@ -193,49 +268,59 @@ class IntegrationHealthService
     ): array {
         $notices = [];
 
+        $scheduler = $pipeline['scheduler'] ?? [];
+        if ($scheduler['never'] ?? false) {
+            $notices[] = 'Scheduler tick never recorded. Root crontab must run schedule:run every minute.';
+        } elseif (! ($scheduler['ok'] ?? false)) {
+            $age = $scheduler['age_minutes'] ?? '?';
+            $notices[] = "Scheduler tick is {$age}m old (expect under 2m). Cron may have stopped.";
+        }
+
+        if (! empty($pipeline['stuck_schedule_locks'])) {
+            $n = count($pipeline['stuck_schedule_locks']);
+            $notices[] = "{$n} schedule lock(s) held in cache_locks — auto tasks can wait forever. Cleared on next prewarm start if still stuck after deploy.";
+        }
+
         if ($pipeline['prewarm']['never_ran'] ?? false) {
-            $notices[] = 'Prewarm has never recorded a run. Scheduler may not be executing portal:prewarm-client-dashboards.';
+            $notices[] = 'Prewarm has never recorded a run. Auto client metrics will stay empty/old.';
         } elseif ($pipeline['prewarm']['overdue'] ?? false) {
             $age = $pipeline['prewarm']['age_minutes'] ?? '?';
-            $notices[] = "Prewarm last ran {$age}m ago (expect ≤5–7m). Scheduler / schedule:run may be missing ticks.";
+            $notices[] = "Prewarm last ran {$age}m ago (expect every 5m). Until it runs, aging data will not auto-reset.";
         }
 
         if ($pipeline['workers']['lag_suspect'] ?? false) {
             $oldest = $pipeline['workers']['oldest_pending_seconds'] ?? 0;
             $pending = $pipeline['workers']['pending'] ?? 0;
-            $notices[] = "Queue has {$pending} job(s) sitting ≥90s with none reserved — workers are not draining (cron queue:work / max-time stacking). Oldest pending ~".(int) round($oldest / 60).'m.';
+            $notices[] = "{$pending} job(s) waiting with nothing reserved — workers not draining. Oldest ~".(int) round($oldest / 60).'m.';
         }
 
         if ($clearedOrphans > 0) {
-            $notices[] = "Cleared {$clearedOrphans} orphaned refresh_queued flag(s) this poll (flag set, no matching jobs row).";
+            $notices[] = "Cleared {$clearedOrphans} orphaned 'queued' flag(s) (said queued but no job row).";
         }
 
         if ($stuckCount > 0) {
-            $notices[] = "{$stuckCount} client integration(s) stuck (started >".self::STUCK_AFTER_MINUTES.'m).';
+            $notices[] = "{$stuckCount} refresh job(s) stuck (running over ".self::STUCK_AFTER_MINUTES.' minutes).';
         }
 
         if ($agingCount > 0) {
-            $notices[] = "{$agingCount} integration cell(s) past client freshness target (AGING).";
+            $notices[] = "{$agingCount} data source(s) past freshness — clients may see softer wording.";
         }
 
         if ($dueCount > 0) {
             $requeue = $pipeline['superops_requeue_after_minutes'] ?? 10;
-            $notices[] = "{$dueCount} SuperOps cell(s) DUE for requeue (age ≥{$requeue}m) but not yet running — waiting for prewarm and/or workers.";
+            $notices[] = "{$dueCount} SuperOps feed(s) due for refresh (older than {$requeue}m) but not started yet.";
         }
 
         foreach ($rows as $row) {
             foreach ($row['integrations'] as $cell) {
-                if (($cell['status'] ?? '') === 'queued' && empty($cell['job_in_db'])) {
-                    $notices[] = "{$row['client_name']} · {$cell['label']}: cache says queued but no jobs row (race or unique discard).";
-                }
                 if (($cell['status'] ?? '') === 'failed' && filled($cell['error'] ?? null)) {
-                    $notices[] = "{$row['client_name']} · {$cell['label']}: last run failed — {$cell['error']}";
+                    $notices[] = "{$row['client_name']}: {$cell['friendly_label']} failed — {$cell['error']}";
                 }
             }
         }
 
         if ($notices === []) {
-            $notices[] = 'No pipeline blockers detected on this poll.';
+            $notices[] = 'Nothing blocking auto-refresh right now.';
         }
 
         return array_values(array_unique($notices));
@@ -500,14 +585,27 @@ class IntegrationHealthService
             key: $key,
         );
 
+        $friendly = $this->friendlyStatus(
+            status: $status,
+            key: $key,
+            ageRounded: $ageRounded,
+            requeueAfterMinutes: $requeueAfterMinutes,
+            blockers: $blockers,
+            job: $job,
+        );
+
         if ($blockers !== [] && ! in_array($status, ['running', 'queued', 'stuck', 'failed', 'cold', 'disabled'], true)) {
-            $detail = implode(' · ', array_slice($blockers, 0, 2));
+            $detail = $friendly['what_next'];
         }
 
         return [
             'key' => $key,
             'label' => $label,
+            'friendly_label' => $this->friendlyLabel($key, $label),
             'status' => $status,
+            'status_label' => $friendly['status_label'],
+            'what_it_is_doing' => $friendly['what_it_is_doing'],
+            'what_next' => $friendly['what_next'],
             'last_success_at' => $lastSuccessAt,
             'age_minutes' => $ageRounded,
             'sla_minutes' => $clientWindowMinutes,
@@ -524,6 +622,97 @@ class IntegrationHealthService
             'error' => $error,
             'blockers' => $blockers,
         ];
+    }
+
+    private function friendlyLabel(string $key, string $fallback): string
+    {
+        return match ($key) {
+            'superops' => 'Devices & tickets',
+            'm365_directory' => 'M365 people list',
+            'm365_insights' => 'M365 licences',
+            'entra_sync' => 'Entra user sync',
+            default => $fallback,
+        };
+    }
+
+    /**
+     * @param  list<string>  $blockers
+     * @param  array<string, mixed>|null  $job
+     * @return array{status_label: string, what_it_is_doing: string, what_next: string}
+     */
+    private function friendlyStatus(
+        string $status,
+        string $key,
+        ?int $ageRounded,
+        int $requeueAfterMinutes,
+        array $blockers,
+        ?array $job,
+    ): array {
+        $ageBit = $ageRounded !== null ? "Last good data {$ageRounded}m ago." : 'No successful data yet.';
+
+        return match ($status) {
+            'ok' => [
+                'status_label' => 'Up to date',
+                'what_it_is_doing' => $ageBit.' Nothing running.',
+                'what_next' => $key === 'superops'
+                    ? "Next auto pull around {$requeueAfterMinutes}m age."
+                    : ($key === 'entra_sync' ? 'Hourly Entra sync when due.' : 'Next prewarm refreshes if older than target.'),
+            ],
+            'due' => [
+                'status_label' => 'Waiting to refresh',
+                'what_it_is_doing' => $ageBit.' Not in the queue yet.',
+                'what_next' => $key === 'entra_sync'
+                    ? 'Runs from hourly portal:sync-entra-users (not the 5m prewarm).'
+                    : 'Waiting for the 5-minute auto-refresh (prewarm) to queue a job.',
+            ],
+            'aging' => [
+                'status_label' => 'Getting old',
+                'what_it_is_doing' => $ageBit.' Past the freshness target.',
+                'what_next' => $key === 'entra_sync'
+                    ? 'Hourly Entra job is late — check schedule:run and SyncEntraClientJob workers.'
+                    : 'Auto-refresh should have queued this — check prewarm + workers above.',
+            ],
+            'queued' => [
+                'status_label' => 'In the queue',
+                'what_it_is_doing' => $job
+                    ? 'Job waiting '.$job['age_seconds'].'s on '.$job['queue'].' queue'
+                        .(! empty($job['reserved']) ? ' (worker claimed it).' : '.')
+                    : 'Marked to run; job row may still be landing.',
+                'what_next' => ! empty($job['reserved'])
+                    ? 'Worker is busy — wait for finish (or stuck if >5m).'
+                    : 'Workers should pick this up within about a minute.',
+            ],
+            'running' => [
+                'status_label' => 'Refreshing now',
+                'what_it_is_doing' => 'Background job is running.',
+                'what_next' => 'Live numbers update when this job finishes.',
+            ],
+            'stuck' => [
+                'status_label' => 'Stuck',
+                'what_it_is_doing' => 'Job has been running too long.',
+                'what_next' => 'Check failed_jobs / logs; may need a worker restart or flag clear.',
+            ],
+            'failed' => [
+                'status_label' => 'Failed',
+                'what_it_is_doing' => 'Last attempt errored — showing last good data if any.',
+                'what_next' => $blockers[0] ?? 'Open error detail and fix the API/config issue.',
+            ],
+            'cold' => [
+                'status_label' => 'Never loaded',
+                'what_it_is_doing' => 'No snapshot stored yet.',
+                'what_next' => 'Prewarm should queue a first pull automatically.',
+            ],
+            'disabled' => [
+                'status_label' => 'Not linked',
+                'what_it_is_doing' => 'This integration is not configured for the client.',
+                'what_next' => 'Link SuperOps / Entra on the client if it should appear.',
+            ],
+            default => [
+                'status_label' => strtoupper($status),
+                'what_it_is_doing' => $ageBit,
+                'what_next' => $blockers[0] ?? '—',
+            ],
+        };
     }
 
     /**
@@ -563,9 +752,13 @@ class IntegrationHealthService
         }
 
         if ($status === 'due' || ($status === 'aging' && $dueForRequeue && ! $flagQueued && $job === null)) {
-            $lines[] = "{$label}: age {$ageRounded}m ≥ requeue {$requeueAfterMinutes}m · not queued · waiting prewarm (every 5m)";
+            if ($key === 'entra_sync') {
+                $lines[] = "{$label}: age {$ageRounded}m · waits on hourly portal:sync-entra-users (not 5m prewarm)";
+            } else {
+                $lines[] = "{$label}: age {$ageRounded}m · not queued · waiting for 5m prewarm to start a job";
+            }
             if ($status === 'aging') {
-                $lines[] = "{$label}: also past client window {$clientWindowMinutes}m — clients may see soft note";
+                $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m — clients may see soft note";
             }
         }
 
@@ -733,6 +926,10 @@ class IntegrationHealthService
             'detail' => $reason,
             'error' => null,
             'blockers' => [],
+            'friendly_label' => $this->friendlyLabel($key, $label),
+            'status_label' => 'Not linked',
+            'what_it_is_doing' => $reason,
+            'what_next' => 'Configure on the client record if this should show data.',
         ];
     }
 }
