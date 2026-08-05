@@ -51,9 +51,8 @@ class M365DirectoryService
 
         $isStale = $this->isStale($meta);
 
-        if ($isStale && ! $this->refreshInProgress($client)) {
-            $this->queueRefresh($client);
-        }
+        // Do not auto-queue on every stale page view — prewarm / Refresh now owns that.
+        // Auto-queue was re-setting "in progress" forever when jobs lagged.
 
         return $this->buildDisplayResult($client, snapshot: $snapshot, isStale: $isStale);
     }

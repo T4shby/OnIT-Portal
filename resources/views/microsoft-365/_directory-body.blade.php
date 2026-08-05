@@ -28,9 +28,10 @@
     <x-card>
         <x-empty-state
             title="Directory synchronising"
-            description="Microsoft 365 directory data is being loaded in the background. Refresh this page in a moment."
+            description="Microsoft 365 directory data is being loaded in the background. This page updates automatically."
         />
     </x-card>
+    <x-auto-reload-while-refreshing :enabled="true" />
 @elseif($directory)
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="space-y-1">
@@ -45,6 +46,9 @@
             @endif
             @if($display?->refreshInProgress)
                 <p class="portal-body-muted text-xs">Refresh in progress.</p>
+                <x-auto-reload-while-refreshing :enabled="true" />
+            @else
+                <x-auto-reload-while-refreshing :enabled="false" />
             @endif
         </div>
         @if(! $adminContext)

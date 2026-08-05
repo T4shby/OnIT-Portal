@@ -90,6 +90,7 @@ class M365InsightsServiceTest extends TestCase
         $this->assertSame(20, $summary->totalSeatsAssigned);
         $this->assertSame(80.0, $summary->overallUtilizationPct);
         $this->assertSame('M365_BUSINESS_PREMIUM', $summary->topSkus[0]['skuPartNumber']);
+        $this->assertSame('Microsoft 365 Business Premium', $summary->topSkus[0]['displayName']);
         $this->assertTrue($summary->hasData());
 
         Http::assertNotSent(fn (Request $request): bool => str_starts_with(
@@ -132,5 +133,73 @@ class M365InsightsServiceTest extends TestCase
         $this->assertSame(1, $summary->licensedUserCount);
         $this->assertSame(0, $summary->totalSeatsPurchased);
         $this->assertSame(0.0, $summary->overallUtilizationPct);
+    }
+
+    public function test_free_bulk_skus_do_not_skew_overall_utilisation(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '33333333-3333-3333-3333-333333333333',
+        ]);
+
+        Cache::put('m365_directory.client.'.$client->id, new M365DirectorySnapshot(
+            collect([['type' => 'user'], ['type' => 'user']]),
+            collect(),
+            now(),
+        ));
+
+        Http::fake([
+            'https://login.microsoftonline.com/*' => Http::response(['access_token' => 'token']),
+            'https://graph.microsoft.com/v1.0/subscribedSkus*' => Http::response([
+                'value' => [
+                    [
+                        'skuId' => 'sku-spb',
+                        'skuPartNumber' => 'SPB',
+                        'consumedUnits' => 21,
+                        'prepaidUnits' => ['enabled' => 21],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                    [
+                        'skuId' => 'sku-flow',
+                        'skuPartNumber' => 'FLOW_FREE',
+                        'consumedUnits' => 12,
+                        'prepaidUnits' => ['enabled' => 1_000_000],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                    [
+                        'skuId' => 'sku-exch',
+                        'skuPartNumber' => 'EXCHANGESTANDARD',
+                        'consumedUnits' => 12,
+                        'prepaidUnits' => ['enabled' => 12],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                    [
+                        'skuId' => 'sku-o365',
+                        'skuPartNumber' => 'O365_BUSINESS_PREMIUM',
+                        'consumedUnits' => 4,
+                        'prepaidUnits' => ['enabled' => 4],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $summary = (new M365InsightsService(new MicrosoftGraphClient))->refreshAndStore($client);
+
+        // 21 + 12 + 4 paid seats (FLOW_FREE excluded)
+        $this->assertSame(37, $summary->totalSeatsPurchased);
+        $this->assertSame(37, $summary->totalSeatsAssigned);
+        $this->assertSame(100.0, $summary->overallUtilizationPct);
+
+        $this->assertSame('Microsoft 365 Business Premium', $summary->topSkus[0]['displayName']);
+        $this->assertSame('Exchange Online (Plan 1)', $summary->topSkus[1]['displayName']);
+
+        $flow = collect($summary->topSkus)->firstWhere('skuPartNumber', 'FLOW_FREE');
+        $this->assertNotNull($flow);
+        $this->assertSame('Power Automate Free', $flow['displayName']);
+        $this->assertFalse($flow['countsTowardUtilisation']);
     }
 }

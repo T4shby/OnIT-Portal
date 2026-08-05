@@ -29,7 +29,12 @@
     @endif
 
     @if($refreshing)
-        <x-alert type="info" class="mb-6">Refresh in progress. Counts will update shortly.</x-alert>
+        <x-alert type="info" class="mb-6">
+            Refresh in progress. This page updates automatically when new data is ready.
+        </x-alert>
+        <x-auto-reload-while-refreshing :enabled="true" />
+    @else
+        <x-auto-reload-while-refreshing :enabled="false" />
     @endif
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -286,9 +291,16 @@
                 <div class="space-y-3">
                     @foreach($m365Insights->topSkus as $sku)
                         <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="text-white/80">{{ $sku['skuPartNumber'] }}</span>
-                                <span class="text-white/60">{{ $sku['assigned'] }} / {{ $sku['purchased'] }} ({{ number_format($sku['utilizationPct'], 0) }}%)</span>
+                            <div class="flex justify-between text-xs mb-1 gap-3">
+                                <span class="text-white/80">{{ $sku['displayName'] ?? $sku['skuPartNumber'] }}</span>
+                                <span class="text-white/60 shrink-0">
+                                    {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
+                                    @if(($sku['countsTowardUtilisation'] ?? true) === false)
+                                        · Free
+                                    @else
+                                        ({{ number_format($sku['utilizationPct'], 0) }}%)
+                                    @endif
+                                </span>
                             </div>
                             <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <div class="h-full bg-onit rounded-full" style="width: {{ min(100, $sku['utilizationPct']) }}%"></div>

@@ -39,45 +39,66 @@ class SyncEntraClientJob implements ShouldQueue, ShouldBeUnique
         $client = Client::query()->find($this->clientId);
 
         if ($client === null) {
+            Cache::forget('entra_sync.refresh_queued.'.$this->clientId);
+            Cache::forget('entra_sync.refresh_started.'.$this->clientId);
+
             return;
         }
 
-        $result = $sync->syncClient($client, dryRun: $this->dryRun);
+        $started = microtime(true);
+        Cache::put('entra_sync.refresh_queued.'.$client->id, true, now()->addMinutes(30));
+        Cache::put('entra_sync.refresh_started.'.$client->id, now()->toIso8601String(), now()->addMinutes(30));
 
-        Cache::put(
-            'entra_sync.last_result.'.$client->id,
-            [
-                'summary' => $result->summary($this->dryRun),
-                'failed' => $result->failed(),
-                'warnings' => $result->hasWarnings(),
-                'errors' => array_slice($result->errors, 0, 5),
-                'dry_run' => $this->dryRun,
-                'finished_at' => now()->toIso8601String(),
-            ],
-            now()->addDay(),
-        );
+        try {
+            $result = $sync->syncClient($client, dryRun: $this->dryRun);
 
-        $activityLog->log(
-            $this->dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
-            $client,
-            properties: [
-                'created' => $result->created,
-                'updated' => $result->updated,
-                'deactivated' => $result->deactivated,
-                'skipped' => $result->skipped,
-                'warnings' => count($result->errors),
-                'async' => true,
-                'dry_run' => $this->dryRun,
-            ],
-            clientId: $client->id,
-        );
+            Cache::put(
+                'entra_sync.last_result.'.$client->id,
+                [
+                    'success' => ! $result->failed(),
+                    'summary' => $result->summary($this->dryRun),
+                    'failed' => $result->failed(),
+                    'warnings' => $result->hasWarnings(),
+                    'errors' => array_slice($result->errors, 0, 5),
+                    'error' => $result->failed() ? ($result->errors[0] ?? 'Entra sync failed') : null,
+                    'dry_run' => $this->dryRun,
+                    'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+                    'finished_at' => now()->toIso8601String(),
+                ],
+                now()->addDay(),
+            );
 
-        if ($result->failed()) {
-            Log::error('Background Entra sync failed', [
-                'client_id' => $client->id,
-                'dry_run' => $this->dryRun,
-                'errors' => $result->errors,
-            ]);
+            $activityLog->log(
+                $this->dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
+                $client,
+                properties: [
+                    'created' => $result->created,
+                    'updated' => $result->updated,
+                    'deactivated' => $result->deactivated,
+                    'skipped' => $result->skipped,
+                    'warnings' => count($result->errors),
+                    'async' => true,
+                    'dry_run' => $this->dryRun,
+                ],
+                clientId: $client->id,
+            );
+
+            if ($result->failed()) {
+                Log::error('Background Entra sync failed', [
+                    'client_id' => $client->id,
+                    'dry_run' => $this->dryRun,
+                    'errors' => $result->errors,
+                ]);
+            }
+        } finally {
+            Cache::forget('entra_sync.refresh_queued.'.$client->id);
+            Cache::forget('entra_sync.refresh_started.'.$client->id);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Cache::forget('entra_sync.refresh_queued.'.$this->clientId);
+        Cache::forget('entra_sync.refresh_started.'.$this->clientId);
     }
 }

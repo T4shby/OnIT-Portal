@@ -7,7 +7,7 @@ use Carbon\Carbon;
 class M365InsightsSummary
 {
     /**
-     * @param  list<array{skuPartNumber: string, purchased: int, assigned: int, utilizationPct: float}>  $topSkus
+     * @param  list<array{skuPartNumber: string, displayName?: string, purchased: int, assigned: int, utilizationPct: float, countsTowardUtilisation?: bool}>  $topSkus
      */
     public function __construct(
         public readonly ?int $licensedUserCount,

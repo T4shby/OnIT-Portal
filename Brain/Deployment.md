@@ -175,10 +175,13 @@ Add these two lines (keep unrelated entries such as `ntpdate`):
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
 ```
 
-`--queue=high,default` runs SuperOps dashboard prewarm **before** Entra/SCIM (default). `--max-time=300` covers long Entra jobs. The scheduler queues work; the worker processes it.
+Two concurrent workers (`queue-worker-1` / `queue-worker-2`) so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
+
+`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). `--max-time=300` covers long Entra jobs. The scheduler queues work; the workers process it.
 
 ### 11. Run the queue worker
 
@@ -204,44 +207,44 @@ Run this **continuously** — choose one:
 
 | Option | When to use |
 |---|---|
-| **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts |
-| **Plesk scheduled task** | No Supervisor; run every minute with `--stop-when-empty` (see below) |
+| **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts — set **`numprocs=2`** for parallel clients |
+| **Plesk / root crontab** | Two `queue:work --stop-when-empty` lines each minute (see above) |
 
 **Supervisor example** (`/etc/supervisor/conf.d/onit-portal-queue.conf`):
 
 ```ini
 [program:onit-portal-queue]
-process_name=%(program_name)s
+process_name=%(program_name)s_%(process_num)02d
 command=/opt/plesk/php/8.3/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --queue=high,default --sleep=1 --tries=3
 autostart=true
 autorestart=true
 user=www-data
-numprocs=1
+numprocs=2
 redirect_stderr=true
 stdout_logfile=/var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker.log
 ```
 
-Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-portal-queue`
+Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-portal-queue:`
 
-**Plesk scheduled task fallback**: create a second **Run a command** task under
-the same Plesk Scheduled Tasks screen, also using Cron style `* * * * *`:
+**Plesk / cron fallback** (two workers):
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
 ```
 
-`--queue=high,default` so SuperOps dashboard jobs win over Entra when both are pending.
-`--max-time=300` matches typical worker windows.
-Use the same Plesk PHP binary as in [Updating the Application](#updating-the-application). After deploy, restart the Supervisor program or wait for the next scheduled task tick.
+`--queue=high,default` so dashboard/directory jobs win over Entra when both are pending.
+Use the same Plesk PHP binary as in [Updating the Application](#updating-the-application). After deploy, restart Supervisor or wait for the next cron tick.
 
 **Queued jobs:**
 
-| Job | Trigger |
-|---|---|
-| `RefreshM365DirectoryJob` | Stale M365 directory cache, manual refresh |
-| `RefreshSuperOpsDashboardJob` (`high` queue) | Prewarm / cold SuperOps cache / manual refresh |
-| `RefreshHuntressSecurityJob` | Stale Huntress security metrics cache |
-| `SyncEntraClientJob` | Admin → Clients → Sync Entra users |
+| Job | Queue | Trigger |
+|---|---|---|
+| `RefreshSuperOpsDashboardJob` | `high` | Prewarm / cold SuperOps cache / manual refresh |
+| `RefreshM365DirectoryJob` | `high` | Prewarm / cold directory / manual refresh |
+| `RefreshM365InsightsJob` | `high` | Prewarm / licence insights |
+| `RefreshHuntressSecurityJob` | default | Stale Huntress metrics |
+| `SyncEntraClientJob` | default | Admin → Clients → Sync Entra users |
 
 ### 12. SSL Certificate
 

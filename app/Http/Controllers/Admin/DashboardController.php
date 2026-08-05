@@ -7,11 +7,16 @@ use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\ClientNotice;
 use App\Models\User;
+use App\Services\Admin\IntegrationHealthService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private IntegrationHealthService $integrationHealth,
+    ) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -31,6 +36,10 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'recentActivity'));
+        $integrationHealth = $this->integrationHealth->overview(
+            empty($clientIds) ? null : $clientIds,
+        );
+
+        return view('admin.dashboard', compact('stats', 'recentActivity', 'integrationHealth'));
     }
 }

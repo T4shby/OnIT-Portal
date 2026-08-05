@@ -18,6 +18,37 @@ Staff roles (`account_manager`, `super_admin`) are unchanged.
 
 Entra sync creates new users as `client_requester` only. Sync updates never change `role`, so manually promoted `client_billing_admin` and `client_admin` users are preserved.
 
+## Technician Integration Health (Admin Dashboard)
+
+**Who:** On IT `super_admin` / `account_manager` only — **Admin → Dashboard** (`/admin`).  
+**Not** shown on Client Admin / requester portals.
+
+Service: `App\Services\Admin\IntegrationHealthService`
+
+Per **active** client (scoped by account manager access when applicable):
+
+| Column | Meaning |
+|--------|---------|
+| SuperOps | Last successful dashboard cache + last job duration |
+| M365 directory | Last directory snapshot meta + duration |
+| M365 licences | Last insights cache (`m365-insights:v2`) |
+| Entra sync | `clients.entra_synced_at` + last SyncEntra job |
+| Active / stuck | Process currently queued or running; **stuck** if started &gt; 5 minutes ago |
+
+Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
+
+Jobs record `*.refresh_started.{id}`, `*.last_result.{id}` (`duration_ms`, `success`, `error`).
+
+### Parallelism (one client must not block all others)
+
+PHP is not multi-threaded inside one worker. Parallelism = **multiple queue workers**:
+
+- Production: **2** `queue:work --queue=high,default` processes (cron dual lines or Supervisor `numprocs=2`) — [Deployment.md](Deployment.md#10-configure-cron)
+- Dashboard / M365 directory / insights jobs use **`high`**; Entra sync stays on **`default`**
+- M365 directory no longer auto-queues on every stale page view (that re-set “in progress” forever); use prewarm / Refresh now
+
+---
+
 ## SuperOps metrics
 
 Service: `App\Services\SuperOps\SuperOpsClientMetricsService`
@@ -162,16 +193,46 @@ Service: `App\Services\M365\M365DirectoryService`
 - Client Admin manual refresh: `POST /microsoft-365/directory/refresh` (cooldown `ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS`, default 60).
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
 - Mailbox type detection still reads each user's `mailboxSettings` serially. A future optimisation can use Graph `$batch` in chunks of 20; this remains separate to keep shared-mailbox classification and its per-user error handling unchanged.
+- **Browser auto-reload:** when a directory or Client Admin dashboard refresh is in progress, the page reloads every 8 seconds (max 30 attempts) so technicians/clients do not need a manual F5. When the refresh flag clears, the counter resets.
 
 MSP staff view client directory at `/admin/clients/{client}/microsoft-365` (unchanged).
 
-## Microsoft 365 insights (Phase 2 service layer)
+## Microsoft 365 insights (Client Admin)
 
-Service: `App\Services\M365\M365InsightsService`
+Service: `App\Services\M365\M365InsightsService`  
+SKU labels / free-seat rules: `App\Services\M365\MicrosoftLicenseSkuNames`
 
-Cache key: `client:{client_id}:m365-insights:v1`
+**UI:** Client Admin organisation overview (`/client-admin`) — hero card “Microsoft 365” % and section “Microsoft 365 licence insight”.
 
-The service asynchronously builds Client Admin summary data from Microsoft Graph `/subscribedSkus`: licensed user count, purchased and assigned user-license seats, overall utilisation, and the five SKUs with the most assigned seats. Only user SKUs whose capability status is enabled are included. If the existing `M365DirectorySnapshot` is cached, its user count is reused; otherwise the service counts tenant member users with assigned licences.
+Cache key: `client:{client_id}:m365-insights:v2` (v2 = paid-only totals + friendly names; old v1 payloads ignored)
+
+Source: Microsoft Graph `/subscribedSkus` (enabled user SKUs only). Licensed user count reuses `M365DirectorySnapshot` when present, otherwise counts tenants users with assigned licences.
+
+### Seat totals + overall utilisation %
+
+Counts **paid / commercial seats only**. Excluded from overall purchased/assigned/%:
+
+| Rule | Why |
+|------|-----|
+| Prepaid seats ≥ 100,000 | Free bulk pools (e.g. `FLOW_FREE` = 1,000,000) |
+| Exact free SKUs (`FLOW_FREE`, `POWER_BI_STANDARD`, Teams Exploratory, …) | Not bought seats |
+| Part numbers with `_FREE`, `_TRIAL`, `_VIRAL`, `EXPLORATORY`, `DEVELOPER` | Trials / free offers |
+
+So a tenant with Business Premium full and Power Automate Free at 12/1,000,000 does **not** show 0% overall utilisation.
+
+**“Seats assigned / purchased”** on the insight panel uses the same paid-only totals (not 66 / 1,030,047 style numbers).
+
+### SKU row display
+
+| Field | What clients see |
+|-------|------------------|
+| Name | Friendly product name from map (e.g. `SPB` → **Microsoft 365 Business Premium**, `EXCHANGEENTERPRISE` → **Exchange Online (Plan 2)**). Unknown SKUs humanized. |
+| Counts | assigned / purchased |
+| % | Per-SKU utilisation for paid products; free products show **· Free** instead of a misleading 0% |
+
+Top five list prefers paid SKUs first, then free.
+
+### Settings
 
 | Setting | Env | Default |
 |---------|-----|---------|
@@ -179,7 +240,9 @@ The service asynchronously builds Client Admin summary data from Microsoft Graph
 | Stale retention | `M365_INSIGHTS_STALE_MINUTES` | 1440 minutes |
 | Manual refresh cooldown | `M365_INSIGHTS_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
 
-Background refresh: `RefreshM365InsightsJob` (`ShouldQueue` + `ShouldBeUnique`) using the same database queue worker as the directory and dashboard metrics. Graph or refresh failures preserve the last cached summary as stale. This phase is service-only; no Blade dashboard components are wired yet.
+Background refresh: `RefreshM365InsightsJob` (`ShouldQueue` + `ShouldBeUnique`). Fails keep last cache as stale. Same queue worker as SuperOps (`high,default` preferred).
+
+After deploy / mapping change: run `php artisan portal:prewarm-client-dashboards` or client **Refresh now** so v2 caches rebuild.
 
 ## Dropsuite / NinjaOne SaaS Backup scaffold
 
@@ -205,4 +268,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Technician Integration Health table on Admin Dashboard; dual queue workers; M365 directory/insights on `high`; clear stuck queue flags; no stale page-view auto-queue |
+| 2026-08-05 | Auto-reload browser every 8s while M365 directory / Client Admin refresh is in progress |
+| 2026-08-05 | M365 utilisation ignores free/bulk SKUs (e.g. FLOW_FREE 1M seats); friendly SKU display names on Client Admin |
 | 2026-08-04 | Dashboard metrics pre-stored: cold SuperOps always prewarms (even under deep queue), `high` queue before Entra, page views no longer stampede refresh, 7-day cache retention |

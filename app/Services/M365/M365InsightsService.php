@@ -97,20 +97,41 @@ class M365InsightsService
         try {
             $inventory = $this->graph->listSubscribedSkuInventory((string) $client->entra_tenant_id);
             $licensedUserCount = $this->licensedUserCount($client);
-            $totalSeatsPurchased = array_sum(array_column($inventory, 'prepaidEnabled'));
-            $totalSeatsAssigned = array_sum(array_column($inventory, 'consumedUnits'));
+
+            $billable = array_values(array_filter(
+                $inventory,
+                static fn (array $sku): bool => MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
+                    $sku['skuPartNumber'],
+                    (int) $sku['prepaidEnabled'],
+                ),
+            ));
+
+            $totalSeatsPurchased = (int) array_sum(array_column($billable, 'prepaidEnabled'));
+            $totalSeatsAssigned = (int) array_sum(array_column($billable, 'consumedUnits'));
 
             $topSkus = array_map(
                 static fn (array $sku): array => [
                     'skuPartNumber' => $sku['skuPartNumber'],
+                    'displayName' => MicrosoftLicenseSkuNames::displayName($sku['skuPartNumber']),
                     'purchased' => $sku['prepaidEnabled'],
                     'assigned' => $sku['consumedUnits'],
                     'utilizationPct' => $sku['utilizationPct'],
+                    'countsTowardUtilisation' => MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
+                        $sku['skuPartNumber'],
+                        (int) $sku['prepaidEnabled'],
+                    ),
                 ],
                 $inventory,
             );
 
+            // Prefer paid/commercial licences in the top list; free bulk SKUs last.
             usort($topSkus, static function (array $left, array $right): int {
+                $leftBillable = $left['countsTowardUtilisation'] ? 0 : 1;
+                $rightBillable = $right['countsTowardUtilisation'] ? 0 : 1;
+                if ($leftBillable !== $rightBillable) {
+                    return $leftBillable <=> $rightBillable;
+                }
+
                 $byAssigned = $right['assigned'] <=> $left['assigned'];
                 if ($byAssigned !== 0) {
                     return $byAssigned;
@@ -120,7 +141,7 @@ class M365InsightsService
 
                 return $byPurchased !== 0
                     ? $byPurchased
-                    : strcmp($left['skuPartNumber'], $right['skuPartNumber']);
+                    : strcmp($left['displayName'], $right['displayName']);
             });
 
             $payload = [
@@ -196,7 +217,24 @@ class M365InsightsService
             totalSeatsPurchased: isset($payload['total_seats_purchased']) ? (int) $payload['total_seats_purchased'] : null,
             totalSeatsAssigned: isset($payload['total_seats_assigned']) ? (int) $payload['total_seats_assigned'] : null,
             overallUtilizationPct: isset($payload['overall_utilization_pct']) ? (float) $payload['overall_utilization_pct'] : null,
-            topSkus: is_array($payload['top_skus'] ?? null) ? $payload['top_skus'] : [],
+            topSkus: is_array($payload['top_skus'] ?? null)
+                ? array_map(static function (array $sku): array {
+                    $part = (string) ($sku['skuPartNumber'] ?? '');
+
+                    return [
+                        'skuPartNumber' => $part,
+                        'displayName' => (string) ($sku['displayName'] ?? MicrosoftLicenseSkuNames::displayName($part)),
+                        'purchased' => (int) ($sku['purchased'] ?? 0),
+                        'assigned' => (int) ($sku['assigned'] ?? 0),
+                        'utilizationPct' => (float) ($sku['utilizationPct'] ?? 0),
+                        'countsTowardUtilisation' => (bool) ($sku['countsTowardUtilisation']
+                            ?? MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
+                                $part,
+                                (int) ($sku['purchased'] ?? 0),
+                            )),
+                    ];
+                }, $payload['top_skus'])
+                : [],
             lastRefreshedAt: $lastRefreshedAt,
             isStale: $isStale,
             refreshInProgress: $refreshInProgress || $this->refreshInProgress($clientId),
@@ -226,6 +264,6 @@ class M365InsightsService
 
     private function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:m365-insights:v1";
+        return "client:{$clientId}:m365-insights:v2";
     }
 }

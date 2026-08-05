@@ -60,6 +60,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
 | Portal links | `app/Models/PortalLink.php`, `ExternalServicesService.php` |
 | Client Admin dashboard | `ClientAdminDashboardController`, `SuperOpsClientMetricsService`, `RefreshSuperOpsDashboardJob`, `HuntressClientMetricsService`, `RefreshHuntressSecurityJob` |
+| Technician Integration Health | `IntegrationHealthService`, Admin Dashboard `/admin` |
 | M365 directory (async) | `M365DirectoryService`, `RefreshM365DirectoryJob` |
 | M365 insights (async) | `M365InsightsService`, `RefreshM365InsightsJob` |
 | Client roles | `App\Enums\UserRole`, `User` capability helpers, gates in `AuthServiceProvider` |
@@ -75,6 +76,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Admin Integration Health dashboard (all clients last refresh / stuck jobs); dual workers so one client cannot block others — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
+| 2026-08-05 | M365 directory / Client Admin: auto-reload UI while background refresh in progress — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | M365 Client Admin: exclude free/bulk licences from utilisation %; show friendly product names — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-04 | Dashboard always pre-filled: cold SuperOps never skipped on deep queue; `high` worker queue; no page-view stampede — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
 | 2026-08-04 | Scrub real customer names from live steps product copy and Brain runbook examples (use `{Company}` placeholders only); SuperOps names after background Sync (minutes) |
 | 2026-08-04 | Apply SCIM name-mapping fix: Graph `attributeMapping` has no `mappingType` (400 RequestParameterInvalid); remove customer examples from product-facing SCIM copy — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
