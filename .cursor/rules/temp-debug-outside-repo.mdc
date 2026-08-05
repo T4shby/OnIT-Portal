@@ -1,0 +1,33 @@
+---
+description: Temp/debug scripts go in repo-root tmp/ only — never under app, storage, or other code paths
+alwaysApply: true
+---
+
+# Temporary / debug scripts (On IT Portal)
+
+## Rule
+
+Throwaway, diagnostic, hotfix-probe, and one-off verify scripts belong in the **repo top-level** folder only:
+
+```
+C:\Dev\OnIT-Portal\tmp\
+```
+
+**Never** put them under application code paths, including:
+
+- `app/`
+- `storage/` (including `storage/app/`)
+- `resources/`, `routes/`, `tests/`, `database/`
+- `public/`, `bootstrap/`, `config/`
+- project root as loose `_check_*.php` files
+
+## After use
+
+1. Delete the temp file when done (local + any copy scp’d to the server).
+2. Contents of `tmp/` are gitignored — do not force-add them.
+3. Do **not** leave probe scripts on production under `storage/app/` or the live tree.
+4. Prefer `artisan` / proper tests for anything that should persist.
+
+## Why
+
+Hardcoded client names, tenant IDs, or env-specific probes next to product code look like features, break when clients rebrand, and pollute deploys/git status.

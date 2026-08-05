@@ -100,6 +100,24 @@ class HuntressClientMetricsService
         return true;
     }
 
+    public function needsBackgroundRefresh(Client $client): bool
+    {
+        if (empty($client->huntress_organization_id) || ! $this->isAvailable()) {
+            return false;
+        }
+
+        if (Cache::has('huntress_security.refresh_queued.'.$client->id)) {
+            return false;
+        }
+
+        $cached = Cache::get($this->cacheKey($client->id));
+        if (! is_array($cached)) {
+            return true;
+        }
+
+        return $this->summaryFromCache($client->id, $cached)->isStale;
+    }
+
     public function refreshAndStore(Client $client): HuntressClientSecuritySummary
     {
         $organizationId = (string) $client->huntress_organization_id;

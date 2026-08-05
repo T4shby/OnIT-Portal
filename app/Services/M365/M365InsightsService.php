@@ -56,6 +56,8 @@ class M365InsightsService
             return false;
         }
 
+        $this->clearOrphanedRefreshFlags($client->id);
+
         if ($respectCooldown) {
             $cooldownKey = 'm365_insights.refresh_cooldown.'.$client->id;
             if (Cache::has($cooldownKey)) {
@@ -71,10 +73,33 @@ class M365InsightsService
             return false;
         }
 
-        Cache::put('m365_insights.refresh_queued.'.$client->id, true, now()->addMinutes(5));
+        Cache::put('m365_insights.refresh_queued.'.$client->id, true, now()->addMinutes(15));
         RefreshM365InsightsJob::dispatch($client->id);
 
         return true;
+    }
+
+    /**
+     * Cold or past insights fresh window — used by prewarm.
+     */
+    public function needsBackgroundRefresh(Client $client): bool
+    {
+        if (! filled($client->entra_tenant_id) || ! $this->graph->isConfigured()) {
+            return false;
+        }
+
+        $this->clearOrphanedRefreshFlags($client->id);
+
+        if ($this->refreshInProgress($client->id)) {
+            return false;
+        }
+
+        $cached = Cache::get($this->cacheKey($client->id));
+        if (! is_array($cached)) {
+            return true;
+        }
+
+        return $this->summaryFromCache($client->id, $cached)->isStale;
     }
 
     public function refreshAndStore(Client $client): M365InsightsSummary
@@ -270,6 +295,27 @@ class M365InsightsService
     private function refreshInProgress(int $clientId): bool
     {
         return Cache::has('m365_insights.refresh_queued.'.$clientId);
+    }
+
+    private function clearOrphanedRefreshFlags(int $clientId): void
+    {
+        if (! Cache::has('m365_insights.refresh_queued.'.$clientId)) {
+            return;
+        }
+
+        if (! \Illuminate\Support\Facades\Schema::hasTable('jobs')) {
+            return;
+        }
+
+        $pending = \Illuminate\Support\Facades\DB::table('jobs')
+            ->where('payload', 'like', '%RefreshM365InsightsJob%')
+            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
+            ->exists();
+
+        if (! $pending) {
+            Cache::forget('m365_insights.refresh_queued.'.$clientId);
+            Cache::forget('m365_insights.refresh_started.'.$clientId);
+        }
     }
 
     private function cacheKey(int $clientId): string

@@ -65,7 +65,7 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Setting | Env | Default |
 |---------|-----|---------|
-| Fresh TTL (stale banner) | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | 60 minutes |
+| Fresh TTL (stale banner) | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | 15 minutes (set in production `.env`; code default 60) |
 | Cache retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` | 10080 minutes (7 days) |
 | Manual refresh cooldown | `SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
 | GraphQL page cap | `SUPEROPS_DASHBOARD_MAX_PAGES` | 10 pages × 100 rows |
@@ -75,9 +75,11 @@ Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (befor
 **Data should exist before anyone opens the page:**
 
 1. Scheduler runs `portal:prewarm-client-dashboards` **every 5 minutes**.
-2. **Cold SuperOps caches always queue**, even when the jobs table is deep (Entra backlog). Optional refreshes only when spare capacity (&lt; 40 pending jobs).
-3. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
-4. Page views **serve cache only** — they do not re-queue every time metrics are &gt; 1 hour old (that stampeded the worker and kept demos empty).
+2. **SuperOps cold + stale always queues** (not optional), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row — that flag previously blocked refreshes for 30–40+ minutes while workers were idle.
+3. M365 / Huntress / Dropsuite only when cold or past their fresh window, and only when spare queue capacity (&lt; 40 pending).
+4. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
+5. Page views **serve cache only** — they do not re-queue every time metrics are past the fresh window.
+6. Queue workers: two minute-cron processes with `--max-time=55` (not 300) so workers do not stack; process `high` before `default` — [Deployment.md](Deployment.md#10-configure-cron).
 
 The dashboard uses a wide (`96rem`) layout and compact responsive grids so desktop
 and tablet widths show multiple cards per row. The **Microsoft 365 Directory** page

@@ -141,13 +141,16 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * True when cache exists but is past the fresh window (optional refresh when spare capacity).
+     * True when cache exists but is past the fresh window and no real job is queued/running.
+     * Clears orphaned `refresh_queued` cache when the jobs table has no matching row.
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
         if (! $this->hasStoredSummary($client)) {
             return false;
         }
+
+        $this->clearOrphanedRefreshFlags($client->id);
 
         $summary = $this->summaryFromCache($client->id, Cache::get($this->cacheKey($client->id)));
 
@@ -159,6 +162,8 @@ class SuperOpsClientMetricsService
         if (empty($client->superops_account_id) || ! $this->isAvailable()) {
             return false;
         }
+
+        $this->clearOrphanedRefreshFlags($client->id);
 
         if ($respectCooldown) {
             $cooldownKey = 'superops_dashboard.refresh_cooldown.'.$client->id;
@@ -174,7 +179,7 @@ class SuperOpsClientMetricsService
             return false;
         }
 
-        Cache::put('superops_dashboard.refresh_queued.'.$client->id, true, now()->addMinutes(5));
+        Cache::put('superops_dashboard.refresh_queued.'.$client->id, true, now()->addMinutes(15));
         RefreshSuperOpsDashboardJob::dispatch($client->id);
 
         return true;
@@ -668,7 +673,7 @@ class SuperOpsClientMetricsService
 
         if ($lastRefreshedAt && ! $isStale) {
             $isStale = $lastRefreshedAt->lte(now()->subMinutes(
-                (int) config('services.superops.dashboard_cache_minutes', 10),
+                (int) config('services.superops.dashboard_cache_minutes', 60),
             ));
         }
 
@@ -720,5 +725,35 @@ class SuperOpsClientMetricsService
     private function cacheKey(int $clientId): string
     {
         return "client:{$clientId}:superops-dashboard:v2";
+    }
+
+    /**
+     * Drop phantom "in progress" when flag is set but no matching job row exists.
+     * (Workers died, unique discard, or deploy mid-flight — blocked prewarm for 40+ minutes.)
+     */
+    private function clearOrphanedRefreshFlags(int $clientId): void
+    {
+        if (! Cache::has('superops_dashboard.refresh_queued.'.$clientId)) {
+            return;
+        }
+
+        if ($this->jobPendingInDatabase($clientId)) {
+            return;
+        }
+
+        Cache::forget('superops_dashboard.refresh_queued.'.$clientId);
+        Cache::forget('superops_dashboard.refresh_started.'.$clientId);
+    }
+
+    private function jobPendingInDatabase(int $clientId): bool
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('jobs')) {
+            return false;
+        }
+
+        return \Illuminate\Support\Facades\DB::table('jobs')
+            ->where('payload', 'like', '%RefreshSuperOpsDashboardJob%')
+            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
+            ->exists();
     }
 }

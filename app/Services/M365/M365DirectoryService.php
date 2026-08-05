@@ -59,6 +59,12 @@ class M365DirectoryService
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
     {
+        if (! $this->isAvailableForClient($client)) {
+            return false;
+        }
+
+        $this->clearOrphanedRefreshFlags($client);
+
         if ($respectCooldown) {
             $cooldownKey = 'm365_directory.refresh_cooldown.'.$client->id;
             if (Cache::has($cooldownKey)) {
@@ -73,11 +79,34 @@ class M365DirectoryService
             return false;
         }
 
-        Cache::put('m365_directory.refresh_queued.'.$client->id, true, now()->addMinutes(5));
+        Cache::put('m365_directory.refresh_queued.'.$client->id, true, now()->addMinutes(15));
 
         RefreshM365DirectoryJob::dispatch($client->id);
 
         return true;
+    }
+
+    /**
+     * Cold (no snapshot) or past directory fresh window — used by prewarm.
+     */
+    public function needsBackgroundRefresh(Client $client): bool
+    {
+        if (! $this->isAvailableForClient($client)) {
+            return false;
+        }
+
+        $this->clearOrphanedRefreshFlags($client);
+
+        if ($this->refreshInProgress($client)) {
+            return false;
+        }
+
+        $snapshot = $this->readStoredSnapshot($client);
+        if ($snapshot === null) {
+            return true;
+        }
+
+        return $this->isStale($this->readMeta($client));
     }
 
     /**
@@ -227,6 +256,27 @@ class M365DirectoryService
     private function refreshInProgress(Client $client): bool
     {
         return Cache::has('m365_directory.refresh_queued.'.$client->id);
+    }
+
+    private function clearOrphanedRefreshFlags(Client $client): void
+    {
+        if (! Cache::has('m365_directory.refresh_queued.'.$client->id)) {
+            return;
+        }
+
+        if (! \Illuminate\Support\Facades\Schema::hasTable('jobs')) {
+            return;
+        }
+
+        $pending = \Illuminate\Support\Facades\DB::table('jobs')
+            ->where('payload', 'like', '%RefreshM365DirectoryJob%')
+            ->where('payload', 'like', '%clientId";i:'.$client->id.';%')
+            ->exists();
+
+        if (! $pending) {
+            Cache::forget('m365_directory.refresh_queued.'.$client->id);
+            Cache::forget('m365_directory.refresh_started.'.$client->id);
+        }
     }
 
     private function parseRefreshedAt(?string $value): ?Carbon

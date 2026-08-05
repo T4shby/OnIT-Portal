@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Keep client dashboard caches filled so metrics exist before anyone opens the page.
  *
- * Cold SuperOps caches are always queued (high queue). Optional warm refreshes and
- * other integrations only when the jobs table is under capacity — never thrash Entra work.
+ * SuperOps (cold + past fresh window) is always queued on `high`.
+ * Other integrations only when the jobs table is under capacity and they are cold/stale.
  */
 class PrewarmClientDashboardsCommand extends Command
 {
@@ -24,7 +24,7 @@ class PrewarmClientDashboardsCommand extends Command
 
     protected $description = 'Ensure active clients have SuperOps (and other) dashboard caches ready';
 
-    /** Spare-capacity threshold for optional (non-cold) prewarm work. */
+    /** Spare-capacity threshold for non-SuperOps prewarm work. */
     private const MAX_PENDING_BEFORE_OPTIONAL = 40;
 
     public function handle(
@@ -38,7 +38,7 @@ class PrewarmClientDashboardsCommand extends Command
         $queueDeep = $pending >= self::MAX_PENDING_BEFORE_OPTIONAL;
 
         $clientsProcessed = 0;
-        $coldQueued = 0;
+        $superOpsQueued = 0;
         $optionalQueued = 0;
 
         Client::query()
@@ -52,40 +52,44 @@ class PrewarmClientDashboardsCommand extends Command
                 $dropsuite,
                 $queueDeep,
                 &$clientsProcessed,
-                &$coldQueued,
+                &$superOpsQueued,
                 &$optionalQueued,
             ): void {
                 foreach ($clients as $client) {
                     $clientsProcessed++;
 
-                    // 1) Always fill missing SuperOps snapshots first.
-                    if ($superOps->needsColdPrewarm($client) && $superOps->queueRefresh($client)) {
-                        $coldQueued++;
+                    // SuperOps always — cold or past fresh window. Never skip because other jobs are deep.
+                    if (
+                        ($superOps->needsColdPrewarm($client) || $superOps->needsBackgroundRefresh($client))
+                        && $superOps->queueRefresh($client)
+                    ) {
+                        $superOpsQueued++;
                     }
 
                     if ($queueDeep) {
                         continue;
                     }
 
-                    // 2) Refresh existing SuperOps data past the fresh window when spare capacity.
-                    if ($superOps->needsBackgroundRefresh($client) && $superOps->queueRefresh($client)) {
+                    // Other integrations only when they need it (not every prewarm tick).
+                    if ($m365Insights->needsBackgroundRefresh($client) && $m365Insights->queueRefresh($client)) {
                         $optionalQueued++;
                     }
-
-                    $optionalQueued += (int) $m365Insights->queueRefresh($client);
-                    $optionalQueued += (int) $huntress->queueRefresh($client);
-                    $optionalQueued += (int) $dropsuite->queueRefresh($client);
-
-                    if ($m365Directory->isAvailableForClient($client)) {
-                        $optionalQueued += (int) $m365Directory->queueRefresh($client);
+                    if ($huntress->needsBackgroundRefresh($client) && $huntress->queueRefresh($client)) {
+                        $optionalQueued++;
+                    }
+                    if ($dropsuite->needsBackgroundRefresh($client) && $dropsuite->queueRefresh($client)) {
+                        $optionalQueued++;
+                    }
+                    if ($m365Directory->needsBackgroundRefresh($client) && $m365Directory->queueRefresh($client)) {
+                        $optionalQueued++;
                     }
                 }
             });
 
         $this->info(
-            "Dashboard prewarm: {$coldQueued} cold SuperOps, {$optionalQueued} optional, "
+            "Dashboard prewarm: {$superOpsQueued} SuperOps, {$optionalQueued} other, "
             ."across {$clientsProcessed} active client(s)"
-            .($queueDeep ? ' (queue deep — cold SuperOps only).' : '.')
+            .($queueDeep ? ' (queue deep — SuperOps only).' : '.')
         );
 
         if ($queueDeep) {

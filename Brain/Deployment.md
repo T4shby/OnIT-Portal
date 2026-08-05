@@ -175,13 +175,13 @@ Add these two lines (keep unrelated entries such as `ntpdate`):
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
 ```
 
 Two concurrent workers (`queue-worker-1` / `queue-worker-2`) so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
 
-`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). `--max-time=300` covers long Entra jobs. The scheduler queues work; the workers process it.
+`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). **`--max-time=55`** so each minute-cron worker exits before the next minute spawns another (do **not** use 300 with minute cron — that stacks overlapping workers). Long Entra jobs may span workers; that is intentional. The scheduler queues work; the workers process it.
 
 ### 11. Run the queue worker
 

@@ -85,6 +85,24 @@ class DropsuiteClientMetricsService
         return true;
     }
 
+    public function needsBackgroundRefresh(Client $client): bool
+    {
+        if (empty($client->dropsuite_organization_id) || ! $this->isAvailable()) {
+            return false;
+        }
+
+        if (Cache::has('dropsuite_backup.refresh_queued.'.$client->id)) {
+            return false;
+        }
+
+        $cached = Cache::get($this->cacheKey($client->id));
+        if (! is_array($cached)) {
+            return true;
+        }
+
+        return $this->summaryFromCache($client->id, $cached)->isStale;
+    }
+
     public function refreshAndStore(Client $client): DropsuiteClientBackupSummary
     {
         $organizationId = (string) $client->dropsuite_organization_id;

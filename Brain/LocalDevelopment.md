@@ -15,6 +15,12 @@ git clone <repo-url> C:\Dev\OnIT-Portal
 cd C:\Dev\OnIT-Portal
 ```
 
+## Temporary / debug scripts
+
+Use the **top-level** `tmp/` folder only (`C:\Dev\OnIT-Portal\tmp\`).
+
+Do **not** drop probes under `storage/`, `app/`, or other code paths. `tmp/` is gitignored (folder kept via `tmp/.gitignore`). Delete scripts when finished; never leave them on production.
+
 ## Prerequisites
 
 | Tool | Version | Notes |
