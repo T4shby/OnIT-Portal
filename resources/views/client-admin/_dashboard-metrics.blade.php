@@ -24,18 +24,18 @@
                     <div>
                         <p class="portal-label mb-2">Managed devices</p>
                         <p class="text-4xl font-condensed font-bold text-onit">
-                            {{ $summary->assetsTotal === null ? 'ÔÇö' : number_format($summary->assetsTotal) }}
+                            {{ $summary->assetsTotal === null ? '-' : number_format($summary->assetsTotal) }}
                         </p>
                         <p class="portal-body-muted text-sm mt-2">
                             @if($summary->assetsOnline !== null && $summary->assetsOffline !== null)
-                                {{ number_format($summary->assetsOnline) }} online ┬À {{ number_format($summary->assetsOffline) }} offline
+                                {{ number_format($summary->assetsOnline) }} online / {{ number_format($summary->assetsOffline) }} offline
                             @else
                                 Devices in SuperOps
                             @endif
                         </p>
                     </div>
                     @if($summary->hasData())
-                        <a href="{{ route('integrations.superops.launch') }}" class="text-onit hover:text-white text-lg leading-none" title="Open SuperOps">ÔåÆ</a>
+                        <a href="{{ route('integrations.superops.launch') }}" class="text-onit hover:text-white text-lg leading-none" title="Open SuperOps">&rarr;</a>
                     @endif
                 </div>
             </x-card>
@@ -46,12 +46,12 @@
                         <p class="portal-label mb-2">Security (Huntress)</p>
                         @if($huntressSummary->hasData())
                             <p class="text-4xl font-condensed font-bold text-white">
-                                {{ $huntressSummary->openIncidents === null ? 'ÔÇö' : number_format($huntressSummary->openIncidents) }}
+                                {{ $huntressSummary->openIncidents === null ? '-' : number_format($huntressSummary->openIncidents) }}
                             </p>
                             <p class="portal-body-muted text-sm mt-2">
                                 Open incidents
                                 @if($huntressSummary->edrIsolatedAgents !== null)
-                                    ┬À {{ number_format($huntressSummary->edrIsolatedAgents) }} isolated
+                                    / {{ number_format($huntressSummary->edrIsolatedAgents) }} isolated
                                 @endif
                             </p>
                         @else
@@ -67,10 +67,10 @@
                         <p class="portal-label mb-2">Backups (Dropsuite)</p>
                         @if($dropsuiteSummary->hasData())
                             <p class="text-4xl font-condensed font-bold text-white">
-                                {{ $dropsuiteSummary->protectedMailboxes === null ? 'ÔÇö' : number_format($dropsuiteSummary->protectedMailboxes) }}
+                                {{ $dropsuiteSummary->protectedMailboxes === null ? '-' : number_format($dropsuiteSummary->protectedMailboxes) }}
                             </p>
                             <p class="portal-body-muted text-sm mt-2">
-                                Protected mailboxes ┬À {{ ucfirst($dropsuiteSummary->lastBackupStatus) }}
+                                Protected mailboxes / {{ ucfirst($dropsuiteSummary->lastBackupStatus) }}
                             </p>
                         @else
                             <p class="text-sm portal-body-muted mt-2">{{ $dropsuiteSummary->unavailableReason }}</p>
@@ -85,12 +85,12 @@
                         <p class="portal-label mb-2">Microsoft 365</p>
                         @if($m365Insights->hasData())
                             <p class="text-4xl font-condensed font-bold text-onit">
-                                {{ $m365Insights->overallUtilizationPct === null ? 'ÔÇö' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
+                                {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
                             </p>
                             <p class="portal-body-muted text-sm mt-2">
                                 Licence utilisation
                                 @if($m365Insights->licensedUserCount !== null)
-                                    ┬À {{ number_format($m365Insights->licensedUserCount) }} users
+                                    / {{ number_format($m365Insights->licensedUserCount) }} users
                                 @endif
                             </p>
                         @else
@@ -98,7 +98,7 @@
                         @endif
                     </div>
                     @can('view-m365-directory')
-                        <a href="{{ route('microsoft-365.directory') }}" class="text-onit hover:text-white text-lg leading-none" title="Microsoft 365 directory">ÔåÆ</a>
+                        <a href="{{ route('microsoft-365.directory') }}" class="text-onit hover:text-white text-lg leading-none" title="Microsoft 365 directory">&rarr;</a>
                     @endcan
                 </div>
             </x-card>
@@ -110,7 +110,7 @@
         <div class="flex items-center justify-between gap-4 mb-6">
             <h2 class="portal-label">Support &amp; SLA</h2>
             @if($summary->hasData())
-                <a href="{{ route('integrations.superops.launch') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Open SuperOps ÔåÆ</a>
+                <a href="{{ route('integrations.superops.launch') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Open SuperOps &rarr;</a>
             @endif
         </div>
 
@@ -118,7 +118,7 @@
             <x-card>
                 <p class="portal-label mb-2">Open tickets</p>
                 <p class="text-4xl font-condensed font-bold text-onit">
-                    {{ $summary->openTicketsTotal === null ? 'ÔÇö' : number_format($summary->openTicketsTotal) }}
+                    {{ $summary->openTicketsTotal === null ? '-' : number_format($summary->openTicketsTotal) }}
                 </p>
                 @if($summary->openTicketsByPriority !== [])
                     <div class="flex flex-wrap gap-2 mt-4">
@@ -134,12 +134,12 @@
             <x-card>
                 <p class="portal-label mb-2">SLA performance</p>
                 <p class="text-4xl font-condensed font-bold text-white">
-                    {{ $summary->slaMetPercent === null ? 'ÔÇö' : $summary->slaMetPercent.'%' }}
+                    {{ $summary->slaMetPercent === null ? '-' : $summary->slaMetPercent.'%' }}
                 </p>
                 <p class="portal-body-muted text-sm mt-2">
                     Resolution SLA met (30 days)
                     @if($summary->slaSampleSize)
-                        ┬À {{ number_format($summary->slaSampleSize) }} tickets
+                        / {{ number_format($summary->slaSampleSize) }} tickets
                     @endif
                 </p>
             </x-card>
@@ -162,14 +162,14 @@
                             <p class="text-xs portal-body-muted mb-1">Logged</p>
                             <p class="text-2xl font-condensed font-bold text-white">
                                 @php $logged = $summary->ticketsCreated[$key] ?? null; @endphp
-                                {{ $logged === null ? 'ÔÇö' : number_format($logged) }}
+                                {{ $logged === null ? '-' : number_format($logged) }}
                             </p>
                         </div>
                         <div>
                             <p class="text-xs portal-body-muted mb-1">Closed</p>
                             <p class="text-2xl font-condensed font-bold text-white">
                                 @php $closed = $summary->ticketsClosed[$key] ?? null; @endphp
-                                {{ $closed === null ? 'ÔÇö' : number_format($closed) }}
+                                {{ $closed === null ? '-' : number_format($closed) }}
                             </p>
                         </div>
                     </div>
@@ -196,13 +196,13 @@
                                 <tr class="border-b border-white/5">
                                     <td class="py-3 pr-4 text-onit font-mono text-xs">{{ $ticket['displayId'] }}</td>
                                     <td class="py-3 pr-4 text-white/90">{{ $ticket['subject'] }}</td>
-                                    <td class="py-3 pr-4 text-white/70">{{ $ticket['priority'] ?: 'ÔÇö' }}</td>
+                                    <td class="py-3 pr-4 text-white/70">{{ $ticket['priority'] ?: '-' }}</td>
                                     <td class="py-3 pr-4 text-white/70">{{ $ticket['status'] }}</td>
                                     <td class="py-3 text-white/60 text-xs">
                                         @if(filled($ticket['createdTime']))
                                             {{ \Carbon\Carbon::parse($ticket['createdTime'])->timezone('Europe/London')->format('d M Y') }}
                                         @else
-                                            ÔÇö
+                                            -
                                         @endif
                                     </td>
                                 </tr>
@@ -220,7 +220,7 @@
             <div class="flex items-center justify-between gap-4 mb-6">
                 <h2 class="portal-label">Microsoft 365 licence insight</h2>
                 @can('view-m365-directory')
-                    <a href="{{ route('microsoft-365.directory') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Full directory ÔåÆ</a>
+                    <a href="{{ route('microsoft-365.directory') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Full directory &rarr;</a>
                 @endcan
             </div>
 
@@ -229,13 +229,13 @@
                     <div>
                         <p class="text-xs portal-body-muted mb-1">Licensed users</p>
                         <p class="text-2xl font-condensed font-bold text-white">
-                            {{ $m365Insights->licensedUserCount === null ? 'ÔÇö' : number_format($m365Insights->licensedUserCount) }}
+                            {{ $m365Insights->licensedUserCount === null ? '-' : number_format($m365Insights->licensedUserCount) }}
                         </p>
                     </div>
                     <div>
                         <p class="text-xs portal-body-muted mb-1">Seats assigned</p>
                         <p class="text-2xl font-condensed font-bold text-white">
-                            {{ $m365Insights->totalSeatsAssigned === null ? 'ÔÇö' : number_format($m365Insights->totalSeatsAssigned) }}
+                            {{ $m365Insights->totalSeatsAssigned === null ? '-' : number_format($m365Insights->totalSeatsAssigned) }}
                             @if($m365Insights->totalSeatsPurchased !== null)
                                 <span class="text-base text-white/50">/ {{ number_format($m365Insights->totalSeatsPurchased) }}</span>
                             @endif
@@ -244,7 +244,7 @@
                     <div>
                         <p class="text-xs portal-body-muted mb-1">Overall utilisation</p>
                         <p class="text-2xl font-condensed font-bold text-onit">
-                            {{ $m365Insights->overallUtilizationPct === null ? 'ÔÇö' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
+                            {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
                         </p>
                     </div>
                 </div>
@@ -257,7 +257,7 @@
                                 <span class="text-white/60 shrink-0">
                                     {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
                                     @if(($sku['countsTowardUtilisation'] ?? true) === false)
-                                        · Free / preview
+                                        - Free / preview
                                     @else
                                         ({{ number_format($sku['utilizationPct'], 0) }}%)
                                     @endif
@@ -272,4 +272,3 @@
             </x-card>
         </section>
     @endif
-
