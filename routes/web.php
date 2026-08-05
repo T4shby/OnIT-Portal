@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientMicrosoft365DirectoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\IntegrationHealthController;
 use App\Http\Controllers\Admin\NoticeController;
 use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\PortalLinkController;
@@ -79,8 +80,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:'.implode(',', UserRole::adminRoles()))
         ->group(function () {
             Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
-            Route::get('integration-health', [AdminDashboardController::class, 'integrationHealth'])
-                ->name('integration-health');
+            Route::get('integration-health', [IntegrationHealthController::class, 'index'])
+                ->name('integration-health.index');
+            Route::get('integration-health/live', [IntegrationHealthController::class, 'live'])
+                ->name('integration-health.live');
 
             Route::get('clients/{client}/microsoft-365', [ClientMicrosoft365DirectoryController::class, 'show'])
                 ->name('clients.microsoft-365');

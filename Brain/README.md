@@ -60,7 +60,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
 | Portal links | `app/Models/PortalLink.php`, `ExternalServicesService.php` |
 | Client Admin dashboard | `ClientAdminDashboardController`, `SuperOpsClientMetricsService`, `RefreshSuperOpsDashboardJob`, `HuntressClientMetricsService`, `RefreshHuntressSecurityJob` |
-| Technician Integration Health | `IntegrationHealthService`, Admin Dashboard `/admin` |
+| Technician Integration Health | `IntegrationHealthController`, `/admin/integration-health` |
 | M365 directory (async) | `M365DirectoryService`, `RefreshM365DirectoryJob` |
 | M365 insights (async) | `M365InsightsService`, `RefreshM365InsightsJob` |
 | Client roles | `App\Enums\UserRole`, `User` capability helpers, gates in `AuthServiceProvider` |
@@ -76,6 +76,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Integration Health own Staff Admin sidebar tab + live fragment; portal nav Organisation / Staff Admin labels — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health pipeline visibility: prewarm heartbeat, jobs table, flags, due/aging/stuck blockers, auto notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Client vs technician refresh messaging; SuperOps requeue at 10m before 15m client window (stops ~20m “always stale”); Integration Health **aging** — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health reads M365 licence cache v3 (was stuck showing stale v2 timestamps) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

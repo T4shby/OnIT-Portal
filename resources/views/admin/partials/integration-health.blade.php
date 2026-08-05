@@ -40,7 +40,7 @@
                     @endif
                 </p>
             </div>
-            <a href="{{ route('admin.dashboard') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Reload</a>
+            <a href="{{ route('admin.integration-health.index') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Reload</a>
         </div>
 
         {{-- Pipeline board --}}

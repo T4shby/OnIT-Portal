@@ -18,28 +18,29 @@ Staff roles (`account_manager`, `super_admin`) are unchanged.
 
 Entra sync creates new users as `client_requester` only. Sync updates never change `role`, so manually promoted `client_billing_admin` and `client_admin` users are preserved.
 
-## Technician Integration Health (Admin Dashboard)
+## Technician Integration Health (own tab)
 
-**Who:** On IT `super_admin` / `account_manager` only — **Admin → Dashboard** (`/admin`).  
-**Not** shown on Client Admin / requester portals.
+**Who:** On IT `super_admin` / `account_manager` only — **Staff Admin → Integration Health** (`/admin/integration-health`).  
+**Not** shown on Client Organisation overview / requester portals.
 
-Service: `App\Services\Admin\IntegrationHealthService`
+**Nav:** Own sidebar tab under Staff Admin (not buried on the dashboard). Dashboard shows a compact “Refresh pipeline” card linking to the tab. Portal top nav: **Organisation** (client metrics), **Microsoft 365**, **Staff Admin** (MSP).
 
-Per **active** client (scoped by account manager access when applicable):
+Service: `App\Services\Admin\IntegrationHealthService`  
+Controller: `App\Http\Controllers\Admin\IntegrationHealthController`
+
+**Live UI:** Integration Health tab polls `GET /admin/integration-health/live` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + queue cards.
 
 | Column | Meaning |
 |--------|---------|
-| SuperOps | Last successful dashboard cache + last job duration; status **aging** if older than client note window |
+| SuperOps | Last successful dashboard cache + last job duration; status **due** / **aging** by age |
 | M365 directory | Last directory snapshot meta + duration |
 | M365 licences | Last insights cache (`m365-insights:v3`, fallback v2/v1) |
 | Entra sync | `clients.entra_synced_at` + last SyncEntra job (expect hourly; **aging** only after ~90m) |
-| Active / stuck | Process currently queued or running; **stuck** if started &gt; 5 minutes ago |
+| Blockers / active | Process currently queued or running; **stuck** if started &gt; 5 minutes ago; blocker text |
 
 Header shows SuperOps requeue target vs client note window. Clients never see this page.
 
 Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
-
-**Live UI:** `/admin` polls `GET /admin/integration-health` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + queue pending card. No full-page F5 required while a sync runs.
 
 ### Pipeline visibility (technician)
 
@@ -312,6 +313,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Integration Health own Staff Admin nav tab (`/admin/integration-health`); dashboard only summary card; portal nav Organisation vs Staff Admin |
 | 2026-08-05 | Integration Health pipeline panel: prewarm heartbeat, live jobs, flags, DUE status, blocker text |
 | 2026-08-05 | Client-friendly vs technician copy on Client Admin + M365 directory; SuperOps requeue at 10m (before 15m client note); Integration Health **aging** past SLA — reduces ~20m lag from 15+5 cadence |
 | 2026-08-05 | Technician Integration Health table on Admin Dashboard; dual queue workers; M365 directory/insights on `high`; clear stuck queue flags; no stale page-view auto-queue |

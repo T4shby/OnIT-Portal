@@ -15,21 +15,27 @@
             <p class="admin-stat-value">{{ $stats['notices'] }}</p>
         </x-card>
         <x-card>
-            <p class="admin-stat-label">Queue pending</p>
-            <p id="admin-queue-pending" class="admin-stat-value">{{ $integrationHealth['queue']['pending'] }}</p>
-            <p id="admin-queue-detail" class="mt-2 text-xs text-white/50">
-                high {{ $integrationHealth['queue']['high'] }}
-                · default {{ $integrationHealth['queue']['default'] }}
-                · failed {{ $integrationHealth['queue']['failed'] }}
-                @if($integrationHealth['queue']['oldest_pending_seconds'] !== null)
-                    · oldest {{ number_format($integrationHealth['queue']['oldest_pending_seconds'] / 60, 1) }}m
+            <p class="admin-stat-label">Refresh pipeline</p>
+            <p class="admin-stat-value">
+                @if(($healthSummary['stuck'] ?? 0) > 0)
+                    <span class="text-rose-400">{{ $healthSummary['stuck'] }} stuck</span>
+                @elseif(($healthSummary['due'] ?? 0) > 0)
+                    <span class="text-sky-300">{{ $healthSummary['due'] }} due</span>
+                @elseif(($healthSummary['pending'] ?? 0) > 0)
+                    <span class="text-onit">{{ $healthSummary['pending'] }} queued</span>
+                @else
+                    OK
                 @endif
             </p>
+            <p class="mt-2 text-xs text-white/50">
+                pending {{ $healthSummary['pending'] ?? 0 }}
+                · aging {{ $healthSummary['aging'] ?? 0 }}
+            </p>
+            <a href="{{ route('admin.integration-health.index') }}" class="mt-3 inline-block text-xs text-onit hover:text-white uppercase tracking-wide">
+                Open Integration Health →
+            </a>
         </x-card>
     </div>
-
-    {{-- Technician-only: live-polled every 5s (not shown to client portal users) --}}
-    @include('admin.partials.integration-health')
 
     <div class="admin-table-wrap">
         <div class="border-b border-white/10 px-6 py-4">
@@ -58,86 +64,4 @@
             <div class="px-6 py-12"><x-empty-state title="No activity yet" /></div>
         @endif
     </div>
-
-    <script>
-        (function () {
-            var url = @json(route('admin.integration-health'));
-            var timer = null;
-
-            function formatOldest(seconds) {
-                if (seconds === '' || seconds === null || typeof seconds === 'undefined') {
-                    return '';
-                }
-                var mins = (Number(seconds) / 60).toFixed(1);
-                return ' · oldest ' + mins + 'm';
-            }
-
-            function applyQueueFrom(el) {
-                if (!el || !el.dataset) {
-                    return;
-                }
-                var pending = document.getElementById('admin-queue-pending');
-                var detail = document.getElementById('admin-queue-detail');
-                if (pending) {
-                    pending.textContent = el.dataset.queuePending || '0';
-                }
-                if (detail) {
-                    detail.textContent =
-                        'high ' + (el.dataset.queueHigh || '0') +
-                        ' · default ' + (el.dataset.queueDefault || '0') +
-                        ' · failed ' + (el.dataset.queueFailed || '0') +
-                        formatOldest(el.dataset.queueOldest) +
-                        (el.dataset.dueCount && Number(el.dataset.dueCount) > 0
-                            ? ' · due ' + el.dataset.dueCount
-                            : '') +
-                        (el.dataset.agingCount && Number(el.dataset.agingCount) > 0
-                            ? ' · aging ' + el.dataset.agingCount
-                            : '');
-                }
-            }
-
-            function poll() {
-                fetch(url, {
-                    headers: {
-                        'Accept': 'text/html',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                })
-                    .then(function (res) {
-                        if (!res.ok) {
-                            throw new Error('health poll failed');
-                        }
-                        return res.text();
-                    })
-                    .then(function (html) {
-                        var wrap = document.createElement('div');
-                        wrap.innerHTML = html.trim();
-                        var next = wrap.firstElementChild;
-                        var current = document.getElementById('integration-health-live');
-                        if (!next || !current || !current.parentNode) {
-                            return;
-                        }
-                        current.parentNode.replaceChild(next, current);
-                        applyQueueFrom(next);
-                    })
-                    .catch(function () {
-                        /* keep last good snapshot */
-                    });
-            }
-
-            timer = setInterval(poll, 5000);
-            document.addEventListener('visibilitychange', function () {
-                if (document.hidden) {
-                    if (timer) {
-                        clearInterval(timer);
-                        timer = null;
-                    }
-                } else if (!timer) {
-                    poll();
-                    timer = setInterval(poll, 5000);
-                }
-            });
-        })();
-    </script>
 </x-admin-layout>

@@ -15,7 +15,7 @@ class AdminIntegrationHealthDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_dashboard_shows_integration_health_for_clients(): void
+    public function test_integration_health_tab_shows_pipeline_for_clients(): void
     {
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
@@ -37,9 +37,10 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         Cache::put('m365_directory.refresh_queued.'.$client->id, true, now()->addMinutes(10));
         Cache::put('m365_directory.refresh_started.'.$client->id, now()->subMinutes(12)->toIso8601String(), now()->addMinutes(30));
 
-        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+        $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
 
         $response->assertOk();
+        $response->assertSee('Integration Health', false);
         $response->assertSee('Integration refresh health', false);
         $response->assertSee('Live · 5s', false);
         $response->assertSee('Why isn\'t it resetting?', false);
@@ -48,6 +49,18 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('stuck', false);
         $response->assertSee('M365 directory', false);
         $response->assertSee('flag=', false);
+    }
+
+    public function test_admin_dashboard_links_to_integration_health_tab(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Open Integration Health', false);
+        $response->assertSee(route('admin.integration-health.index'), false);
+        $response->assertDontSee('Integration refresh health', false);
     }
 
     public function test_integration_health_fragment_endpoint_polls_for_admins(): void
@@ -61,11 +74,10 @@ class AdminIntegrationHealthDashboardTest extends TestCase
             'entra_synced_at' => now()->subHour(),
         ]);
 
-        // Queued + started = running (not an orphan)
         Cache::put('entra_sync.refresh_queued.'.$client->id, true, now()->addMinutes(10));
         Cache::put('entra_sync.refresh_started.'.$client->id, now()->toIso8601String(), now()->addMinutes(10));
 
-        $response = $this->actingAs($admin)->get(route('admin.integration-health'));
+        $response = $this->actingAs($admin)->get(route('admin.integration-health.live'));
 
         $response->assertOk();
         $response->assertSee('Find', false);
@@ -94,11 +106,11 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.dashboard'))
+            ->get(route('admin.integration-health.index'))
             ->assertForbidden();
 
         $this->actingAs($user)
-            ->get(route('admin.integration-health'))
+            ->get(route('admin.integration-health.live'))
             ->assertForbidden();
     }
 }

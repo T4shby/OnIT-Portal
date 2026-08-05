@@ -34,7 +34,7 @@
                         @can('view-client-admin-dashboard')
                             <a href="{{ route('client-admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                                Admin
+                                Organisation
                             </a>
                         @endcan
                         @can('view-m365-directory')
@@ -46,7 +46,7 @@
                         @can('access-admin')
                             <a href="{{ route('admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
-                                Admin
+                                Staff Admin
                             </a>
                         @endcan
                     </nav>
@@ -99,7 +99,7 @@
                         <a href="{{ route('client-admin.dashboard') }}"
                            @click="menuOpen = false"
                            class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                            Admin
+                            Organisation
                         </a>
                     @endcan
                     @can('view-m365-directory')
@@ -113,7 +113,7 @@
                         <a href="{{ route('admin.dashboard') }}"
                            @click="menuOpen = false"
                            class="portal-nav-link touch-target {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
-                            Admin
+                            Staff Admin
                         </a>
                     @endcan
                 </nav>
