@@ -28,13 +28,22 @@ class ClientAdminDashboardController extends Controller
         $client = $user->client;
         abort_unless($client, 404);
 
-        return view('client-admin.dashboard', [
-            'client' => $client,
-            'summary' => $this->metrics->summaryForClient($client),
-            'm365Insights' => $this->m365Insights->summaryForClient($client),
-            'huntressSummary' => $this->huntressMetrics->summaryForClient($client),
-            'dropsuiteSummary' => $this->dropsuiteMetrics->summaryForClient($client),
-        ]);
+        return view('client-admin.dashboard', $this->dashboardData($client));
+    }
+
+    /**
+     * HTML fragment for live metric updates (no full page reload).
+     */
+    public function live(Request $request): View
+    {
+        $user = $request->user();
+
+        abort_unless($user->canViewClientAdminDashboard(), 403);
+
+        $client = $user->client;
+        abort_unless($client, 404);
+
+        return view('client-admin._dashboard-live-root', $this->dashboardData($client));
     }
 
     public function refresh(Request $request): RedirectResponse
@@ -56,8 +65,22 @@ class ClientAdminDashboardController extends Controller
             ->with(
                 $queued ? 'success' : 'error',
                 $queued
-                    ? 'Dashboard refresh queued.'
+                    ? 'Dashboard refresh queued. Numbers on this page update when ready — no full reload.'
                     : 'Please wait before refreshing again.',
             );
+    }
+
+    /**
+     * @return array{client: \App\Models\Client, summary: mixed, m365Insights: mixed, huntressSummary: mixed, dropsuiteSummary: mixed}
+     */
+    private function dashboardData(\App\Models\Client $client): array
+    {
+        return [
+            'client' => $client,
+            'summary' => $this->metrics->summaryForClient($client),
+            'm365Insights' => $this->m365Insights->summaryForClient($client),
+            'huntressSummary' => $this->huntressMetrics->summaryForClient($client),
+            'dropsuiteSummary' => $this->dropsuiteMetrics->summaryForClient($client),
+        ];
     }
 }

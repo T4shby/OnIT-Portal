@@ -199,8 +199,10 @@ Service: `App\Services\M365\M365DirectoryService`
 - Client Admin manual refresh: `POST /microsoft-365/directory/refresh` (cooldown `ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS`, default 60).
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
 - Mailbox type detection still reads each user's `mailboxSettings` serially. A future optimisation can use Graph `$batch` in chunks of 20; this remains separate to keep shared-mailbox classification and its per-user error handling unchanged.
-- **Browser auto-reload:** when a directory or Client Admin dashboard refresh is in progress, the page reloads every 8 seconds (max 30 attempts) so technicians/clients do not need a manual F5. When the refresh flag clears, the counter resets.
-- **Admin Integration Health** (`/admin`): separate live poll every 5s (fragment endpoint) — not a static snapshot.
+- **Live UI (not full-page reload):** directory chrome stays put; only the data panel polls `GET /microsoft-365/directory/live` (or admin `…/microsoft-365/live`) every **5 seconds** while cold or refreshing. Cached tables stay visible during refresh. Large tenants can take several minutes (mailboxSettings per user) — the panel says so; it does not imply an 8-second finish.
+- **Client Admin overview** (`/client-admin`): metrics panel polls `GET /client-admin/live` while any refresh is in progress (no full-page reload).
+- **Do not** run `php artisan cache:clear` on routine deploys — that wipes `m365_directory.client.{id}` snapshots and forces a cold “Directory synchronising” empty state until Graph rebuild finishes. Prefer `route:clear` / `config:clear` / `view:clear` / `optimize` — [Deployment.md](Deployment.md).
+- **Admin Integration Health** (`/admin`): separate live poll every 5s (fragment endpoint).
 
 MSP staff view client directory at `/admin/clients/{client}/microsoft-365` (unchanged).
 

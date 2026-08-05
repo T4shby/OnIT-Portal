@@ -54,6 +54,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:view-m365-directory')
         ->name('microsoft-365.directory');
 
+    Route::get('/microsoft-365/directory/live', [Microsoft365DirectoryController::class, 'live'])
+        ->middleware('can:view-m365-directory')
+        ->name('microsoft-365.directory.live');
+
     Route::post('/microsoft-365/directory/refresh', [Microsoft365DirectoryController::class, 'refresh'])
         ->middleware(['can:view-m365-directory', 'throttle:6,1'])
         ->name('microsoft-365.directory.refresh');
@@ -61,6 +65,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/client-admin', [ClientAdminDashboardController::class, 'index'])
         ->middleware('can:view-client-admin-dashboard')
         ->name('client-admin.dashboard');
+
+    Route::get('/client-admin/live', [ClientAdminDashboardController::class, 'live'])
+        ->middleware('can:view-client-admin-dashboard')
+        ->name('client-admin.live');
 
     Route::post('/client-admin/refresh', [ClientAdminDashboardController::class, 'refresh'])
         ->middleware(['can:view-client-admin-dashboard', 'throttle:6,1'])
@@ -76,6 +84,8 @@ Route::middleware('auth')->group(function () {
 
             Route::get('clients/{client}/microsoft-365', [ClientMicrosoft365DirectoryController::class, 'show'])
                 ->name('clients.microsoft-365');
+            Route::get('clients/{client}/microsoft-365/live', [ClientMicrosoft365DirectoryController::class, 'liveForClient'])
+                ->name('clients.microsoft-365.live');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->middleware('throttle:entra-sync')

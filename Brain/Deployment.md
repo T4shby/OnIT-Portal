@@ -324,11 +324,16 @@ php artisan route:clear
 php artisan config:clear
 php artisan view:clear
 
+# Prefer NOT `php artisan cache:clear` on routine deploys — it wipes M365 directory
+# snapshots (`m365_directory.client.*`) and Client Admin metric caches, forcing cold
+# “synchronising” empty states until background jobs rebuild them.
+
 php artisan db:seed --class=PortalLinkSeeder --force
 
 php artisan optimize
 ```
 
+> **`cache:clear`:** wipes application cache store (directory snapshots, SuperOps/M365 insights, Entra health flags). Only use when intentionally resetting caches; otherwise clear route/config/view only.
 > **`/usr/bin/env: 'php': No such file or directory`** — caused by plain `composer install` without Plesk PHP on `PATH`. Use `export PATH=...` above, or `$PHP $(command -v composer) install ...`.
 
 > **Why `route:clear` before `optimize`?** New routes (e.g. Team, Pax8 launch) are referenced in views. Stale route cache causes **500 on `/admin`** with `Route [...] not defined` in `storage/logs/laravel.log`.

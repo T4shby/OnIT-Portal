@@ -75,6 +75,40 @@ class M365DirectoryTest extends TestCase
         $response->assertSee('Jane Smith (User Mailbox)');
         $response->assertSee('All Staff');
         $response->assertSee('Distribution list');
+        $response->assertDontSee('Updating automatically every 8 seconds', false);
+    }
+
+    public function test_directory_live_fragment_returns_cached_tables(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $this->tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $admin = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientAdmin,
+        ]);
+
+        $this->fakeDirectoryGraph([
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'jane@acme.com',
+                'userPrincipalName' => 'jane@acme.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+                'skus' => ['O365_BUSINESS_PREMIUM'],
+            ],
+        ], []);
+
+        app(\App\Services\M365\M365DirectoryService::class)->buildAndStoreSnapshot($client);
+
+        $this->actingAs($admin)
+            ->get(route('microsoft-365.directory.live'))
+            ->assertOk()
+            ->assertSee('Jane Smith (User Mailbox)')
+            ->assertSee('m365-directory-live', false);
     }
 
     public function test_client_requester_cannot_view_directory(): void

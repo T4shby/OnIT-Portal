@@ -17,4 +17,13 @@ class ClientMicrosoft365DirectoryController extends Microsoft365DirectoryControl
 
         return $this->renderDirectory($request, $client, adminContext: true);
     }
+
+    public function liveForClient(Request $request, Client $client): View
+    {
+        $this->authorize('view', $client);
+
+        abort_unless($this->directory->isAvailableForClient($client), 404);
+
+        return $this->renderDirectoryLive($request, $client, adminContext: true);
+    }
 }

@@ -27,6 +27,22 @@ class Microsoft365DirectoryController extends Controller
         return $this->renderDirectory($request, $client, adminContext: false);
     }
 
+    /**
+     * HTML fragment for live directory updates (tables / sync status only — no full page reload).
+     */
+    public function live(Request $request): View
+    {
+        $user = $request->user();
+
+        abort_unless($user->canViewMicrosoft365Directory(), 403);
+
+        $client = $user->client;
+
+        abort_unless($client && $this->directory->isAvailableForClient($client), 404);
+
+        return $this->renderDirectoryLive($request, $client, adminContext: false);
+    }
+
     public function refresh(Request $request): RedirectResponse
     {
         $user = $request->user();
@@ -44,12 +60,25 @@ class Microsoft365DirectoryController extends Controller
             ->with(
                 $queued ? 'success' : 'error',
                 $queued
-                    ? 'Directory refresh queued. This page will update when new data is available.'
+                    ? 'Directory refresh queued. Cached data stays on screen; tables update when the new snapshot is ready.'
                     : 'Please wait before refreshing again.',
             );
     }
 
     protected function renderDirectory(Request $request, Client $client, bool $adminContext): View
+    {
+        return view('microsoft-365.directory', $this->directoryViewData($request, $client, $adminContext));
+    }
+
+    protected function renderDirectoryLive(Request $request, Client $client, bool $adminContext): View
+    {
+        return view('microsoft-365._directory-live-root', $this->directoryViewData($request, $client, $adminContext));
+    }
+
+    /**
+     * @return array{client: Client, display: mixed, directory: mixed, error: ?string, adminContext: bool, pollSeconds: int}
+     */
+    protected function directoryViewData(Request $request, Client $client, bool $adminContext): array
     {
         $error = null;
         $display = null;
@@ -71,12 +100,13 @@ class Microsoft365DirectoryController extends Controller
                 : 'Unable to load Microsoft 365 directory. Ensure admin consent is granted for this tenant.';
         }
 
-        return view('microsoft-365.directory', [
+        return [
             'client' => $client,
             'display' => $display,
             'directory' => $display?->snapshot,
             'error' => $error,
             'adminContext' => $adminContext,
-        ]);
+            'pollSeconds' => 5,
+        ];
     }
 }
