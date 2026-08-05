@@ -31,7 +31,7 @@ Per **active** client (scoped by account manager access when applicable):
 |--------|---------|
 | SuperOps | Last successful dashboard cache + last job duration |
 | M365 directory | Last directory snapshot meta + duration |
-| M365 licences | Last insights cache (`m365-insights:v2`) |
+| M365 licences | Last insights cache (`m365-insights:v3`) |
 | Entra sync | `clients.entra_synced_at` + last SyncEntra job |
 | Active / stuck | Process currently queued or running; **stuck** if started &gt; 5 minutes ago |
 
@@ -213,7 +213,7 @@ SKU labels / free-seat rules: `App\Services\M365\MicrosoftLicenseSkuNames`
 
 **UI:** Client Admin organisation overview (`/client-admin`) — hero card “Microsoft 365” % and section “Microsoft 365 licence insight”.
 
-Cache key: `client:{client_id}:m365-insights:v2` (v2 = paid-only totals + friendly names; old v1 payloads ignored)
+Cache key: `client:{client_id}:m365-insights:v3` (v3 = exclude preview/IW pools + disambiguate duplicate names; older v1/v2 ignored)
 
 Source: Microsoft Graph `/subscribedSkus` (enabled user SKUs only). Licensed user count reuses `M365DirectorySnapshot` when present, otherwise counts tenants users with assigned licences.
 
@@ -225,11 +225,15 @@ Counts **paid / commercial seats only**. Excluded from overall purchased/assigne
 |------|-----|
 | Prepaid seats ≥ 100,000 | Free bulk pools (e.g. `FLOW_FREE` = 1,000,000) |
 | Exact free SKUs (`FLOW_FREE`, `POWER_BI_STANDARD`, Teams Exploratory, …) | Not bought seats |
-| Part numbers with `_FREE`, `_TRIAL`, `_VIRAL`, `EXPLORATORY`, `DEVELOPER` | Trials / free offers |
+| Part number contains `PREVIEW`, `MADEIRA`, `_TRIAL`, `_FREE`, `_VIRAL`, `EXPLORATORY`, `DEVELOPER`, `_IW` | Free / IW / preview pools (e.g. `PROJECT_MADEIRA_PREVIEW_IW_SKU` = 10,000 seats) |
 
-So a tenant with Business Premium full and Power Automate Free at 12/1,000,000 does **not** show 0% overall utilisation.
+Free/preview rows still appear in the licence list marked **Free / preview**, but do not affect Seats assigned or Overall utilisation %.
 
-**“Seats assigned / purchased”** on the insight panel uses the same paid-only totals (not 66 / 1,030,047 style numbers).
+Duplicate marketing names (e.g. two “Business Premium” Graph SKUs) are disambiguated with `· {skuPartNumber}`.
+
+So a tenant with Business Premium full and Project Madeira / Power Automate Free pools does **not** show ~1% overall utilisation.
+
+**“Seats assigned / purchased”** on the insight panel uses the same paid-only totals.
 
 ### SKU row display
 

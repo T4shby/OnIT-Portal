@@ -194,12 +194,58 @@ class M365InsightsServiceTest extends TestCase
         $this->assertSame(37, $summary->totalSeatsAssigned);
         $this->assertSame(100.0, $summary->overallUtilizationPct);
 
-        $this->assertSame('Microsoft 365 Business Premium', $summary->topSkus[0]['displayName']);
+        // Two Business Premium Graph SKUs share a marketing name — disambiguate with part number.
+        $this->assertSame('Microsoft 365 Business Premium · SPB', $summary->topSkus[0]['displayName']);
         $this->assertSame('Exchange Online (Plan 1)', $summary->topSkus[1]['displayName']);
 
         $flow = collect($summary->topSkus)->firstWhere('skuPartNumber', 'FLOW_FREE');
         $this->assertNotNull($flow);
         $this->assertSame('Power Automate Free', $flow['displayName']);
         $this->assertFalse($flow['countsTowardUtilisation']);
+    }
+
+    public function test_preview_madeira_pool_excluded_from_utilisation(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+        ]);
+
+        Http::fake([
+            'https://login.microsoftonline.com/*/oauth2/v2.0/token' => Http::response([
+                'access_token' => 'token',
+                'expires_in' => 3600,
+            ]),
+            'https://graph.microsoft.com/v1.0/subscribedSkus*' => Http::response([
+                'value' => [
+                    [
+                        'skuId' => 'sku-spb',
+                        'skuPartNumber' => 'SPB',
+                        'consumedUnits' => 21,
+                        'prepaidUnits' => ['enabled' => 21],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                    [
+                        'skuId' => 'sku-madeira',
+                        'skuPartNumber' => 'PROJECT_MADEIRA_PREVIEW_IW_SKU',
+                        'consumedUnits' => 2,
+                        'prepaidUnits' => ['enabled' => 10_000],
+                        'appliesTo' => 'User',
+                        'capabilityStatus' => 'Enabled',
+                    ],
+                ],
+            ]),
+            'https://graph.microsoft.com/v1.0/users*' => Http::response(['value' => [], '@odata.count' => 21]),
+        ]);
+
+        $summary = (new M365InsightsService(new MicrosoftGraphClient))->refreshAndStore($client);
+
+        $this->assertSame(21, $summary->totalSeatsPurchased);
+        $this->assertSame(21, $summary->totalSeatsAssigned);
+        $this->assertSame(100.0, $summary->overallUtilizationPct);
+
+        $madeira = collect($summary->topSkus)->firstWhere('skuPartNumber', 'PROJECT_MADEIRA_PREVIEW_IW_SKU');
+        $this->assertNotNull($madeira);
+        $this->assertFalse($madeira['countsTowardUtilisation']);
     }
 }

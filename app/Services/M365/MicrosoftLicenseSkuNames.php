@@ -111,6 +111,9 @@ class MicrosoftLicenseSkuNames
         'WINDOWS_STORE',
         'CCIBOTS_PRIVPREV_VIRAL',
         'Microsoft_Teams_Exploratory_Dept',
+        // Dynamics 365 Business Central for IWs — free IW pool (often 10,000 seats)
+        'PROJECT_MADEIRA_PREVIEW_IW_SKU',
+        'PROJECTMADEIRA_PREVIEW',
     ];
 
     public static function displayName(string $skuPartNumber): string
@@ -132,12 +135,16 @@ class MicrosoftLicenseSkuNames
             }
         }
 
+        if (stripos($key, 'MADEIRA') !== false || strcasecmp($key, 'PROJECT_MADEIRA_PREVIEW_IW_SKU') === 0) {
+            return 'Dynamics 365 Business Central for IWs';
+        }
+
         return self::humanizePartNumber($key);
     }
 
     /**
      * Whether this inventory row should contribute to seats purchased/assigned overall utilisation.
-     * Free/trial/bulk-capacity Microsoft SKUs are excluded so 1e6 free seats do not report 0%.
+     * Free/trial/preview/bulk-capacity Microsoft SKUs are excluded so free seat pools do not report ~0%.
      */
     public static function countsTowardOverallUtilisation(string $skuPartNumber, int $prepaidEnabled): bool
     {
@@ -163,7 +170,11 @@ class MicrosoftLicenseSkuNames
             || str_contains($key, '_TRIAL_')
             || str_contains($key, '_VIRAL')
             || str_contains($key, 'EXPLORATORY')
-            || str_contains($key, 'DEVELOPER')) {
+            || str_contains($key, 'DEVELOPER')
+            || str_contains($key, 'PREVIEW')
+            || str_contains($key, 'MADEIRA')
+            || str_contains($key, '_IW_SKU')
+            || str_ends_with($key, '_IW')) {
             return false;
         }
 

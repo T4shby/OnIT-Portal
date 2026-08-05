@@ -144,6 +144,16 @@ class M365InsightsService
                     : strcmp($left['displayName'], $right['displayName']);
             });
 
+            // Same marketing name from different Graph part numbers (e.g. SPB + O365_BUSINESS_PREMIUM).
+            $nameCounts = array_count_values(array_column($topSkus, 'displayName'));
+            $topSkus = array_map(static function (array $sku) use ($nameCounts): array {
+                if (($nameCounts[$sku['displayName']] ?? 0) > 1) {
+                    $sku['displayName'] = $sku['displayName'].' · '.$sku['skuPartNumber'];
+                }
+
+                return $sku;
+            }, $topSkus);
+
             $payload = [
                 'licensed_user_count' => $licensedUserCount,
                 'total_seats_purchased' => $totalSeatsPurchased,
@@ -151,7 +161,7 @@ class M365InsightsService
                 'overall_utilization_pct' => $totalSeatsPurchased > 0
                     ? round(($totalSeatsAssigned / $totalSeatsPurchased) * 100, 1)
                     : 0.0,
-                'top_skus' => array_slice($topSkus, 0, 5),
+                'top_skus' => array_slice($topSkus, 0, 8),
                 'last_refreshed_at' => now()->toIso8601String(),
             ];
 
@@ -264,6 +274,6 @@ class M365InsightsService
 
     private function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:m365-insights:v2";
+        return "client:{$clientId}:m365-insights:v3";
     }
 }

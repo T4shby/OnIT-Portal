@@ -76,6 +76,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | M365 utilisation excludes preview/IW pools (e.g. Project Madeira 10k seats); disambiguate duplicate Business Premium SKUs — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | M365 directory: live panel poll (no full-page reload); keep cached tables while refreshing; avoid deploy `cache:clear` wiping snapshots — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
 | 2026-08-05 | Integration Health clears orphaned `refresh_queued` cache when `jobs` is empty (no more phantom “queued”) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Admin Integration Health live-polls every 5s; Entra sync marked queued at dispatch so Active/Stuck appears immediately — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

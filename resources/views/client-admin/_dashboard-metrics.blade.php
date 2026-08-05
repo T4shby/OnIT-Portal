@@ -257,7 +257,7 @@
                                 <span class="text-white/60 shrink-0">
                                     {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
                                     @if(($sku['countsTowardUtilisation'] ?? true) === false)
-                                        ┬À Free
+                                        · Free / preview
                                     @else
                                         ({{ number_format($sku['utilizationPct'], 0) }}%)
                                     @endif
