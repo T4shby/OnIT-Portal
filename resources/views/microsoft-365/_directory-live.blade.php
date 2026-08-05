@@ -22,19 +22,37 @@
         <div class="space-y-1">
             @if($display?->lastRefreshedAt)
                 <p class="portal-body-muted text-xs">
-                    Last refreshed {{ $display->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
-                    · cached {{ config('services.entra_sync.directory_cache_minutes', 15) }} minutes
+                    @if(! empty($adminContext))
+                        Last success {{ $display->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
+                        · directory cache {{ config('services.entra_sync.directory_cache_minutes', 15) }}m
+                    @else
+                        Directory as of {{ $display->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
+                    @endif
                 </p>
             @endif
             @if($display?->statusMessage)
-                <p class="portal-body-muted text-xs text-amber-300/90">{{ $display->statusMessage }}</p>
+                <p class="portal-body-muted text-xs {{ ! empty($adminContext) ? 'text-amber-300/90' : 'text-white/50' }}">
+                    @if(! empty($adminContext))
+                        {{ $display->statusMessage }}
+                    @else
+                        We keep a recent copy while a fresh copy loads from Microsoft.
+                    @endif
+                </p>
             @endif
             @if($display?->refreshInProgress)
                 <p class="portal-body-muted text-xs text-sky-300">
-                    Refresh in progress — showing cached data below. Tables update when the new snapshot is ready (can take several minutes on large tenants).
+                    @if(! empty($adminContext))
+                        Refresh in progress — showing cached data below. Tables update when the new snapshot is ready (can take several minutes on large tenants).
+                    @else
+                        Updating the directory from Microsoft. The list below stays visible until new data is ready.
+                    @endif
                 </p>
                 <p class="portal-body-muted text-xs" data-live-poll-notice>
-                    Updating directory data every {{ (int) ($pollSeconds ?? 5) }} seconds…
+                    @if(! empty($adminContext))
+                        Updating directory data every {{ (int) ($pollSeconds ?? 5) }} seconds…
+                    @else
+                        Checking for updates…
+                    @endif
                 </p>
             @endif
         </div>

@@ -29,11 +29,13 @@ Per **active** client (scoped by account manager access when applicable):
 
 | Column | Meaning |
 |--------|---------|
-| SuperOps | Last successful dashboard cache + last job duration |
+| SuperOps | Last successful dashboard cache + last job duration; status **aging** if older than client note window |
 | M365 directory | Last directory snapshot meta + duration |
 | M365 licences | Last insights cache (`m365-insights:v3`, fallback v2/v1) |
-| Entra sync | `clients.entra_synced_at` + last SyncEntra job |
+| Entra sync | `clients.entra_synced_at` + last SyncEntra job (expect hourly; **aging** only after ~90m) |
 | Active / stuck | Process currently queued or running; **stuck** if started &gt; 5 minutes ago |
+
+Header shows SuperOps requeue target vs client note window. Clients never see this page.
 
 Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
 
@@ -65,17 +67,28 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Setting | Env | Default |
 |---------|-----|---------|
-| Fresh TTL (stale banner) | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | 15 minutes (set in production `.env`; code default 60) |
+| Prewarm requeue age | `SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES` | **10** minutes — SuperOps is queued when last success is older than this (before clients notice lag) |
+| Client note window | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | **15** minutes — Client Admin soft note after this age; technician health marks status **aging** past this |
 | Cache retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` | 10080 minutes (7 days) |
 | Manual refresh cooldown | `SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
 | GraphQL page cap | `SUPEROPS_DASHBOARD_MAX_PAGES` | 10 pages × 100 rows |
+
+**Why ages used to hit ~20 minutes “reliably wrong”:** client note at 15m + prewarm only every 5m + minute cron workers ≈ up to ~21m between successful SuperOps pulls when requeue waited for the same 15m window. Requeue now starts at **10m** so a 5m prewarm usually finishes a fresh pull before the 15m client window.
+
+**Copy — client vs technician**
+
+| Audience | Surface | Tone |
+|----------|---------|------|
+| Client (`client_admin` etc.) | `/client-admin` | No “stale” / SuperOps jargon. Soft note: figures refresh often; timestamp as “Overview as of … UK”. Integration not linked → plain “not enabled yet”. |
+| Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Warning with age, requeue/target minutes, pointer to Integration Health. Footer shows last success + thresholds. |
+| Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING** (past target), queued/running/stuck, queue depths, process hints. |
 
 Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (before Entra/SCIM on `default`). Worker must run `--queue=high,default` — [Deployment.md](Deployment.md#11-run-the-queue-worker).
 
 **Data should exist before anyone opens the page:**
 
 1. Scheduler runs `portal:prewarm-client-dashboards` **every 5 minutes**.
-2. **SuperOps cold + stale always queues** (not optional), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row — that flag previously blocked refreshes for 30–40+ minutes while workers were idle.
+2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ `dashboard_refresh_after_minutes` (default 10), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row — that flag previously blocked refreshes for 30–40+ minutes while workers were idle.
 3. M365 / Huntress / Dropsuite only when cold or past their fresh window, and only when spare queue capacity (&lt; 40 pending).
 4. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
 5. Page views **serve cache only** — they do not re-queue every time metrics are past the fresh window.
@@ -283,6 +296,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Client-friendly vs technician copy on Client Admin + M365 directory; SuperOps requeue at 10m (before 15m client note); Integration Health **aging** past SLA — reduces ~20m lag from 15+5 cadence |
 | 2026-08-05 | Technician Integration Health table on Admin Dashboard; dual queue workers; M365 directory/insights on `high`; clear stuck queue flags; no stale page-view auto-queue |
 | 2026-08-05 | Auto-reload browser every 8s while M365 directory / Client Admin refresh is in progress |
 | 2026-08-05 | M365 utilisation ignores free/bulk SKUs (e.g. FLOW_FREE 1M seats); friendly SKU display names on Client Admin |

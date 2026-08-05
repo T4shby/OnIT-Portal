@@ -15,7 +15,10 @@
             <div>
                 <h2 class="admin-section-title mb-0">Integration refresh health</h2>
                 <p class="text-xs text-white/50 mt-1">
-                    On IT technicians only — last successful refresh per client and what is queued / stuck.
+                    On IT technicians only — ages, queues, stuck jobs.
+                    SuperOps requeue ≥{{ (int) config('services.superops.dashboard_refresh_after_minutes', 10) }}m ·
+                    client note ≥{{ (int) config('services.superops.dashboard_cache_minutes', 15) }}m ·
+                    prewarm every 5m · workers drain <code class="text-white/40">high,default</code>.
                     <span class="text-emerald-400/80">Live · updates every 5s</span>
                     @if($integrationHealth['stuck_count'] > 0)
                         <span class="text-amber-300"> · {{ $integrationHealth['stuck_count'] }} stuck</span>
@@ -46,6 +49,7 @@
                                 $byKey = collect($row['integrations'])->keyBy('key');
                                 $statusClass = [
                                     'ok' => 'text-emerald-400',
+                                    'aging' => 'text-amber-300',
                                     'cold' => 'text-white/40',
                                     'queued' => 'text-sky-300',
                                     'running' => 'text-onit',
@@ -70,6 +74,9 @@
                                             </div>
                                             <div class="text-white/40 text-xs">
                                                 {{ $cell['age_minutes'] }}m ago
+                                                @if(! empty($cell['sla_minutes']))
+                                                    · target ≤{{ $cell['sla_minutes'] }}m
+                                                @endif
                                                 @if($cell['duration_ms'] !== null)
                                                     · last ran {{ number_format($cell['duration_ms'] / 1000, 1) }}s
                                                 @endif
@@ -77,7 +84,7 @@
                                         @else
                                             <div class="text-white/40 text-xs">{{ $cell['detail'] }}</div>
                                         @endif
-                                        @if(in_array($cell['status'], ['queued', 'running', 'stuck'], true) && $cell['last_success_at'])
+                                        @if(in_array($cell['status'], ['queued', 'running', 'stuck', 'aging'], true) && ($cell['last_success_at'] || $cell['status'] === 'aging'))
                                             <div class="text-white/50 text-xs mt-1">{{ $cell['detail'] }}</div>
                                         @endif
                                     </td>

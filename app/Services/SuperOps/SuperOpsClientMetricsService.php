@@ -79,7 +79,7 @@ class SuperOpsClientMetricsService
         $cached = Cache::get($cacheKey);
 
         // Always serve stored metrics when present. Stale refresh is prewarm/manual only —
-        // page views must not stampede the queue for every client with data older than 10 minutes.
+        // page views must not stampede the queue (requeue threshold is dashboard_refresh_after_minutes).
         if (is_array($cached) && ! $manualRefresh) {
             return $this->summaryFromCache($client->id, $cached);
         }
@@ -141,8 +141,12 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * True when cache exists but is past the fresh window and no real job is queued/running.
+     * True when cache exists but is due for a background SuperOps pull and no real job is queued/running.
      * Clears orphaned `refresh_queued` cache when the jobs table has no matching row.
+     *
+     * Uses dashboard_refresh_after_minutes (default 10) so data is re-queued before the client
+     * messaging window (dashboard_cache_minutes, default 15) — avoids 20m+ gaps from
+     * "15 + next 5-min prewarm + worker minute".
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
@@ -152,9 +156,18 @@ class SuperOpsClientMetricsService
 
         $this->clearOrphanedRefreshFlags($client->id);
 
-        $summary = $this->summaryFromCache($client->id, Cache::get($this->cacheKey($client->id)));
+        if (Cache::has('superops_dashboard.refresh_queued.'.$client->id)) {
+            return false;
+        }
 
-        return $summary->isStale && ! $summary->refreshInProgress;
+        $payload = Cache::get($this->cacheKey($client->id));
+        if (! is_array($payload) || ! filled($payload['last_refreshed_at'] ?? null)) {
+            return true;
+        }
+
+        $after = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
+
+        return Carbon::parse($payload['last_refreshed_at'])->lte(now()->subMinutes($after));
     }
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool

@@ -1,7 +1,23 @@
-﻿    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        @if($summary->lastRefreshedAt)
+﻿    @php
+        $viewerIsTechnician = auth()->user()?->isTeamMember() ?? false;
+        $lastUk = $summary->lastRefreshedAt
+            ? $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i').' UK'
+            : null;
+        $ageMinutes = $summary->lastRefreshedAt
+            ? (int) round($summary->lastRefreshedAt->diffInMinutes(now()))
+            : null;
+    @endphp
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        @if($lastUk)
             <p class="portal-body-muted text-xs">
-                SuperOps last refreshed {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK
+                @if($viewerIsTechnician)
+                    SuperOps last success {{ $lastUk }}
+                    @if($ageMinutes !== null)
+                        ({{ $ageMinutes }}m ago · requeue ≥{{ (int) config('services.superops.dashboard_refresh_after_minutes', 10) }}m · client note ≥{{ (int) config('services.superops.dashboard_cache_minutes', 15) }}m)
+                    @endif
+                @else
+                    Overview as of {{ $lastUk }}
+                @endif
             </p>
         @else
             <span></span>
@@ -55,7 +71,17 @@
                                 @endif
                             </p>
                         @else
-                            <p class="text-sm portal-body-muted mt-2">{{ $huntressSummary->unavailableReason }}</p>
+                            <p class="text-sm portal-body-muted mt-2">
+                                @if($viewerIsTechnician)
+                                    {{ $huntressSummary->unavailableReason }}
+                                @elseif(str_contains((string) $huntressSummary->unavailableReason, 'API is not configured'))
+                                    Security monitoring is not enabled for this organisation yet.
+                                @elseif(str_contains((string) $huntressSummary->unavailableReason, 'not connected'))
+                                    Security monitoring is not linked for this organisation yet.
+                                @else
+                                    Security figures are not available yet.
+                                @endif
+                            </p>
                         @endif
                     </div>
                 </div>
@@ -73,7 +99,17 @@
                                 Protected mailboxes / {{ ucfirst($dropsuiteSummary->lastBackupStatus) }}
                             </p>
                         @else
-                            <p class="text-sm portal-body-muted mt-2">{{ $dropsuiteSummary->unavailableReason }}</p>
+                            <p class="text-sm portal-body-muted mt-2">
+                                @if($viewerIsTechnician)
+                                    {{ $dropsuiteSummary->unavailableReason }}
+                                @elseif(str_contains((string) $dropsuiteSummary->unavailableReason, 'API is not configured'))
+                                    Backup reporting is not enabled for this organisation yet.
+                                @elseif(str_contains((string) $dropsuiteSummary->unavailableReason, 'not connected'))
+                                    Backup reporting is not linked for this organisation yet.
+                                @else
+                                    Backup figures are not available yet.
+                                @endif
+                            </p>
                         @endif
                     </div>
                 </div>
@@ -94,7 +130,13 @@
                                 @endif
                             </p>
                         @else
-                            <p class="text-sm portal-body-muted mt-2">{{ $m365Insights->unavailableReason ?? 'Not available yet.' }}</p>
+                            <p class="text-sm portal-body-muted mt-2">
+                                @if($viewerIsTechnician)
+                                    {{ $m365Insights->unavailableReason ?? 'Not available yet.' }}
+                                @else
+                                    Licence figures are not available yet.
+                                @endif
+                            </p>
                         @endif
                     </div>
                     @can('view-m365-directory')

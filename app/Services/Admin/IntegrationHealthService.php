@@ -264,6 +264,13 @@ class IntegrationHealthService
 
         $status = 'ok';
         $detail = $processHint;
+        $slaMinutes = match ($key) {
+            'superops' => max(1, (int) config('services.superops.dashboard_cache_minutes', 15)),
+            'm365_directory' => max(1, (int) config('services.entra_sync.directory_cache_minutes', 15)),
+            'm365_insights' => max(1, (int) config('services.m365_insights.insights_cache_minutes', 15)),
+            'entra_sync' => 90, // hourly command — flag only if multi-hour lag
+            default => null,
+        };
 
         if ($queued && $started) {
             $runningFor = $started->diffInMinutes(now());
@@ -282,13 +289,22 @@ class IntegrationHealthService
         }
 
         $ageMinutes = $lastSuccessAt?->diffInMinutes(now());
+        $ageRounded = $ageMinutes !== null ? (int) round($ageMinutes) : null;
+        $pastSla = $ageRounded !== null && $slaMinutes !== null && $ageRounded > $slaMinutes;
+
+        // Technical-only status: last success older than expected cadence, nothing currently running.
+        if ($status === 'ok' && $pastSla) {
+            $status = 'aging';
+            $detail = $processHint.' · past '.$slaMinutes.'m target ('.$ageRounded.'m ago)';
+        }
 
         return [
             'key' => $key,
             'label' => $label,
             'status' => $status,
             'last_success_at' => $lastSuccessAt,
-            'age_minutes' => $ageMinutes !== null ? (int) round($ageMinutes) : null,
+            'age_minutes' => $ageRounded,
+            'sla_minutes' => $slaMinutes,
             'duration_ms' => $durationMs,
             'detail' => $detail,
             'error' => $error,

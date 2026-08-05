@@ -221,6 +221,38 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         Bus::assertNotDispatched(\App\Jobs\RefreshSuperOpsDashboardJob::class);
     }
 
+    public function test_needs_background_refresh_uses_refresh_after_not_client_banner_ttl(): void
+    {
+        config([
+            'services.superops.dashboard_refresh_after_minutes' => 10,
+            'services.superops.dashboard_cache_minutes' => 15,
+        ]);
+
+        $service = app(SuperOpsClientMetricsService::class);
+        $client = Client::factory()->create(['superops_account_id' => '111']);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 14,
+            'open_tickets_total' => 6,
+            'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
+            'tickets_closed' => ['7' => 2, '14' => 6, '30' => 10, 'all' => 171],
+            'last_refreshed_at' => now()->subMinutes(11)->toIso8601String(),
+        ], now()->addDay());
+
+        $this->assertTrue($service->needsBackgroundRefresh($client));
+        $this->assertFalse($service->summaryForClient($client)->isStale);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 14,
+            'open_tickets_total' => 6,
+            'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
+            'tickets_closed' => ['7' => 2, '14' => 6, '30' => 10, 'all' => 171],
+            'last_refreshed_at' => now()->subMinutes(6)->toIso8601String(),
+        ], now()->addDay());
+
+        $this->assertFalse($service->needsBackgroundRefresh($client));
+    }
+
     public function test_api_client_strips_bearer_prefix_from_env_token(): void
     {
         config(['services.superops.api_token' => 'Bearer api-pasted-token']);

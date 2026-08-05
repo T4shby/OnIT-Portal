@@ -5,6 +5,12 @@
             || $m365Insights->refreshInProgress
             || $huntressSummary->refreshInProgress
             || $dropsuiteSummary->refreshInProgress;
+        $viewerIsTechnician = auth()->user()?->isTeamMember() ?? false;
+        $superOpsAgeMinutes = $summary->lastRefreshedAt
+            ? (int) round($summary->lastRefreshedAt->diffInMinutes(now()))
+            : null;
+        $freshMinutes = (int) config('services.superops.dashboard_cache_minutes', 15);
+        $refreshAfterMinutes = (int) config('services.superops.dashboard_refresh_after_minutes', 10);
     @endphp
 
     <section class="mb-6">
@@ -20,12 +26,28 @@
     </section>
 
     @if($summary->unavailableReason && ! $summary->hasData())
-        <x-alert type="warning" class="mb-6">{{ $summary->unavailableReason }}</x-alert>
-    @elseif($summary->isStale && $summary->lastRefreshedAt)
         <x-alert type="warning" class="mb-6">
-            Some data is stale. Last SuperOps refresh
-            {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK.
+            @if($viewerIsTechnician)
+                {{ $summary->unavailableReason }}
+            @else
+                Organisation metrics are not ready yet. On IT is connecting the systems that power this overview.
+            @endif
         </x-alert>
+    @elseif($summary->isStale && $summary->lastRefreshedAt)
+        @if($viewerIsTechnician)
+            <x-alert type="warning" class="mb-6">
+                SuperOps snapshot past {{ $freshMinutes }}m client window
+                ({{ $superOpsAgeMinutes }}m ago · last success
+                {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK).
+                Prewarm requeues after {{ $refreshAfterMinutes }}m. Check Admin → Integration refresh health if this climbs.
+            </x-alert>
+        @else
+            <x-alert type="info" class="mb-6">
+                These figures refresh often through the day. Overview includes data as of
+                {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK.
+                Use Refresh now if you need the latest pull.
+            </x-alert>
+        @endif
     @endif
 
     @include('client-admin._dashboard-live-root')

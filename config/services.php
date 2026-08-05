@@ -87,8 +87,10 @@ return [
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),
-        // Fresh window for "stale" banner only — data remains served from cache while refreshing.
-        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 60),
+        // When SuperOps last success is older than this, prewarm queues a new job (keep under user-visible lag).
+        'dashboard_refresh_after_minutes' => env('SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES', 10),
+        // Client "figures are a few minutes old" window (should be a bit higher than refresh_after).
+        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 15),
         // Keep last successful snapshot long enough that deploys/backlogs do not empty demos.
         'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 10080),
         'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
