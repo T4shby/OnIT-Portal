@@ -60,10 +60,13 @@ class IntegrationHealthServiceTest extends TestCase
 
     public function test_marks_superops_due_when_past_requeue_before_client_window(): void
     {
-        config([
-            'services.superops.dashboard_refresh_after_minutes' => 10,
-            'services.superops.dashboard_cache_minutes' => 15,
-        ]);
+        // Hot defaults: requeue ≈ 2.25m, soft window ≈ max(3.5, 2.875) → age 12m is past soft (aging).
+        // Use a large idle-like interval so 12m is past requeue (~9m) but under soft (~13.8m).
+        \App\Models\Setting::set('freshness.hot_minutes', '10');
+        \App\Models\Setting::set('freshness.work_idle_minutes', '10');
+        \App\Models\Setting::set('freshness.off_hours_idle_minutes', '10');
+        \App\Models\Setting::set('freshness.presence_minutes', '15');
+        Cache::forget('portal.freshness.snapshot.live');
 
         $client = Client::factory()->create([
             'is_active' => true,
@@ -72,7 +75,8 @@ class IntegrationHealthServiceTest extends TestCase
 
         Cache::put("client:{$client->id}:superops-dashboard:v2", [
             'assets_total' => 3,
-            'last_refreshed_at' => now()->subMinutes(12)->toIso8601String(),
+            // Past requeue (~9m for 10m interval) but under soft window (~11.5m)
+            'last_refreshed_at' => now()->subMinutes(10)->subSeconds(30)->toIso8601String(),
         ], now()->addDay());
 
         $overview = app(IntegrationHealthService::class)->overview();

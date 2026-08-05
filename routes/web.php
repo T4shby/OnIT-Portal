@@ -84,6 +84,8 @@ Route::middleware('auth')->group(function () {
                 ->name('integration-health.index');
             Route::get('integration-health/live', [IntegrationHealthController::class, 'live'])
                 ->name('integration-health.live');
+            Route::put('integration-health/freshness', [IntegrationHealthController::class, 'updateFreshness'])
+                ->name('integration-health.freshness.update');
 
             Route::get('clients/{client}/microsoft-365', [ClientMicrosoft365DirectoryController::class, 'show'])
                 ->name('clients.microsoft-365');

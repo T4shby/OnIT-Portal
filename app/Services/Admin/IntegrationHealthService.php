@@ -19,6 +19,9 @@ class IntegrationHealthService
 
     public const PREWARM_CACHE_KEY = 'portal.prewarm.last_run';
 
+    /** Last time portal:sync-entra-users was invoked by the scheduler (or manually). */
+    public const ENTRA_SCHEDULE_HEARTBEAT_KEY = 'portal.entra_schedule.last_run';
+
     public const SCHEDULER_TICK_KEY = 'portal.scheduler.last_tick';
 
     /**
@@ -31,6 +34,23 @@ class IntegrationHealthService
         'm365_directory' => 'RefreshM365DirectoryJob',
         'm365_insights' => 'RefreshM365InsightsJob',
         'entra_sync' => 'SyncEntraClientJob',
+        'huntress' => 'RefreshHuntressSecurityJob',
+        'dropsuite' => 'RefreshDropsuiteBackupJob',
+    ];
+
+    /**
+     * Per-client table column labels (order = Integration Health UI order).
+     * Keep in sync with clientRow() builders + JOB_CLASS_HINT for prewarmed feeds.
+     *
+     * @var array<string, string>
+     */
+    public const FEED_COLUMNS = [
+        'superops' => 'Devices & tickets',
+        'm365_directory' => 'M365 people',
+        'm365_insights' => 'M365 licences',
+        'entra_sync' => 'Entra sync',
+        'huntress' => 'Huntress',
+        'dropsuite' => 'Dropsuite',
     ];
 
     /**
@@ -40,6 +60,7 @@ class IntegrationHealthService
      *     pipeline: array<string, mixed>,
      *     notices: list<string>,
      *     clients: list<array<string, mixed>>,
+     *     feed_columns: array<string, string>,
      *     stuck_count: int,
      *     aging_count: int,
      *     due_count: int,
@@ -76,6 +97,7 @@ class IntegrationHealthService
             'pipeline' => $pipeline,
             'notices' => $notices,
             'clients' => $rows,
+            'feed_columns' => self::FEED_COLUMNS,
             'stuck_count' => $stuckCount,
             'aging_count' => $agingCount,
             'due_count' => $dueCount,
@@ -151,8 +173,12 @@ class IntegrationHealthService
         $tickAgeSeconds = $tickAt?->diffInSeconds(now());
         $tickAgeMinutes = $tickAgeSeconds !== null ? (int) round($tickAgeSeconds / 60) : null;
 
-        $superOpsRequeueAfter = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
-        $superOpsClientWindow = max(1, (int) config('services.superops.dashboard_cache_minutes', 15));
+        $freshness = app(\App\Services\Portal\PortalFreshnessService::class)->snapshot();
+        $superOpsRequeueAfter = (float) $freshness['requeue_minutes'];
+        $superOpsClientWindow = (float) $freshness['soft_window_minutes'];
+        $prewarmIntervalMinutes = (float) $freshness['interval_minutes'];
+        // Late if more than ~2.2× the current target cadence (e.g. ~5.5m when hot 2.5m; ~2h when hour idle).
+        $prewarmLateAfterSeconds = (int) round($prewarmIntervalMinutes * 60 * 2.2);
 
         $workerLagSuspect = ($queue['pending'] ?? 0) > 0
             && ($queue['reserved'] ?? 0) === 0
@@ -165,7 +191,7 @@ class IntegrationHealthService
             ->all();
 
         $schedulerOk = $tickAt !== null && ($tickAgeMinutes ?? 99) <= 2;
-        $prewarmOk = $prewarmAt !== null && ($prewarmAgeMinutes ?? 99) <= 7;
+        $prewarmOk = $prewarmAt !== null && ($prewarmAgeSeconds ?? 99999) <= $prewarmLateAfterSeconds;
 
         $headline = 'All systems refreshing normally';
         $severityLevel = 'ok';
@@ -192,6 +218,7 @@ class IntegrationHealthService
             'severity_level' => $severityLevel,
             'superops_requeue_after_minutes' => $superOpsRequeueAfter,
             'superops_client_window_minutes' => $superOpsClientWindow,
+            'freshness' => $freshness,
             'scheduler' => [
                 'last_at' => $tickAt,
                 'age_minutes' => $tickAgeMinutes,
@@ -206,7 +233,7 @@ class IntegrationHealthService
                 'clients' => is_array($prewarm) ? (int) ($prewarm['clients'] ?? 0) : null,
                 'queue_deep' => is_array($prewarm) ? (bool) ($prewarm['queue_deep'] ?? false) : null,
                 'pending_before' => is_array($prewarm) ? (int) ($prewarm['pending_before'] ?? 0) : null,
-                'interval_minutes' => 5,
+                'interval_minutes' => $prewarmIntervalMinutes,
                 'overdue' => ! $prewarmOk,
                 'never_ran' => $prewarmAt === null,
                 'ok' => $prewarmOk,
@@ -307,8 +334,10 @@ class IntegrationHealthService
         }
 
         if ($dueCount > 0) {
-            $requeue = $pipeline['superops_requeue_after_minutes'] ?? 10;
-            $notices[] = "{$dueCount} SuperOps feed(s) due for refresh (older than {$requeue}m) but not started yet.";
+            $requeue = $pipeline['superops_requeue_after_minutes']
+                ?? ($pipeline['freshness']['requeue_minutes'] ?? null)
+                ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5);
+            $notices[] = "{$dueCount} data feed(s) due for refresh (past ~{$requeue}m requeue) but not started yet — SuperOps, M365, Huntress, Dropsuite.";
         }
 
         foreach ($rows as $row) {
@@ -336,6 +365,8 @@ class IntegrationHealthService
             $this->m365Directory($client, $clearedOrphans),
             $this->m365Insights($client, $clearedOrphans),
             $this->entraSync($client, $clearedOrphans),
+            $this->huntress($client, $clearedOrphans),
+            $this->dropsuite($client, $clearedOrphans),
         ];
 
         $active = collect($integrations)->first(
@@ -388,8 +419,8 @@ class IntegrationHealthService
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
         $result = Cache::get('superops_dashboard.last_result.'.$client->id);
-        $requeueAfter = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
-        $clientWindow = max(1, (int) config('services.superops.dashboard_cache_minutes', 15));
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $clientWindow = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
 
         return $this->integrationStatus(
             key: 'superops',
@@ -420,7 +451,8 @@ class IntegrationHealthService
             ? Carbon::parse($meta['refreshed_at'])
             : null;
         $result = Cache::get('m365_directory.last_result.'.$client->id);
-        $window = max(1, (int) config('services.entra_sync.directory_cache_minutes', 15));
+        $window = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
 
         return $this->integrationStatus(
             key: 'm365_directory',
@@ -431,7 +463,7 @@ class IntegrationHealthService
             lastSuccessAt: $last,
             lastResult: is_array($result) ? $result : null,
             processHint: 'RefreshM365DirectoryJob (users + licences + mailbox purpose + groups)',
-            requeueAfterMinutes: $window,
+            requeueAfterMinutes: $requeueAfter,
             clientWindowMinutes: $window,
             clearedOrphans: $clearedOrphans,
         );
@@ -453,7 +485,8 @@ class IntegrationHealthService
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
         $result = Cache::get('m365_insights.last_result.'.$client->id);
-        $window = max(1, (int) config('services.m365_insights.insights_cache_minutes', 15));
+        $window = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
 
         return $this->integrationStatus(
             key: 'm365_insights',
@@ -464,7 +497,7 @@ class IntegrationHealthService
             lastSuccessAt: $last,
             lastResult: is_array($result) ? $result : null,
             processHint: 'RefreshM365InsightsJob (subscribedSkus)',
-            requeueAfterMinutes: $window,
+            requeueAfterMinutes: $requeueAfter,
             clientWindowMinutes: $window,
             clearedOrphans: $clearedOrphans,
         );
@@ -491,8 +524,89 @@ class IntegrationHealthService
             lastSuccessAt: $last instanceof Carbon ? $last : (filled($last) ? Carbon::parse($last) : null),
             lastResult: is_array($result) ? $result : null,
             processHint: 'SyncEntraClientJob (users → portal + group + SCIM names)',
-            requeueAfterMinutes: 90,
-            clientWindowMinutes: 90,
+            // portal:sync-entra-users on adaptive cadence with prewarm.
+            requeueAfterMinutes: max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes()),
+            clientWindowMinutes: max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes()),
+            clearedOrphans: $clearedOrphans,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function huntress(Client $client, int &$clearedOrphans): array
+    {
+        if (! (bool) config('services.huntress.enabled')) {
+            return $this->disabled('huntress', 'Huntress security', 'API disabled');
+        }
+
+        if (! filled(config('services.huntress.api_key')) || ! filled(config('services.huntress.api_secret'))) {
+            return $this->disabled('huntress', 'Huntress security', 'API not configured');
+        }
+
+        if (! filled($client->huntress_organization_id)) {
+            return $this->disabled('huntress', 'Huntress security', 'Not linked');
+        }
+
+        $payload = Cache::get("client:{$client->id}:huntress-security:v1");
+        $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
+            ? Carbon::parse($payload['last_refreshed_at'])
+            : null;
+        $result = Cache::get('huntress_security.last_result.'.$client->id);
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $clientWindow = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+
+        return $this->integrationStatus(
+            key: 'huntress',
+            label: 'Huntress security',
+            clientId: $client->id,
+            queuedKey: 'huntress_security.refresh_queued.'.$client->id,
+            startedKey: 'huntress_security.refresh_started.'.$client->id,
+            lastSuccessAt: $last,
+            lastResult: is_array($result) ? $result : null,
+            processHint: 'RefreshHuntressSecurityJob (GET /v1/organizations/{id})',
+            requeueAfterMinutes: $requeueAfter,
+            clientWindowMinutes: $clientWindow,
+            clearedOrphans: $clearedOrphans,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dropsuite(Client $client, int &$clearedOrphans): array
+    {
+        if (! (bool) config('services.dropsuite.enabled')) {
+            return $this->disabled('dropsuite', 'Dropsuite backups', 'API disabled');
+        }
+
+        if (! filled(config('services.dropsuite.reseller_token')) || ! filled(config('services.dropsuite.auth_token'))) {
+            return $this->disabled('dropsuite', 'Dropsuite backups', 'API not configured');
+        }
+
+        if (! filled($client->dropsuite_organization_id)) {
+            return $this->disabled('dropsuite', 'Dropsuite backups', 'Not linked');
+        }
+
+        $payload = Cache::get("client:{$client->id}:dropsuite-backup:v1");
+        $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
+            ? Carbon::parse($payload['last_refreshed_at'])
+            : null;
+        $result = Cache::get('dropsuite_backup.last_result.'.$client->id);
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $clientWindow = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+
+        return $this->integrationStatus(
+            key: 'dropsuite',
+            label: 'Dropsuite backups',
+            clientId: $client->id,
+            queuedKey: 'dropsuite_backup.refresh_queued.'.$client->id,
+            startedKey: 'dropsuite_backup.refresh_started.'.$client->id,
+            lastSuccessAt: $last,
+            lastResult: is_array($result) ? $result : null,
+            processHint: 'RefreshDropsuiteBackupJob (reseller backup GET)',
+            requeueAfterMinutes: $requeueAfter,
+            clientWindowMinutes: $clientWindow,
             clearedOrphans: $clearedOrphans,
         );
     }
@@ -510,8 +624,8 @@ class IntegrationHealthService
         ?Carbon $lastSuccessAt,
         ?array $lastResult,
         string $processHint,
-        int $requeueAfterMinutes,
-        int $clientWindowMinutes,
+        float|int $requeueAfterMinutes,
+        float|int $clientWindowMinutes,
         int &$clearedOrphans,
     ): array {
         $flagQueued = Cache::has($queuedKey);
@@ -532,11 +646,11 @@ class IntegrationHealthService
             $clearedOrphans++;
         }
 
-        $ageMinutes = $lastSuccessAt?->diffInMinutes(now());
-        $ageRounded = $ageMinutes !== null ? (int) round($ageMinutes) : null;
+        $ageExact = $lastSuccessAt?->floatDiffInMinutes(now());
+        $ageRounded = $ageExact !== null ? (int) round($ageExact) : null;
         $dueForRequeue = $lastSuccessAt === null
-            || ($ageRounded !== null && $ageRounded >= $requeueAfterMinutes);
-        $pastClientWindow = $ageRounded !== null && $ageRounded > $clientWindowMinutes;
+            || ($ageExact !== null && $ageExact >= (float) $requeueAfterMinutes);
+        $pastClientWindow = $ageExact !== null && $ageExact > (float) $clientWindowMinutes;
 
         $status = 'ok';
         $detail = $processHint;
@@ -562,7 +676,7 @@ class IntegrationHealthService
         } elseif ($pastClientWindow) {
             $status = 'aging';
             $detail = $processHint.' · past '.$clientWindowMinutes.'m client window ('.$ageRounded.'m ago)';
-        } elseif ($dueForRequeue && $key === 'superops') {
+        } elseif ($dueForRequeue && in_array($key, ['superops', 'huntress', 'dropsuite', 'm365_directory', 'm365_insights'], true)) {
             // Between requeue threshold and client window — will enqueue on next prewarm.
             $status = 'due';
             $detail = $processHint.' · requeue threshold '.$requeueAfterMinutes.'m hit (age '.$ageRounded.'m)'
@@ -631,6 +745,8 @@ class IntegrationHealthService
             'm365_directory' => 'M365 people list',
             'm365_insights' => 'M365 licences',
             'entra_sync' => 'Entra user sync',
+            'huntress' => 'Huntress security',
+            'dropsuite' => 'Dropsuite backups',
             default => $fallback,
         };
     }
@@ -654,22 +770,22 @@ class IntegrationHealthService
             'ok' => [
                 'status_label' => 'Up to date',
                 'what_it_is_doing' => $ageBit.' Nothing running.',
-                'what_next' => $key === 'superops'
-                    ? "Next auto pull around {$requeueAfterMinutes}m age."
-                    : ($key === 'entra_sync' ? 'Hourly Entra sync when due.' : 'Next prewarm refreshes if older than target.'),
+                'what_next' => $key === 'entra_sync'
+                    ? 'Next Entra schedule run uses adaptive interval.'
+                    : "Next auto pull around {$requeueAfterMinutes}m age.",
             ],
             'due' => [
                 'status_label' => 'Waiting to refresh',
                 'what_it_is_doing' => $ageBit.' Not in the queue yet.',
                 'what_next' => $key === 'entra_sync'
-                    ? 'Runs from hourly portal:sync-entra-users (not the 5m prewarm).'
-                    : 'Waiting for the 5-minute auto-refresh (prewarm) to queue a job.',
+                    ? 'Runs from adaptive portal:sync-entra-users (not SuperOps prewarm).'
+                    : 'Waiting for the next adaptive auto-refresh (prewarm) to queue a job.',
             ],
             'aging' => [
                 'status_label' => 'Getting old',
                 'what_it_is_doing' => $ageBit.' Past the freshness target.',
                 'what_next' => $key === 'entra_sync'
-                    ? 'Hourly Entra job is late — check schedule:run and SyncEntraClientJob workers.'
+                    ? 'Entra job is late — check schedule:run and SyncEntraClientJob workers.'
                     : 'Auto-refresh should have queued this — check prewarm + workers above.',
             ],
             'queued' => [
@@ -753,9 +869,9 @@ class IntegrationHealthService
 
         if ($status === 'due' || ($status === 'aging' && $dueForRequeue && ! $flagQueued && $job === null)) {
             if ($key === 'entra_sync') {
-                $lines[] = "{$label}: age {$ageRounded}m · waits on hourly portal:sync-entra-users (not 5m prewarm)";
+                $lines[] = "{$label}: age {$ageRounded}m · waits on ~2.5m portal:sync-entra-users (separate from prewarm)";
             } else {
-                $lines[] = "{$label}: age {$ageRounded}m · not queued · waiting for 5m prewarm to start a job";
+                $lines[] = "{$label}: age {$ageRounded}m · not queued · waiting for ~2.5m prewarm to start a job";
             }
             if ($status === 'aging') {
                 $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m — clients may see soft note";

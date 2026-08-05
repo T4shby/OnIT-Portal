@@ -4,24 +4,28 @@ namespace App\Services\Huntress;
 
 use App\Jobs\RefreshHuntressSecurityJob;
 use App\Models\Client;
+use App\Services\Portal\ClearsOrphanedFeedRefreshFlags;
+use App\Services\Portal\PortalFreshnessService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Client Admin Huntress security metrics (Phase 3 scaffold).
+ * Client Admin Huntress security metrics.
  *
  * Cache key: client:{id}:huntress-security:v1
  * Source: GET /v1/organizations/{huntress_organization_id}
  *
  * @see https://api.huntress.io/docs
+ * @see App\Contracts\DashboardFeed (HuntressDashboardFeed adapter)
  */
 class HuntressClientMetricsService
 {
-    private const CACHE_MINUTES = 10;
+    use ClearsOrphanedFeedRefreshFlags;
 
-    private const STALE_MINUTES = 1440;
+    /** Cache retention (payload kept this long even if stale for UI). */
+    private const STALE_RETENTION_MINUTES = 1440;
 
     private const REFRESH_COOLDOWN_SECONDS = 60;
 
@@ -82,6 +86,8 @@ class HuntressClientMetricsService
             return false;
         }
 
+        $this->clearOrphanedFeedFlags($client->id, 'huntress_security', 'RefreshHuntressSecurityJob');
+
         if ($respectCooldown) {
             $cooldownKey = 'huntress_security.refresh_cooldown.'.$client->id;
             if (Cache::has($cooldownKey)) {
@@ -106,16 +112,21 @@ class HuntressClientMetricsService
             return false;
         }
 
+        $this->clearOrphanedFeedFlags($client->id, 'huntress_security', 'RefreshHuntressSecurityJob');
+
         if (Cache::has('huntress_security.refresh_queued.'.$client->id)) {
             return false;
         }
 
         $cached = Cache::get($this->cacheKey($client->id));
-        if (! is_array($cached)) {
+        if (! is_array($cached) || ! filled($cached['last_refreshed_at'] ?? null)) {
             return true;
         }
 
-        return $this->summaryFromCache($client->id, $cached)->isStale;
+        $after = max(0.5, app(PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $seconds = max(30, (int) round($after * 60) - 20);
+
+        return Carbon::parse($cached['last_refreshed_at'])->lte(now()->subSeconds($seconds));
     }
 
     public function refreshAndStore(Client $client): HuntressClientSecuritySummary
@@ -140,7 +151,7 @@ class HuntressClientMetricsService
             Cache::put(
                 $this->cacheKey($client->id),
                 $mapped,
-                now()->addMinutes(self::STALE_MINUTES),
+                now()->addMinutes(self::STALE_RETENTION_MINUTES),
             );
 
             return $this->summaryFromCache($client->id, $mapped);
@@ -166,13 +177,13 @@ class HuntressClientMetricsService
     /**
      * Map GET /v1/organizations/{id} JSON into a cache payload.
      *
-     * Huntress separates product stats under keys such as `edr`; older responses
-     * may expose flat agent/incident counts. Unknown fields stay null.
+     * Official org responses nest EDR under `edr`; flat keys are accepted as fallbacks.
+     * Field names were verified against Huntress public API shape (org open incidents + edr counts).
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function mapOrganizationPayload(array $payload): array
+    public function mapOrganizationPayload(array $payload): array
     {
         $org = is_array($payload['organization'] ?? null)
             ? $payload['organization']
@@ -229,7 +240,8 @@ class HuntressClientMetricsService
             : null;
 
         if ($lastRefreshedAt && ! $isStale) {
-            $isStale = $lastRefreshedAt->lte(now()->subMinutes(self::CACHE_MINUTES));
+            $soft = max(1, app(PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+            $isStale = $lastRefreshedAt->lte(now()->subMinutes($soft));
         }
 
         return new HuntressClientSecuritySummary(
@@ -260,7 +272,7 @@ class HuntressClientMetricsService
         );
     }
 
-    private function cacheKey(int $clientId): string
+    public function cacheKey(int $clientId): string
     {
         return "client:{$clientId}:huntress-security:v1";
     }

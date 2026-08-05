@@ -18,20 +18,21 @@
     <div class="admin-shell flex min-h-screen" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
         <div class="grid-overlay" aria-hidden="true"></div>
 
-        <aside class="relative z-[2] hidden lg:flex lg:w-64 lg:flex-col border-r border-onit-border bg-onit-ink">
+        {{-- sticky + solid bg so content never paints through the nav --}}
+        <aside class="relative z-30 hidden h-screen shrink-0 lg:sticky lg:top-0 lg:flex lg:w-64 lg:flex-col border-r border-onit-border bg-onit-ink">
             <div class="p-6">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
                     <x-portal-logo size="sm" />
                     <span class="font-condensed font-bold uppercase tracking-wide text-white">Admin</span>
                 </a>
             </div>
-            <nav class="flex-1 px-4 space-y-1">@include('admin.partials.nav')</nav>
+            <nav class="flex-1 overflow-y-auto px-4 space-y-1">@include('admin.partials.nav')</nav>
             <div class="border-t border-onit-border p-4">
                 <a href="{{ route('dashboard') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to portal</a>
             </div>
         </aside>
 
-        <div class="relative z-[1] flex min-w-0 flex-1 flex-col">
+        <div class="relative z-10 flex min-w-0 flex-1 flex-col overflow-x-hidden">
             <header class="safe-top border-b border-onit-border bg-onit-ink lg:hidden">
                 <div class="flex h-16 items-center justify-between px-4">
                     <button type="button" @click="sidebarOpen = !sidebarOpen" class="touch-target text-white/80" aria-label="Open menu">

@@ -46,7 +46,10 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('Per client', false);
         $response->assertSee('Acme Ltd', false);
         $response->assertSee('Stuck', false);
-        $response->assertSee('Devices & tickets', false);
+        // Labels go through Blade e() so & becomes &amp; — assertSeeText decodes.
+        $response->assertSeeText('Devices & tickets');
+        $response->assertSeeText('Huntress');
+        $response->assertSeeText('Dropsuite');
     }
 
     public function test_admin_dashboard_links_to_integration_health_tab(): void

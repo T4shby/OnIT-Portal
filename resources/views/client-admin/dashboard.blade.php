@@ -9,8 +9,8 @@
         $superOpsAgeMinutes = $summary->lastRefreshedAt
             ? (int) round($summary->lastRefreshedAt->diffInMinutes(now()))
             : null;
-        $freshMinutes = (int) config('services.superops.dashboard_cache_minutes', 15);
-        $refreshAfterMinutes = (int) config('services.superops.dashboard_refresh_after_minutes', 10);
+        $freshMinutes = (float) config('services.superops.dashboard_cache_minutes', 5);
+        $refreshAfterMinutes = (float) config('services.superops.dashboard_refresh_after_minutes', 2.5);
     @endphp
 
     <section class="mb-6">

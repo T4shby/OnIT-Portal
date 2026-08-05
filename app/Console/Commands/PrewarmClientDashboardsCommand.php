@@ -3,12 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Client;
-use App\Services\Dropsuite\DropsuiteClientMetricsService;
-use App\Services\Huntress\HuntressClientMetricsService;
-use App\Services\M365\M365DirectoryService;
-use App\Services\M365\M365InsightsService;
 use App\Services\Admin\IntegrationHealthService;
-use App\Services\SuperOps\SuperOpsClientMetricsService;
+use App\Services\Portal\DashboardFeedRegistry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +13,10 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Keep client dashboard caches filled so metrics exist before anyone opens the page.
  *
- * SuperOps (cold + past fresh window) is always queued on `high`.
- * Other integrations only when the jobs table is under capacity and they are cold/stale.
+ * Critical feeds (SuperOps) always queue when due.
+ * Optional feeds when the jobs table is under capacity.
+ *
+ * @see App\Contracts\DashboardFeed
  */
 class PrewarmClientDashboardsCommand extends Command
 {
@@ -26,98 +24,73 @@ class PrewarmClientDashboardsCommand extends Command
 
     protected $description = 'Ensure active clients have SuperOps (and other) dashboard caches ready';
 
-    /** Spare-capacity threshold for non-SuperOps prewarm work. */
     private const MAX_PENDING_BEFORE_OPTIONAL = 40;
 
-    public function handle(
-        SuperOpsClientMetricsService $superOps,
-        M365DirectoryService $m365Directory,
-        M365InsightsService $m365Insights,
-        HuntressClientMetricsService $huntress,
-        DropsuiteClientMetricsService $dropsuite,
-    ): int {
-        // Stale schedule mutexes block everyFiveMinutes for hours (seen with onOneServer + CACHE database).
+    public function handle(DashboardFeedRegistry $feeds): int
+    {
         $this->releaseStaleScheduleLocks();
 
         $pending = $this->pendingJobs();
         $queueDeep = $pending >= self::MAX_PENDING_BEFORE_OPTIONAL;
 
         $clientsProcessed = 0;
-        $superOpsQueued = 0;
+        $criticalQueued = 0;
         $optionalQueued = 0;
 
         Client::query()
             ->where('is_active', true)
             ->orderBy('id')
             ->chunkById(100, function ($clients) use (
-                $superOps,
-                $m365Directory,
-                $m365Insights,
-                $huntress,
-                $dropsuite,
+                $feeds,
                 $queueDeep,
                 &$clientsProcessed,
-                &$superOpsQueued,
+                &$criticalQueued,
                 &$optionalQueued,
             ): void {
                 foreach ($clients as $client) {
                     $clientsProcessed++;
 
-                    // SuperOps always — cold or past fresh window. Never skip because other jobs are deep.
-                    if (
-                        ($superOps->needsColdPrewarm($client) || $superOps->needsBackgroundRefresh($client))
-                        && $superOps->queueRefresh($client)
-                    ) {
-                        $superOpsQueued++;
+                    foreach ($feeds->critical() as $feed) {
+                        if ($feed->needsBackgroundRefresh($client) && $feed->queueRefresh($client)) {
+                            $criticalQueued++;
+                        }
                     }
 
                     if ($queueDeep) {
                         continue;
                     }
 
-                    // Other integrations only when they need it (not every prewarm tick).
-                    if ($m365Insights->needsBackgroundRefresh($client) && $m365Insights->queueRefresh($client)) {
-                        $optionalQueued++;
-                    }
-                    if ($huntress->needsBackgroundRefresh($client) && $huntress->queueRefresh($client)) {
-                        $optionalQueued++;
-                    }
-                    if ($dropsuite->needsBackgroundRefresh($client) && $dropsuite->queueRefresh($client)) {
-                        $optionalQueued++;
-                    }
-                    if ($m365Directory->needsBackgroundRefresh($client) && $m365Directory->queueRefresh($client)) {
-                        $optionalQueued++;
+                    foreach ($feeds->optional() as $feed) {
+                        if ($feed->needsBackgroundRefresh($client) && $feed->queueRefresh($client)) {
+                            $optionalQueued++;
+                        }
                     }
                 }
             });
 
         $this->info(
-            "Dashboard prewarm: {$superOpsQueued} SuperOps, {$optionalQueued} other, "
+            "Dashboard prewarm: {$criticalQueued} critical, {$optionalQueued} optional, "
             ."across {$clientsProcessed} active client(s)"
-            .($queueDeep ? ' (queue deep — SuperOps only).' : '.')
+            .($queueDeep ? ' (queue deep — critical only).' : '.')
         );
 
         if ($queueDeep) {
             $this->warn("Optional prewarm skipped: {$pending} jobs already queued (max ".self::MAX_PENDING_BEFORE_OPTIONAL.').');
         }
 
-        // Heartbeat for Integration Health pipeline panel (technicians).
         Cache::put(IntegrationHealthService::PREWARM_CACHE_KEY, [
             'at' => now()->toIso8601String(),
-            'superops_queued' => $superOpsQueued,
+            'superops_queued' => $criticalQueued,
             'optional_queued' => $optionalQueued,
             'clients' => $clientsProcessed,
             'queue_deep' => $queueDeep,
             'pending_before' => $pending,
+            'freshness' => app(\App\Services\Portal\PortalFreshnessService::class)->snapshot(),
         ], now()->addDay());
 
         return self::SUCCESS;
     }
 
-    /**
-     * Drop schedule mutex rows that have expired, or schedule locks that are absurdly far in the future
-     * (orphans that block withoutOverlapping / historical onOneServer locks).
-     */
     private function releaseStaleScheduleLocks(): void
     {
         if (! Schema::hasTable('cache_locks')) {
@@ -127,8 +100,6 @@ class PrewarmClientDashboardsCommand extends Command
         $now = time();
         DB::table('cache_locks')->where('expiration', '<', $now)->delete();
 
-        // Safety: any lock held for the schedule framework that is set more than 30 minutes into the future
-        // is almost always an orphan (normal withoutOverlapping is 8 minutes).
         DB::table('cache_locks')
             ->where('key', 'like', '%framework/schedule%')
             ->where('expiration', '>', $now + 1800)

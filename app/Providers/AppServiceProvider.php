@@ -12,7 +12,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\Portal\DashboardFeedRegistry::class, function ($app) {
+            return new \App\Services\Portal\DashboardFeedRegistry([
+                // Order = System health tile order (overview partials only).
+                $app->make(\App\Services\Portal\Feeds\SuperOpsDashboardFeed::class),
+                $app->make(\App\Services\Portal\Feeds\HuntressDashboardFeed::class),
+                $app->make(\App\Services\Portal\Feeds\DropsuiteDashboardFeed::class),
+                $app->make(\App\Services\Portal\Feeds\M365InsightsDashboardFeed::class),
+                // Prewarm-only (no overview tile — own Microsoft 365 page).
+                $app->make(\App\Services\Portal\Feeds\M365DirectoryDashboardFeed::class),
+            ]);
+        });
     }
 
     public function boot(): void

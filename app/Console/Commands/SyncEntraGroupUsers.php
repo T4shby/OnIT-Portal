@@ -77,6 +77,12 @@ class SyncEntraGroupUsers extends Command
 
         $this->info("Queued {$clients->count()} Entra sync job(s). Queue worker will process them.");
 
+        \Illuminate\Support\Facades\Cache::put(
+            \App\Services\Admin\IntegrationHealthService::ENTRA_SCHEDULE_HEARTBEAT_KEY,
+            ['at' => now()->toIso8601String()],
+            now()->addDay(),
+        );
+
         return self::SUCCESS;
     }
 

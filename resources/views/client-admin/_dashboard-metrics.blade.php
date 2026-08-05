@@ -13,7 +13,7 @@
                 @if($viewerIsTechnician)
                     SuperOps last success {{ $lastUk }}
                     @if($ageMinutes !== null)
-                        ({{ $ageMinutes }}m ago · requeue ≥{{ (int) config('services.superops.dashboard_refresh_after_minutes', 10) }}m · client note ≥{{ (int) config('services.superops.dashboard_cache_minutes', 15) }}m)
+                        ({{ $ageMinutes }}m ago · requeue ≥{{ config('services.superops.dashboard_refresh_after_minutes', 2.5) }}m · client note ≥{{ config('services.superops.dashboard_cache_minutes', 5) }}m)
                     @endif
                 @else
                     Overview as of {{ $lastUk }}
@@ -28,122 +28,18 @@
         </form>
     </div>
 
-    {{-- System health --}}
+    {{-- System health — modular tiles from DashboardFeedRegistry --}}
     <section class="mb-8">
         <div class="flex items-center justify-between gap-4 mb-6">
             <h2 class="portal-label">System health</h2>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <x-card>
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="portal-label mb-2">Managed devices</p>
-                        <p class="text-4xl font-condensed font-bold text-onit">
-                            {{ $summary->assetsTotal === null ? '-' : number_format($summary->assetsTotal) }}
-                        </p>
-                        <p class="portal-body-muted text-sm mt-2">
-                            @if($summary->assetsOnline !== null && $summary->assetsOffline !== null)
-                                {{ number_format($summary->assetsOnline) }} online / {{ number_format($summary->assetsOffline) }} offline
-                            @else
-                                Devices in SuperOps
-                            @endif
-                        </p>
-                    </div>
-                    @if($summary->hasData())
-                        <a href="{{ route('integrations.superops.launch') }}" class="text-onit hover:text-white text-lg leading-none" title="Open SuperOps">&rarr;</a>
-                    @endif
-                </div>
-            </x-card>
-
-            <x-card>
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="portal-label mb-2">Security (Huntress)</p>
-                        @if($huntressSummary->hasData())
-                            <p class="text-4xl font-condensed font-bold text-white">
-                                {{ $huntressSummary->openIncidents === null ? '-' : number_format($huntressSummary->openIncidents) }}
-                            </p>
-                            <p class="portal-body-muted text-sm mt-2">
-                                Open incidents
-                                @if($huntressSummary->edrIsolatedAgents !== null)
-                                    / {{ number_format($huntressSummary->edrIsolatedAgents) }} isolated
-                                @endif
-                            </p>
-                        @else
-                            <p class="text-sm portal-body-muted mt-2">
-                                @if($viewerIsTechnician)
-                                    {{ $huntressSummary->unavailableReason }}
-                                @elseif(str_contains((string) $huntressSummary->unavailableReason, 'API is not configured'))
-                                    Security monitoring is not enabled for this organisation yet.
-                                @elseif(str_contains((string) $huntressSummary->unavailableReason, 'not connected'))
-                                    Security monitoring is not linked for this organisation yet.
-                                @else
-                                    Security figures are not available yet.
-                                @endif
-                            </p>
-                        @endif
-                    </div>
-                </div>
-            </x-card>
-
-            <x-card>
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="portal-label mb-2">Backups (Dropsuite)</p>
-                        @if($dropsuiteSummary->hasData())
-                            <p class="text-4xl font-condensed font-bold text-white">
-                                {{ $dropsuiteSummary->protectedMailboxes === null ? '-' : number_format($dropsuiteSummary->protectedMailboxes) }}
-                            </p>
-                            <p class="portal-body-muted text-sm mt-2">
-                                Protected mailboxes / {{ ucfirst($dropsuiteSummary->lastBackupStatus) }}
-                            </p>
-                        @else
-                            <p class="text-sm portal-body-muted mt-2">
-                                @if($viewerIsTechnician)
-                                    {{ $dropsuiteSummary->unavailableReason }}
-                                @elseif(str_contains((string) $dropsuiteSummary->unavailableReason, 'API is not configured'))
-                                    Backup reporting is not enabled for this organisation yet.
-                                @elseif(str_contains((string) $dropsuiteSummary->unavailableReason, 'not connected'))
-                                    Backup reporting is not linked for this organisation yet.
-                                @else
-                                    Backup figures are not available yet.
-                                @endif
-                            </p>
-                        @endif
-                    </div>
-                </div>
-            </x-card>
-
-            <x-card>
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="portal-label mb-2">Microsoft 365</p>
-                        @if($m365Insights->hasData())
-                            <p class="text-4xl font-condensed font-bold text-onit">
-                                {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
-                            </p>
-                            <p class="portal-body-muted text-sm mt-2">
-                                Licence utilisation
-                                @if($m365Insights->licensedUserCount !== null)
-                                    / {{ number_format($m365Insights->licensedUserCount) }} users
-                                @endif
-                            </p>
-                        @else
-                            <p class="text-sm portal-body-muted mt-2">
-                                @if($viewerIsTechnician)
-                                    {{ $m365Insights->unavailableReason ?? 'Not available yet.' }}
-                                @else
-                                    Licence figures are not available yet.
-                                @endif
-                            </p>
-                        @endif
-                    </div>
-                    @can('view-m365-directory')
-                        <a href="{{ route('microsoft-365.directory') }}" class="text-onit hover:text-white text-lg leading-none" title="Microsoft 365 directory">&rarr;</a>
-                    @endcan
-                </div>
-            </x-card>
+            @foreach(($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed)
+                @include($feed->overviewPartial(), [
+                    'viewerIsTechnician' => $viewerIsTechnician,
+                ])
+            @endforeach
         </div>
     </section>
 

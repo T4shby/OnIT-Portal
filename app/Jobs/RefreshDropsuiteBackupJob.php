@@ -20,7 +20,10 @@ class RefreshDropsuiteBackupJob implements ShouldQueue, ShouldBeUnique
 
     public int $uniqueFor = 300;
 
-    public function __construct(public int $clientId) {}
+    public function __construct(public int $clientId)
+    {
+        $this->onQueue('high');
+    }
 
     public function uniqueId(): string
     {
@@ -32,21 +35,44 @@ class RefreshDropsuiteBackupJob implements ShouldQueue, ShouldBeUnique
         $client = Client::query()->find($this->clientId);
 
         if ($client === null || empty($client->dropsuite_organization_id)) {
+            Cache::forget('dropsuite_backup.refresh_queued.'.$this->clientId);
+            Cache::forget('dropsuite_backup.refresh_started.'.$this->clientId);
+
             return;
         }
 
+        $started = microtime(true);
+        Cache::put('dropsuite_backup.refresh_started.'.$client->id, now()->toIso8601String(), now()->addMinutes(30));
+
         try {
             $metrics->refreshAndStore($client);
+
+            Cache::put('dropsuite_backup.last_result.'.$client->id, [
+                'success' => true,
+                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+                'finished_at' => now()->toIso8601String(),
+            ], now()->addDay());
         } catch (\Throwable $e) {
             Log::warning('Background Dropsuite backup refresh failed', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
+
+            Cache::put('dropsuite_backup.last_result.'.$client->id, [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+                'finished_at' => now()->toIso8601String(),
+            ], now()->addDay());
+        } finally {
+            Cache::forget('dropsuite_backup.refresh_queued.'.$client->id);
+            Cache::forget('dropsuite_backup.refresh_started.'.$client->id);
         }
     }
 
     public function failed(?\Throwable $exception): void
     {
         Cache::forget('dropsuite_backup.refresh_queued.'.$this->clientId);
+        Cache::forget('dropsuite_backup.refresh_started.'.$this->clientId);
     }
 }

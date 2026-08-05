@@ -76,6 +76,22 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Integration Health per-client table: Huntress + Dropsuite columns via `FEED_COLUMNS` (same refresh pipeline as SuperOps/M365) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Modular dashboard feeds: `DashboardFeed` contract + registry (SuperOps/Huntress/Dropsuite/M365); feed tile partials; agentic “add feed” checklist — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Security feeds: Huntress + Dropsuite adaptive requeue, Integration Health columns, dual Dropsuite auth headers, probe command — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health adaptive model documented (hot/idle/hours); sticky admin nav; timing drawer — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Admin shell: sticky sidebar `z-30` + more Integration Health spacing (nav no longer under content) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health spacing/scroll polish: no white plate title, status as accent line, drawer scroll + soft inputs — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health: refresh timing as right drawer (live view stays primary); no in-page mega-form — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health: collapsible auto-refresh settings, tighter field spacing, mobile card layouts — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health timing form redesign + `portal:ensure-freshness-settings` (defaults once, no overwrite) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Auto-refresh timing: **DB/admin only** (removed portal_freshness from `.env`) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Integration Health: **Auto-refresh timing** admin form (all clients, DB settings) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Adaptive refresh: customer portal sessions → 2.5m; idle → hourly (UK 07–19 context) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | **2.5-minute** refresh cadence (prewarm + Entra + requeue); soft windows ~5m — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
+| 2026-08-05 | **5-minute cadence**: prewarm requeue + Entra schedule every 5m; soft windows ~10m — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
+| 2026-08-05 | M365 people/licences prewarm requeue at 10m (was 15m = always “Getting old” after prewarm lag) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-05 | Prod ops: sick `cron` (huge RSS / skipped minutes) starved hourly Entra; catch-up + **systemd timers** for schedule/queue; absolute cron log paths — [Deployment.md](Deployment.md) |
 | 2026-08-05 | Prewarm stall: stuck schedule `cache_locks` / `onOneServer` removed; scheduler tick; plain-English Integration Health — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
 | 2026-08-05 | Integration Health own Staff Admin sidebar tab + live fragment; portal nav Organisation / Staff Admin labels — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health pipeline visibility: prewarm heartbeat, jobs table, flags, due/aging/stuck blockers, auto notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\Dropsuite\DropsuiteClientMetricsService;
-use App\Services\Huntress\HuntressClientMetricsService;
-use App\Services\M365\M365InsightsService;
-use App\Services\SuperOps\SuperOpsClientMetricsService;
+use App\Services\Portal\DashboardFeedRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
+/**
+ * Client Organisation overview — metrics composed from DashboardFeedRegistry
+ * (SuperOps, Huntress, Dropsuite, M365 insights).
+ */
 class ClientAdminDashboardController extends Controller
 {
     public function __construct(
-        private SuperOpsClientMetricsService $metrics,
-        private M365InsightsService $m365Insights,
-        private HuntressClientMetricsService $huntressMetrics,
-        private DropsuiteClientMetricsService $dropsuiteMetrics,
+        private DashboardFeedRegistry $feeds,
     ) {}
 
     public function index(Request $request): View
@@ -55,10 +53,7 @@ class ClientAdminDashboardController extends Controller
         $client = $user->client;
         abort_unless($client, 404);
 
-        $queued = $this->metrics->queueRefresh($client, respectCooldown: true)
-            || $this->m365Insights->queueRefresh($client, respectCooldown: true)
-            || $this->huntressMetrics->queueRefresh($client, respectCooldown: true)
-            || $this->dropsuiteMetrics->queueRefresh($client, respectCooldown: true);
+        $queued = $this->feeds->queueOverviewRefresh($client, respectCooldown: true);
 
         return redirect()
             ->route('client-admin.dashboard')
@@ -71,16 +66,19 @@ class ClientAdminDashboardController extends Controller
     }
 
     /**
-     * @return array{client: \App\Models\Client, summary: mixed, m365Insights: mixed, huntressSummary: mixed, dropsuiteSummary: mixed}
+     * @return array<string, mixed>
      */
     private function dashboardData(\App\Models\Client $client): array
     {
-        return [
-            'client' => $client,
-            'summary' => $this->metrics->summaryForClient($client),
-            'm365Insights' => $this->m365Insights->summaryForClient($client),
-            'huntressSummary' => $this->huntressMetrics->summaryForClient($client),
-            'dropsuiteSummary' => $this->dropsuiteMetrics->summaryForClient($client),
-        ];
+        $summaries = $this->feeds->summariesForClient($client);
+
+        return array_merge(
+            [
+                'client' => $client,
+                'dashboardFeeds' => $this->feeds,
+                'feedSummaries' => $summaries['by_key'],
+            ],
+            $summaries['view'],
+        );
     }
 }

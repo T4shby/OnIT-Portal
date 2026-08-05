@@ -7,6 +7,15 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
+/**
+ * NinjaOne SaaS Backup (Dropsuite) partner GET client.
+ *
+ * Sends both common reseller auth patterns:
+ * - X-Access-Token + X-Reseller-Token (MSPbots / common reseller docs)
+ * - Authorization: Token … (legacy/Django Token style)
+ *
+ * @see https://help.dropsuite.com/hc/en-us/articles/20422080552855-15-API-Settings
+ */
 class DropsuiteApiClient
 {
     public function isConfigured(): bool
@@ -27,11 +36,13 @@ class DropsuiteApiClient
             throw new RuntimeException('Dropsuite API is not configured.');
         }
 
+        $token = $this->authToken();
         $response = Http::withHeaders([
-            'Authorization' => 'Token '.$this->authToken(),
+            'Authorization' => 'Token '.$token,
+            'X-Access-Token' => $token,
             'X-Reseller-Token' => $this->resellerToken(),
+            'Accept' => 'application/json',
         ])
-            ->acceptJson()
             ->timeout($timeoutSeconds)
             ->get($this->url($path), $query);
 

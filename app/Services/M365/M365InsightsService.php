@@ -80,7 +80,8 @@ class M365InsightsService
     }
 
     /**
-     * Cold or past insights fresh window — used by prewarm.
+     * Cold or past insights requeue threshold — used by prewarm.
+     * Requeues at insights_refresh_after_minutes (default 2.5) with the shared prewarm cadence.
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
@@ -99,7 +100,14 @@ class M365InsightsService
             return true;
         }
 
-        return $this->summaryFromCache($client->id, $cached)->isStale;
+        if (! filled($cached['last_refreshed_at'] ?? null)) {
+            return true;
+        }
+
+        $after = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $seconds = max(30, (int) round($after * 60) - 20);
+
+        return Carbon::parse($cached['last_refreshed_at'])->lte(now()->subSeconds($seconds));
     }
 
     public function refreshAndStore(Client $client): M365InsightsSummary
@@ -243,7 +251,7 @@ class M365InsightsService
 
         if ($lastRefreshedAt && ! $isStale) {
             $isStale = $lastRefreshedAt->lte(now()->subMinutes(
-                (int) config('services.m365_insights.insights_cache_minutes', 15),
+                (float) config('services.m365_insights.insights_cache_minutes', 5),
             ));
         }
 
@@ -308,8 +316,16 @@ class M365InsightsService
         }
 
         $pending = \Illuminate\Support\Facades\DB::table('jobs')
-            ->where('payload', 'like', '%RefreshM365InsightsJob%')
-            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
+            ->where(function ($q) use ($clientId): void {
+                $q->where('payload', 'like', '%RefreshM365InsightsJob%')
+                    ->orWhere('payload', 'like', '%M365Insights%');
+            })
+            ->where(function ($q) use ($clientId): void {
+                $id = (int) $clientId;
+                $q->where('payload', 'like', '%clientId";i:'.$id.';%')
+                    ->orWhere('payload', 'like', '%"clientId":'.$id.'%')
+                    ->orWhere('payload', 'like', '%i:'.$id.';%');
+            })
             ->exists();
 
         if (! $pending) {

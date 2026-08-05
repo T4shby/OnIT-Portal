@@ -110,9 +110,10 @@ SUPEROPS_REQUESTER_LOGIN_PATH="/#/requester/login"
 SUPEROPS_LOGIN_HINT_ENABLED=true
 SUPEROPS_SSO_ENABLED=true
 SUPEROPS_AUTO_OPEN_AFTER_LOGIN=false
-# Client Admin SuperOps metrics: requeue before client note (see ClientAdminDashboard.md)
-SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES=10
-SUPEROPS_DASHBOARD_CACHE_MINUTES=15
+# Adaptive prewarm / Entra cadence: Staff Admin → Integration Health (DB settings), not .env
+SUPEROPS_DASHBOARD_STALE_MINUTES=10080
+SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS=60
+SUPEROPS_DASHBOARD_MAX_PAGES=10
 
 DROPSUITE_ENABLED=false
 DROPSUITE_API_URL=https://dropsuite.us/api
@@ -160,35 +161,45 @@ php artisan view:cache
 php artisan optimize
 ```
 
-### 10. Configure Cron
+### 10. Configure Cron / systemd timers
 
 **Production note (app.onit.ltd on Plesk):** Plesk UI **Scheduled Tasks → Run a command** fails for `/opt/plesk/php/8.3/bin/php` with:
 
 `Inconsistency detected by ld.so: … _dl_call_libc_early_init … Assertion 'sym != NULL' failed!`
 
-That is Plesk’s jailed task runner, not Laravel. Do **not** rely on the Plesk UI for scheduler/queue on this host. Use **root’s crontab over SSH** instead, and disable/delete any duplicate Laravel tasks in the Plesk UI.
+That is Plesk’s jailed task runner, not Laravel. Do **not** rely on the Plesk UI for scheduler/queue on this host.
 
-As root on the Plesk server:
+#### Preferred: systemd timers (live on app.onit.ltd)
 
-```bash
-crontab -e
+On this host, minute **root cron sometimes skipped 5–10 minutes** while `cron` RSS ballooned (~900MB; healthy is a few MB). Many **orphan FTP crontabs** also spam reloads. Primary path is **systemd timers** (still use Plesk PHP binary, app path only):
+
+| Unit | When | Command |
+|---|---|---|
+| `onit-portal-schedule.timer` | every minute at `:00` | `php artisan schedule:run` |
+| `onit-portal-queue.timer` | every minute at `:00` | `queue:work … --max-time=55` |
+| `onit-portal-queue-b.timer` | every minute at `:20` | second drain (parallel capacity) |
+
+Files: `/etc/systemd/system/onit-portal-{schedule,queue,queue-b}.{service,timer}`. Enable with `systemctl enable --now onit-portal-schedule.timer onit-portal-queue.timer onit-portal-queue-b.timer`. Check: `systemctl list-timers 'onit-portal*'` and Integration Health **Scheduler** tick age.
+
+If `cron` RSS is huge again: `systemctl restart cron` (safe; does not touch other vhosts). Clean orphan FTP crontabs separately under Plesk when someone has time — they thrash the cron daemon, not the portal app code.
+
+#### Root crontab (belt-and-suspenders; keep alongside timers)
+
+Use **absolute** log paths. Relative `>> storage/logs/...` only works if `cd` succeeds:
+
 ```
-
-Add these two lines (keep unrelated entries such as `ntpdate`):
-
-```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
-# Optional belt-and-suspenders if schedule mutexes misbehave — prewarm also runs from schedule every 5m
-# */5 * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan portal:prewarm-client-dashboards >> storage/logs/prewarm.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/scheduler.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-2.log 2>&1
 ```
 
 **Do not use `onOneServer()`** for scheduled commands on this single host with `CACHE_STORE=database`. A stuck row in `cache_locks` can skip `portal:prewarm-client-dashboards` for tens of minutes (data ages with empty queue). Prewarm clears expired / absurdly long schedule locks on each run.
 
-Two concurrent workers (`queue-worker-1` / `queue-worker-2`) so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
+Hourly **`portal:sync-entra-users`** (Entra “Extra Sync” on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead — not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
 
-`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). **`--max-time=55`** so each minute-cron worker exits before the next minute spawns another (do **not** use 300 with minute cron — that stacks overlapping workers). Long Entra jobs may span workers; that is intentional. The scheduler queues work; the workers process it.
+Two concurrent workers so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
+
+`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). **`--max-time=55`** so each minute worker exits before the next minute spawns another (do **not** use 300 with minute cron — that stacks overlapping workers). Long Entra jobs may span workers; that is intentional. The scheduler queues work; the workers process it.
 
 ### 11. Run the queue worker
 
@@ -215,7 +226,8 @@ Run this **continuously** — choose one:
 | Option | When to use |
 |---|---|
 | **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts — set **`numprocs=2`** for parallel clients |
-| **Plesk / root crontab** | Two `queue:work --stop-when-empty` lines each minute (see above) |
+| **systemd timers** | Live on app.onit.ltd — `onit-portal-queue` / `onit-portal-queue-b` (see §10) |
+| **Plesk / root crontab** | Two `queue:work --stop-when-empty` lines each minute (see §10) |
 
 **Supervisor example** (`/etc/supervisor/conf.d/onit-portal-queue.conf`):
 
@@ -250,7 +262,8 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 | `RefreshSuperOpsDashboardJob` | `high` | Prewarm / cold SuperOps cache / manual refresh |
 | `RefreshM365DirectoryJob` | `high` | Prewarm / cold directory / manual refresh |
 | `RefreshM365InsightsJob` | `high` | Prewarm / licence insights |
-| `RefreshHuntressSecurityJob` | default | Stale Huntress metrics |
+| `RefreshHuntressSecurityJob` | high | Stale Huntress security metrics |
+| `RefreshDropsuiteBackupJob` | high | Stale Dropsuite / SaaS Backup metrics |
 | `SyncEntraClientJob` | default | Admin → Clients → Sync Entra users |
 
 ### 12. SSL Certificate

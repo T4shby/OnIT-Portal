@@ -79,7 +79,7 @@ class SuperOpsClientMetricsService
         $cached = Cache::get($cacheKey);
 
         // Always serve stored metrics when present. Stale refresh is prewarm/manual only —
-        // page views must not stampede the queue (requeue threshold is dashboard_refresh_after_minutes).
+        // page views must not stampede the queue (requeue = PortalFreshnessService adaptive minutes).
         if (is_array($cached) && ! $manualRefresh) {
             return $this->summaryFromCache($client->id, $cached);
         }
@@ -144,9 +144,7 @@ class SuperOpsClientMetricsService
      * True when cache exists but is due for a background SuperOps pull and no real job is queued/running.
      * Clears orphaned `refresh_queued` cache when the jobs table has no matching row.
      *
-     * Uses dashboard_refresh_after_minutes (default 10) so data is re-queued before the client
-     * messaging window (dashboard_cache_minutes, default 15) — avoids 20m+ gaps from
-     * "15 + next 5-min prewarm + worker minute".
+     * Requeue age comes from PortalFreshnessService (hot when customers are online; idle otherwise).
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
@@ -165,9 +163,11 @@ class SuperOpsClientMetricsService
             return true;
         }
 
-        $after = max(1, (int) config('services.superops.dashboard_refresh_after_minutes', 10));
+        $after = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        // ~20s early so aligned ticks do not skip a client by a hair
+        $seconds = max(30, (int) round($after * 60) - 20);
 
-        return Carbon::parse($payload['last_refreshed_at'])->lte(now()->subMinutes($after));
+        return Carbon::parse($payload['last_refreshed_at'])->lte(now()->subSeconds($seconds));
     }
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool

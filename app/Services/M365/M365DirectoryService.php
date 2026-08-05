@@ -87,7 +87,8 @@ class M365DirectoryService
     }
 
     /**
-     * Cold (no snapshot) or past directory fresh window — used by prewarm.
+     * Cold (no snapshot) or past directory requeue threshold — used by prewarm.
+     * Requeues at directory_refresh_after_minutes (default 2.5) with the shared prewarm cadence.
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
@@ -106,7 +107,16 @@ class M365DirectoryService
             return true;
         }
 
-        return $this->isStale($this->readMeta($client));
+        $meta = $this->readMeta($client);
+        $refreshedAt = $this->parseRefreshedAt($meta['refreshed_at'] ?? null);
+        if ($refreshedAt === null) {
+            return true;
+        }
+
+        $after = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $seconds = max(30, (int) round($after * 60) - 20);
+
+        return $refreshedAt->lte(now()->subSeconds($seconds));
     }
 
     /**
@@ -249,7 +259,7 @@ class M365DirectoryService
         }
 
         return $refreshedAt->lte(now()->subMinutes(
-            (int) config('services.entra_sync.directory_cache_minutes', 15),
+            (float) config('services.entra_sync.directory_cache_minutes', 5),
         ));
     }
 
@@ -269,8 +279,16 @@ class M365DirectoryService
         }
 
         $pending = \Illuminate\Support\Facades\DB::table('jobs')
-            ->where('payload', 'like', '%RefreshM365DirectoryJob%')
-            ->where('payload', 'like', '%clientId";i:'.$client->id.';%')
+            ->where(function ($q) use ($client): void {
+                $q->where('payload', 'like', '%RefreshM365DirectoryJob%')
+                    ->orWhere('payload', 'like', '%M365Directory%');
+            })
+            ->where(function ($q) use ($client): void {
+                $id = (int) $client->id;
+                $q->where('payload', 'like', '%clientId";i:'.$id.';%')
+                    ->orWhere('payload', 'like', '%"clientId":'.$id.'%')
+                    ->orWhere('payload', 'like', '%i:'.$id.';%');
+            })
             ->exists();
 
         if (! $pending) {

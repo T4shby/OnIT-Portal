@@ -1,50 +1,90 @@
+@php
+    $forceSettingsOpen = $errors->any() || session()->has('success');
+@endphp
+
 <x-admin-layout>
-    @include('admin.partials.header', ['title' => 'Integration Health'])
+    <div
+        class="w-full max-w-full"
+        x-data="{
+            settingsOpen: {{ $forceSettingsOpen ? 'true' : 'false' }},
+            init() {
+                const lock = (open) => {
+                    document.body.style.overflow = open ? 'hidden' : '';
+                };
+                this.$watch('settingsOpen', lock);
+                lock(this.settingsOpen);
+            }
+        }"
+        x-on:keydown.escape.window="settingsOpen = false"
+    >
+        {{-- Quiet header (no white plate title) --}}
+        <div class="mb-8 flex flex-col gap-5 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+            <div class="min-w-0">
+                <div class="orange-rule"></div>
+                <h1 class="m-0 font-condensed text-2xl font-bold uppercase tracking-tight text-white sm:text-[1.85rem]">
+                    Integration Health
+                </h1>
+                <p class="portal-body-muted mt-4 max-w-xl text-sm leading-relaxed">
+                    Live pipeline for background refresh across all clients. Updates every 5&nbsp;seconds.
+                </p>
+            </div>
+            <div class="shrink-0">
+                @include('admin.integration-health._settings-trigger')
+            </div>
+        </div>
 
-    <p class="portal-body-muted text-sm mb-6 max-w-3xl">
-        Plain-language view of auto-refresh: is the clock running, did prewarm fire, and are workers processing jobs?
-        Opens and stays live (updates every 5 seconds).
-    </p>
+        @if($errors->any())
+            <x-alert type="danger" class="mb-8">
+                <ul class="list-disc space-y-1 pl-4">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </x-alert>
+        @endif
 
-    <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <x-card>
-            <p class="admin-stat-label">Queue pending</p>
-            <p id="admin-queue-pending" class="admin-stat-value">{{ $integrationHealth['queue']['pending'] }}</p>
-            <p id="admin-queue-detail" class="mt-2 text-xs text-white/50">
-                high {{ $integrationHealth['queue']['high'] }}
-                · default {{ $integrationHealth['queue']['default'] }}
-                · failed {{ $integrationHealth['queue']['failed'] }}
-                @if($integrationHealth['queue']['oldest_pending_seconds'] !== null)
-                    · oldest {{ number_format($integrationHealth['queue']['oldest_pending_seconds'] / 60, 1) }}m
-                @endif
-                @if(($integrationHealth['queue']['reserved'] ?? 0) > 0)
-                    · reserved {{ $integrationHealth['queue']['reserved'] }}
-                @endif
-            </p>
-        </x-card>
-        <x-card>
-            <p class="admin-stat-label">Stuck</p>
-            <p class="admin-stat-value {{ ($integrationHealth['stuck_count'] ?? 0) > 0 ? 'text-rose-400' : '' }}">
-                {{ $integrationHealth['stuck_count'] ?? 0 }}
-            </p>
-        </x-card>
-        <x-card>
-            <p class="admin-stat-label">Waiting refresh</p>
-            <p class="admin-stat-value {{ ($integrationHealth['due_count'] ?? 0) > 0 ? 'text-sky-300' : '' }}">
-                {{ $integrationHealth['due_count'] ?? 0 }}
-            </p>
-            <p class="mt-2 text-xs text-white/50">Due to requeue, not started</p>
-        </x-card>
-        <x-card>
-            <p class="admin-stat-label">Getting old</p>
-            <p class="admin-stat-value {{ ($integrationHealth['aging_count'] ?? 0) > 0 ? 'text-amber-300' : '' }}">
-                {{ $integrationHealth['aging_count'] ?? 0 }}
-            </p>
-            <p class="mt-2 text-xs text-white/50">Feeds past freshness target</p>
-        </x-card>
+        <div class="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            <x-card class="!p-5 sm:!p-6">
+                <p class="admin-stat-label text-xs">Queue pending</p>
+                <p id="admin-queue-pending" class="admin-stat-value mt-2 text-2xl">{{ $integrationHealth['queue']['pending'] }}</p>
+                <p id="admin-queue-detail" class="mt-3 break-words text-xs leading-relaxed text-white/50">
+                    high {{ $integrationHealth['queue']['high'] }}
+                    · default {{ $integrationHealth['queue']['default'] }}
+                    · failed {{ $integrationHealth['queue']['failed'] }}
+                    @if($integrationHealth['queue']['oldest_pending_seconds'] !== null)
+                        · oldest {{ number_format($integrationHealth['queue']['oldest_pending_seconds'] / 60, 1) }}m
+                    @endif
+                    @if(($integrationHealth['queue']['reserved'] ?? 0) > 0)
+                        · reserved {{ $integrationHealth['queue']['reserved'] }}
+                    @endif
+                </p>
+            </x-card>
+            <x-card class="!p-5 sm:!p-6">
+                <p class="admin-stat-label text-xs">Stuck</p>
+                <p class="admin-stat-value mt-2 text-2xl {{ ($integrationHealth['stuck_count'] ?? 0) > 0 ? 'text-rose-400' : '' }}">
+                    {{ $integrationHealth['stuck_count'] ?? 0 }}
+                </p>
+            </x-card>
+            <x-card class="!p-5 sm:!p-6">
+                <p class="admin-stat-label text-xs">Waiting refresh</p>
+                <p class="admin-stat-value mt-2 text-2xl {{ ($integrationHealth['due_count'] ?? 0) > 0 ? 'text-sky-300' : '' }}">
+                    {{ $integrationHealth['due_count'] ?? 0 }}
+                </p>
+                <p class="mt-3 text-xs leading-relaxed text-white/50">Due, not started</p>
+            </x-card>
+            <x-card class="!p-5 sm:!p-6">
+                <p class="admin-stat-label text-xs">Getting old</p>
+                <p class="admin-stat-value mt-2 text-2xl {{ ($integrationHealth['aging_count'] ?? 0) > 0 ? 'text-amber-300' : '' }}">
+                    {{ $integrationHealth['aging_count'] ?? 0 }}
+                </p>
+                <p class="mt-3 text-xs leading-relaxed text-white/50">Past freshness</p>
+            </x-card>
+        </div>
+
+        @include('admin.partials.integration-health')
+
+        @include('admin.integration-health._freshness-settings')
     </div>
-
-    @include('admin.partials.integration-health')
 
     <script>
         (function () {

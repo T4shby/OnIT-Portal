@@ -87,10 +87,10 @@ return [
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),
-        // When SuperOps last success is older than this, prewarm queues a new job (keep under user-visible lag).
-        'dashboard_refresh_after_minutes' => env('SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES', 10),
-        // Client "figures are a few minutes old" window (should be a bit higher than refresh_after).
-        'dashboard_cache_minutes' => env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 15),
+        // When SuperOps last success is older than this, prewarm queues a new job (~2.5m cadence).
+        'dashboard_refresh_after_minutes' => (float) env('SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES', 2.5),
+        // Client soft note window (slightly above requeue so one slow job doesn't flash "old").
+        'dashboard_cache_minutes' => (float) env('SUPEROPS_DASHBOARD_CACHE_MINUTES', 5),
         // Keep last successful snapshot long enough that deploys/backlogs do not empty demos.
         'dashboard_stale_minutes' => env('SUPEROPS_DASHBOARD_STALE_MINUTES', 10080),
         'dashboard_refresh_cooldown_seconds' => env('SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS', 60),
@@ -108,7 +108,9 @@ return [
         'enabled' => env('ENTRA_SYNC_ENABLED', false),
         'client_id' => env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID')),
         'client_secret' => env('ENTRA_SYNC_CLIENT_SECRET', env('MICROSOFT_CLIENT_SECRET')),
-        'directory_cache_minutes' => env('ENTRA_DIRECTORY_CACHE_MINUTES', 15),
+        'directory_cache_minutes' => (float) env('ENTRA_DIRECTORY_CACHE_MINUTES', 5),
+        // Prewarm requeue (default 2.5m with PORTAL_PREWARM_INTERVAL_MINUTES).
+        'directory_refresh_after_minutes' => (float) env('ENTRA_DIRECTORY_REFRESH_AFTER_MINUTES', 2.5),
         'directory_stale_minutes' => env('ENTRA_DIRECTORY_STALE_MINUTES', 1440),
         'directory_refresh_lock_seconds' => env('ENTRA_DIRECTORY_REFRESH_LOCK_SECONDS', 600),
         'directory_refresh_cooldown_seconds' => env('ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS', 60),
@@ -127,7 +129,9 @@ return [
     ],
 
     'm365_insights' => [
-        'insights_cache_minutes' => env('M365_INSIGHTS_CACHE_MINUTES', 15),
+        'insights_cache_minutes' => (float) env('M365_INSIGHTS_CACHE_MINUTES', 5),
+        // Prewarm requeue (default 2.5m cadence).
+        'insights_refresh_after_minutes' => (float) env('M365_INSIGHTS_REFRESH_AFTER_MINUTES', 2.5),
         'insights_stale_minutes' => env('M365_INSIGHTS_STALE_MINUTES', 1440),
         'insights_refresh_cooldown_seconds' => env('M365_INSIGHTS_REFRESH_COOLDOWN_SECONDS', 60),
     ],

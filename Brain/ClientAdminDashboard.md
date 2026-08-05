@@ -2,10 +2,46 @@
 
 Client Admins (`client_admin`) see an organisation overview at `/client-admin` scoped to their own client. The page answers:
 
-1. **Are my systems healthy?** — devices online/offline, Huntress security, Dropsuite backups, M365 utilisation
+1. **Are my systems healthy?** — modular **dashboard feeds** (SuperOps devices, Huntress, Dropsuite, M365 licences)
 2. **Are my issues being dealt with?** — open tickets (with priority breakdown and table), SLA %, ticket activity
 3. **What value am I getting from On IT?** — licence utilisation and coverage metrics
 
+## Dashboard feed contract (modular)
+
+All organisation overview integrations implement `App\Contracts\DashboardFeed` and are registered in `AppServiceProvider` → `DashboardFeedRegistry`.
+
+| Concern | Where |
+|---------|--------|
+| Contract | `app/Contracts/DashboardFeed.php` |
+| Registry | `app/Services/Portal/DashboardFeedRegistry.php` |
+| Feed adapters | `app/Services/Portal/Feeds/*DashboardFeed.php` |
+| Metrics engines | `app/Services/{SuperOps,Huntress,Dropsuite,M365}/…` |
+| System health tiles | `resources/views/client-admin/feeds/_*.blade.php` |
+| Controller | injects **registry only** — no hard-coded vendor DI |
+| Prewarm | loops critical vs optional feeds from registry |
+| Orphan queue flags | `ClearsOrphanedFeedRefreshFlags` trait |
+
+### Feed checklist (add a new vendor)
+
+1. DB mapping column on `clients` + migration + Admin create/edit field  
+2. `config/services.php` block + env (`*_ENABLED` if optional)  
+3. `ApiClient` + `*MetricsService` with `summaryForClient` / `queueRefresh` / `needsBackgroundRefresh` / `refreshAndStore`  
+4. Summary DTO with `hasData()`, `refreshInProgress`, `lastRefreshedAt`  
+5. `Refresh*Job` on `high`, unique, write `*.refresh_started` / `*.last_result`  
+6. Adapter implementing `DashboardFeed` + register in `AppServiceProvider` list (**order = tile order**)  
+7. Blade partial under `client-admin/feeds/` if it is a System health tile; `overviewPartial(): null` for prewarm-only  
+8. Integration Health: add to `FEED_COLUMNS` + `JOB_CLASS_HINT` + `clientRow()` builder (same adaptive `evaluate()` path as SuperOps)  
+9. Unit tests + Brain section  
+
+**Integration Health is the technician refresh dashboard** (`/admin/integration-health`): Huntress and Dropsuite are full columns next to SuperOps / M365 / Entra — same live poll, orphan clear, stuck/due/aging statuses, and adaptive prewarm.
+
+**Priorities:**  
+- `critical` — SuperOps (always prewarm even when queue deep)  
+- `optional` — Huntress, Dropsuite, M365 (skipped when ≥40 jobs pending)
+
+**Credentials:** one MSP partner API set per vendor in `.env` for all customers; per-client mapping IDs only.
+
+---
 ## Roles
 
 | Role | Code | Capabilities |
@@ -28,19 +64,37 @@ Entra sync creates new users as `client_requester` only. Sync updates never chan
 Service: `App\Services\Admin\IntegrationHealthService`  
 Controller: `App\Http\Controllers\Admin\IntegrationHealthController`
 
-**Live UI:** Integration Health tab polls `GET /admin/integration-health/live` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + queue cards.
+**Live UI:** Integration Health tab polls `GET /admin/integration-health/live` every **5 seconds** (pauses when the tab is hidden) and replaces the health table + pipeline cards. Layout is mobile-friendly (stacked client/job cards below `md`; table on desktop). Admin shell uses a **sticky** Staff Admin sidebar (`z-30`) so the main column never paints over the nav.
+
+**Refresh timing:** Super Admin **Timing settings** (header) opens a **right-hand drawer** (`fixed` overlay `z-40`, body scroll-locked while open). Account managers can open the form but only Super Admins save. Quiet page title (no white plate heading). Status summary uses a left accent line, not a boxed plate. Cadence lives in DB `settings.freshness.*` only — **never** `.env`.
+
+### Adaptive cadence (all clients)
+
+Service: `App\Services\Portal\PortalFreshnessService`
+
+| Mode | When | Default interval |
+|------|------|------------------|
+| Hot (`customer_activity`) | Any **client-portal** session (Client Admin / Billing / Requester) with recent activity | `freshness.hot_minutes` = **2.5** |
+| Business hours idle | No customer sessions, inside work window | `freshness.work_idle_minutes` = **60** |
+| Off-hours idle | No customer sessions, outside work window | `freshness.off_hours_idle_minutes` = **60** |
+
+Also: presence window (`freshness.presence_minutes`, default 15), work start/end (`07:00`–`19:00` exclusive end), timezone (`Europe/London`).  
+Derived: **requeue** ≈ `interval × 0.9` (min 0.5m); **soft window** for client-facing soft note ≈ `max(interval+1, interval×1.15)`.
+
+Schedule (`routes/console.php`): every minute scheduler tick; when adaptive interval is **due** against last prewarm/Entra heartbeats, run `portal:prewarm-client-dashboards` and (if enabled) `portal:sync-entra-users`.
+
+**Requires** `SESSION_DRIVER=database` for hot mode (customer presence counts DB sessions).
 
 | Column | Meaning |
 |--------|---------|
-| SuperOps | Last successful dashboard cache + last job duration; status **due** / **aging** by age |
-| M365 directory | Last directory snapshot meta + duration |
-| M365 licences | Last insights cache (`m365-insights:v3`, fallback v2/v1) |
-| Entra sync | `clients.entra_synced_at` + last SyncEntra job (expect hourly; **aging** only after ~90m) |
-| Blockers / active | Process currently queued or running; **stuck** if started &gt; 5 minutes ago; blocker text |
+| SuperOps | Last dashboard cache; **due** / **aging** by adaptive requeue/soft window |
+| M365 people / licences | Directory + insights caches; requeue adaptive |
+| Entra sync | `clients.entra_synced_at` + SyncEntra job (same adaptive schedule cadence when enabled) |
+| Huntress | Security cache when org linked; adaptive requeue |
+| Dropsuite | Backup cache when org linked; adaptive requeue |
+| Blockers / active | Queued/running/**stuck** (&gt;5m) |
 
-Header shows SuperOps requeue target vs client note window. Clients never see this page.
-
-Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
+Clients never see this page. Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
 
 ### Pipeline visibility (technician)
 
@@ -53,10 +107,11 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 | Why isn’t it resetting? | Auto notices (orphaned flags cleared, due SuperOps, aging, stuck, last failure text) |
 | Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
 | failed_jobs | Last failures with first error line |
-| Per-cell flags | `flag=Y/n · job=Y/n · res · jobAge` plus `rq ≥Xm · client ≤Xm` |
-| Status **due** | SuperOps past requeue age (default 10m) but under client window — waiting prewarm/workers (not silent OK) |
+| Status **due** | Feed past **adaptive requeue** age but under soft window — waiting prewarm/workers (not silent OK) |
 
 Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
+
+**Soft-client banner caveat:** SuperOps Organisation page soft wording still uses `SUPEROPS_DASHBOARD_*` config minutes for client-facing “as of …” thresholds; technicians should trust Integration Health for true adaptive requeue.
 
 **Entra sync visibility:** `SyncEntraClientJob::dispatchMarked()` sets `entra_sync.refresh_queued.{id}` **at dispatch time** (not only when the worker starts), so Active/Stuck shows **queued** immediately after Run Sync / Apply SCIM / artisan queue.
 
@@ -82,15 +137,14 @@ Cache key: `client:{client_id}:superops-dashboard:v2`
 
 Dashboard payload includes: asset totals with online/offline split, open ticket count with priority breakdown, open-ticket table (top 10), resolution SLA % (30 days), and ticket logged/closed ranges.
 
-| Setting | Env | Default |
-|---------|-----|---------|
-| Prewarm requeue age | `SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES` | **10** minutes — SuperOps is queued when last success is older than this (before clients notice lag) |
-| Client note window | `SUPEROPS_DASHBOARD_CACHE_MINUTES` | **15** minutes — Client Admin soft note after this age; technician health marks status **aging** past this |
-| Cache retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` | 10080 minutes (7 days) |
-| Manual refresh cooldown | `SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
-| GraphQL page cap | `SUPEROPS_DASHBOARD_MAX_PAGES` | 10 pages × 100 rows |
+| Setting | Source | Default |
+|---------|--------|---------|
+| Adaptive auto-refresh (hot / idle / hours) | **Integration Health UI** (`settings.freshness.*`) | 2.5m / 60m / 60m, 07:00–19:00 UK |
+| Cache retention | `SUPEROPS_DASHBOARD_STALE_MINUTES` (env) | 10080 minutes (7 days) |
+| Manual refresh cooldown | `SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS` (env) | 60 seconds |
+| GraphQL page cap | `SUPEROPS_DASHBOARD_MAX_PAGES` (env) | 10 pages × 100 rows |
 
-**Why ages used to hit ~20 minutes “reliably wrong”:** client note at 15m + prewarm only every 5m + minute cron workers ≈ up to ~21m between successful SuperOps pulls when requeue waited for the same 15m window. Requeue now starts at **10m** so a 5m prewarm usually finishes a fresh pull before the 15m client window.
+**Cadence (adaptive, all clients):** **not** in `.env`. Super Admin → **Integration Health → Auto-refresh timing**. Defaults are written to `settings` once via `portal:ensure-freshness-settings` or on first page load (`ensureDefaults()`); existing values are never overwritten.
 
 **Copy — client vs technician**
 
@@ -104,9 +158,9 @@ Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (befor
 
 **Data should exist before anyone opens the page:**
 
-1. Scheduler runs `portal:prewarm-client-dashboards` **every 5 minutes**.
-2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ `dashboard_refresh_after_minutes` (default 10), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row — that flag previously blocked refreshes for 30–40+ minutes while workers were idle.
-3. M365 / Huntress / Dropsuite only when cold or past their fresh window, and only when spare queue capacity (&lt; 40 pending).
+1. Scheduler runs `portal:prewarm-client-dashboards` when the **adaptive interval is due** (hot when customers online, otherwise idle hour-scale defaults).
+2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ adaptive requeue minutes (`PortalFreshnessService::effectiveRequeueMinutes()`), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row.
+3. M365 / Huntress / Dropsuite only when cold or past adaptive requeue age, and only when spare queue capacity (&lt; 40 pending).
 4. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
 5. Page views **serve cache only** — they do not re-queue every time metrics are past the fresh window.
 6. Queue workers: two minute-cron processes with `--max-time=55` (not 300) so workers do not stack; process `high` before `default` — [Deployment.md](Deployment.md#10-configure-cron).
@@ -119,9 +173,12 @@ standard `64rem` content width via the `content-class` prop default (`max-w-port
 on `x-app-layout`.
 
 `portal:prewarm-client-dashboards` prioritises missing SuperOps snapshots for every
-active client with a SuperOps Account ID. Production requires both Plesk tasks:
-minute-by-minute `schedule:run` and the separate queue worker documented in
-[Deployment.md](Deployment.md#10-configure-cron).
+active client with a SuperOps Account ID. **Extra Sync (Entra)** is queued by
+`portal:sync-entra-users` on the **same adaptive cadence** (when `ENTRA_SYNC_ENABLED`) via
+`schedule:run` — separate from SuperOps/M365 prewarm. Production must keep minute
+schedule + workers alive (systemd timers + root crontab on app.onit.ltd —
+[Deployment.md](Deployment.md#10-configure-cron--systemd-timers)). Multi-day Entra ages
+on Integration Health usually mean the minute runner was dead, not Graph API rate limits.
 
 ### Open ticket statuses
 
@@ -199,13 +256,13 @@ If the asset query fails, tickets still cache and assets show as unavailable.
 
 Dashboard action buttons use `GET /integrations/superops/launch` — the same Client SSO entry as the main portal SuperOps tile (`/#/requester/login`). The dashboard is a **high-level snapshot only**; tickets, assets, and full detail live in SuperOps.
 
-## Huntress security metrics (Phase 3 scaffold)
+## Huntress security metrics
 
 Service: `App\Services\Huntress\HuntressClientMetricsService`
 
 Cache key: `client:{client_id}:huntress-security:v1`
 
-Per-client link: `clients.huntress_organization_id` (optional; set on Admin → Clients create/edit).
+Per-client link: `clients.huntress_organization_id` (Admin → Clients). Organisation ID is from Huntress → Organizations.
 
 | Setting | Env | Default |
 |---------|-----|---------|
@@ -213,20 +270,28 @@ Per-client link: `clients.huntress_organization_id` (optional; set on Admin → 
 | API key | `HUNTRESS_API_KEY` | — |
 | API secret | `HUNTRESS_API_SECRET` | — |
 
-Auth: HTTP Basic to `https://api.huntress.io/v1` (key = username, secret = password).
+**Access is free** for Huntress partner accounts (generate key/secret in portal Account Settings). Auth: HTTP Basic to `https://api.huntress.io/v1`. Docs: [api.huntress.io/docs](https://api.huntress.io/docs).
 
-Refresh loads `GET /v1/organizations/{huntress_organization_id}` and maps EDR agent totals, unresponsive/isolated counts, and open incident counts when present. Missing org ID or disabled/unconfigured API returns an unavailable summary (no hard failure). API errors keep the last successful cache as stale.
+Refresh: `GET /v1/organizations/{id}` maps:
 
-Background refresh: `RefreshHuntressSecurityJob` (`ShouldQueue` + `ShouldBeUnique`) — same database queue worker as SuperOps; see [Deployment.md](Deployment.md#11-run-the-queue-worker).
+| Cache field | API sources (first match) |
+|-------------|---------------------------|
+| `agents_total` | `edr.agents_count`, flat `agents_count` |
+| `agents_unresponsive` | `edr.unresponsive_agents_count` |
+| `open_incidents` | `open_incident_reports_count` |
+| `edr_isolated_agents` | `edr.isolated_agents_count` |
 
-Dashboard UI for Huntress tiles is not wired yet — this is the metrics scaffold only.
+Client Admin tile **Security (Huntress):** open incidents hero + agents / unresponsive / isolated. Amber when open or isolated &gt; 0.
+
+Background: `RefreshHuntressSecurityJob` on **`high`** (started/last_result for Integration Health). Prewarm uses adaptive requeue (`PortalFreshnessService`). Smoke: `php artisan portal:probe-security-apis --huntress-org=…` (or `--client=`).
 
 ## Microsoft 365 directory (async)
 
 Service: `App\Services\M365\M365DirectoryService`
 
 - Page reads cached snapshot immediately (`m365_directory.client.{id}`).
-- Stale after `ENTRA_DIRECTORY_CACHE_MINUTES` (default 15); still served up to `ENTRA_DIRECTORY_STALE_MINUTES` (default 1440).
+- Stale (client soft wording) after `ENTRA_DIRECTORY_CACHE_MINUTES` (default **5**); still served up to `ENTRA_DIRECTORY_STALE_MINUTES` (default 1440).
+- Prewarm / Integration Health requeue after `ENTRA_DIRECTORY_REFRESH_AFTER_MINUTES` (default **2.5**) with the shared prewarm cadence.
 - Background refresh: `RefreshM365DirectoryJob` with lock `m365_directory.refresh.{id}` — queued (not `afterResponse()`). Same queue worker requirement as SuperOps metrics; see [Deployment.md](Deployment.md#11-run-the-queue-worker).
 - Client Admin manual refresh: `POST /microsoft-365/directory/refresh` (cooldown `ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS`, default 60).
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
@@ -281,7 +346,8 @@ Top five list prefers paid SKUs first, then free.
 
 | Setting | Env | Default |
 |---------|-----|---------|
-| Fresh TTL | `M365_INSIGHTS_CACHE_MINUTES` | 15 minutes |
+| Fresh TTL (client soft note) | `M365_INSIGHTS_CACHE_MINUTES` | **5** minutes |
+| Prewarm requeue | `M365_INSIGHTS_REFRESH_AFTER_MINUTES` | **2.5** minutes |
 | Stale retention | `M365_INSIGHTS_STALE_MINUTES` | 1440 minutes |
 | Manual refresh cooldown | `M365_INSIGHTS_REFRESH_COOLDOWN_SECONDS` | 60 seconds |
 
@@ -289,17 +355,31 @@ Background refresh: `RefreshM365InsightsJob` (`ShouldQueue` + `ShouldBeUnique`).
 
 After deploy / mapping change: run `php artisan portal:prewarm-client-dashboards` or client **Refresh now** so v2 caches rebuild.
 
-## Dropsuite / NinjaOne SaaS Backup scaffold
+## Dropsuite / NinjaOne SaaS Backup
 
 Service: `App\Services\Dropsuite\DropsuiteClientMetricsService`
 
 Cache key: `client:{client_id}:dropsuite-backup:v1`
 
-Client mapping field: `clients.dropsuite_organization_id` (optional). If it is empty, the Client Admin dashboard shows Dropsuite as unavailable for that organisation.
+Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value is the partner **account/organisation id** from NinjaOne SaaS Backup (Dropsuite).
 
-Configuration lives under `services.dropsuite`: `api_url` (default `https://dropsuite.us/api`), `reseller_token`, `auth_token`, and `enabled`.
+| Setting | Env | Default |
+|---------|-----|---------|
+| Enabled | `DROPSUITE_ENABLED` | `false` |
+| API base URL | `DROPSUITE_API_URL` | `https://dropsuite.us/api` |
+| Reseller token | `DROPSUITE_RESELLER_TOKEN` | — |
+| Auth / access token | `DROPSUITE_AUTH_TOKEN` | — |
 
-Background refresh: `RefreshDropsuiteBackupJob` — queued with the same Client Admin refresh action as SuperOps. The scaffold fetches `organizations/{dropsuite_organization_id}/backup-summary/` through `DropsuiteApiClient::get()` and normalises common summary keys into protected mailbox count, failed backup count, and a `success` / `warning` / `unknown` status. If the API is not configured or the endpoint shape differs, the dashboard falls back gracefully instead of hard-failing.
+**Free for partners** that already use Dropsuite/NinjaOne SaaS Backup: Settings → API Settings (URL + reseller + auth tokens). Resellers typically have **GET-only**.
+
+HTTP headers (sent together so both common contracts work):
+
+- `X-Access-Token` + `X-Reseller-Token`
+- `Authorization: Token {auth}`
+
+Refresh tries detail paths in order (`accounts/{id}/`, `organizations/{id}/`, backup-summary variants), then list endpoints and filters by id. Maps protected mailbox/seat counts and failure/status into the Client Admin **Backups** card (hero count + status + failed count).
+
+Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds against real tokens. Full method list is on partner **Browsable API** / PDF (portal-gated).
 
 ## Promoting users
 
@@ -313,6 +393,10 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Huntress + Dropsuite: full Client Admin tiles, adaptive requeue, Integration Health, dual Dropsuite auth, `portal:probe-security-apis` |
+| 2026-08-05 | Integration Health: adaptive cadence docs complete; sticky nav; timing as side drawer |
+| 2026-08-05 | Integration Health: timing settings as side drawer; live metrics are the main page |
+| 2026-08-05 | Integration Health UX: collapsible Auto-refresh timing (localStorage), spacing/field widths, mobile stack for clients & jobs |
 | 2026-08-05 | Root cause of multi-hour “aging”: stuck `cache_locks` + `onOneServer()` on single Plesk host blocked prewarm; removed it, clear long-lived schedule locks, minute scheduler tick, plain-English Integration Health UI |
 | 2026-08-05 | Integration Health own Staff Admin nav tab (`/admin/integration-health`); dashboard only summary card; portal nav Organisation vs Staff Admin |
 | 2026-08-05 | Integration Health pipeline panel: prewarm heartbeat, live jobs, flags, DUE status, blocker text |

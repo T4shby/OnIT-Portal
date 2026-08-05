@@ -63,8 +63,13 @@ class PrewarmClientDashboardsTest extends TestCase
         config([
             'services.superops.api_token' => 'token',
             'services.superops.subdomain' => 'onitltd',
-            'services.superops.dashboard_cache_minutes' => 15,
         ]);
+
+        // Adaptive requeue must see age 30m as due (idle default is 60m).
+        \App\Models\Setting::set('freshness.hot_minutes', '5');
+        \App\Models\Setting::set('freshness.work_idle_minutes', '10');
+        \App\Models\Setting::set('freshness.off_hours_idle_minutes', '10');
+        Cache::forget('portal.freshness.snapshot.live');
 
         $client = Client::factory()->create([
             'is_active' => true,
