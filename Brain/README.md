@@ -76,6 +76,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | Integration Health reads M365 licence cache v3 (was stuck showing stale v2 timestamps) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | SuperOps stale refresh always prewarms; clear orphaned refresh_queued; workers max-time 55s (no stack); freshness 15m banner — [ClientAdminDashboard.md](ClientAdminDashboard.md), [Deployment.md](Deployment.md) |
 | 2026-08-05 | Temp/debug scripts only in top-level `tmp/` (gitignored) — never under `app/` or `storage/` — [LocalDevelopment.md](LocalDevelopment.md) |
 | 2026-08-05 | M365 utilisation excludes preview/IW pools (e.g. Project Madeira 10k seats); disambiguate duplicate Business Premium SKUs — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

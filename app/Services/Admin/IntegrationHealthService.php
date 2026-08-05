@@ -192,7 +192,8 @@ class IntegrationHealthService
             return $this->disabled('m365_insights', 'M365 licences', 'No Entra tenant');
         }
 
-        $payload = Cache::get("client:{$client->id}:m365-insights:v2")
+        $payload = Cache::get("client:{$client->id}:m365-insights:v3")
+            ?? Cache::get("client:{$client->id}:m365-insights:v2")
             ?? Cache::get("client:{$client->id}:m365-insights:v1");
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])

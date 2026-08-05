@@ -31,7 +31,7 @@ Per **active** client (scoped by account manager access when applicable):
 |--------|---------|
 | SuperOps | Last successful dashboard cache + last job duration |
 | M365 directory | Last directory snapshot meta + duration |
-| M365 licences | Last insights cache (`m365-insights:v3`) |
+| M365 licences | Last insights cache (`m365-insights:v3`, fallback v2/v1) |
 | Entra sync | `clients.entra_synced_at` + last SyncEntra job |
 | Active / stuck | Process currently queued or running; **stuck** if started &gt; 5 minutes ago |
 
