@@ -421,7 +421,7 @@ class SuperOpsClientMetricsService
                             createdTime
                             resolutionTime
                             resolutionViolated
-                            requester { userId name email }
+                            requester
                         }
                         listInfo { totalCount hasMore }
                     }
@@ -448,7 +448,7 @@ class SuperOpsClientMetricsService
             }
 
             foreach ($batch as $ticket) {
-                $requester = is_array($ticket['requester'] ?? null) ? $ticket['requester'] : [];
+                $requester = $this->normalizeJsonObject($ticket['requester'] ?? null);
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
@@ -461,7 +461,7 @@ class SuperOpsClientMetricsService
                         : null,
                     'requesterEmail' => strtolower((string) ($requester['email'] ?? '')),
                     'requesterName' => (string) ($requester['name'] ?? ''),
-                    'requesterUserId' => (string) ($requester['userId'] ?? ''),
+                    'requesterUserId' => (string) ($requester['userId'] ?? $requester['user_id'] ?? ''),
                 ];
             }
 
@@ -848,5 +848,26 @@ class SuperOpsClientMetricsService
             ->where('payload', 'like', '%RefreshSuperOpsDashboardJob%')
             ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
             ->exists();
+    }
+
+    /**
+     * SuperOps often returns person blobs as JSON leaves (not GraphQL objects).
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeJsonObject(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
     }
 }

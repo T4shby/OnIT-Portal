@@ -240,13 +240,18 @@ Hard SuperOps quirks (live-verified):
 1. `getTicketList` must select `ticketId` — otherwise `totalCount` is set but `tickets` is empty.
 2. `getAssetList` must select at least one asset field (e.g. `assetId`) — a `listInfo`-only selection returns **Internal Server Error**.
 3. Date-range ticket filters are unreliable; the dashboard pages the client’s tickets and computes 7/14/30/all in PHP from `createdTime` / `resolutionTime`.
+4. **`requester` and `client` on ticket/user list fields are leaf `JSON`**, not GraphQL objects. Selecting `requester { userId name email }` or `client { accountId }` fails with `SubSelectionNotAllowed` on the whole refresh — Integration Health freezes age on last success while M365 still looks fine. Select the leaf only and decode arrays/JSON strings in PHP (`normalizeJsonObject`). Same for embedded support (`SuperOpsTicketService`) and user link (`SuperOpsUserSyncService`).
 
 Ticket query shape used by the dashboard:
 
 ```graphql
 query getTicketList($input: ListInfoInput!) {
   getTicketList(input: $input) {
-    tickets { ticketId displayId status createdTime resolutionTime client }
+    tickets {
+      ticketId displayId subject status priority
+      createdTime resolutionTime
+      client requester
+    }
     listInfo { totalCount hasMore }
   }
 }

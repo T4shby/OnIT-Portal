@@ -41,7 +41,7 @@ class SuperOpsTicketService
                 getTicket(input: $input) {
                     ticketId displayId subject description status priority
                     createdTime updatedTime
-                    requester { userId name email }
+                    requester
                 }
             }
         GQL, ['input' => ['ticketId' => $ticketId]]);
@@ -80,8 +80,9 @@ class SuperOpsTicketService
 
     public function ticketBelongsToUser(array $ticket, User $user): bool
     {
-        $requesterId = (string) ($ticket['requester']['userId'] ?? '');
-        $requesterEmail = strtolower($ticket['requester']['email'] ?? '');
+        $requester = $this->normalizeJsonObject($ticket['requester'] ?? null);
+        $requesterId = (string) ($requester['userId'] ?? $requester['user_id'] ?? '');
+        $requesterEmail = strtolower((string) ($requester['email'] ?? ''));
 
         if ($user->superops_user_id && $requesterId === $user->superops_user_id) {
             return true;
@@ -106,5 +107,24 @@ class SuperOpsTicketService
             'operator' => 'is',
             'value' => $user->email,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeJsonObject(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
     }
 }

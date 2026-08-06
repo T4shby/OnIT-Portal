@@ -19,7 +19,7 @@ class SuperOpsUserSyncService
             $data = $this->api->query(<<<'GQL'
                 query getClientUserList($input: GetClientUserListInput!) {
                     getClientUserList(input: $input) {
-                        userList { userId email client { accountId } }
+                        userList { userId email client }
                     }
                 }
             GQL, [
@@ -40,13 +40,22 @@ class SuperOpsUserSyncService
                 return false;
             }
 
+            $clientBlob = $match['client'] ?? null;
+            if (is_string($clientBlob) && $clientBlob !== '') {
+                $decoded = json_decode($clientBlob, true);
+                $clientBlob = is_array($decoded) ? $decoded : [];
+            }
+            if (! is_array($clientBlob)) {
+                $clientBlob = [];
+            }
+
             $user->update([
                 'superops_user_id' => (string) $match['userId'],
                 'superops_synced_at' => now(),
             ]);
 
-            if ($user->client && empty($user->client->superops_account_id) && ! empty($match['client']['accountId'])) {
-                $user->client->update(['superops_account_id' => (string) $match['client']['accountId']]);
+            if ($user->client && empty($user->client->superops_account_id) && ! empty($clientBlob['accountId'])) {
+                $user->client->update(['superops_account_id' => (string) $clientBlob['accountId']]);
             }
 
             return true;
