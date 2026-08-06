@@ -410,7 +410,7 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 
 /** Auth (live UK): X-Reseller-Token = Reseller Token (UUID). X-Access-Token = Authentication Token from API Information (Admin — lists `GET /users`). Per-org mailbox list uses each user’s `authentication_token` as User Token for `GET /accounts`. Secret Token is not used for these GETs. **/
 
-**Primary refresh path:** `GET /accounts` (paginated when needed), keep rows whose `user.organization_id` matches the client mapping. Fields used: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`. Optional enrichment: `GET /onedrives` filtered to those emails.
+**Primary refresh path:** `GET /users` (Admin Authentication Token) → pick that org’s `authentication_token` → `GET /accounts` as User Token (paginated `result_set`). Fields: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`, `user.organization_id`. Optional: `GET /onedrives` with the same user token.
 
 ### Who sees what
 
@@ -469,6 +469,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Dropsuite **live on prod**: UUID Reseller Token + Admin Authentication Token; per-org mailboxes via user tokens from `GET /users`; UK host |
 | 2026-08-06 | Prod `main` @ `52bcac9` deployed Dropsuite PDF path; env keys present disabled; wait reseller/access tokens + client org maps before enable |
 | 2026-08-06 | Clarify Technician Admin (all customers) vs Client Admin (own customer only) vs requester (personal) — Dropsuite + visibility |
 | 2026-08-06 | Dropsuite: PDF `GET /accounts` org filter; Client Admin org-wide backups; requester personal last-backup only |
