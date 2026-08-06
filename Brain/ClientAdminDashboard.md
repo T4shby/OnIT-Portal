@@ -422,7 +422,27 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 
 Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin.
 
-Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds. Do not commit the partner PDF into git.
+Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds (requires tokens filled **and** `DROPSUITE_ENABLED=true` for `isConfigured()`). Do not commit the partner PDF into git.
+
+### Production enable (ops)
+
+| Ready on prod (2026-08-06, `main` @ `52bcac9`) | Status |
+|---|---|
+| Code + migration column `dropsuite_organization_id` | Deployed |
+| `.env` keys present (`DROPSUITE_ENABLED`, URL, token lines) | Present; **tokens still empty** |
+| `DROPSUITE_ENABLED` | `false` until probe succeeds |
+| Client `dropsuite_organization_id` mappings | **None yet** |
+| Huntress org IDs (unrelated) | MXVI, 3R, Find mapped |
+
+**Finish enable:**
+
+1. Set `DROPSUITE_RESELLER_TOKEN` + `DROPSUITE_AUTH_TOKEN` on prod `.env` (NinjaOne SaaS Backup / Dropsuite partner API Settings).
+2. Temporarily set `DROPSUITE_ENABLED=true` + `php artisan config:clear`.
+3. `php artisan portal:probe-security-apis --dropsuite-org={organization_id}` — OK when protected_mailboxes / status JSON returns without error.
+4. Admin → Clients → paste that org’s `organization_id` into **Dropsuite organization ID** → Save for each customer with backups.
+5. Integration Health **Dropsuite** column + Client Admin tile (org-wide) vs requester personal last-backup.
+6. Leave enabled only after a clean probe; rotate tokens if exposed in chat/log.
+
 
 ## Promoting users
 
@@ -436,6 +456,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Prod `main` @ `52bcac9` deployed Dropsuite PDF path; env keys present disabled; wait reseller/access tokens + client org maps before enable |
 | 2026-08-06 | Clarify Technician Admin (all customers) vs Client Admin (own customer only) vs requester (personal) — Dropsuite + visibility |
 | 2026-08-06 | Dropsuite: PDF `GET /accounts` org filter; Client Admin org-wide backups; requester personal last-backup only |
 | 2026-08-06 | Integration Health What's going on summary mirrors Refresh timing drawer values (DB + unsaved live preview) |

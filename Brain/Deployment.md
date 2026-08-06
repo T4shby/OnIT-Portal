@@ -120,6 +120,10 @@ DROPSUITE_API_URL=https://dropsuite.us/api
 DROPSUITE_RESELLER_TOKEN=
 DROPSUITE_AUTH_TOKEN=
 
+# After tokens are set: set DROPSUITE_ENABLED=true, config:clear,
+# php artisan portal:probe-security-apis --dropsuite-org=ORG_ID
+# then map clients.dropsuite_organization_id (Admin → Clients).
+
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
 PAX8_PARTNER_LOGIN_PATH=/login
