@@ -77,6 +77,8 @@ Controller: `App\Http\Controllers\Admin\IntegrationHealthController`
 
 **Refresh timing:** Super Admin **Timing settings** (header) opens a **right-hand drawer** (`fixed` overlay `z-40`, body scroll-locked while open). Account managers can open the form but only Super Admins save. Quiet page title (no white plate heading). Status summary uses a left accent line, not a boxed plate. Cadence lives in DB `settings.freshness.*` only — **never** `.env`.
 
+**What's going on ↔ timing drawer:** The summary always shows the **same** DB values as the drawer (`PortalFreshnessService::configuredTiming()` / snapshot `configured`). Line 1 = current effective target (which mode is active + minutes). Line 2 = Fast / Idle business / Idle outside / Active session / Hours / timezone. Editing the drawer updates line 2 live (marks unsaved); **Save timing** persists and the next poll / redirect drives both lines from DB. Saving clears the freshness snapshot cache.
+
 ### Adaptive cadence (all clients)
 
 Service: `App\Services\Portal\PortalFreshnessService`
@@ -425,6 +427,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Integration Health What's going on summary mirrors Refresh timing drawer values (DB + unsaved live preview) |
 | 2026-08-05 | Huntress + Dropsuite: full Client Admin tiles, adaptive requeue, Integration Health, dual Dropsuite auth, `portal:probe-security-apis` |
 | 2026-08-05 | Integration Health: adaptive cadence docs complete; sticky nav; timing as side drawer |
 | 2026-08-05 | Integration Health: timing settings as side drawer; live metrics are the main page |

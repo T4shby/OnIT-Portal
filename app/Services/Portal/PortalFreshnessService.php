@@ -137,16 +137,27 @@ class PortalFreshnessService
      *   customer_sessions: int,
      *   in_business_hours: bool,
      *   timezone: string,
+     *   configured: array{
+     *     hot_minutes: float,
+     *     work_idle_minutes: float,
+     *     off_hours_idle_minutes: float,
+     *     presence_minutes: float,
+     *     work_start: string,
+     *     work_end: string,
+     *     timezone: string
+     *   },
      *   at: string
      * }
      */
     private function computeSnapshot(): array
     {
-        $tz = $this->optionString('freshness.timezone', 'Europe/London');
+        $configured = $this->configuredTiming();
+        $tz = $configured['timezone'];
         try {
             $now = now($tz);
         } catch (\Throwable) {
             $tz = 'Europe/London';
+            $configured['timezone'] = $tz;
             $now = now($tz);
         }
 
@@ -155,18 +166,16 @@ class PortalFreshnessService
 
         if ($customerSessions > 0) {
             $mode = 'customer_activity';
-            $interval = $this->optionFloat('freshness.hot_minutes', 2.5);
-            $label = 'A customer is using the portal → fast refresh (all client orgs)';
+            $interval = $configured['hot_minutes'];
+            $label = 'Customers online → using Fast refresh';
         } elseif ($inBusinessHours) {
             $mode = 'business_hours_idle';
-            $interval = $this->optionFloat('freshness.work_idle_minutes', 60);
-            $start = $this->optionString('freshness.work_start', '07:00');
-            $end = $this->optionString('freshness.work_end', '19:00');
-            $label = "No customers online ({$start}–{$end} {$tz}) → slower refresh";
+            $interval = $configured['work_idle_minutes'];
+            $label = 'No customers online in business hours → using Idle — business hours';
         } else {
             $mode = 'off_hours_idle';
-            $interval = $this->optionFloat('freshness.off_hours_idle_minutes', 60);
-            $label = "Outside business hours, no customers online → slowest refresh";
+            $interval = $configured['off_hours_idle_minutes'];
+            $label = 'Outside business hours, no customers → using Idle — outside hours';
         }
 
         $interval = max(0.5, $interval);
@@ -182,12 +191,39 @@ class PortalFreshnessService
             'customer_sessions' => $customerSessions,
             'in_business_hours' => $inBusinessHours,
             'timezone' => $tz,
+            'configured' => $configured,
             'at' => now()->toIso8601String(),
         ];
 
         Cache::put(self::MODE_CACHE_KEY, $snapshot, now()->addHours(6));
 
         return $snapshot;
+    }
+
+    /**
+     * Same DB values as the Integration Health timing drawer.
+     *
+     * @return array{
+     *   hot_minutes: float,
+     *   work_idle_minutes: float,
+     *   off_hours_idle_minutes: float,
+     *   presence_minutes: float,
+     *   work_start: string,
+     *   work_end: string,
+     *   timezone: string
+     * }
+     */
+    public function configuredTiming(): array
+    {
+        return [
+            'hot_minutes' => max(0.5, $this->optionFloat('freshness.hot_minutes', 2.5)),
+            'work_idle_minutes' => max(1, $this->optionFloat('freshness.work_idle_minutes', 60)),
+            'off_hours_idle_minutes' => max(1, $this->optionFloat('freshness.off_hours_idle_minutes', 60)),
+            'presence_minutes' => max(1, $this->optionFloat('freshness.presence_minutes', 15)),
+            'work_start' => $this->optionString('freshness.work_start', '07:00'),
+            'work_end' => $this->optionString('freshness.work_end', '19:00'),
+            'timezone' => $this->optionString('freshness.timezone', 'Europe/London'),
+        ];
     }
 
     public function effectiveIntervalMinutes(): float

@@ -46,10 +46,67 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('Per client', false);
         $response->assertSee('Acme Ltd', false);
         $response->assertSee('Stuck', false);
+        $response->assertSee('Timing settings:', false);
         // Labels go through Blade e() so & becomes &amp; — assertSeeText decodes.
         $response->assertSeeText('Devices & tickets');
         $response->assertSeeText('Huntress');
         $response->assertSeeText('Dropsuite');
+    }
+
+    public function test_whats_going_on_summary_mirrors_saved_timing_settings(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        \App\Models\Setting::set('freshness.hot_minutes', '3.5');
+        \App\Models\Setting::set('freshness.work_idle_minutes', '45');
+        \App\Models\Setting::set('freshness.off_hours_idle_minutes', '90');
+        \App\Models\Setting::set('freshness.presence_minutes', '12');
+        \App\Models\Setting::set('freshness.work_start', '08:00');
+        \App\Models\Setting::set('freshness.work_end', '18:00');
+        \App\Models\Setting::set('freshness.timezone', 'Europe/London');
+
+        $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
+
+        $response->assertOk();
+        $response->assertSee('Timing settings:', false);
+        $response->assertSee('Fast 3.5m', false);
+        $response->assertSee('Idle business 45m', false);
+        $response->assertSee('Idle outside 90m', false);
+        $response->assertSee('Active session 12m', false);
+        $response->assertSee('Hours 08:00–18:00', false);
+        $response->assertSee('Europe/London', false);
+        $response->assertSee('value="3.5"', false);
+        $response->assertSee('value="45"', false);
+        $response->assertSee('value="90"', false);
+        $response->assertSee('value="08:00"', false);
+    }
+
+    public function test_saving_timing_settings_updates_summary_values(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.integration-health.freshness.update'), [
+                'freshness' => [
+                    'hot_minutes' => '4',
+                    'work_idle_minutes' => '55',
+                    'off_hours_idle_minutes' => '75',
+                    'presence_minutes' => '20',
+                    'work_start' => '6:30',
+                    'work_end' => '17:00',
+                    'timezone' => 'Europe/London',
+                ],
+            ])
+            ->assertRedirect(route('admin.integration-health.index'));
+
+        $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
+
+        $response->assertOk();
+        $response->assertSee('Fast 4m', false);
+        $response->assertSee('Idle business 55m', false);
+        $response->assertSee('Idle outside 75m', false);
+        $response->assertSee('Active session 20m', false);
+        $response->assertSee('Hours 06:30–17:00', false);
     }
 
     public function test_admin_dashboard_links_to_integration_health_tab(): void

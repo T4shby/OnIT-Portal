@@ -13,6 +13,8 @@
         ?? ($freshness['interval_minutes'] ?? 2.5);
     $freshLabel = $freshness['label'] ?? null;
     $customerSessions = $freshness['customer_sessions'] ?? null;
+    $configured = $freshness['configured'] ?? [];
+    $fmtMin = static fn (float|int|string|null $v): string => rtrim(rtrim(number_format((float) ($v ?? 0), 1), '0'), '.');
 @endphp
 <div
     id="integration-health-live"
@@ -24,18 +26,39 @@
     data-stuck-count="{{ $integrationHealth['stuck_count'] }}"
     data-due-count="{{ $integrationHealth['due_count'] ?? 0 }}"
     data-aging-count="{{ $integrationHealth['aging_count'] ?? 0 }}"
+    data-fresh-interval="{{ $fmtMin($freshInterval) }}"
+    data-fresh-label="{{ $freshLabel ?? '' }}"
+    data-customer-sessions="{{ $customerSessions ?? '' }}"
+    data-cfg-hot="{{ $fmtMin($configured['hot_minutes'] ?? 2.5) }}"
+    data-cfg-work-idle="{{ $fmtMin($configured['work_idle_minutes'] ?? 60) }}"
+    data-cfg-off-idle="{{ $fmtMin($configured['off_hours_idle_minutes'] ?? 60) }}"
+    data-cfg-presence="{{ $fmtMin($configured['presence_minutes'] ?? 15) }}"
+    data-cfg-start="{{ $configured['work_start'] ?? '07:00' }}"
+    data-cfg-end="{{ $configured['work_end'] ?? '19:00' }}"
+    data-cfg-tz="{{ $configured['timezone'] ?? 'Europe/London' }}"
 >
     {{-- Status summary — accent line, not a plate --}}
     <div class="mb-10 border-l-2 {{ $severity === 'critical' ? 'border-rose-400' : ($severity === 'warning' ? 'border-amber-400' : ($severity === 'info' ? 'border-sky-400' : 'border-onit')) }} py-1 pl-5 sm:pl-6">
         <p class="portal-label mb-3">What is going on</p>
         <p class="font-condensed text-lg font-bold leading-snug text-white sm:text-xl">{{ $headline }}</p>
         <p class="mt-4 max-w-3xl text-sm font-light leading-relaxed text-white/60">
-            Auto-refresh targets every {{ rtrim(rtrim(number_format((float) $freshInterval, 1), '0'), '.') }} minutes
-            @if($freshLabel)
-                ({{ $freshLabel }}@if($customerSessions !== null) · {{ $customerSessions }} customer session(s)@endif).
-            @else
-                .
-            @endif
+            <span id="ih-current-target">
+                Auto-refresh targets every {{ $fmtMin($freshInterval) }} minutes
+                @if($freshLabel)
+                    — {{ $freshLabel }}@if($customerSessions !== null) · {{ $customerSessions }} customer session(s)@endif.
+                @else
+                    .
+                @endif
+            </span>
+        </p>
+        <p id="ih-configured-timing" class="mt-3 max-w-3xl text-sm font-light leading-relaxed text-white/55">
+            Timing settings:
+            Fast {{ $fmtMin($configured['hot_minutes'] ?? 2.5) }}m
+            · Idle business {{ $fmtMin($configured['work_idle_minutes'] ?? 60) }}m
+            · Idle outside {{ $fmtMin($configured['off_hours_idle_minutes'] ?? 60) }}m
+            · Active session {{ $fmtMin($configured['presence_minutes'] ?? 15) }}m
+            · Hours {{ $configured['work_start'] ?? '07:00' }}–{{ $configured['work_end'] ?? '19:00' }}
+            {{ $configured['timezone'] ?? 'Europe/London' }}
         </p>
         <p class="mt-3 max-w-3xl text-sm font-light leading-relaxed text-white/50">
             Queue workers run every minute.

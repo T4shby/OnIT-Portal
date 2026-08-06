@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | Integration Health: What's going on summary mirrors Refresh timing drawer (same DB settings + live unsaved preview) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Night ship: all 12 onboarding steps automation-first; Client SSO wire wording; Huntress/visibility/bootstrap SP wait — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md), [ClientAdminDashboard.md](ClientAdminDashboard.md), [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-05 | Huntress security cases: active/resolved list + detail for Client Admin (own org) and staff with client access — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health per-client table: Huntress + Dropsuite columns via `FEED_COLUMNS` (same refresh pipeline as SuperOps/M365) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

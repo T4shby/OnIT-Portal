@@ -90,6 +90,7 @@
         (function () {
             var url = @json(route('admin.integration-health.live'));
             var timer = null;
+            var formDirty = false;
 
             function formatOldest(seconds) {
                 if (seconds === '' || seconds === null || typeof seconds === 'undefined') {
@@ -97,6 +98,46 @@
                 }
                 var mins = (Number(seconds) / 60).toFixed(1);
                 return ' · oldest ' + mins + 'm';
+            }
+
+            function fmtMin(value) {
+                var n = Number(value);
+                if (!isFinite(n)) {
+                    return String(value || '');
+                }
+                return String(n.toFixed(1)).replace(/\.0$/, '').replace(/(\.\d)0$/, '$1');
+            }
+
+            function formTiming() {
+                var read = function (name, fallback) {
+                    var el = document.querySelector('[name="freshness[' + name + ']"]');
+                    return el && el.value !== '' ? el.value : fallback;
+                };
+                return {
+                    hot: read('hot_minutes', '2.5'),
+                    workIdle: read('work_idle_minutes', '60'),
+                    offIdle: read('off_hours_idle_minutes', '60'),
+                    presence: read('presence_minutes', '15'),
+                    start: read('work_start', '07:00'),
+                    end: read('work_end', '19:00'),
+                    tz: read('timezone', 'Europe/London'),
+                };
+            }
+
+            function applyConfiguredFromForm(root) {
+                var cfg = formTiming();
+                var line = (root || document).querySelector('#ih-configured-timing');
+                if (!line) {
+                    return;
+                }
+                line.textContent =
+                    'Timing settings: Fast ' + fmtMin(cfg.hot) + 'm' +
+                    ' · Idle business ' + fmtMin(cfg.workIdle) + 'm' +
+                    ' · Idle outside ' + fmtMin(cfg.offIdle) + 'm' +
+                    ' · Active session ' + fmtMin(cfg.presence) + 'm' +
+                    ' · Hours ' + cfg.start + '–' + cfg.end +
+                    ' ' + cfg.tz +
+                    (formDirty ? ' (unsaved — save to apply)' : '');
             }
 
             function applyQueueFrom(el) {
@@ -147,11 +188,23 @@
                         }
                         current.parentNode.replaceChild(next, current);
                         applyQueueFrom(next);
+                        applyConfiguredFromForm(next);
                     })
                     .catch(function () {
                         /* keep last good snapshot */
                     });
             }
+
+            document.querySelectorAll('[name^="freshness["]').forEach(function (el) {
+                el.addEventListener('input', function () {
+                    formDirty = true;
+                    applyConfiguredFromForm(document.getElementById('integration-health-live'));
+                });
+                el.addEventListener('change', function () {
+                    formDirty = true;
+                    applyConfiguredFromForm(document.getElementById('integration-health-live'));
+                });
+            });
 
             timer = setInterval(poll, 5000);
             document.addEventListener('visibilitychange', function () {
