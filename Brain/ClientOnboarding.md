@@ -70,7 +70,7 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 | 05 | Get SuperOps SCIM tokens | On IT technician (customer Entra / GDAP) |
 | 06 | SuperOps SCIM app (auto-created on Connect; confirm ID) | On IT technician (customer Entra / GDAP) |
 | 07 | SCIM tokens into Provisioning + mappings + start | On IT technician (customer Entra / GDAP) |
-| 08 | Configure SuperOps Client SSO (Entra app shell auto; SAML + SuperOps manual) | On IT technician (SuperOps + customer Entra / GDAP) |
+| 08 | SuperOps Microsoft login (Client SSO) — auto shell; SuperOps URL hand-off + wire | On IT technician (SuperOps + customer Entra / GDAP) |
 | 09 | Turn on portal sync | On IT technician (portal / SuperOps) |
 | 10 | Run Dry run then Sync now | On IT technician (portal / SuperOps) |
 | 11 | Test as a customer user | On IT technician (portal / SuperOps) |
@@ -93,7 +93,7 @@ Deployment resets existing step 08 completions because they represented the reti
 | 05 SCIM tokens | — | SuperOps Generate Tokens |
 | 06 SCIM app | `entra_superops_app_id` filled | Tick if app exists but ID not saved |
 | 07 SCIM provisioning | — | Tokens + mappings + Start provisioning |
-| 08 Client SSO | — | SuperOps Client SSO config + SAML values (Entra shell often from Connect) |
+| 08 Client SSO | Entra shell/app ID from Connect; wire success may mark when wired | SuperOps Entity ID + ACS paste (no SuperOps API); Step 3 Login URL + cert save |
 | 09 Enable sync | Prerequisites saved + Entra sync enabled | — |
 | 10 Run sync | `entra_synced_at` set after Sync now | Tick after Sync now if Last synced lagging |
 | 11 Test | — | You tested in incognito |
@@ -338,6 +338,8 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | All 12 live checklist guides use automated + remaining + recovery layout |
+| 2026-08-06 | Checklist automation-first guide UX (automated + remaining + recovery); step 08 SuperOps Microsoft login (Client SSO) |
 | 2026-08-04 | Live steps/brain: no real customer names in onboarding copy (only this client’s `{name}`); SuperOps Requester suffixes after background Sync + SCIM (minutes) |
 | 2026-07-14 | Replaced requester Global SSO multitenant Accept with customer-owned SuperOps Client SSO; no On IT guest accounts |
 | 2026-07-14 | Retired AADSTS1003031 requester Accept troubleshooting with the Global SSO design |

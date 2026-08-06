@@ -10,6 +10,7 @@ class HuntressClientSecuritySummary
         public readonly ?int $agentsTotal,
         public readonly ?int $agentsUnresponsive,
         public readonly ?int $openIncidents,
+        public readonly ?int $resolvedIncidents,
         public readonly ?int $edrIsolatedAgents,
         public readonly bool $available,
         public readonly ?string $unavailableReason,

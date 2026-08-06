@@ -404,7 +404,7 @@ class MicrosoftGraphClient
             throw new RuntimeException('Microsoft Graph create app returned incomplete application payload.');
         }
 
-        $servicePrincipalId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
+        $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId);
         $resolved = $this->waitForApplicationByAppId($tenantId, $appId, $applicationObjectId);
 
         return [
@@ -455,9 +455,8 @@ class MicrosoftGraphClient
             throw new RuntimeException('Microsoft Graph create app returned incomplete application payload.');
         }
 
-        if ($servicePrincipalId === '') {
-            $servicePrincipalId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
-        }
+        // Prefer resolve-by-appId after create — instantiate can return SP ids not yet GET-able.
+        $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId, $servicePrincipalId);
 
         $resolved = $this->waitForApplicationByAppId($tenantId, $appId, $applicationObjectId);
 
@@ -490,6 +489,64 @@ class MicrosoftGraphClient
 
         // Concurrent create or eventual consistency — resolve again.
         return $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+    }
+
+    /**
+     * Create/look up the enterprise SP and wait until Graph can read it (avoids 404 on appRole assign).
+     */
+    public function waitForServicePrincipalForAppId(
+        string $tenantId,
+        string $appId,
+        ?string $servicePrincipalIdHint = null,
+        int $maxAttempts = 12,
+    ): string {
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $spId = $servicePrincipalIdHint;
+                if (! filled($spId)) {
+                    $spId = $this->ensureServicePrincipalForAppId($tenantId, $appId);
+                }
+
+                $probe = $this->graphGet(
+                    $tenantId,
+                    "https://graph.microsoft.com/v1.0/servicePrincipals/{$spId}",
+                    ['$select' => 'id,appId'],
+                );
+
+                if ($probe->successful() && filled($probe->json('id'))) {
+                    return (string) $probe->json('id');
+                }
+
+                // Hint/SP id was stale — re-resolve via appId alias (more reliable post-create).
+                $byAppId = $this->graphGet(
+                    $tenantId,
+                    "https://graph.microsoft.com/v1.0/servicePrincipals(appId='{$appId}')",
+                    ['$select' => 'id'],
+                );
+
+                if ($byAppId->successful() && filled($byAppId->json('id'))) {
+                    return (string) $byAppId->json('id');
+                }
+
+                $servicePrincipalIdHint = null;
+                $lastError = 'status='.($probe->status() ?: $byAppId->status());
+            } catch (Throwable $e) {
+                $lastError = $e->getMessage();
+                $servicePrincipalIdHint = null;
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep(350_000 * $attempt);
+            }
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph service principal for app '.$appId.' is not readable yet'
+            .($lastError ? " ({$lastError})" : '')
+            .'. Re-run Entra bootstrap in a few seconds.'
+        );
     }
 
     /**
@@ -559,12 +616,17 @@ class MicrosoftGraphClient
                 $existing['applicationObjectId'],
             );
 
+            // Always re-resolve SP by appId — never trust a cached SP object id that Graph 404s on.
+            $servicePrincipalId = $this->waitForServicePrincipalForAppId(
+                $tenantId,
+                $resolved['appId'],
+                $existing['servicePrincipalId'] !== '' ? $existing['servicePrincipalId'] : null,
+            );
+
             return [
                 'appId' => $resolved['appId'],
                 'applicationObjectId' => $resolved['applicationObjectId'],
-                'servicePrincipalId' => $existing['servicePrincipalId'] !== ''
-                    ? $existing['servicePrincipalId']
-                    : $this->ensureServicePrincipalForAppId($tenantId, $resolved['appId']),
+                'servicePrincipalId' => $servicePrincipalId,
             ];
         }
 
@@ -1096,32 +1158,93 @@ class MicrosoftGraphClient
         return $assignments;
     }
 
-    public function resolveAssignableAppRoleId(string $tenantId, string $servicePrincipalId): string
-    {
-        $response = $this->graphGet(
-            $tenantId,
-            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
-            ['$select' => 'appRoles,displayName'],
-        );
+    public function resolveAssignableAppRoleId(
+        string $tenantId,
+        string $servicePrincipalId,
+        ?string $appId = null,
+    ): string {
+        $lastError = null;
+        $spId = $servicePrincipalId;
 
-        if ($response->failed()) {
-            throw new RuntimeException(
-                'Microsoft Graph could not read SuperOps app roles: '.$response->status().' '.$response->body()
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            if (filled($appId)) {
+                try {
+                    $spId = $this->waitForServicePrincipalForAppId($tenantId, $appId, $spId, maxAttempts: 3);
+                } catch (Throwable $e) {
+                    $lastError = $e->getMessage();
+                    $spId = $servicePrincipalId;
+                }
+            }
+
+            $response = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$spId}",
+                ['$select' => 'appRoles,displayName'],
             );
+
+            if ($response->successful()) {
+                $appRoles = $response->json('appRoles') ?? [];
+                $selectedRoleId = $this->pickBestAssignableAppRoleId($appRoles);
+
+                if ($selectedRoleId !== null) {
+                    return $selectedRoleId;
+                }
+
+                // SP replicated but roles lag the Application patch — fall through to application roles.
+                if (filled($appId)) {
+                    $fromApp = $this->resolveAssignableAppRoleIdFromApplication($tenantId, $appId);
+                    if ($fromApp !== null) {
+                        return $fromApp;
+                    }
+                }
+
+                $lastError = 'no assignable app roles on SP yet';
+            } else {
+                $lastError = 'status='.$response->status().' '.$response->body();
+                // Force appId re-lookup next loop when SP id 404s.
+                if ($response->status() === 404) {
+                    $spId = '';
+                }
+            }
+
+            if ($attempt < 10) {
+                usleep(400_000 * $attempt);
+            }
         }
 
-        $appRoles = $response->json('appRoles') ?? [];
-        $selectedRoleId = $this->pickBestAssignableAppRoleId($appRoles);
-
-        if ($selectedRoleId !== null) {
-            return $selectedRoleId;
+        if (filled($appId)) {
+            $fromApp = $this->resolveAssignableAppRoleIdFromApplication($tenantId, $appId);
+            if ($fromApp !== null) {
+                return $fromApp;
+            }
         }
 
         throw new RuntimeException(
-            'SuperOps enterprise app has no assignable app role. One-time fix in customer Entra: '
-            .'App registrations → your SuperOps app → App roles → Create app role → Display name User → '
-            .'Value User → Allowed member types Users/Groups → Enable → Save. Remove duplicate roles with blank Value. Then Sync now.'
+            'Microsoft Graph could not read SuperOps app roles'
+            .($lastError ? ': '.$lastError : '.')
+            .' Create App role User on the app registration if missing, then Re-run Entra bootstrap.'
         );
+    }
+
+    private function resolveAssignableAppRoleIdFromApplication(string $tenantId, string $appId): ?string
+    {
+        $escapedAppId = str_replace("'", "''", $appId);
+        $response = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
+            '$filter' => "appId eq '{$escapedAppId}'",
+            '$select' => 'id,appRoles',
+            '$top' => 1,
+        ]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        $row = ($response->json('value') ?? [])[0] ?? null;
+        if (! is_array($row)) {
+            return null;
+        }
+
+        return $this->pickBestAssignableAppRoleId(is_array($row['appRoles'] ?? null) ? $row['appRoles'] : []);
     }
 
     /**

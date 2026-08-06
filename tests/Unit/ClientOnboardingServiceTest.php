@@ -22,10 +22,16 @@ class ClientOnboardingServiceTest extends TestCase
         $steps = app(ClientOnboardingService::class)->steps($client);
 
         foreach ($steps as $step) {
-            $this->assertNotEmpty($step['guide']['sections'], $step['key']);
+            $this->assertIsArray($step['guide']['sections'], $step['key']);
+            $this->assertIsArray($step['guide']['automated'] ?? [], $step['key'].' automated');
+            $this->assertNotEmpty($step['guide']['recovery'] ?? [], $step['key'].' recovery');
             foreach ($step['guide']['sections'] as $section) {
                 $this->assertNotEmpty($section['where'], $step['key'].':'.$section['title']);
                 $this->assertNotEmpty($section['steps'], $step['key'].':'.$section['title']);
+            }
+            foreach ($step['guide']['recovery'] ?? [] as $section) {
+                $this->assertNotEmpty($section['where'], $step['key'].':recovery:'.$section['title']);
+                $this->assertNotEmpty($section['steps'], $step['key'].':recovery:'.$section['title']);
             }
         }
     }
@@ -40,12 +46,13 @@ class ClientOnboardingServiceTest extends TestCase
         $step = collect(app(ClientOnboardingService::class)->steps($client)
             )->firstWhere('key', 'superops_scim_provisioning');
 
-        $titles = collect($step['guide']['sections'])->pluck('title')->all();
-        $this->assertContains('Apply tokens on this step (preferred)', $titles);
-        $this->assertContains('Only if Apply fails — paste in Azure', $titles);
-        $this->assertContains('Edit SCIM attribute mappings (once per client if names wrong)', $titles);
-        $this->assertContains('App role Value User (usually automatic)', $titles);
-        $this->assertContains('Application (client) ID on portal (Entra Free)', $titles);
+        $sectionTitles = collect($step['guide']['sections'])->pluck('title')->all();
+        $recoveryTitles = collect($step['guide']['recovery'] ?? [])->pluck('title')->all();
+        $this->assertContains('Remaining: Apply SuperOps SCIM tokens', $sectionTitles);
+        $this->assertContains('Apply button failed — paste credentials in Azure', $recoveryTitles);
+        $this->assertContains('Names wrong in SuperOps after provisioning', $recoveryTitles);
+        $this->assertContains('App role or group assign missing', $recoveryTitles);
+        $this->assertNotEmpty($step['guide']['automated'] ?? []);
         $this->assertStringContainsString('extensionAttribute1', implode(' ', $step['instructions']));
         $this->assertStringNotContainsString('Ductec', implode(' ', $step['instructions']));
         $this->assertStringNotContainsString('3R Systems', implode(' ', $step['instructions']));
@@ -320,19 +327,21 @@ class ClientOnboardingServiceTest extends TestCase
             ->firstWhere('key', 'superops_client_sso_configured');
         $text = implode(' ', $step['instructions']);
 
-        $this->assertSame('Configure SuperOps Client SSO (SAML)', $step['title']);
-        $this->assertGreaterThanOrEqual(4, count($step['guide']['sections']));
-        $this->assertStringContainsString('+ Configuration', $text);
+        $this->assertSame('SuperOps Microsoft login (Client SSO)', $step['title']);
+        $this->assertNotEmpty($step['guide']['automated']);
+        $this->assertNotEmpty($step['guide']['recovery']);
+        $this->assertLessThanOrEqual(2, count($step['guide']['sections']));
+        $this->assertStringContainsString('Already automatic', $text);
         $this->assertStringContainsString('Client SSO', $text);
         $this->assertStringContainsString('SuperOps Requester SSO - MXVI', $text);
         $this->assertStringContainsString('Entity ID', $text);
-        $this->assertStringContainsString('Consumer Service URL', $text);
-        $this->assertStringContainsString('Configure SAML in Entra', $text);
+        $this->assertStringContainsString('Consumer service URL', $text);
+        $this->assertStringContainsString('Wire SuperOps into Microsoft Entra', $text);
+        $this->assertStringContainsString('If it fails', $text);
         $this->assertStringContainsString('portal.azure.com', $text);
-        $this->assertStringContainsString('Do not add users by hand', $text);
+        $this->assertStringContainsString('do not add users by hand', $text);
         $this->assertStringContainsString('Sync now', $text);
         $this->assertStringNotContainsString('add each customer requester', $text);
-        $this->assertStringContainsString('Mark this step complete', $text);
         $this->assertStringNotContainsString('adminconsent', $text);
         $this->assertStringNotContainsString('AADSTS1003031', $text);
         $this->assertStringNotContainsString('Ductec', $text);
@@ -353,7 +362,7 @@ class ClientOnboardingServiceTest extends TestCase
             'showCheckboxes' => true,
         ])->render();
 
-        $this->assertStringContainsString('Configure SuperOps Client SSO', $html);
+        $this->assertStringContainsString('SuperOps Microsoft login (Client SSO)', $html);
         $this->assertStringNotContainsString('Open SuperOps SSO Accept', $html);
         $this->assertStringNotContainsString('adminconsent', $html);
     }
@@ -431,7 +440,7 @@ class ClientOnboardingServiceTest extends TestCase
             $steps->firstWhere('key', 'entra_admin_consent_granted')['title'],
         );
         $this->assertSame(
-            'Configure SuperOps Client SSO (SAML)',
+            'SuperOps Microsoft login (Client SSO)',
             $steps->firstWhere('key', 'superops_client_sso_configured')['title'],
         );
         $this->assertStringContainsString('On IT **GDAP**', $allText);

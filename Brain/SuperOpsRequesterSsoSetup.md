@@ -77,14 +77,18 @@ These values are customer-specific. Do not substitute the old Global Entity ID o
 
 ### B. Configure SAML from the portal (preferred)
 
-**Admin → Clients → Edit {Company}** → **Configure Client SSO SAML in Entra**:
+In-app checklist **step 08** is automation-first: Entra app shell from Connect/bootstrap is already listed; remaining work is SuperOps hand-off + wire.
 
-1. Paste SuperOps **Entity ID** and **Consumer Service URL**.
-2. Click **Configure SAML in Entra**.
-3. Copy **IDP Login URL** and **Certificate** shown on that page.
-4. Paste into SuperOps Client SSO step 3 → Save / enable.
+**Admin → Clients → Edit {Company}** → step **SuperOps Microsoft login (Client SSO)**:
 
-Graph uses Application.ReadWrite.All (and optionally Policy.ReadWrite.ApplicationConfiguration for claims). Azure Enterprise apps SAML blade is fallback only if Configure fails.
+1. SuperOps (step A): copy **Entity ID** and **Consumer Service URL**.
+2. Portal form: paste those URLs → **Wire SuperOps into Microsoft Entra**.
+3. Copy **IDP Login URL** and **Certificate** returned on that page.
+4. Paste into SuperOps Client SSO Step 3 → **Save** / leave Enabled.
+
+Graph uses Application.ReadWrite.All (and optionally Policy.ReadWrite.ApplicationConfiguration for claims). Azure Enterprise apps SAML blade is under step recovery only if Wire fails.
+
+Long Azure click-paths and “if someone cannot login” live under **Only if something failed** on the live checklist — same for all 12 steps (automated / remaining / recovery).
 
 ### C. Create the customer's Entra SAML application (legacy / fallback)
 
@@ -207,6 +211,7 @@ The deployment migration clears that checkpoint on existing clients because any 
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | Step 08 portal path: **Wire SuperOps into Microsoft Entra**; automation-first checklist recovery for Azure fallback |
 | 2026-08-04 | Pilot client names removed from checklist 08 examples; use `{Company}` pattern only |
 | 2026-07-17 | Leave Reply URL Index blank; documented in Basic SAML steps |
 | 2026-07-14 | Existing step 08 completion is reset during migration so old Global Accept records cannot masquerade as completed Client SSO |

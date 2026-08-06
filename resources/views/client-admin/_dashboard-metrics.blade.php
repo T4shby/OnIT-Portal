@@ -22,10 +22,12 @@
         @else
             <span></span>
         @endif
-        <form method="POST" action="{{ route('client-admin.refresh') }}">
-            @csrf
-            <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto">Refresh now</button>
-        </form>
+        @if($organisationWide ?? true)
+            <form method="POST" action="{{ route('client-admin.refresh') }}">
+                @csrf
+                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto">Refresh now</button>
+            </form>
+        @endif
     </div>
 
     {{-- System health — modular tiles from DashboardFeedRegistry --}}
@@ -36,8 +38,15 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             @foreach(($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed)
+                @php
+                    $orgWide = $organisationWide ?? true;
+                    // Org fleet tiles only for Client Admin; SuperOps/Huntress scoped by data layer.
+                    $skip = ! $orgWide && in_array($feed->key(), ['dropsuite', 'm365_insights'], true);
+                @endphp
+                @continue($skip)
                 @include($feed->overviewPartial(), [
                     'viewerIsTechnician' => $viewerIsTechnician,
+                    'organisationWide' => $orgWide,
                 ])
             @endforeach
         </div>

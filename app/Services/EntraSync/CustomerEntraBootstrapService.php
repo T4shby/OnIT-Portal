@@ -128,10 +128,20 @@ class CustomerEntraBootstrapService
 
             if ($usesGroupScim) {
                 try {
-                    $roleId = $this->graph->resolveAssignableAppRoleId($tenantId, $scim['servicePrincipalId']);
+                    // Re-resolve SP after role patch — Graph often 404s stale SP ids from create/instantiate.
+                    $scimSpId = $this->graph->waitForServicePrincipalForAppId(
+                        $tenantId,
+                        $scim['appId'],
+                        $scim['servicePrincipalId'],
+                    );
+                    $roleId = $this->graph->resolveAssignableAppRoleId(
+                        $tenantId,
+                        $scimSpId,
+                        $scim['appId'],
+                    );
                     $this->graph->assignGroupToEnterpriseApp(
                         $tenantId,
-                        $scim['servicePrincipalId'],
+                        $scimSpId,
                         $groupId,
                         $roleId,
                     );
@@ -165,10 +175,19 @@ class CustomerEntraBootstrapService
 
             if ($usesGroupScim) {
                 try {
-                    $roleId = $this->graph->resolveAssignableAppRoleId($tenantId, $sso['servicePrincipalId']);
+                    $ssoSpId = $this->graph->waitForServicePrincipalForAppId(
+                        $tenantId,
+                        $sso['appId'],
+                        $sso['servicePrincipalId'],
+                    );
+                    $roleId = $this->graph->resolveAssignableAppRoleId(
+                        $tenantId,
+                        $ssoSpId,
+                        $sso['appId'],
+                    );
                     $this->graph->assignGroupToEnterpriseApp(
                         $tenantId,
-                        $sso['servicePrincipalId'],
+                        $ssoSpId,
                         $groupId,
                         $roleId,
                     );

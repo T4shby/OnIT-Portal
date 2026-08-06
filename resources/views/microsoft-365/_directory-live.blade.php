@@ -57,12 +57,14 @@
             @endif
         </div>
         @if(! $adminContext)
-            <form method="POST" action="{{ route('microsoft-365.directory.refresh') }}">
-                @csrf
-                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
-                    Refresh now
-                </button>
-            </form>
+            @if($organisationWide ?? true)
+                <form method="POST" action="{{ route('microsoft-365.directory.refresh') }}">
+                    @csrf
+                    <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
+                        Refresh now
+                    </button>
+                </form>
+            @endif
         @else
             <a href="{{ route('admin.clients.microsoft-365', ['client' => $client, 'refresh' => 1]) }}" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto text-center">
                 Queue refresh

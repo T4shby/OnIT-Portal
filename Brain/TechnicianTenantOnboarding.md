@@ -27,6 +27,8 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 ## Live checklist (Edit page)
 
+**Automation-first:** each step shows what Connect / portal already did (**Already done automatically**). Remaining work stays short. Long Azure click-paths sit under **Only if something failed** (opens when Apply/Wire fails). Status turns Done from saved IDs, successful Apply/Wire, or manual tick where still required.
+
 **Before steps 03–04 — Connect Microsoft (preferred):**
 
 1. **Private/incognito browser**.
@@ -37,20 +39,20 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 
-| # | Step | Where you work | Done when |
+| # | Step | Remaining for you (if not auto-Done) | Done when |
 |---|---|---|---|
-| 01 | Link SuperOps client | SuperOps **Clients** → paste Account ID on portal left | SuperOps Account ID saved |
-| 02 | Link Pax8 (or skip) | Pax8 **Companies** → or leave blank | Pax8 off, or company ID saved |
-| 03 | Connect Microsoft tenant | **Connect Microsoft tenant** → bootstrap | Tenant ID + group ID saved |
+| 01 | Link SuperOps client | SuperOps Account ID → portal left → Save | Account ID saved (auto) |
+| 02 | Link Pax8 (or skip) | Skip, or Pax8 UUID + access → Save | Pax8 off or UUID saved (auto) |
+| 03 | Connect Microsoft tenant | **Connect Microsoft tenant** once | Tenant ID + group ID saved |
 | 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
-| 05 | Get SuperOps SCIM tokens | SuperOps **Integrations → Microsoft Entra ID → Generate Tokens** | Tokens generated (copy ready) |
-| 06 | SuperOps SCIM app | Usually auto after Connect; confirm Application (client) ID left | App ID on portal |
-| 07 | Apply SCIM tokens + start | Guide step 07 form (Tenant URL + secret) | Apply succeeds / provisioning On; name mappings set; **background Sync** queues for SuperOps last names |
-| 08 | Configure SuperOps Client SSO (SAML) | Guide step 08 form (Entity ID + ACS) → paste Login URL + cert into SuperOps | SuperOps Client SSO enabled |
-| 09 | Turn on portal sync | Portal left → **Entra sync enabled** → Save client | Dry run / Sync now visible |
-| 10 | Run Dry run then Sync now | Portal left buttons → wait minutes → verify Azure group/logs + SuperOps Requesters (`(User Mailbox)` / `(Shared Mailbox)`) | Last synced shows |
-| 11 | Test as a customer user | Incognito → app.onit.ltd → SuperOps tile | Tick complete |
-| 12 | Hand off to the customer | Email / ticket | Tick complete |
+| 05 | Get SuperOps SCIM tokens | SuperOps **Generate Tokens** (manual) | Tick after tokens copied |
+| 06 | SuperOps SCIM app | Usually auto after Connect | App ID on portal |
+| 07 | Apply SCIM tokens + start | Paste tokens on step form → Apply | Apply succeeds / provisioning On |
+| 08 | SuperOps Microsoft login (Client SSO) | SuperOps 2 URLs → Wire → SuperOps Step 3 | Client SSO enabled |
+| 09 | Turn on portal sync | Tick Entra sync enabled → Save client | Dry run / Sync now buttons |
+| 10 | Run Dry run then Sync now | Dry run → Sync now → Last synced | Last synced / tick if lagging |
+| 11 | Test as a customer user | Private window customer login + SuperOps tile | Smoke test tick |
+| 12 | Hand off to the customer | Sign-in URL message only | Hand-off tick |
 
 Steps 05–07 are one SCIM job split so a new technician can finish each screen without guessing. Older clients that already had SCIM marked complete stay complete.
 
@@ -101,7 +103,10 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Guide UX: all 12 steps use automation-first (Already automatic / remaining / recovery only on failure) |
+| 2026-08-06 | Guide UX: automation-first (**Already done automatically** + short remaining work; Azure/SuperOps recovery only under failure) — steps 03–08 + SSO form |
 | 2026-08-04 | SuperOps last names after Apply SCIM / Sync now: expect minutes (background Sync + SCIM); no real customer names in steps — use `{Company}` / this client only |
+| 2026-08-06 | Step 08 wording: plain SuperOps ↔ Entra flow (wire button, SuperOps Step 1/2/3 labels) |
 | 2026-08-04 | Connect Microsoft tenant: Accept + Graph bootstrap fills tenant/licence/group/app IDs (steps 03–04/06–08 Entra side) |
 | 2026-08-04 | Customer Azure steps: private browser + log straight into customer tenant (no On IT→switch); Entra left **Manage** before Groups / Enterprise apps |
 | 2026-07-14 | Replaced requester Global SSO Accept with customer-owned Client SSO in step 08 |

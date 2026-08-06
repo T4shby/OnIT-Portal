@@ -65,7 +65,7 @@ class SuperOpsClientMetricsService
         return $this->api->isConfigured();
     }
 
-    public function summaryForClient(Client $client, bool $manualRefresh = false): ClientOperationsSummary
+    public function summaryForClient(Client $client, bool $manualRefresh = false, ?\App\Models\User $viewer = null): ClientOperationsSummary
     {
         if (! $this->isAvailable()) {
             return $this->unavailableSummary('SuperOps API is not configured.');
@@ -81,21 +81,33 @@ class SuperOpsClientMetricsService
         // Always serve stored metrics when present. Stale refresh is prewarm/manual only —
         // page views must not stampede the queue (requeue = PortalFreshnessService adaptive minutes).
         if (is_array($cached) && ! $manualRefresh) {
-            return $this->summaryFromCache($client->id, $cached);
+            return $this->scopeSummaryForViewer(
+                $this->summaryFromCache($client->id, $cached),
+                $client,
+                $viewer,
+            );
         }
 
         if ($manualRefresh) {
             $this->queueRefresh($client);
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
-                return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
+                return $this->scopeSummaryForViewer(
+                    $this->summaryFromCache($client->id, $cached, refreshInProgress: true),
+                    $client,
+                    $viewer,
+                );
             }
         } else {
             $this->queueRefresh($client);
         }
 
         if (is_array($cached)) {
-            return $this->summaryFromCache($client->id, $cached, refreshInProgress: true);
+            return $this->scopeSummaryForViewer(
+                $this->summaryFromCache($client->id, $cached, refreshInProgress: true),
+                $client,
+                $viewer,
+            );
         }
 
         return new ClientOperationsSummary(
@@ -113,6 +125,66 @@ class SuperOpsClientMetricsService
             isStale: true,
             refreshInProgress: true,
             unavailableReason: 'Data has not been synchronised yet.',
+        );
+    }
+
+    /**
+     * Regular users only see their tickets; Client Admin / staff see org-wide SuperOps metrics.
+     */
+    private function scopeSummaryForViewer(
+        ClientOperationsSummary $summary,
+        Client $client,
+        ?\App\Models\User $viewer,
+    ): ClientOperationsSummary {
+        if ($viewer === null) {
+            return $summary;
+        }
+
+        $visibility = app(\App\Services\Portal\ClientVisibilityService::class);
+        if ($visibility->canViewOrganisationWide($viewer, $client)) {
+            return $summary;
+        }
+
+        $mine = array_values(array_filter(
+            $summary->openTicketsTable,
+            function (array $row) use ($visibility, $viewer): bool {
+                if ($visibility->matchesEmail($row['requesterEmail'] ?? null, $viewer)) {
+                    return true;
+                }
+                if (filled($viewer->superops_user_id)
+                    && (string) ($row['requesterUserId'] ?? '') === (string) $viewer->superops_user_id) {
+                    return true;
+                }
+
+                return $visibility->matchesPerson($viewer, [
+                    $row['requesterEmail'] ?? null,
+                    $row['requesterName'] ?? null,
+                    $row['subject'] ?? null,
+                ]);
+            },
+        ));
+
+        $byPriority = [];
+        foreach ($mine as $row) {
+            $priority = filled($row['priority'] ?? null) ? $row['priority'] : 'Unspecified';
+            $byPriority[$priority] = ($byPriority[$priority] ?? 0) + 1;
+        }
+
+        return new ClientOperationsSummary(
+            assetsTotal: null,
+            assetsOnline: null,
+            assetsOffline: null,
+            openTicketsTotal: count($mine),
+            openTicketsByPriority: $byPriority,
+            openTicketsTable: $mine,
+            slaMetPercent: null,
+            slaSampleSize: null,
+            ticketsCreated: $this->emptyRangeCounts(),
+            ticketsClosed: $this->emptyRangeCounts(),
+            lastRefreshedAt: $summary->lastRefreshedAt,
+            isStale: $summary->isStale,
+            refreshInProgress: $summary->refreshInProgress,
+            unavailableReason: $summary->unavailableReason,
         );
     }
 
@@ -349,6 +421,7 @@ class SuperOpsClientMetricsService
                             createdTime
                             resolutionTime
                             resolutionViolated
+                            requester { userId name email }
                         }
                         listInfo { totalCount hasMore }
                     }
@@ -375,6 +448,7 @@ class SuperOpsClientMetricsService
             }
 
             foreach ($batch as $ticket) {
+                $requester = is_array($ticket['requester'] ?? null) ? $ticket['requester'] : [];
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
@@ -385,6 +459,9 @@ class SuperOpsClientMetricsService
                     'resolutionViolated' => isset($ticket['resolutionViolated'])
                         ? (bool) $ticket['resolutionViolated']
                         : null,
+                    'requesterEmail' => strtolower((string) ($requester['email'] ?? '')),
+                    'requesterName' => (string) ($requester['name'] ?? ''),
+                    'requesterUserId' => (string) ($requester['userId'] ?? ''),
                 ];
             }
 
@@ -482,6 +559,9 @@ class SuperOpsClientMetricsService
                 'priority' => $ticket['priority'],
                 'status' => $ticket['status'],
                 'createdTime' => $ticket['createdTime'],
+                'requesterEmail' => (string) ($ticket['requesterEmail'] ?? ''),
+                'requesterName' => (string) ($ticket['requesterName'] ?? ''),
+                'requesterUserId' => (string) ($ticket['requesterUserId'] ?? ''),
             ],
             array_slice($open, 0, self::OPEN_TICKET_TABLE_LIMIT),
         );

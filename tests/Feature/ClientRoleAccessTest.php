@@ -18,6 +18,8 @@ class ClientRoleAccessTest extends TestCase
         config([
             'services.entra_sync.client_id' => 'test-client-id',
             'services.entra_sync.client_secret' => 'test-secret',
+            'services.superops.api_token' => 'token',
+            'services.superops.subdomain' => 'onitltd',
         ]);
 
         return Client::factory()->create([
@@ -27,41 +29,56 @@ class ClientRoleAccessTest extends TestCase
         ]);
     }
 
-    public function test_client_requester_can_access_dashboard_and_support(): void
+    public function test_client_requester_can_access_dashboard_support_and_personal_org_views(): void
     {
         $client = $this->clientWithEntra();
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientRequester,
+            'email' => 'jane@example.test',
         ]);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+            'assets_total' => 50,
+            'open_tickets_total' => 9,
+            'open_tickets_table' => [
+                [
+                    'displayId' => '1',
+                    'subject' => 'Jane ticket',
+                    'priority' => 'High',
+                    'status' => 'Open',
+                    'createdTime' => now()->toIso8601String(),
+                    'requesterEmail' => 'jane@example.test',
+                    'requesterName' => 'Jane',
+                    'requesterUserId' => '',
+                ],
+                [
+                    'displayId' => '2',
+                    'subject' => 'Bob ticket',
+                    'priority' => 'Low',
+                    'status' => 'Open',
+                    'createdTime' => now()->toIso8601String(),
+                    'requesterEmail' => 'bob@example.test',
+                    'requesterName' => 'Bob',
+                    'requesterUserId' => '',
+                ],
+            ],
+            'tickets_created' => ['7' => 1, '14' => 2, '30' => 3, 'all' => 10],
+            'tickets_closed' => ['7' => 1, '14' => 1, '30' => 2, 'all' => 8],
+            'last_refreshed_at' => now()->toIso8601String(),
+        ], now()->addHour());
 
         $this->actingAs($user)->get(route('dashboard'))->assertOk();
         $this->actingAs($user)->get(route('support.index'))->assertOk();
+        $this->actingAs($user)->get(route('client-admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Jane ticket')
+            ->assertDontSee('Bob ticket')
+            ->assertSeeText('only see items linked to you');
+        $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
     }
 
-    public function test_client_requester_cannot_access_client_admin_dashboard(): void
-    {
-        $client = $this->clientWithEntra();
-        $user = User::factory()->create([
-            'client_id' => $client->id,
-            'role' => UserRole::ClientRequester,
-        ]);
-
-        $this->actingAs($user)->get(route('client-admin.dashboard'))->assertForbidden();
-    }
-
-    public function test_client_requester_cannot_access_m365_directory(): void
-    {
-        $client = $this->clientWithEntra();
-        $user = User::factory()->create([
-            'client_id' => $client->id,
-            'role' => UserRole::ClientRequester,
-        ]);
-
-        $this->actingAs($user)->get(route('microsoft-365.directory'))->assertForbidden();
-    }
-
-    public function test_client_billing_admin_has_billing_capability_but_not_admin_dashboard(): void
+    public function test_client_billing_admin_can_open_organisation_but_not_staff_admin(): void
     {
         $client = $this->clientWithEntra();
         $user = User::factory()->create([
@@ -70,14 +87,16 @@ class ClientRoleAccessTest extends TestCase
         ]);
 
         $this->assertTrue($user->canAccessClientBilling());
-        $this->assertFalse($user->canViewClientAdminDashboard());
+        $this->assertTrue($user->canViewClientAdminDashboard());
+        $this->assertFalse($user->canViewOrganisationWide());
 
         $this->actingAs($user)->get(route('dashboard'))->assertOk();
-        $this->actingAs($user)->get(route('client-admin.dashboard'))->assertForbidden();
-        $this->actingAs($user)->get(route('microsoft-365.directory'))->assertForbidden();
+        $this->actingAs($user)->get(route('client-admin.dashboard'))->assertOk();
+        $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
+        $this->actingAs($user)->post(route('client-admin.refresh'))->assertForbidden();
     }
 
-    public function test_client_admin_can_access_admin_dashboard_and_m365_directory(): void
+    public function test_client_admin_sees_org_wide_dashboard(): void
     {
         $client = $this->clientWithEntra();
         $user = User::factory()->create([
@@ -88,12 +107,27 @@ class ClientRoleAccessTest extends TestCase
         Cache::put("client:{$client->id}:superops-dashboard:v2", [
             'assets_total' => 5,
             'open_tickets_total' => 2,
+            'open_tickets_table' => [
+                [
+                    'displayId' => '1',
+                    'subject' => 'Anyone ticket',
+                    'priority' => 'High',
+                    'status' => 'Open',
+                    'createdTime' => now()->toIso8601String(),
+                    'requesterEmail' => 'other@example.test',
+                    'requesterName' => 'Other',
+                    'requesterUserId' => '',
+                ],
+            ],
             'tickets_created' => ['7' => 1, '14' => 2, '30' => 3, 'all' => 10],
             'tickets_closed' => ['7' => 1, '14' => 1, '30' => 2, 'all' => 8],
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        $this->actingAs($user)->get(route('client-admin.dashboard'))->assertOk();
+        $this->actingAs($user)->get(route('client-admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Anyone ticket')
+            ->assertSeeText('Organisation overview');
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
     }
 

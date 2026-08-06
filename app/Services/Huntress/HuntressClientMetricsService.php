@@ -29,7 +29,10 @@ class HuntressClientMetricsService
 
     private const REFRESH_COOLDOWN_SECONDS = 60;
 
-    public function __construct(private HuntressApiClient $api) {}
+    public function __construct(
+        private HuntressApiClient $api,
+        private HuntressIncidentService $incidents,
+    ) {}
 
     public function isAvailable(): bool
     {
@@ -71,6 +74,7 @@ class HuntressClientMetricsService
             agentsTotal: null,
             agentsUnresponsive: null,
             openIncidents: null,
+            resolvedIncidents: null,
             edrIsolatedAgents: null,
             available: false,
             unavailableReason: 'Data has not been synchronised yet.',
@@ -146,6 +150,19 @@ class HuntressClientMetricsService
         try {
             $payload = $this->api->get('organizations/'.$organizationId);
             $mapped = $this->mapOrganizationPayload($payload);
+
+            try {
+                $incidentPayload = $this->incidents->refreshAndStore($client);
+                $mapped['open_incidents'] = (int) ($incidentPayload['active_count'] ?? $mapped['open_incidents'] ?? 0);
+                $mapped['resolved_incidents'] = (int) ($incidentPayload['resolved_count'] ?? 0);
+            } catch (Throwable $incidentError) {
+                Log::warning('Huntress incident list refresh failed; keeping org summary', [
+                    'client_id' => $client->id,
+                    'error' => $incidentError->getMessage(),
+                ]);
+                $mapped['resolved_incidents'] = $mapped['resolved_incidents'] ?? null;
+            }
+
             $mapped['last_refreshed_at'] = now()->toIso8601String();
 
             Cache::put(
@@ -209,6 +226,7 @@ class HuntressClientMetricsService
                     ?? $org['incident_reports_count']
                     ?? null
             ),
+            'resolved_incidents' => null,
             'edr_isolated_agents' => $this->nullableInt(
                 $edr['isolated_agents_count']
                     ?? $org['isolated_agents_count']
@@ -248,6 +266,7 @@ class HuntressClientMetricsService
             agentsTotal: $payload['agents_total'] ?? null,
             agentsUnresponsive: $payload['agents_unresponsive'] ?? null,
             openIncidents: $payload['open_incidents'] ?? null,
+            resolvedIncidents: $payload['resolved_incidents'] ?? null,
             edrIsolatedAgents: $payload['edr_isolated_agents'] ?? null,
             available: true,
             unavailableReason: null,
@@ -263,6 +282,7 @@ class HuntressClientMetricsService
             agentsTotal: null,
             agentsUnresponsive: null,
             openIncidents: null,
+            resolvedIncidents: null,
             edrIsolatedAgents: null,
             available: false,
             unavailableReason: $reason,

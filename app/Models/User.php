@@ -119,6 +119,11 @@ class User extends Authenticatable
         return $this->role->canViewClientAdminDashboard();
     }
 
+    public function canViewOrganisationWide(): bool
+    {
+        return $this->role->canViewOrganisationWide();
+    }
+
     public function canViewMicrosoft365Directory(): bool
     {
         return $this->role->canViewMicrosoft365Directory();

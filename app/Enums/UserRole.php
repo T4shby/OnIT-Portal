@@ -65,21 +65,32 @@ enum UserRole: string
 
     public function canViewClientAdminDashboard(): bool
     {
+        // Organisation overview + systems — available to all client-facing roles.
+        // Data is filtered: only Client Admin sees organisation-wide people/systems.
+        return $this->isClientFacing();
+    }
+
+    /**
+     * Full org people lists, all tickets/cases/backups for the organisation.
+     */
+    public function canViewOrganisationWide(): bool
+    {
         return $this === self::ClientAdmin;
     }
 
     public function canViewMicrosoft365Directory(): bool
     {
-        return $this === self::ClientAdmin;
+        return $this->isClientFacing();
     }
 
     public function canViewOrganisationTickets(): bool
     {
-        return $this === self::ClientAdmin;
+        return $this->isClientFacing();
     }
 
     public function canViewClientAssets(): bool
     {
+        // Device fleet is organisation-wide admin context only.
         return $this === self::ClientAdmin;
     }
 

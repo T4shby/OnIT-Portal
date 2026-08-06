@@ -42,13 +42,22 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 **Credentials:** one MSP partner API set per vendor in `.env` for all customers; per-client mapping IDs only.
 
 ---
-## Roles
+## Shared client visibility (people + systems)
 
-| Role | Code | Capabilities |
-|------|------|--------------|
-| Client Requester | `client_requester` | Standard portal, support, SSO launch |
-| Client Billing Admin | `client_billing_admin` | Requester + billing capability (Pax8 UI not built yet) |
-| Client Admin | `client_admin` | Billing + org overview, M365 directory, SuperOps summary |
+Service: `App\Services\Portal\ClientVisibilityService`
+
+One rule for Organisation overview, SuperOps tickets, M365 people/directory, Huntress cases, Dropsuite tiles, and future feeds:
+
+| Who | What they see for **their** organisation |
+|-----|------------------------------------------|
+| **Client Admin** | All people + all systems (devices, tickets, licences, backups, security cases) |
+| **On IT staff** with client access | Same as Client Admin for that client (Staff Admin paths) |
+| **Requester / Billing Admin** | **Their** tickets, **their** M365 person row, **their** Huntress cases — not colleagues’ |
+| Other organisations / other clients | Never |
+
+Identity match: work email (preferred), SuperOps requester id when present, else name/local-part on the record. Personal users cannot run org-wide **Refresh**.
+
+New feeds: use `ClientVisibilityService::canViewOrganisationWide` / `matchesPerson` — do not invent a one-off gate.
 
 Staff roles (`account_manager`, `super_admin`) are unchanged.
 
@@ -281,7 +290,30 @@ Refresh: `GET /v1/organizations/{id}` maps:
 | `open_incidents` | `open_incident_reports_count` |
 | `edr_isolated_agents` | `edr.isolated_agents_count` |
 
-Client Admin tile **Security (Huntress):** open incidents hero + agents / unresponsive / isolated. Amber when open or isolated &gt; 0.
+Client Admin tile **Security (Huntress):** active cases hero + resolved count + agents / unresponsive / isolated. Amber when active or isolated &gt; 0. **View cases** opens the org-scoped case list.
+
+### Incident cases (list + detail)
+
+| Route | Who |
+|-------|-----|
+| `/security/huntress` | Client-facing users of that organisation only (gate `view-huntress-security`) |
+| `/security/huntress/cases/{id}` | Same org + visibility rules below |
+| `/admin/clients/{client}/security/huntress` | Staff with **view** on that client — full org security dashboard (metrics tiles + all cases). Same entry pattern as **View Microsoft 365 directory** from Admin → Clients → Edit. |
+| `/admin/clients/{client}/security/huntress/cases/{id}` | Staff case detail for that client |
+
+Staff open: **Admin → Clients → Edit → Client tools → View Huntress security** (requires numeric org ID + `HUNTRESS_ENABLED`). Optional **Open in Huntress** uses `HUNTRESS_CONSOLE_BASE_URL` + `/org/{id}/command_center`.
+
+
+| Role | Cases they see |
+|------|----------------|
+| **Client Admin** | All Huntress cases for their organisation |
+| **On IT staff** (SA / AM with client access) | All cases for that client |
+| **Requester / Billing Admin** | Only cases linked to **them** (email/name on the report) — not colleagues’ cases |
+
+Service: `App\Services\Huntress\HuntressIncidentService`  
+Cache: `client:{id}:huntress-incidents:v1` (refreshed with `RefreshHuntressSecurityJob` / org metrics)
+
+“Linked to them” matches work **email** (or local-part / display name) against subject, summary, body, and extracted emails on the report. Wrong-org IDs return **404**. Regular users cannot refresh the org-wide cache.
 
 Background: `RefreshHuntressSecurityJob` on **`high`** (started/last_result for Integration Health). Prewarm uses adaptive requeue (`PortalFreshnessService`). Smoke: `php artisan portal:probe-security-apis --huntress-org=…` (or `--client=`).
 

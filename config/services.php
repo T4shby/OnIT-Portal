@@ -102,6 +102,8 @@ return [
         'api_key' => env('HUNTRESS_API_KEY'),
         'api_secret' => env('HUNTRESS_API_SECRET'),
         'enabled' => env('HUNTRESS_ENABLED', false),
+        // Partner console base for “Open in Huntress” (no trailing slash).
+        'console_base_url' => env('HUNTRESS_CONSOLE_BASE_URL', 'https://on-it-technology-partners.huntress.io'),
     ],
 
     'entra_sync' => [

@@ -46,8 +46,20 @@ class AuthServiceProvider extends ServiceProvider
             return $user->role === \App\Enums\UserRole::SuperAdmin;
         });
 
+        Gate::define('view-client-admin-dashboard', function (User $user) {
+            return $user->canViewClientAdminDashboard() && filled($user->client_id);
+        });
+
+        Gate::define('view-organisation-wide', function (User $user) {
+            if (! filled($user->client_id) || ! $user->canViewOrganisationWide()) {
+                return false;
+            }
+
+            return true;
+        });
+
         Gate::define('view-m365-directory', function (User $user) {
-            if (! $user->canViewMicrosoft365Directory()) {
+            if (! $user->canViewMicrosoft365Directory() || ! filled($user->client_id)) {
                 return false;
             }
 
@@ -56,8 +68,20 @@ class AuthServiceProvider extends ServiceProvider
                 && filled(config('services.entra_sync.client_secret'));
         });
 
-        Gate::define('view-client-admin-dashboard', function (User $user) {
-            return $user->canViewClientAdminDashboard() && filled($user->client_id);
+        Gate::define('view-huntress-security', function (User $user) {
+            if (! filled($user->client_id) || ! $user->role->isClientFacing()) {
+                return false;
+            }
+
+            $client = $user->client;
+            if ($client === null) {
+                return false;
+            }
+
+            return filled($client->huntress_organization_id)
+                && (bool) config('services.huntress.enabled')
+                && filled(config('services.huntress.api_key'))
+                && filled(config('services.huntress.api_secret'));
         });
 
         Gate::define('access-client-billing', function (User $user) {

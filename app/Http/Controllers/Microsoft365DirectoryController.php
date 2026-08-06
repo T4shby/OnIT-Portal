@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\User;
+use App\Services\M365\M365DirectoryDisplayResult;
 use App\Services\M365\M365DirectoryService;
+use App\Services\M365\M365DirectorySnapshot;
+use App\Services\Portal\ClientVisibilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +16,10 @@ use Throwable;
 
 class Microsoft365DirectoryController extends Controller
 {
-    public function __construct(protected M365DirectoryService $directory) {}
+    public function __construct(
+        protected M365DirectoryService $directory,
+        protected ClientVisibilityService $visibility,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -27,9 +34,6 @@ class Microsoft365DirectoryController extends Controller
         return $this->renderDirectory($request, $client, adminContext: false);
     }
 
-    /**
-     * HTML fragment for live directory updates (tables / sync status only — no full page reload).
-     */
     public function live(Request $request): View
     {
         $user = $request->user();
@@ -52,6 +56,7 @@ class Microsoft365DirectoryController extends Controller
         $client = $user->client;
 
         abort_unless($client && $this->directory->isAvailableForClient($client), 404);
+        abort_unless($this->visibility->canViewOrganisationWide($user, $client), 403);
 
         $queued = $this->directory->queueRefresh($client, respectCooldown: true);
 
@@ -76,12 +81,14 @@ class Microsoft365DirectoryController extends Controller
     }
 
     /**
-     * @return array{client: Client, display: mixed, directory: mixed, error: ?string, adminContext: bool, pollSeconds: int}
+     * @return array<string, mixed>
      */
     protected function directoryViewData(Request $request, Client $client, bool $adminContext): array
     {
         $error = null;
         $display = null;
+        $user = $request->user();
+        $orgWide = $adminContext || ($user && $this->visibility->canViewOrganisationWide($user, $client));
 
         try {
             $display = $this->directory->displaySnapshot($client);
@@ -89,6 +96,10 @@ class Microsoft365DirectoryController extends Controller
             if ($request->boolean('refresh') && $adminContext) {
                 $this->directory->queueRefresh($client, respectCooldown: true);
                 $display = $this->directory->displaySnapshot($client);
+            }
+
+            if ($display?->snapshot && ! $orgWide && $user instanceof User) {
+                $display = $this->personalDirectory($display, $user);
             }
         } catch (Throwable $e) {
             Log::error('M365 directory load failed', [
@@ -106,7 +117,39 @@ class Microsoft365DirectoryController extends Controller
             'directory' => $display?->snapshot,
             'error' => $error,
             'adminContext' => $adminContext,
+            'organisationWide' => $orgWide,
             'pollSeconds' => 5,
         ];
+    }
+
+    private function personalDirectory(M365DirectoryDisplayResult $display, User $user): M365DirectoryDisplayResult
+    {
+        $snapshot = $display->snapshot;
+        if ($snapshot === null) {
+            return $display;
+        }
+
+        $people = $snapshot->people->filter(function (array $person) use ($user): bool {
+            return $this->visibility->matchesEmail($person['email'] ?? null, $user)
+                || $this->visibility->matchesPerson($user, [
+                    $person['email'] ?? null,
+                    $person['displayName'] ?? null,
+                ]);
+        })->values();
+
+        $scoped = new M365DirectorySnapshot(
+            people: $people,
+            groups: collect(),
+            refreshedAt: $snapshot->refreshedAt,
+        );
+
+        return new M365DirectoryDisplayResult(
+            snapshot: $scoped,
+            isStale: $display->isStale,
+            refreshQueued: $display->refreshQueued,
+            refreshInProgress: $display->refreshInProgress,
+            lastRefreshedAt: $display->lastRefreshedAt,
+            statusMessage: $display->statusMessage,
+        );
     }
 }

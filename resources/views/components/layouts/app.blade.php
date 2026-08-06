@@ -37,6 +37,12 @@
                                 Organisation
                             </a>
                         @endcan
+                        @can('view-huntress-security')
+                            <a href="{{ route('security.huntress.index') }}"
+                               class="portal-nav-link {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
+                                Security
+                            </a>
+                        @endcan
                         @can('view-m365-directory')
                             <a href="{{ route('microsoft-365.directory') }}"
                                class="portal-nav-link {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
@@ -100,6 +106,13 @@
                            @click="menuOpen = false"
                            class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                             Organisation
+                        </a>
+                    @endcan
+                    @can('view-huntress-security')
+                        <a href="{{ route('security.huntress.index') }}"
+                           @click="menuOpen = false"
+                           class="portal-nav-link touch-target {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
+                            Security
                         </a>
                     @endcan
                     @can('view-m365-directory')

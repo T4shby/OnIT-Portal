@@ -53,7 +53,9 @@ Read these documents before changing application code. **Update Brain for every 
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
 | Entra ID Free SuperOps app assign | `entra_superops_app_id` (Application client ID) + `Application.Read.All` + `AppRoleAssignment.ReadWrite.All` |
 | SuperOps requester display names | `EntraSyncDisplayName::formatSuperOpsFamilyName()` → `extensionAttribute1`; SCIM **name.familyName** Direct — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
-| Client onboarding wizard | `app/Services/ClientOnboardingService.php`, `admin/clients` create + edit |
+| Client onboarding wizard | `ClientOnboardingService`, `OnboardingManual` (automated / remaining / recovery), `admin/clients` forms + wire/Apply SCIM |
+| Shared client visibility | `ClientVisibilityService` — org-wide vs own person across SuperOps / M365 / Huntress |
+| Huntress cases + staff board | `HuntressSecurityController`, `ClientHuntressSecurityController`, `HuntressIncidentService` |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
@@ -76,6 +78,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | Night ship: all 12 onboarding steps automation-first; Client SSO wire wording; Huntress/visibility/bootstrap SP wait — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md), [ClientAdminDashboard.md](ClientAdminDashboard.md), [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
+| 2026-08-05 | Huntress security cases: active/resolved list + detail for Client Admin (own org) and staff with client access — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Integration Health per-client table: Huntress + Dropsuite columns via `FEED_COLUMNS` (same refresh pipeline as SuperOps/M365) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Modular dashboard feeds: `DashboardFeed` contract + registry (SuperOps/Huntress/Dropsuite/M365); feed tile partials; agentic “add feed” checklist — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-05 | Security feeds: Huntress + Dropsuite adaptive requeue, Integration Health columns, dual Dropsuite auth headers, probe command — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

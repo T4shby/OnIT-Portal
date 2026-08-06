@@ -54,13 +54,25 @@
                 </p>
             </form>
 
-            @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
-                <div class="mt-4">
-                    <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
-                        View Microsoft 365 directory
-                    </a>
+            <div class="mt-6 space-y-3">
+                <p class="portal-label">Client tools</p>
+                <div class="flex flex-wrap gap-3">
+                    @if($client->entra_tenant_id && config('services.entra_sync.client_id'))
+                        <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            View Microsoft 365 directory
+                        </a>
+                    @endif
+                    @if(filled($client->huntress_organization_id) && config('services.huntress.enabled'))
+                        <a href="{{ route('admin.clients.security.huntress', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            View Huntress security
+                        </a>
+                    @elseif(config('services.huntress.enabled'))
+                        <p class="portal-body-muted text-xs self-center max-w-sm">
+                            Set Huntress Organization ID (numeric org id from Huntress URL) to open the security dashboard for this client.
+                        </p>
+                    @endif
                 </div>
-            @endif
+            </div>
 
             @include('admin.clients._entra-sync-actions', ['client' => $client])
         </x-card>

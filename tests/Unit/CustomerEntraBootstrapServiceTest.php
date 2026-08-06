@@ -65,7 +65,22 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->once()
             ->with($tenantId, $ssoObjectId, $ssoAppId)
             ->andReturn($roleId);
-        $graph->shouldReceive('resolveAssignableAppRoleId')->twice()->andReturn($roleId);
+        $graph->shouldReceive('waitForServicePrincipalForAppId')
+            ->once()
+            ->with($tenantId, $scimAppId, $scimSpId)
+            ->andReturn($scimSpId);
+        $graph->shouldReceive('waitForServicePrincipalForAppId')
+            ->once()
+            ->with($tenantId, $ssoAppId, $ssoSpId)
+            ->andReturn($ssoSpId);
+        $graph->shouldReceive('resolveAssignableAppRoleId')
+            ->once()
+            ->with($tenantId, $scimSpId, $scimAppId)
+            ->andReturn($roleId);
+        $graph->shouldReceive('resolveAssignableAppRoleId')
+            ->once()
+            ->with($tenantId, $ssoSpId, $ssoAppId)
+            ->andReturn($roleId);
         $graph->shouldReceive('assignGroupToEnterpriseApp')->twice();
 
         $this->app->instance(MicrosoftGraphClient::class, $graph);

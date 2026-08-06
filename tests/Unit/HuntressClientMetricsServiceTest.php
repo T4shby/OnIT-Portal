@@ -39,6 +39,38 @@ class HuntressClientMetricsServiceTest extends TestCase
                     ],
                 ],
             ], 200),
+            'https://api.huntress.io/v1/incident_reports*' => Http::response([
+                'incident_reports' => [
+                    [
+                        'id' => 10,
+                        'organization_id' => 'org-42',
+                        'subject' => 'Open case',
+                        'status' => 'open',
+                        'severity' => 'high',
+                        'summary' => 'Something bad',
+                        'sent_at' => now()->toIso8601String(),
+                    ],
+                    [
+                        'id' => 11,
+                        'organization_id' => 'org-42',
+                        'subject' => 'Closed case',
+                        'status' => 'closed',
+                        'severity' => 'low',
+                        'summary' => 'Fixed',
+                        'closed_at' => now()->toIso8601String(),
+                    ],
+                    [
+                        'id' => 12,
+                        'organization_id' => 'org-42',
+                        'subject' => 'Also open',
+                        'status' => 'open',
+                        'severity' => 'medium',
+                        'summary' => 'Still open',
+                        'sent_at' => now()->toIso8601String(),
+                    ],
+                ],
+                'pagination' => [],
+            ], 200),
         ]);
 
         $client = Client::factory()->create(['huntress_organization_id' => 'org-42']);
@@ -48,7 +80,8 @@ class HuntressClientMetricsServiceTest extends TestCase
         $this->assertNull($summary->unavailableReason);
         $this->assertSame(48, $summary->agentsTotal);
         $this->assertSame(2, $summary->agentsUnresponsive);
-        $this->assertSame(3, $summary->openIncidents);
+        $this->assertSame(2, $summary->openIncidents);
+        $this->assertSame(1, $summary->resolvedIncidents);
         $this->assertSame(1, $summary->edrIsolatedAgents);
         $this->assertFalse($summary->isStale);
         $this->assertNotNull($summary->lastRefreshedAt);

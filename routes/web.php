@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\ClientAdminDashboardController;
+use App\Http\Controllers\HuntressSecurityController;
+use App\Http\Controllers\Admin\ClientHuntressSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
@@ -75,6 +77,18 @@ Route::middleware('auth')->group(function () {
         ->middleware(['can:view-client-admin-dashboard', 'throttle:6,1'])
         ->name('client-admin.refresh');
 
+    Route::get('/security/huntress', [HuntressSecurityController::class, 'index'])
+        ->middleware('can:view-huntress-security')
+        ->name('security.huntress.index');
+
+    Route::get('/security/huntress/cases/{incident}', [HuntressSecurityController::class, 'show'])
+        ->middleware('can:view-huntress-security')
+        ->name('security.huntress.show');
+
+    Route::post('/security/huntress/refresh', [HuntressSecurityController::class, 'refresh'])
+        ->middleware(['can:view-huntress-security', 'throttle:6,1'])
+        ->name('security.huntress.refresh');
+
     Route::prefix('admin')
         ->name('admin.')
         ->middleware('role:'.implode(',', UserRole::adminRoles()))
@@ -91,6 +105,13 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.microsoft-365');
             Route::get('clients/{client}/microsoft-365/live', [ClientMicrosoft365DirectoryController::class, 'liveForClient'])
                 ->name('clients.microsoft-365.live');
+            Route::get('clients/{client}/security/huntress', [ClientHuntressSecurityController::class, 'showForClient'])
+                ->name('clients.security.huntress');
+            Route::get('clients/{client}/security/huntress/cases/{incident}', [ClientHuntressSecurityController::class, 'incidentForClient'])
+                ->name('clients.security.huntress.show');
+            Route::post('clients/{client}/security/huntress/refresh', [ClientHuntressSecurityController::class, 'refreshForClient'])
+                ->middleware('throttle:6,1')
+                ->name('clients.security.huntress.refresh');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->middleware('throttle:entra-sync')

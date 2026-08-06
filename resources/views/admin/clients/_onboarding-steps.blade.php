@@ -120,6 +120,9 @@
                 @include('admin.clients._onboarding-manual', [
                     'guide' => $step['guide'] ?? null,
                     'instructions' => $step['instructions'] ?? [],
+                    'openRecovery' => session()->has('error')
+                        || (isset($errors) && $step['key'] === 'superops_client_sso_configured' && ($errors->has('entity_id') || $errors->has('consumer_service_url')))
+                        || (isset($errors) && $step['key'] === 'superops_scim_provisioning' && ($errors->has('scim_tenant_url') || $errors->has('scim_secret_token'))),
                 ])
 
                 @if($isDone && ($step['auto_detected'] ?? false))

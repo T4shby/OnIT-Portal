@@ -111,18 +111,59 @@ class M365DirectoryTest extends TestCase
             ->assertSee('m365-directory-live', false);
     }
 
-    public function test_client_requester_cannot_view_directory(): void
+    public function test_client_requester_sees_only_own_directory_person(): void
     {
-        $client = Client::factory()->create(['entra_tenant_id' => $this->tenantId]);
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $this->tenantId,
+            'entra_sync_enabled' => true,
+        ]);
 
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientRequester,
+            'email' => 'jane@acme.com',
+            'name' => 'Jane Smith',
         ]);
+
+        $this->fakeDirectoryGraph([
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'jane@acme.com',
+                'userPrincipalName' => 'jane@acme.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+                'skus' => ['O365_BUSINESS_PREMIUM'],
+            ],
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => [
+                'mail' => 'bob@acme.com',
+                'userPrincipalName' => 'bob@acme.com',
+                'displayName' => 'Bob Other',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+                'skus' => ['O365_BUSINESS_PREMIUM'],
+            ],
+        ], [
+            [
+                'id' => 'gggggggg-gggg-gggg-gggg-gggggggggggg',
+                'displayName' => 'All Staff',
+                'mail' => 'allstaff@acme.com',
+                'mailEnabled' => true,
+                'securityEnabled' => false,
+                'groupTypes' => [],
+                'description' => 'Company DL',
+            ],
+        ]);
+
+        app(\App\Services\M365\M365DirectoryService::class)->buildAndStoreSnapshot($client);
 
         $this->actingAs($user)
             ->get(route('microsoft-365.directory'))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee('Jane Smith')
+            ->assertDontSee('Bob Other')
+            ->assertDontSee('All Staff');
     }
 
     public function test_msp_admin_can_view_client_directory(): void

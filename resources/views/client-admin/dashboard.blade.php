@@ -20,17 +20,22 @@
             <h1 class="section-heading-orange">Overview</h1>
         </div>
         <p class="portal-body-muted max-w-3xl">
-            Are your systems healthy? Are issues being dealt with? What value are you getting from On IT?
-            Summary for <strong class="text-white/80">{{ $client->name }}</strong>.
+            @if($organisationWide ?? true)
+                Are your systems healthy? Are issues being dealt with? What value are you getting from On IT?
+                Organisation overview for <strong class="text-white/80">{{ $client->name }}</strong>.
+            @else
+                Your tickets and security cases for <strong class="text-white/80">{{ $client->name }}</strong>.
+                You only see items linked to you — Client Admins see the full organisation.
+            @endif
         </p>
     </section>
 
     @if($summary->unavailableReason && ! $summary->hasData())
         <x-alert type="warning" class="mb-6">
-            @if($viewerIsTechnician)
+            @if($viewerIsTechnician || ($organisationWide ?? false))
                 {{ $summary->unavailableReason }}
             @else
-                Organisation metrics are not ready yet. On IT is connecting the systems that power this overview.
+                Your organisation metrics are not ready yet. On IT is connecting the systems that power this overview.
             @endif
         </x-alert>
     @elseif($summary->isStale && $summary->lastRefreshedAt)

@@ -88,6 +88,8 @@ class ClientAdminDashboardIsolationTest extends TestCase
             ->get(route('client-admin.dashboard'))
             ->assertOk()
             ->assertSee('SuperOps is not connected')
-            ->assertSee('—');
+            // Null metrics render as "-" not "0".
+            ->assertSeeText('-')
+            ->assertDontSeeText('0 online');
     }
 }

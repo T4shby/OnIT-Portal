@@ -275,16 +275,14 @@ App name: **`SuperOps - {Company}`**
 
 On IT uses customer-specific **Client SSO** so customer identities remain in their own Entra tenant with no On IT B2B guests. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
-**Every customer (required):**
+**Happy path (in-app step 08):**
 
-1. SuperOps → Requester Login → SSO Protected → Client SSO → **+ Configuration** → select customer → copy generated Entity ID and Consumer Service URL.
-2. Through GDAP, create customer Entra non-gallery app `SuperOps Requester SSO - {Company}`.
-3. Configure SAML with the generated values; claims `email`, `firstname`, `lastname`; copy Azure Login URL and Base64 certificate back into SuperOps.
-4. P1: assign `On IT Portal - {Company}`. Free: save the SSO app's **Application (client) ID** in the portal.
-5. Free: mark step 08 complete, then portal **Sync now** directly assigns active licensed users.
-6. Incognito test with a real customer work email.
+1. Entra app shell `SuperOps Requester SSO - {Company}` + app ID + P1 group assign already come from Connect/bootstrap when Graph works (shown as **Already done automatically**).
+2. SuperOps → Requester Login → SSO Protected → Client SSO → **+ Configuration** / this customer → copy Entity ID + Consumer Service URL (SuperOps has no API for these).
+3. Portal form → **Wire SuperOps into Microsoft Entra** → paste returned Login URL + Base64 certificate into SuperOps Step 3 → Save.
+4. Free: **Sync now** assigns users via saved `entra_superops_sso_app_id`. Incognito test with a customer work email.
 
-Do **not** configure SAML on the customer SCIM app `SuperOps - {Company}`. SCIM and Client SSO are separate customer-owned enterprise apps.
+**Only if Connect/wire fails:** create the SAML enterprise app by hand in customer Entra, or set Identifier/Reply URL under Single sign-on → SAML — recovery block on the live step. Do **not** put SAML on the SCIM app `SuperOps - {Company}`.
 
 ---
 
@@ -368,7 +366,8 @@ php artisan portal:sync-entra-users --client={id}
 | Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
 | Requester plain name (no suffix) | `name.familyName` not Direct from `extensionAttribute1` | Direct map **name.familyName** ← extensionAttribute1 (default `[surname]`); Sync now |
 | `extensionAttribute1` set (e.g. `Smith (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
-| Connect bootstrap: tenant/group OK but SCIM/SSO apps fail with Graph **404** `Request_ResourceNotFound` on app/roles | Create returned an object that was not yet readable (template instantiate race) | Fixed in code: create via `POST /applications` + wait/retry, save client IDs even if role lag. Deploy latest, then **Re-run Entra bootstrap**. Or create `SuperOps - {Company}` manually once and paste Application (client) ID. |
+| Connect bootstrap: tenant/group OK but SCIM/SSO apps fail with Graph **404** `Request_ResourceNotFound` on app/roles | SP object id from create/instantiate not yet (or never) GET-able; stale SP id reused | Code waits/re-resolves SP by **appId**, retries role resolve, falls back to Application appRoles. Deploy latest → **Re-run Entra bootstrap**. If still fails: Entra → Enterprise app → Users and groups → assign portal group. |
+
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
@@ -395,6 +394,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Step 08 + all 12: automation-first guide; Wire SuperOps wording in brain runbooks |
 | 2026-08-04 | Scrub pilot client names and GUIDs from steps; placeholders `{Company}` only |
 | 2026-07-14 | Step 08 changed from Global SSO Accept to per-customer SuperOps Client SSO |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform customer-tenant consent and all setup via GDAP |
