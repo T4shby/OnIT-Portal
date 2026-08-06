@@ -186,74 +186,138 @@ class DropsuiteClientMetricsService
     }
 
     /**
-     * Sub-reseller API: GET /accounts filtered by user.organization_id.
+     * Sub-reseller API: resolve org user token via GET /users, then GET /accounts.
+     *
+     * Admin Authentication Token can list users but returns empty /accounts.
+     * Each customer “user” row exposes authentication_token used as User Token.
      *
      * @return array<string, mixed>
      */
     private function fetchOrganizationBackupSummary(string $organizationId): array
     {
-        $accounts = $this->fetchAccountsForOrganization($organizationId);
+        $accessToken = $this->userAccessTokenForOrganization($organizationId);
+        $accounts = $this->fetchAccountsForOrganization($organizationId, $accessToken);
         $onedrives = $this->fetchOneDriveRowsForEmails(
             array_values(array_filter(array_map(
                 static fn (array $row): string => (string) ($row['email'] ?? ''),
                 $accounts,
             ))),
+            $accessToken,
         );
 
         return $this->mapAccountsPayload($accounts, $onedrives, $organizationId);
     }
 
     /**
+     * Partner Admin Authentication Token → GET /users → per-org User Token.
+     */
+    private function userAccessTokenForOrganization(string $organizationId): string
+    {
+        $users = Cache::remember('dropsuite.users.list.v1', now()->addMinutes(15), function (): array {
+            return $this->fetchAllUsers();
+        });
+
+        $match = null;
+        foreach ($users as $user) {
+            if (! is_array($user)) {
+                continue;
+            }
+            $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
+            if ($oid !== $organizationId) {
+                continue;
+            }
+            $token = trim((string) ($user['authentication_token'] ?? ''));
+            if ($token === '') {
+                continue;
+            }
+            // Prefer admin customer user; otherwise first with a token.
+            if ($match === null || ! empty($user['admin'])) {
+                $match = $token;
+                if (! empty($user['admin'])) {
+                    break;
+                }
+            }
+        }
+
+        if ($match === null) {
+            throw new \RuntimeException(
+                'Dropsuite has no user access token for organization '.$organizationId
+            );
+        }
+
+        return $match;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
-    private function fetchAccountsForOrganization(string $organizationId): array
+    private function fetchAllUsers(): array
+    {
+        $users = [];
+
+        for ($page = 1; $page <= 20; $page++) {
+            $payload = $this->api->get('users', ['page' => $page, 'per_page' => 100]);
+            $rows = $this->extractListRows($payload);
+            if ($rows === []) {
+                break;
+            }
+            foreach ($rows as $row) {
+                if (is_array($row)) {
+                    $users[] = $row;
+                }
+            }
+            $pagination = is_array($payload['pagination'] ?? null) ? $payload['pagination'] : [];
+            $totalPages = (int) ($pagination['total_pages'] ?? $page);
+            if ($page >= $totalPages) {
+                break;
+            }
+        }
+
+        return $users;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchAccountsForOrganization(string $organizationId, string $accessToken): array
     {
         $matched = [];
 
         for ($page = 1; $page <= self::MAX_ACCOUNT_PAGES; $page++) {
-            $payload = $this->api->get('accounts', $page > 1 ? ['page' => $page] : []);
+            $payload = $this->api->get(
+                'accounts',
+                ['page' => $page, 'per_page' => 100],
+                accessToken: $accessToken,
+            );
             $rows = $this->extractListRows($payload);
 
             if ($rows === []) {
                 break;
             }
 
-            $pageMatched = 0;
             foreach ($rows as $row) {
-                if (! is_array($row) || ! $this->accountBelongsToOrganization($row, $organizationId)) {
+                if (! is_array($row)) {
                     continue;
                 }
-                $matched[] = $row;
-                $pageMatched++;
-            }
-
-            // Some tenants return a flat list of the whole reseller; stop when a page
-            // has no org matches after we already collected some (and page grew empty of matches).
-            $hasNext = $this->payloadHasNextPage($payload, $page, count($rows));
-            if (! $hasNext) {
-                break;
-            }
-
-            // If the API ignores page and repeats the same set, stop after first page.
-            if ($page > 1 && $pageMatched === 0 && $matched !== []) {
-                break;
-            }
-        }
-
-        if ($matched === []) {
-            // Fallback: email-scoped lookup is not org-wide; try unpaginated once more as list filter.
-            $payload = $this->api->get('accounts');
-            foreach ($this->extractListRows($payload) as $row) {
-                if (is_array($row) && $this->accountBelongsToOrganization($row, $organizationId)) {
+                // User token scopes to one org; still filter when API returns mixed rows.
+                if ($this->accountBelongsToOrganization($row, $organizationId)
+                    || ! $this->rowHasOrganizationHint($row)) {
                     $matched[] = $row;
                 }
             }
-        }
 
-        if ($matched === []) {
-            throw new \RuntimeException(
-                'Dropsuite GET /accounts returned no mailboxes for organization '.$organizationId
-            );
+            $pagination = is_array($payload['pagination'] ?? null) ? $payload['pagination'] : [];
+            $totalPages = (int) ($pagination['total_pages'] ?? 0);
+            if ($totalPages > 0) {
+                if ($page >= $totalPages) {
+                    break;
+                }
+                continue;
+            }
+
+            if (! $this->payloadHasNextPage($payload, $page, count($rows))) {
+                break;
+            }
         }
 
         return $matched;
@@ -263,14 +327,14 @@ class DropsuiteClientMetricsService
      * @param  list<string>  $emails
      * @return list<array<string, mixed>>
      */
-    private function fetchOneDriveRowsForEmails(array $emails): array
+    private function fetchOneDriveRowsForEmails(array $emails, ?string $accessToken = null): array
     {
         if ($emails === []) {
             return [];
         }
 
         try {
-            $payload = $this->api->get('onedrives');
+            $payload = $this->api->get('onedrives', accessToken: $accessToken);
             $rows = $this->extractListRows($payload);
             if ($rows === []) {
                 return [];
@@ -294,6 +358,19 @@ class DropsuiteClientMetricsService
 
             return [];
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function rowHasOrganizationHint(array $row): bool
+    {
+        if (isset($row['organization_id']) || isset($row['organisation_id'])) {
+            return true;
+        }
+        $user = $row['user'] ?? null;
+
+        return is_array($user) && (isset($user['organization_id']) || isset($user['organisation_id']));
     }
 
     /**
@@ -357,7 +434,7 @@ class DropsuiteClientMetricsService
      */
     private function extractListRows(array $payload): array
     {
-        foreach (['data', 'results', 'accounts', 'onedrives'] as $key) {
+        foreach (['result_set', 'data', 'results', 'accounts', 'onedrives', 'users'] as $key) {
             if (isset($payload[$key]) && is_array($payload[$key])) {
                 $rows = $payload[$key];
 
@@ -383,8 +460,13 @@ class DropsuiteClientMetricsService
     private function payloadHasNextPage(array $payload, int $page, int $rowCount): bool
     {
         $pagination = $payload['pagination'] ?? null;
-        if (is_array($pagination) && isset($pagination['next_page']) && filled($pagination['next_page'])) {
-            return true;
+        if (is_array($pagination)) {
+            if (isset($pagination['total_pages']) && (int) $pagination['total_pages'] > $page) {
+                return true;
+            }
+            if (isset($pagination['next_page']) && filled($pagination['next_page'])) {
+                return true;
+            }
         }
 
         // PDF calendars/contacts: max 25 per page — keep paging while full.

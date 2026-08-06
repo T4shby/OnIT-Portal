@@ -408,7 +408,7 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 | Reseller token | `DROPSUITE_RESELLER_TOKEN` | Partner **Reseller Token** (numeric id is normal) |
 | Access / auth token | `DROPSUITE_AUTH_TOKEN` | OpenAPI **Admin Token** (list users / resellers) or **User Token** (mailboxes for that user). UI may call these Authentication / Secret — they are not interchangeable blindly |
 
-**Auth (PDF):** every call sends `X-Reseller-Token` + `X-Access-Token` (and `Authorization: Token …` for older gateways).
+/** Auth (live UK): X-Reseller-Token = Reseller Token (UUID). X-Access-Token = Authentication Token from API Information (Admin — lists `GET /users`). Per-org mailbox list uses each user’s `authentication_token` as User Token for `GET /accounts`. Secret Token is not used for these GETs. **/
 
 **Primary refresh path:** `GET /accounts` (paginated when needed), keep rows whose `user.organization_id` matches the client mapping. Fields used: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`. Optional enrichment: `GET /onedrives` filtered to those emails.
 
@@ -428,16 +428,33 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 
 | Ready on prod (2026-08-06) | Status |
 |---|---|
-| Code + column | Deployed (`52bcac9`+) |
+| Code | Live — users → per-org accounts path |
 | API URL | `https://dropsuite.uk/api` |
-| Reseller token | Set and validated (`GET /api/status` → OK) |
-| Access token (`X-Access-Token`) | **Not working yet for data GETs** — see below |
-| `DROPSUITE_ENABLED` | `false` until access token works |
-| Client org maps | None yet |
+| Reseller Token | UUID from API Information (**not** the short numeric reseller id) |
+| Authentication Token | Admin token (lists users) |
+| `DROPSUITE_ENABLED` | **true** (after successful probe) |
+| Sample probe | org `10879` Reid & Rose: 3 mailboxes; org `5979` On IT NFR: 23 mailboxes |
+| Client map | Client #1 On IT Technology Partners → `5979` (NFR). Other Dropsuite orgs need Admin → Clients mapping |
 
-**Live API check (prod):** With reseller + either UI “Authentication Token” or “Secret Token” as `X-Access-Token`, `GET /api/users` and `GET /api/accounts` return **401 Unauthorized / account not found**. Reseller alone is enough for `GET /api/status`. Browsable OpenAPI is at `https://dropsuite.uk/api/v1/docs` (tags: users, accounts, …). Paths are **`/api/accounts`** (not `/api/v1/accounts` for mailbox list — that path is a different contract needing `user_ids`).
+**Dropsuite organizations seen under On IT reseller (map `dropsuite_organization_id`):**
 
-**What still to get from Dropsuite UI:** the **Admin Token** (for reseller-wide `GET /api/users`) or a **User Token** for a business customer user (for that user’s mailboxes). If only Reseller + Authentication + Secret appear in API Settings, confirm with Dropsuite which value is Admin vs User access token, or regenerate tokens from the admin user account (not only reseller settings).
+| organization_id | Name (API) |
+|---:|---|
+| 5979 | On IT LTD [789e] - NFR |
+| 6182 | YorPower |
+| 6185 | Stelvio Group |
+| 6192 | Forest Care Selection |
+| 6494 | Transfer Brand Solutions |
+| 6504 | SLS Recruitment |
+| 9096 | Urbana Town Planning |
+| 10831 | Premier Fleet Solutions |
+| 10879 | Reid & Rose Accounting |
+| 11223 | Finishing Design Services |
+| 12720 | Northern Property Partners |
+| 13469 | Schneiderfm.co.uk |
+| 14494 | GreenView Project |
+
+Secret Token is not required for current GET users/accounts flow.
 
 
 ## Promoting users

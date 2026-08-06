@@ -8,13 +8,12 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * NinjaOne SaaS Backup (Dropsuite) sub-reseller GET client.
+ * NinjaOne SaaS Backup (Dropsuite) UK/EU partner API.
  *
- * PDF (REST API for subreseller v1.00) requires:
- * - X-Reseller-Token
- * - X-Access-Token
- *
- * Also sends Authorization: Token … for older gateways that still expect it.
+ * Headers:
+ * - X-Reseller-Token = Reseller Token (UUID from API Information)
+ * - X-Access-Token + Authorization: Token … = Authentication Token (Admin) or a
+ *   per-user authentication_token from GET /users (required for GET /accounts)
  *
  * @see Brain/ClientAdminDashboard.md (Dropsuite)
  */
@@ -32,18 +31,23 @@ class DropsuiteApiClient
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
-    public function get(string $path, array $query = [], int $timeoutSeconds = 30): array
-    {
+    public function get(
+        string $path,
+        array $query = [],
+        int $timeoutSeconds = 30,
+        ?string $accessToken = null,
+    ): array {
         if (! $this->isConfigured()) {
             throw new RuntimeException('Dropsuite API is not configured.');
         }
 
-        $token = $this->authToken();
+        $token = $this->normalizeToken($accessToken ?? $this->authToken());
         $response = Http::withHeaders([
             'Authorization' => 'Token '.$token,
             'X-Access-Token' => $token,
             'X-Reseller-Token' => $this->resellerToken(),
             'Accept' => 'application/json',
+            'User-Agent' => 'OnIT-Portal/1.0',
         ])
             ->timeout($timeoutSeconds)
             ->get($this->url($path), $query);
@@ -79,7 +83,12 @@ class DropsuiteApiClient
 
     private function authToken(): string
     {
-        $token = trim((string) config('services.dropsuite.auth_token'));
+        return $this->normalizeToken((string) config('services.dropsuite.auth_token'));
+    }
+
+    private function normalizeToken(string $token): string
+    {
+        $token = trim($token);
 
         if (str_starts_with(strtolower($token), 'token ')) {
             return trim(substr($token, 6));

@@ -29,35 +29,45 @@ class DropsuiteClientMetricsServiceTest extends TestCase
     public function test_refresh_uses_pdf_accounts_endpoint_and_filters_by_organization(): void
     {
         Http::fake([
+            'https://dropsuite.us/api/users*' => Http::response([
+                'result_set' => [
+                    [
+                        'id' => '1',
+                        'email' => 'admin@customer.test',
+                        'organization_id' => 19771,
+                        'organization_name' => 'Customer',
+                        'authentication_token' => 'user-org-token',
+                        'admin' => true,
+                    ],
+                ],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1],
+            ], 200),
             'https://dropsuite.us/api/accounts*' => Http::response([
-                [
-                    'id' => 5238,
-                    'last_backup' => '2023-05-11T06:43:27.040Z',
-                    'email' => 'alexw@twx4l.onmicrosoft.com',
-                    'display_name' => 'Alex',
-                    'errors' => [],
-                    'current_backup_status' => 'Running',
-                    'user' => ['organization_id' => 19771],
+                'result_set' => [
+                    [
+                        'id' => 5238,
+                        'last_backup' => '2023-05-11T06:43:27.040Z',
+                        'email' => 'alexw@twx4l.onmicrosoft.com',
+                        'display_name' => 'Alex',
+                        'errors' => [],
+                        'current_backup_status' => 'Running',
+                        'user' => ['organization_id' => 19771],
+                    ],
+                    [
+                        'id' => 5240,
+                        'last_backup' => null,
+                        'email' => 'broken@twx4l.onmicrosoft.com',
+                        'errors' => ['host' => 'timeout'],
+                        'current_backup_status' => 'Preparing Backup',
+                        'user' => ['organization_id' => 19771],
+                    ],
                 ],
-                [
-                    'id' => 5239,
-                    'last_backup' => '2023-05-10T06:43:27.040Z',
-                    'email' => 'other@elsewhere.com',
-                    'errors' => ['host' => 'timeout'],
-                    'current_backup_status' => 'Failed',
-                    'user' => ['organization_id' => 99999],
-                ],
-                [
-                    'id' => 5240,
-                    'last_backup' => null,
-                    'email' => 'broken@twx4l.onmicrosoft.com',
-                    'errors' => ['host' => 'timeout'],
-                    'current_backup_status' => 'Preparing Backup',
-                    'user' => ['organization_id' => 19771],
-                ],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1, 'total_entries' => 2],
             ], 200),
             'https://dropsuite.us/api/onedrives*' => Http::response([
-                ['email' => 'alexw@twx4l.onmicrosoft.com'],
+                'result_set' => [
+                    ['email' => 'alexw@twx4l.onmicrosoft.com'],
+                ],
             ], 200),
         ]);
 
@@ -74,9 +84,13 @@ class DropsuiteClientMetricsServiceTest extends TestCase
         $this->assertCount(2, $summary->accounts);
 
         Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/accounts')
+            return str_contains($request->url(), '/users')
                 && $request->hasHeader('X-Access-Token', 'auth-test-token')
                 && $request->hasHeader('X-Reseller-Token', 'reseller-test-token');
+        });
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/accounts')
+                && $request->hasHeader('X-Access-Token', 'user-org-token');
         });
     }
 
