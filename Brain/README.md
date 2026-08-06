@@ -78,7 +78,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-06 | SuperOps dashboard stuck “Getting old”: GraphQL `requester`/`client` are leaf JSON — no sub-selection; decode in PHP; fix live on prod — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
+| 2026-08-06 | Production deploy is **GitHub → Plesk bare mirror (`laravel_af3fd1`) → `app.onit.ltd`**, branch **main**; no scp/hotfile bypass; SSH fetch+archive recipe + alignment checks — [Deployment.md](Deployment.md#updating-the-application) |
+| 2026-08-06 | SuperOps dashboard stuck “Getting old”: GraphQL `requester`/`client` are leaf JSON — no sub-selection; decode in PHP — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-08-06 | Dropsuite prod: code `52bcac9` live; env scaffold disabled; tokens + client org maps still required for enable — [ClientAdminDashboard.md](ClientAdminDashboard.md#dropsuite--ninjaone-saas-backup) |
 | 2026-08-06 | Visibility: Technician Admin (all customers) ≠ Client Admin (own customer only) ≠ requester personal — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Dropsuite aligned to sub-reseller PDF (`GET /accounts`); Client Admin org backups vs requester last-run only — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

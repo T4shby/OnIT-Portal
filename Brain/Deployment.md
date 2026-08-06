@@ -50,16 +50,33 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 
 ### 4. Deploy Application Code
 
-**Option A: Git (recommended)**
+**Production uses GitHub + Plesk Git + (optional) Laravel Toolkit.** Do **not** treat “no `.git` in the live path” as “the server has no GitHub”.
 
-1. Enable Git extension in Plesk
-2. Clone repository to `/app.onit.ltd`
-3. Set deployment branch to `main`
+| Piece | Location / value |
+|---|---|
+| GitHub remote | `git@github.com:T4shby/OnIT-Portal.git` |
+| Plesk Git bare mirror | `/var/www/vhosts/onit.ltd/git/laravel_af3fd1` |
+| Live site (deploy path) | `/var/www/vhosts/onit.ltd/app.onit.ltd` — **no** `.git` (Plesk copies files here) |
+| Subscription deploy key | `/var/www/vhosts/onit.ltd/.ssh/id_rsa` (wired to GitHub for this vhost) |
+| Branch | **`main` only** for production |
 
-**Option B: SFTP**
+**Correct pipeline (always):**
 
-1. Upload all files to `/app.onit.ltd` via SFTP
+```text
+Laptop → git push origin main → GitHub
+       → Plesk Git pull (bare mirror) → deploy into app.onit.ltd
+       → post-deploy artisan block (below)
+```
+
+**Plesk UI:** Domains → **app.onit.ltd** → **Git** (repo `laravel_af3fd1`) → branch **main** → **Pull Updates** → **Deploy**.
+
+**Wrong / emergency-only:** `scp` or unzip straight into `app.onit.ltd` without updating the Plesk bare mirror. That made code “live but not on GitHub” and “live without a Plesk deploy record” — avoid it. Hotfix only if GitHub is unreachable; then still push and re-deploy via Plesk path the same day.
+
+**Option B: SFTP (bootstrap only)**
+
+1. Upload all files to `app.onit.ltd` via SFTP **once** if Git is not yet wired
 2. Ensure `.env` is configured on server (never commit `.env`)
+3. Move to GitHub + Plesk Git as soon as possible
 
 ### 5. Install Dependencies
 
@@ -317,7 +334,61 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 
 ## Updating the Application
 
-After **every** deploy (Plesk Git pull or manual), run **all** of these over SSH — not just `git pull`.
+### Authoritative production layout (app.onit.ltd)
+
+| Role | Path |
+|---|---|
+| GitHub remote | `git@github.com:T4shby/OnIT-Portal.git` |
+| Plesk bare mirror | `/var/www/vhosts/onit.ltd/git/laravel_af3fd1` (repo name in Plesk: **laravel_af3fd1**) |
+| Live Laravel tree | `/var/www/vhosts/onit.ltd/app.onit.ltd` — **no** `.git` |
+| Deploy key / known_hosts | `/var/www/vhosts/onit.ltd/.ssh/id_rsa`, `…/git_known_hosts` |
+| Site owner | `onit.ltd_1hfwweogk0mj:psaserv` (critical after extract) |
+| Plesk Git DB | `/opt/psa/var/modules/git/git_db.db` (`Repositories.branch` must be **`main`**) |
+| Deploy markers | Bare: `DEPLOYED_SHA` / `DEPLOYED_SHA_FULL`; live: `.deployed-commit` |
+
+**Normal release path:** push `main` on GitHub → **Plesk UI Pull + Deploy**, *or* SSH pipeline below → then **post-deploy artisan block**.
+
+Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding` — wrong for live).
+
+### SSH: pull GitHub + deploy via Plesk bare mirror
+
+Use this when automating or when the Plesk UI is awkward. Matches what Plesk does: update the bare repo from GitHub, then export tracked files into the live path (`.env` stays untracked).
+
+```bash
+GIT_DIR=/var/www/vhosts/onit.ltd/git/laravel_af3fd1
+APP=/var/www/vhosts/onit.ltd/app.onit.ltd
+VHOST_USER=onit.ltd_1hfwweogk0mj
+OWNER=onit.ltd_1hfwweogk0mj:psaserv
+export HOME=/var/www/vhosts/onit.ltd
+export GIT_SSH_COMMAND='ssh -i /var/www/vhosts/onit.ltd/.ssh/id_rsa -o UserKnownHostsFile=/var/www/vhosts/onit.ltd/.ssh/git_known_hosts -o StrictHostKeyChecking=yes'
+
+# 1) Fetch all branches into the bare mirror (needs vhost deploy key on GitHub)
+sudo -u "$VHOST_USER" env HOME="$HOME" GIT_SSH_COMMAND="$GIT_SSH_COMMAND" \
+  git --git-dir="$GIT_DIR" fetch origin
+
+git --git-dir="$GIT_DIR" rev-parse --short main   # confirm expected SHA
+
+# 2) Export main into live site (does not overwrite .env)
+sudo -u "$VHOST_USER" git --git-dir="$GIT_DIR" archive main | tar -x -C "$APP"
+chown -R "$OWNER" "$APP/app" "$APP/Brain" "$APP/bootstrap" "$APP/config" \
+  "$APP/database" "$APP/public" "$APP/resources" "$APP/routes" || true
+
+# 3) Record deployed SHA
+SHORT=$(git --git-dir="$GIT_DIR" rev-parse --short main)
+FULL=$(git --git-dir="$GIT_DIR" rev-parse main)
+echo "$SHORT" | tee "$GIT_DIR/DEPLOYED_SHA" "$APP/.deployed-commit"
+echo "$FULL" > "$GIT_DIR/DEPLOYED_SHA_FULL"
+chown "$OWNER" "$APP/.deployed-commit"
+
+# 4) Keep Plesk UI in sync (branch + last deploy) — optional but recommended
+sqlite3 /opt/psa/var/modules/git/git_db.db \
+  "UPDATE Repositories SET branch='main' WHERE name='laravel_af3fd1';"
+# Update RepositoryDeploymentInfo hashes/message from `git log -1 main` if you care about UI accuracy
+
+# 5) Post-deploy artisan block (next section)
+```
+
+After **every** deploy, run **all** of the artisan steps below — not “just fetch”.
 
 **Plesk PHP:** `php` is not on the root shell `PATH`. List installed versions and use the one set on the domain (Plesk → Domains → **app.onit.ltd** → **PHP Settings** — must be **8.2+** for Laravel 11):
 
@@ -327,7 +398,7 @@ PHP=/opt/plesk/php/8.3/bin/php    # example — use 8.2 or 8.3, not 8.1
 $PHP -v
 ```
 
-**Plesk Git deploy:** The live site path (`/var/www/vhosts/onit.ltd/app.onit.ltd`) often has **no `.git` folder** — Plesk copies files from a separate clone. Use **Plesk → Git → Pull/Deploy** for code updates; SSH `git pull` only works if `.git` exists in that directory.
+### Post-deploy artisan block (always)
 
 **Copy-paste block (run after every Plesk Git pull/deploy):**
 
@@ -367,9 +438,16 @@ php artisan optimize
 
 > **Why `rm -f public/hot`?** A leftover Vite dev file makes production load CSS from `localhost:5173` — unstyled pages. See [CSS not loading](#css-not-loading-unstyled-html).
 
-If `.git` exists in the app directory you can `git pull origin main` before the block; on typical Plesk deploys use **Plesk → Git → Pull/Deploy** instead (no `.git` in the live path).
-
 `php artisan portal:purge-demo-data --force` is safe to re-run on older installs; skip if you have already cleaned demo data.
+
+### Verify deploy alignment
+
+| Check | Expect |
+|---|---|
+| GitHub `main` | tip SHA (e.g. `bd15207`) |
+| `git --git-dir=…/laravel_af3fd1 rev-parse --short main` | same SHA |
+| `cat app.onit.ltd/.deployed-commit` | same short SHA |
+| SuperOps GraphQL fix present | `normalizeJsonObject` in `SuperOpsClientMetricsService.php` |
 
 ### Pax8 first deploy
 
