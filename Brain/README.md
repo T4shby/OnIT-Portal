@@ -78,7 +78,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-06 | Product entitlements: sold vs mapped per client (SuperOps/M365/Huntress/Dropsuite/Pax8); Admin Products UI + matrix chips; CA contact AM only when setup needed; requesters only see live products; Huntress/Dropsuite feature branch retired on main — [ClientAdminDashboard.md](ClientAdminDashboard.md), [DatabaseSchema.md](DatabaseSchema.md) |
+| 2026-08-06 | Product catalog: **service** vs modular **licence_vendor** (Pax8 = licences via reseller, not “sold product”); Admin products/Lic chips + form partials — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-06 | Product entitlements: sold vs mapped per client; CA contact AM when setup needed; Huntress/Dropsuite branch retired — [ClientAdminDashboard.md](ClientAdminDashboard.md), [DatabaseSchema.md](DatabaseSchema.md) |
 | 2026-08-06 | Unlinked integrations (superseded by entitlements): Client Admin “contact AM”; requesters hide unmapped — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Production deploy is **GitHub → Plesk bare mirror (`laravel_af3fd1`) → `app.onit.ltd`**, branch **main** — [Deployment.md](Deployment.md#updating-the-application) |
 | 2026-08-06 | SuperOps dashboard stuck “Getting old”: GraphQL `requester`/`client` are leaf JSON — no sub-selection; decode in PHP — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |

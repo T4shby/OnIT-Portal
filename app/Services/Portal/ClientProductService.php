@@ -8,13 +8,23 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Single policy for sold (entitled) vs mapped vs live portal products per client.
+ * Single policy for portal product entitlements and modular licence vendors.
  *
- * Product keys: superops, m365, huntress, dropsuite, pax8.
+ * Catalog kinds:
+ * - service: products On IT sells to the client (SuperOps, M365, Huntress, Dropsuite…)
+ * - licence_vendor: who they buy Microsoft/cloud licences through (Pax8 now; add more later)
+ *
  * Feed keys m365_directory / m365_insights map to m365.
+ *
+ * To add another licence vendor later: append to KEYS + catalog() + isMapped/isPlatformReady
+ * + a blade partial under resources/views/admin/clients/products/.
  */
 class ClientProductService
 {
+    public const KIND_SERVICE = 'service';
+
+    public const KIND_LICENCE_VENDOR = 'licence_vendor';
+
     public const KEY_SUPEROPS = 'superops';
 
     public const KEY_M365 = 'm365';
@@ -45,37 +55,100 @@ class ClientProductService
     public const STATUS_ERROR = 'error';
 
     /**
-     * @return array<string, array{label: string, short: string, mapping_hint: string}>
+     * Full modular catalog (services + licence vendors).
+     *
+     * @return array<string, array{
+     *   kind: string,
+     *   label: string,
+     *   short: string,
+     *   mapping_hint: string,
+     *   toggle_label: string,
+     *   form_partial: string
+     * }>
      */
     public function catalog(): array
     {
         return [
             self::KEY_SUPEROPS => [
+                'kind' => self::KIND_SERVICE,
                 'label' => 'Devices & tickets (SuperOps)',
                 'short' => 'S',
                 'mapping_hint' => 'Paste SuperOps Account ID from the MSP console for this client.',
+                'toggle_label' => 'Sold to this client',
+                'form_partial' => 'admin.clients.products._superops',
             ],
             self::KEY_M365 => [
+                'kind' => self::KIND_SERVICE,
                 'label' => 'Microsoft 365',
                 'short' => 'M',
-                'mapping_hint' => 'Paste Entra tenant ID when Graph consent is ready.',
+                'mapping_hint' => 'Portal directory and licence insight when Entra tenant is linked (fields below / Connect).',
+                'toggle_label' => 'Sold to this client',
+                'form_partial' => 'admin.clients.products._m365',
             ],
             self::KEY_HUNTRESS => [
+                'kind' => self::KIND_SERVICE,
                 'label' => 'Security (Huntress)',
                 'short' => 'H',
                 'mapping_hint' => 'Paste Huntress organization ID (numeric org id from Huntress URL).',
+                'toggle_label' => 'Sold to this client',
+                'form_partial' => 'admin.clients.products._huntress',
             ],
             self::KEY_DROPSUITE => [
+                'kind' => self::KIND_SERVICE,
                 'label' => 'Backups (Dropsuite)',
                 'short' => 'D',
                 'mapping_hint' => 'Paste Dropsuite organization ID from the sub-reseller portal.',
+                'toggle_label' => 'Sold to this client',
+                'form_partial' => 'admin.clients.products._dropsuite',
             ],
+            // Licence vendors — not MSP “products”; where the client buys cloud licences.
             self::KEY_PAX8 => [
+                'kind' => self::KIND_LICENCE_VENDOR,
                 'label' => 'Pax8',
                 'short' => 'P',
-                'mapping_hint' => 'Paste Pax8 company ID and enable Pax8 access for this client.',
+                'mapping_hint' => 'Assign when this client’s Microsoft / cloud licences are purchased via Pax8. Paste company ID and enable portal access.',
+                'toggle_label' => 'Licences via this vendor',
+                'form_partial' => 'admin.clients.products._pax8',
             ],
+            // Future: e.g. KEY_LEGACY_VENDOR => [ 'kind' => KIND_LICENCE_VENDOR, … ]
         ];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function serviceCatalog(): array
+    {
+        return array_filter(
+            $this->catalog(),
+            static fn (array $meta): bool => ($meta['kind'] ?? self::KIND_SERVICE) === self::KIND_SERVICE,
+        );
+    }
+
+    /**
+     * Modular licence / marketplace vendors (Pax8 today; more later).
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function licenceVendorCatalog(): array
+    {
+        return array_filter(
+            $this->catalog(),
+            static fn (array $meta): bool => ($meta['kind'] ?? '') === self::KIND_LICENCE_VENDOR,
+        );
+    }
+
+    public function kind(string $key): string
+    {
+        $key = $this->normalizeKey($key);
+        $catalog = $this->catalog();
+
+        return (string) ($catalog[$key]['kind'] ?? self::KIND_SERVICE);
+    }
+
+    public function isLicenceVendor(string $key): bool
+    {
+        return $this->kind($key) === self::KIND_LICENCE_VENDOR;
     }
 
     public function normalizeKey(string $key): string
@@ -176,6 +249,11 @@ class ClientProductService
     {
         $key = $this->normalizeKey($key);
 
+        // Licence vendors are assignment only — not dashboard feed prewarm.
+        if ($this->isLicenceVendor($key)) {
+            return false;
+        }
+
         return $this->isEntitled($client, $key)
             && $this->isMapped($client, $key)
             && $this->isPlatformReady($key);
@@ -185,10 +263,15 @@ class ClientProductService
      * Client Admin: show product surface when entitled.
      * Requester/billing: only when live.
      * Technician: always (ops diagnostics).
+     * Licence vendors are staff/tracking only (not system-health tiles).
      */
     public function shouldShowForViewer(Client $client, string $key, ?User $viewer): bool
     {
         $key = $this->normalizeKey($key);
+
+        if ($this->isLicenceVendor($key)) {
+            return false;
+        }
 
         if ($viewer === null || $viewer->isTeamMember()) {
             return true;
@@ -198,7 +281,6 @@ class ClientProductService
             return $this->isEntitled($client, $key);
         }
 
-        // Requester / billing: product must be live (sold + mapped + platform).
         return $this->isLive($client, $key);
     }
 
@@ -207,17 +289,23 @@ class ClientProductService
      */
     public function needsAccountManagerHelp(Client $client, string $key): bool
     {
+        if ($this->isLicenceVendor($key)) {
+            return false;
+        }
+
         $status = $this->status($client, $key);
 
         return in_array($status, [self::STATUS_SETUP_NEEDED, self::STATUS_PLATFORM_DOWN, self::STATUS_ERROR], true);
     }
 
-    public function statusLabel(string $status): string
+    public function statusLabel(string $status, ?string $key = null): string
     {
+        $vendor = $key !== null && $this->isLicenceVendor($key);
+
         return match ($status) {
-            self::STATUS_NOT_SOLD => 'Not sold',
-            self::STATUS_SETUP_NEEDED => 'Setup needed',
-            self::STATUS_LIVE => 'Live',
+            self::STATUS_NOT_SOLD => $vendor ? 'Not assigned' : 'Not sold',
+            self::STATUS_SETUP_NEEDED => $vendor ? 'Link needed' : 'Setup needed',
+            self::STATUS_LIVE => $vendor ? 'Assigned' : 'Live',
             self::STATUS_PLATFORM_DOWN => 'Platform down',
             self::STATUS_ERROR => 'Error',
             default => $status,
@@ -238,7 +326,7 @@ class ClientProductService
     /**
      * Matrix for Admin → Clients list chips.
      *
-     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string}>
+     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
      */
     public function matrixForClient(Client $client): array
     {
@@ -246,14 +334,18 @@ class ClientProductService
         $rows = [];
 
         foreach (self::KEYS as $key) {
+            if (! isset($catalog[$key])) {
+                continue;
+            }
             $status = $this->status($client, $key);
             $rows[] = [
                 'key' => $key,
                 'short' => $catalog[$key]['short'],
                 'label' => $catalog[$key]['label'],
+                'kind' => $catalog[$key]['kind'],
                 'status' => $status,
                 'colour' => $this->statusColour($status),
-                'status_label' => $this->statusLabel($status),
+                'status_label' => $this->statusLabel($status, $key),
             ];
         }
 
@@ -261,7 +353,29 @@ class ClientProductService
     }
 
     /**
-     * Merge sold toggles from request into the client's entitlements JSON.
+     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
+     */
+    public function serviceMatrixForClient(Client $client): array
+    {
+        return array_values(array_filter(
+            $this->matrixForClient($client),
+            static fn (array $row): bool => $row['kind'] === self::KIND_SERVICE,
+        ));
+    }
+
+    /**
+     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
+     */
+    public function licenceVendorMatrixForClient(Client $client): array
+    {
+        return array_values(array_filter(
+            $this->matrixForClient($client),
+            static fn (array $row): bool => $row['kind'] === self::KIND_LICENCE_VENDOR,
+        ));
+    }
+
+    /**
+     * Merge sold / vendor-assigned toggles from request into the client's entitlements JSON.
      *
      * @param  array<string, bool>  $entitledByKey
      */
@@ -296,7 +410,7 @@ class ClientProductService
 
     /**
      * Ensure mapped products are marked entitled when entitlements never set for that key.
-     * Does not override an explicit “not sold” (entitled=false).
+     * Does not override an explicit “not sold / not assigned” (entitled=false).
      */
     public function syncEntitlementsFromMappings(Client $client): void
     {

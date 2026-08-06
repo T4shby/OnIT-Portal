@@ -4,17 +4,25 @@
         'action' => '<a href="'.route('admin.clients.create').'" class="cta-btn text-sm px-6 py-3">Add Client</a>'
     ])
 
-    <p class="portal-body-muted text-xs mb-4 leading-relaxed">
-        Products chips: S SuperOps · M Microsoft 365 · H Huntress · D Dropsuite · P Pax8 —
-        grey not sold · amber setup needed · green live · red platform/error.
-    </p>
+    <div class="mb-4 space-y-1">
+        <p class="portal-body-muted text-xs leading-relaxed">
+            <span class="text-white/60">Products</span>
+            S SuperOps · M Microsoft 365 · H Huntress · D Dropsuite —
+            grey not sold · amber setup needed · green live · red error.
+        </p>
+        <p class="portal-body-muted text-xs leading-relaxed">
+            <span class="text-white/60">Lic</span>
+            Licence vendor (P now = Pax8) — grey not assigned · amber link needed · green assigned.
+            Not an On IT product; where they buy cloud licences. More vendors can be added modularly.
+        </p>
+    </div>
 
     <div class="admin-table-wrap">
         <table class="min-w-full">
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Products</th>
+                    <th>Products / Lic</th>
                     <th>Users</th>
                     <th>Setup</th>
                     <th>Entra sync</th>

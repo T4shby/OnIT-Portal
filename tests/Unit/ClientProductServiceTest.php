@@ -65,4 +65,21 @@ class ClientProductServiceTest extends TestCase
         $client->refresh();
         $this->assertFalse($svc->isEntitled($client, 'huntress'));
     }
+
+    public function test_pax8_is_licence_vendor_not_service(): void
+    {
+        $svc = app(ClientProductService::class);
+
+        $this->assertTrue($svc->isLicenceVendor('pax8'));
+        $this->assertFalse($svc->isLicenceVendor('superops'));
+        $this->assertArrayHasKey('pax8', $svc->licenceVendorCatalog());
+        $this->assertArrayNotHasKey('pax8', $svc->serviceCatalog());
+
+        $client = Client::factory()->create([
+            'product_entitlements' => ['pax8' => ['entitled' => false]],
+        ]);
+        $this->assertSame('Not assigned', $svc->statusLabel($svc->status($client, 'pax8'), 'pax8'));
+        $this->assertFalse($svc->shouldRefresh($client, 'pax8'));
+        $this->assertFalse($svc->shouldShowForViewer($client, 'pax8', null));
+    }
 }

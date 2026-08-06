@@ -168,9 +168,16 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 | Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Raw unavailable reasons; age / requeue notes; Integration Health. |
 | Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING**, Not sold / Setup needed; queue depths. |
 
-## Product entitlements (sold vs mapped)
+## Product entitlements (sold services vs licence vendors)
 
 Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_entitlements` JSON.
+
+**Two catalog kinds** (modular):
+
+| Kind | Meaning | Keys today | Client Admin tiles |
+|------|---------|------------|--------------------|
+| `service` | On IT sells this product to the client | `superops`, `m365`, `huntress`, `dropsuite` | When **entitled**; contact AM if setup needed |
+| `licence_vendor` | Where they buy Microsoft / cloud **licences** | `pax8` (more vendors later) | Not system-health tiles — staff assignment + Pax8 launch only |
 
 | Key | Label | Mapping fields |
 |-----|--------|----------------|
@@ -178,13 +185,16 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 | `m365` | Microsoft 365 | `entra_tenant_id` |
 | `huntress` | Security | `huntress_organization_id` |
 | `dropsuite` | Backups | `dropsuite_organization_id` |
-| `pax8` | Pax8 | `pax8_company_id` + `pax8_sso_enabled` |
+| `pax8` | Pax8 (licence vendor) | `pax8_company_id` + `pax8_sso_enabled` |
 
-Statuses: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.
+Status codes: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.  
+Labels differ by kind (e.g. vendor: “Not assigned” / “Assigned” instead of “Not sold” / “Live”).
 
-**Admin UX:** Clients list product chips (S/M/H/D/P). Client edit **Products** section: toggle sold + paste IDs. Onboarding adds Huntress/Dropsuite map steps only when that product is entitled.
+**Admin UX:** Clients list = product chips + **Lic** vendor chips. Client edit = **Portal products** section + **Licence vendor** section. Form fields live in `resources/views/admin/clients/products/_*.blade.php` (one partial per key — add another partial + catalog row for a new vendor).
 
-**Single rule:** tiles, gates, prewarm, Integration Health use `isEntitled` / `isMapped` / `shouldRefresh` — never orphan “ID filled but not sold” refreshes for not-sold products.
+**Adding a future licence vendor:** (1) key in `KEYS`, (2) catalog entry `kind => licence_vendor`, (3) `isMapped` / `isPlatformReady`, (4) blade `products/_newvendor.blade.php`.
+
+**Single rule:** tiles, gates, prewarm, Integration Health use `isEntitled` / `isMapped` / `shouldRefresh` for **services**. Vendors never prewarm dashboard feeds.
 
 Migration backfill: existing filled IDs → entitled true.
 
