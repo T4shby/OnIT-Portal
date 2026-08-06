@@ -63,9 +63,14 @@ class AuthServiceProvider extends ServiceProvider
                 return false;
             }
 
-            return filled($user->client?->entra_tenant_id)
-                && filled(config('services.entra_sync.client_id'))
-                && filled(config('services.entra_sync.client_secret'));
+            $client = $user->client;
+            if ($client === null) {
+                return false;
+            }
+
+            $products = app(\App\Services\Portal\ClientProductService::class);
+
+            return $products->shouldRefresh($client, 'm365');
         });
 
         Gate::define('view-huntress-security', function (User $user) {
@@ -78,10 +83,7 @@ class AuthServiceProvider extends ServiceProvider
                 return false;
             }
 
-            return filled($client->huntress_organization_id)
-                && (bool) config('services.huntress.enabled')
-                && filled(config('services.huntress.api_key'))
-                && filled(config('services.huntress.api_secret'));
+            return app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'huntress');
         });
 
         Gate::define('access-client-billing', function (User $user) {

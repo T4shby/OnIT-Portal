@@ -48,6 +48,10 @@ class DropsuiteClientMetricsService
         bool $manualRefresh = false,
         ?User $viewer = null,
     ): DropsuiteClientBackupSummary {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'dropsuite')) {
+            return $this->unavailableSummary('Dropsuite is not sold for this organisation.');
+        }
+
         if (! $this->isAvailable()) {
             return $this->unavailableSummary('Dropsuite API is not configured.');
         }
@@ -91,7 +95,7 @@ class DropsuiteClientMetricsService
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
     {
-        if (empty($client->dropsuite_organization_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'dropsuite')) {
             return false;
         }
 
@@ -117,7 +121,7 @@ class DropsuiteClientMetricsService
 
     public function needsBackgroundRefresh(Client $client): bool
     {
-        if (empty($client->dropsuite_organization_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'dropsuite')) {
             return false;
         }
 

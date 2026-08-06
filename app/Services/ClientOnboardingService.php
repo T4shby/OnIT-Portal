@@ -122,7 +122,7 @@ class ClientOnboardingService
 
         $connectWhere = 'This checklist → orange Connect Microsoft tenant (private browser / GDAP)';
 
-        return [
+        $steps = [
             $this->withManual([
                 'key' => 'superops_linked',
                 'title' => 'Link SuperOps client',
@@ -222,6 +222,89 @@ class ClientOnboardingService
                 verify: [
                     'Pax8 unused = Done, or Pax8 Company ID is saved.',
                 ],
+            )),
+
+            // Inserted product setup steps only when sold (entitled) — see filter after build.
+            $this->withManual([
+                'key' => 'huntress_linked',
+                'title' => 'Link Huntress (when sold)',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
+                'complete' => filled($client->huntress_organization_id),
+                'manual' => false,
+                'auto_detected' => filled($client->huntress_organization_id),
+                'blocked' => false,
+                'product_key' => 'huntress',
+            ], OnboardingManual::build(
+                automated: filled($client->huntress_organization_id)
+                    ? ['**Huntress Organization ID** saved — step Done.']
+                    : ['Sold for this client: paste Huntress org ID on the Products section → Save.'],
+                notes: filled($client->huntress_organization_id)
+                    ? ['Nothing left unless the wrong Huntress org was linked.']
+                    : ['Remaining: Products → Huntress sold on → paste Organization ID → Save client.'],
+                sections: filled($client->huntress_organization_id)
+                    ? []
+                    : [
+                        OnboardingManual::section(
+                            'Remaining: map Huntress org',
+                            'Huntress partner console · portal Products',
+                            [
+                                'Huntress → open customer organisation → numeric org id in the URL.',
+                                'Portal left → Products → ensure Huntress sold → **Organization ID** → Save client.',
+                            ],
+                        ),
+                    ],
+                recovery: [
+                    OnboardingManual::section(
+                        'Wrong org or API error',
+                        'Huntress console · Integration Health',
+                        [
+                            'Confirm org id matches this customer.',
+                            'Fix API keys on On IT if Integration Health says platform down.',
+                        ],
+                    ),
+                ],
+                verify: ['Huntress Organization ID saved; Integration Health green when platform ready.'],
+            )),
+
+            $this->withManual([
+                'key' => 'dropsuite_linked',
+                'title' => 'Link Dropsuite (when sold)',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
+                'complete' => filled($client->dropsuite_organization_id),
+                'manual' => false,
+                'auto_detected' => filled($client->dropsuite_organization_id),
+                'blocked' => false,
+                'product_key' => 'dropsuite',
+            ], OnboardingManual::build(
+                automated: filled($client->dropsuite_organization_id)
+                    ? ['**Dropsuite Organization ID** saved — step Done.']
+                    : ['Sold for this client: paste Dropsuite org ID on the Products section → Save.'],
+                notes: filled($client->dropsuite_organization_id)
+                    ? ['Nothing left unless the wrong Dropsuite org was linked.']
+                    : ['Remaining: Products → Dropsuite sold on → paste Organization ID → Save client.'],
+                sections: filled($client->dropsuite_organization_id)
+                    ? []
+                    : [
+                        OnboardingManual::section(
+                            'Remaining: map Dropsuite org',
+                            'Dropsuite sub-reseller · portal Products',
+                            [
+                                'Dropsuite UK → organisation list → organization id for this customer.',
+                                'Portal left → Products → ensure Dropsuite sold → **Organization ID** → Save client.',
+                            ],
+                        ),
+                    ],
+                recovery: [
+                    OnboardingManual::section(
+                        'Wrong org or empty mailboxes',
+                        'Dropsuite · Integration Health',
+                        [
+                            'Confirm org id under On IT reseller.',
+                            'Check DROPSUITE_* tokens if Integration Health says not configured.',
+                        ],
+                    ),
+                ],
+                verify: ['Dropsuite Organization ID saved; backup tile live when platform ready.'],
             )),
 
             $this->withManual([
@@ -658,6 +741,20 @@ class ClientOnboardingService
                 ],
             )),
         ];
+
+        $products = app(\App\Services\Portal\ClientProductService::class);
+
+        return array_values(array_filter(
+            $steps,
+            static function (array $step) use ($client, $products): bool {
+                $key = $step['product_key'] ?? null;
+                if ($key === null) {
+                    return true;
+                }
+
+                return $products->isEntitled($client, (string) $key);
+            },
+        ));
     }
 
     /**

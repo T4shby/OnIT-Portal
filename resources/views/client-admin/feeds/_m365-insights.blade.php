@@ -1,8 +1,14 @@
 {{-- M365 licences tile — DashboardFeed key: m365_insights --}}
-@php($m = $m365Insights)
+@php
+    $m = $m365Insights;
+    $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
+    $products = app(\App\Services\Portal\ClientProductService::class);
+    $needsAm = $products->needsAccountManagerHelp($client, 'm365');
+    $mapped = $products->isMapped($client, 'm365');
+@endphp
 <x-card>
     <div class="flex items-start justify-between gap-3">
-        <div>
+        <div class="min-w-0 flex-1">
             <p class="portal-label mb-2">Microsoft 365</p>
             @if($m->hasData())
                 <p class="text-4xl font-condensed font-bold text-onit">
@@ -14,18 +20,19 @@
                         / {{ number_format($m->licensedUserCount) }} users
                     @endif
                 </p>
+            @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
+                <p class="text-sm portal-body-muted mt-2 leading-relaxed">Licence figures are not available yet.</p>
             @else
-                <p class="text-sm portal-body-muted mt-2">
-                    @if($viewerIsTechnician ?? false)
-                        {{ $m->unavailableReason ?? 'Not available yet.' }}
-                    @else
-                        Licence figures are not available yet.
-                    @endif
-                </p>
+                @include('client-admin.feeds._unavailable', [
+                    'viewerIsTechnician' => $viewerIsTechnician,
+                    'unavailableReason' => $m->unavailableReason ?? 'Microsoft 365 is not connected for this organisation.',
+                    'pendingLabel' => 'Licence figures',
+                    'needsAccountManager' => $needsAm || ! $mapped,
+                ])
             @endif
         </div>
         @can('view-m365-directory')
-            <a href="{{ route('microsoft-365.directory') }}" class="text-onit hover:text-white text-lg leading-none" title="Microsoft 365 directory">&rarr;</a>
+            <a href="{{ route('microsoft-365.directory') }}" class="text-onit hover:text-white text-lg leading-none shrink-0" title="Microsoft 365 directory">&rarr;</a>
         @endcan
     </div>
 </x-card>

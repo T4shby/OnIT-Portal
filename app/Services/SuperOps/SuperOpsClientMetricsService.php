@@ -67,6 +67,10 @@ class SuperOpsClientMetricsService
 
     public function summaryForClient(Client $client, bool $manualRefresh = false, ?\App\Models\User $viewer = null): ClientOperationsSummary
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'superops')) {
+            return $this->unavailableSummary('SuperOps is not sold for this organisation.');
+        }
+
         if (! $this->isAvailable()) {
             return $this->unavailableSummary('SuperOps API is not configured.');
         }
@@ -193,7 +197,7 @@ class SuperOpsClientMetricsService
      */
     public function hasStoredSummary(Client $client): bool
     {
-        if (empty($client->superops_account_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'superops')) {
             return false;
         }
 
@@ -205,7 +209,7 @@ class SuperOpsClientMetricsService
      */
     public function needsColdPrewarm(Client $client): bool
     {
-        if (empty($client->superops_account_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'superops')) {
             return false;
         }
 
@@ -244,7 +248,7 @@ class SuperOpsClientMetricsService
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
     {
-        if (empty($client->superops_account_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'superops')) {
             return false;
         }
 

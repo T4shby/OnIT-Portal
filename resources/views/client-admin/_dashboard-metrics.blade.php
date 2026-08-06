@@ -40,19 +40,36 @@
             @foreach(($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed)
                 @php
                     $orgWide = $organisationWide ?? true;
-                    // Licence fleet is Client Admin only; Dropsuite shows personal last-run for requesters.
-                    $skip = ! $orgWide && $feed->key() === 'm365_insights';
+                    $feedKey = $feed->key();
+                    $products = app(\App\Services\Portal\ClientProductService::class);
+                    $viewer = auth()->user();
+                    $skip = false;
+                    // Licence fleet is Client Admin / org-wide only.
+                    if (! $orgWide && $feedKey === 'm365_insights') {
+                        $skip = true;
+                    } elseif (! $products->shouldShowForViewer($client, $feedKey, $viewer)) {
+                        // Not sold (CA) or not live (requester)
+                        $skip = true;
+                    }
                 @endphp
                 @continue($skip)
                 @include($feed->overviewPartial(), [
                     'viewerIsTechnician' => $viewerIsTechnician,
                     'organisationWide' => $orgWide,
+                    'client' => $client,
                 ])
             @endforeach
         </div>
     </section>
 
-    {{-- Support & SLA --}}
+    {{-- Support & SLA (SuperOps). Hide when SuperOps not sold / not live for viewer. --}}
+    @php
+        $products = app(\App\Services\Portal\ClientProductService::class);
+        $showSupport = $products->shouldShowForViewer($client, 'superops', auth()->user());
+        $superOpsStatus = $products->status($client, 'superops');
+        $superOpsNeedsAm = $products->needsAccountManagerHelp($client, 'superops');
+    @endphp
+    @if($showSupport)
     <section class="mb-8">
         <div class="flex items-center justify-between gap-4 mb-6">
             <h2 class="portal-label">Support &amp; SLA</h2>
@@ -61,6 +78,13 @@
             @endif
         </div>
 
+        @if(! $summary->hasData() && $superOpsNeedsAm && ! $viewerIsTechnician)
+            <x-card>
+                <p class="text-sm portal-body-muted leading-relaxed">
+                    Please contact your account manager to get this sorted.
+                </p>
+            </x-card>
+        @else
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <x-card>
                 <p class="portal-label mb-2">Open tickets</p>
@@ -159,7 +183,9 @@
                 </div>
             </x-card>
         @endif
+        @endif
     </section>
+    @endif
 
     {{-- M365 detail --}}
     @if($m365Insights->hasData() && $m365Insights->topSkus !== [])

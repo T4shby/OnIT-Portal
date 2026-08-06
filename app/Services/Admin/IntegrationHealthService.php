@@ -410,8 +410,13 @@ class IntegrationHealthService
      */
     private function superOps(Client $client, int &$clearedOrphans): array
     {
+        $products = app(\App\Services\Portal\ClientProductService::class);
+        if (! $products->isEntitled($client, 'superops')) {
+            return $this->disabled('superops', 'SuperOps dashboard', 'Not sold');
+        }
+
         if (! filled($client->superops_account_id)) {
-            return $this->disabled('superops', 'SuperOps dashboard', 'Not linked');
+            return $this->disabled('superops', 'SuperOps dashboard', 'Setup needed');
         }
 
         $payload = Cache::get("client:{$client->id}:superops-dashboard:v2");
@@ -442,8 +447,12 @@ class IntegrationHealthService
      */
     private function m365Directory(Client $client, int &$clearedOrphans): array
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'm365')) {
+            return $this->disabled('m365_directory', 'M365 directory', 'Not sold');
+        }
+
         if (! filled($client->entra_tenant_id)) {
-            return $this->disabled('m365_directory', 'M365 directory', 'No Entra tenant');
+            return $this->disabled('m365_directory', 'M365 directory', 'Setup needed');
         }
 
         $meta = Cache::get('m365_directory.meta.'.$client->id);
@@ -474,8 +483,12 @@ class IntegrationHealthService
      */
     private function m365Insights(Client $client, int &$clearedOrphans): array
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'm365')) {
+            return $this->disabled('m365_insights', 'M365 licences', 'Not sold');
+        }
+
         if (! filled($client->entra_tenant_id)) {
-            return $this->disabled('m365_insights', 'M365 licences', 'No Entra tenant');
+            return $this->disabled('m365_insights', 'M365 licences', 'Setup needed');
         }
 
         $payload = Cache::get("client:{$client->id}:m365-insights:v3")
@@ -536,6 +549,10 @@ class IntegrationHealthService
      */
     private function huntress(Client $client, int &$clearedOrphans): array
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'huntress')) {
+            return $this->disabled('huntress', 'Huntress security', 'Not sold');
+        }
+
         if (! (bool) config('services.huntress.enabled')) {
             return $this->disabled('huntress', 'Huntress security', 'API disabled');
         }
@@ -545,7 +562,7 @@ class IntegrationHealthService
         }
 
         if (! filled($client->huntress_organization_id)) {
-            return $this->disabled('huntress', 'Huntress security', 'Not linked');
+            return $this->disabled('huntress', 'Huntress security', 'Setup needed');
         }
 
         $payload = Cache::get("client:{$client->id}:huntress-security:v1");
@@ -576,6 +593,10 @@ class IntegrationHealthService
      */
     private function dropsuite(Client $client, int &$clearedOrphans): array
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'dropsuite')) {
+            return $this->disabled('dropsuite', 'Dropsuite backups', 'Not sold');
+        }
+
         if (! (bool) config('services.dropsuite.enabled')) {
             return $this->disabled('dropsuite', 'Dropsuite backups', 'API disabled');
         }
@@ -585,7 +606,7 @@ class IntegrationHealthService
         }
 
         if (! filled($client->dropsuite_organization_id)) {
-            return $this->disabled('dropsuite', 'Dropsuite backups', 'Not linked');
+            return $this->disabled('dropsuite', 'Dropsuite backups', 'Setup needed');
         }
 
         $payload = Cache::get("client:{$client->id}:dropsuite-backup:v2")

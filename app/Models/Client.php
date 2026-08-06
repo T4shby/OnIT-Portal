@@ -28,6 +28,7 @@ class Client extends Model
         'entra_sync_enabled',
         'entra_synced_at',
         'onboarding_checklist',
+        'product_entitlements',
         'is_active',
     ];
 
@@ -40,7 +41,60 @@ class Client extends Model
             'entra_sync_enabled' => 'boolean',
             'entra_synced_at' => 'datetime',
             'onboarding_checklist' => 'array',
+            'product_entitlements' => 'array',
         ];
+    }
+
+    public function products(): \App\Services\Portal\ClientProductService
+    {
+        return app(\App\Services\Portal\ClientProductService::class);
+    }
+
+    public function isProductEntitled(string $key): bool
+    {
+        return $this->products()->isEntitled($this, $key);
+    }
+
+    public function isProductMapped(string $key): bool
+    {
+        return $this->products()->isMapped($this, $key);
+    }
+
+    public function productStatus(string $key): string
+    {
+        return $this->products()->status($this, $key);
+    }
+
+    public function hasSuperOpsLinked(): bool
+    {
+        return $this->products()->isMapped($this, 'superops');
+    }
+
+    public function hasHuntressLinked(): bool
+    {
+        return $this->products()->isMapped($this, 'huntress');
+    }
+
+    public function hasDropsuiteLinked(): bool
+    {
+        return $this->products()->isMapped($this, 'dropsuite');
+    }
+
+    /** Microsoft 365 directory / licence insight (Graph tenant on the client). */
+    public function hasM365Linked(): bool
+    {
+        return $this->products()->isMapped($this, 'm365');
+    }
+
+    /**
+     * Whether a dashboard feed key is entitled + mapped (usable data path).
+     */
+    public function hasFeedLinked(string $feedKey): bool
+    {
+        $products = $this->products();
+
+        return $products->isEntitled($this, $feedKey)
+            && $products->isMapped($this, $feedKey);
     }
 
     public function hasEntraSyncConfigured(): bool

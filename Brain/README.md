@@ -78,7 +78,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-06 | Production deploy is **GitHub → Plesk bare mirror (`laravel_af3fd1`) → `app.onit.ltd`**, branch **main**; no scp/hotfile bypass; SSH fetch+archive recipe + alignment checks — [Deployment.md](Deployment.md#updating-the-application) |
+| 2026-08-06 | Product entitlements: sold vs mapped per client (SuperOps/M365/Huntress/Dropsuite/Pax8); Admin Products UI + matrix chips; CA contact AM only when setup needed; requesters only see live products; Huntress/Dropsuite feature branch retired on main — [ClientAdminDashboard.md](ClientAdminDashboard.md), [DatabaseSchema.md](DatabaseSchema.md) |
+| 2026-08-06 | Unlinked integrations (superseded by entitlements): Client Admin “contact AM”; requesters hide unmapped — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-06 | Production deploy is **GitHub → Plesk bare mirror (`laravel_af3fd1`) → `app.onit.ltd`**, branch **main** — [Deployment.md](Deployment.md#updating-the-application) |
 | 2026-08-06 | SuperOps dashboard stuck “Getting old”: GraphQL `requester`/`client` are leaf JSON — no sub-selection; decode in PHP — [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape) |
 | 2026-08-06 | Dropsuite prod: code `52bcac9` live; env scaffold disabled; tokens + client org maps still required for enable — [ClientAdminDashboard.md](ClientAdminDashboard.md#dropsuite--ninjaone-saas-backup) |
 | 2026-08-06 | Visibility: Technician Admin (all customers) ≠ Client Admin (own customer only) ≠ requester personal — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -31,13 +31,26 @@
     </section>
 
     @if($summary->unavailableReason && ! $summary->hasData())
-        <x-alert type="warning" class="mb-6">
-            @if($viewerIsTechnician || ($organisationWide ?? false))
+        @php
+            $products = app(\App\Services\Portal\ClientProductService::class);
+            $showAmBanner = $products->isEntitled($client, 'superops')
+                && $products->needsAccountManagerHelp($client, 'superops')
+                && ($organisationWide ?? false)
+                && ! $viewerIsTechnician;
+        @endphp
+        @if($viewerIsTechnician)
+            <x-alert type="warning" class="mb-6">
                 {{ $summary->unavailableReason }}
-            @else
-                Your organisation metrics are not ready yet. On IT is connecting the systems that power this overview.
-            @endif
-        </x-alert>
+            </x-alert>
+        @elseif($showAmBanner)
+            <x-alert type="info" class="mb-6">
+                Please contact your account manager to get this sorted.
+            </x-alert>
+        @elseif(($organisationWide ?? false) && $products->isLive($client, 'superops') === false && $products->isEntitled($client, 'superops') && $client->hasSuperOpsLinked())
+            <x-alert type="info" class="mb-6">
+                Organisation figures are still loading. Try again shortly, or use Refresh now.
+            </x-alert>
+        @endif
     @elseif($summary->isStale && $summary->lastRefreshedAt)
         @if($viewerIsTechnician)
             <x-alert type="warning" class="mb-6">

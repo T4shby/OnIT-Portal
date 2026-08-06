@@ -4,11 +4,17 @@
         'action' => '<a href="'.route('admin.clients.create').'" class="cta-btn text-sm px-6 py-3">Add Client</a>'
     ])
 
+    <p class="portal-body-muted text-xs mb-4 leading-relaxed">
+        Products chips: S SuperOps · M Microsoft 365 · H Huntress · D Dropsuite · P Pax8 —
+        grey not sold · amber setup needed · green live · red platform/error.
+    </p>
+
     <div class="admin-table-wrap">
         <table class="min-w-full">
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Products</th>
                     <th>Users</th>
                     <th>Setup</th>
                     <th>Entra sync</th>
@@ -20,6 +26,7 @@
                 @forelse($clients as $client)
                     <tr>
                         <td>{{ $client->name }}</td>
+                        <td>@include('admin.clients._product-matrix', ['client' => $client])</td>
                         <td>{{ $client->users_count }}</td>
                         <td>
                             @php $progress = app(\App\Services\ClientOnboardingService::class)->progress($client); @endphp
@@ -45,7 +52,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
+                    <tr><td colspan="7" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -51,20 +51,75 @@ class ClientAdminDashboardTest extends TestCase
         $response->assertSee('Open tickets');
     }
 
-    public function test_dashboard_shows_unavailable_when_superops_not_linked(): void
+    public function test_client_admin_sees_account_manager_prompt_when_integrations_not_linked(): void
     {
-        $client = Client::factory()->create(['superops_account_id' => null]);
+        $client = Client::factory()->create([
+            'superops_account_id' => null,
+            'huntress_organization_id' => null,
+            'dropsuite_organization_id' => null,
+            'entra_tenant_id' => null,
+            'product_entitlements' => [
+                'superops' => ['entitled' => true],
+                'huntress' => ['entitled' => true],
+                'dropsuite' => ['entitled' => true],
+                'm365' => ['entitled' => true],
+            ],
+        ]);
         $admin = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientAdmin,
         ]);
 
-        config(['services.superops.api_token' => 'token', 'services.superops.subdomain' => 'onitltd']);
+        config([
+            'services.superops.api_token' => 'token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.huntress.enabled' => true,
+            'services.huntress.api_key' => 'k',
+            'services.huntress.api_secret' => 's',
+            'services.dropsuite.enabled' => true,
+        ]);
 
         $this->actingAs($admin)
             ->get(route('client-admin.dashboard'))
             ->assertOk()
-            ->assertSee('SuperOps is not connected');
+            ->assertSee('Please contact your account manager to get this sorted')
+            ->assertDontSee('SuperOps is not connected')
+            ->assertSee('Managed devices')
+            ->assertSee('Security (Huntress)')
+            ->assertSee('Backups (Dropsuite)')
+            ->assertSee('Microsoft 365');
+    }
+
+    public function test_requester_hides_unlinked_integration_tiles(): void
+    {
+        $client = Client::factory()->create([
+            'superops_account_id' => null,
+            'huntress_organization_id' => null,
+            'dropsuite_organization_id' => null,
+            'entra_tenant_id' => null,
+        ]);
+        $requester = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientRequester,
+        ]);
+
+        config([
+            'services.superops.api_token' => 'token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.huntress.enabled' => true,
+            'services.huntress.api_key' => 'k',
+            'services.huntress.api_secret' => 's',
+            'services.dropsuite.enabled' => true,
+        ]);
+
+        $this->actingAs($requester)
+            ->get(route('client-admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Security (Huntress)')
+            ->assertDontSee('Backups (Dropsuite)')
+            ->assertDontSee('Managed devices')
+            ->assertDontSee('Support &amp; SLA', false)
+            ->assertDontSee('Please contact your account manager to get this sorted');
     }
 
     public function test_m365_refresh_dispatches_background_job(): void

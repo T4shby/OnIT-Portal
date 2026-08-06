@@ -14,6 +14,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
+use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class ClientController extends Controller
         private ActivityLogService $activityLog,
         private ClientOnboardingService $onboarding,
         private SuperOpsClientMetricsService $superOpsMetrics,
+        private ClientProductService $products,
     ) {}
 
     public function index(Request $request): View
@@ -90,6 +92,13 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
+        $productToggles = $request->input('products', []);
+        if (is_array($productToggles) && $productToggles !== []) {
+            $this->products->applyEntitlements($client, $productToggles);
+        }
+        $this->products->syncEntitlementsFromMappings($client->fresh());
+        $client->refresh();
+
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         if ($this->superOpsMetrics->needsColdPrewarm($client)) {
@@ -132,6 +141,15 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
+        $client->refresh();
+
+        $productToggles = $request->input('products', []);
+        if (is_array($productToggles) && $productToggles !== []) {
+            $this->products->applyEntitlements($client, $productToggles);
+        }
+        // Entitled when IDs saved even if toggle missed; does not re-entitle if staff set entitled=false.
+        // Mapping-only: when entitled was unchecked we leave false; when product has ID and never toggled off earlier, backfill:
+        $this->products->syncEntitlementsFromMappings($client->fresh());
         $client->refresh();
         $this->onboarding->syncAutoCheckpointsFromClient($client);
 

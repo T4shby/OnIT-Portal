@@ -28,6 +28,12 @@ class StoreClientRequest extends FormRequest
             'entra_superops_sso_app_id' => ['nullable', 'uuid'],
             'entra_sync_enabled' => ['boolean'],
             'is_active' => ['boolean'],
+            'products' => ['nullable', 'array'],
+            'products.superops' => ['nullable', 'boolean'],
+            'products.m365' => ['nullable', 'boolean'],
+            'products.huntress' => ['nullable', 'boolean'],
+            'products.dropsuite' => ['nullable', 'boolean'],
+            'products.pax8' => ['nullable', 'boolean'],
         ];
     }
 
@@ -41,6 +47,17 @@ class StoreClientRequest extends FormRequest
             if (is_string($value)) {
                 $trimmed[$field] = trim($value) === '' ? null : trim($value);
             }
+        }
+
+        $products = $this->input('products');
+        if (is_array($products)) {
+            $normalized = [];
+            foreach (\App\Services\Portal\ClientProductService::KEYS as $key) {
+                if (array_key_exists($key, $products)) {
+                    $normalized[$key] = filter_var($products[$key], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            $trimmed['products'] = $normalized;
         }
 
         if ($trimmed !== []) {

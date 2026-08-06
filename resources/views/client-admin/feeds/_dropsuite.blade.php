@@ -4,6 +4,9 @@
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
     $orgWide = $organisationWide ?? true;
     $personal = method_exists($d, 'isPersonal') ? $d->isPersonal() : false;
+    $products = app(\App\Services\Portal\ClientProductService::class);
+    $needsAm = $products->needsAccountManagerHelp($client, 'dropsuite');
+    $mapped = $products->isMapped($client, 'dropsuite');
 @endphp
 <x-card>
     <div class="flex items-start justify-between gap-3">
@@ -84,18 +87,21 @@
                         @endif
                     @endif
                 @endif
-            @else
-                <p class="text-sm portal-body-muted mt-2">
-                    @if($viewerIsTechnician)
-                        {{ $d->unavailableReason }}
-                    @elseif(str_contains((string) $d->unavailableReason, 'API is not configured'))
-                        Backup reporting is not enabled for this organisation yet.
-                    @elseif(str_contains((string) $d->unavailableReason, 'not connected'))
-                        Backup reporting is not linked for this organisation yet.
+            @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
+                <p class="text-sm portal-body-muted mt-2 leading-relaxed">
+                    @if($personal)
+                        Backup figure for your mailbox is not available yet.
                     @else
                         Backup figures are not available yet.
                     @endif
                 </p>
+            @else
+                @include('client-admin.feeds._unavailable', [
+                    'viewerIsTechnician' => $viewerIsTechnician,
+                    'unavailableReason' => $d->unavailableReason,
+                    'pendingLabel' => 'Backup figures',
+                    'needsAccountManager' => $needsAm || ! $mapped,
+                ])
             @endif
         </div>
     </div>

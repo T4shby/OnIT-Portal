@@ -4,7 +4,7 @@
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** — Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** — Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `is_active`, timestamps
+`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** — Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** — Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: sold flags per product key `superops` / `m365` / `huntress` / `dropsuite` / `pax8`), `is_active`, timestamps
 
 ### users
 
@@ -38,6 +38,7 @@ Standard Laravel / audit tables.
 - `2026_07_14_140000_add_entra_superops_sso_app_id_to_clients.php`
 - `2026_07_15_140000_add_dropsuite_organization_id_to_clients.php`
 - `2026_07_15_141000_add_huntress_organization_id_to_clients.php`
+- `2026_08_06_120000_add_product_entitlements_to_clients.php`
 
 ## Tenant Rules
 

@@ -3,6 +3,9 @@
     $h = $huntressSummary;
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
     $canOpenCases = auth()->user()?->can('view-huntress-security') ?? false;
+    $products = app(\App\Services\Portal\ClientProductService::class);
+    $needsAm = $products->needsAccountManagerHelp($client, 'huntress');
+    $mapped = $products->isMapped($client, 'huntress');
 @endphp
 <x-card>
     <div class="flex items-start justify-between gap-3">
@@ -36,18 +39,15 @@
                         Security dashboard &rarr;
                     </a>
                 @endif
+            @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
+                <p class="text-sm portal-body-muted mt-2 leading-relaxed">Security figures are not available yet.</p>
             @else
-                <p class="text-sm portal-body-muted mt-2">
-                    @if($viewerIsTechnician)
-                        {{ $h->unavailableReason }}
-                    @elseif(str_contains((string) $h->unavailableReason, 'API is not configured'))
-                        Security monitoring is not enabled for this organisation yet.
-                    @elseif(str_contains((string) $h->unavailableReason, 'not connected'))
-                        Security monitoring is not linked for this organisation yet.
-                    @else
-                        Security figures are not available yet.
-                    @endif
-                </p>
+                @include('client-admin.feeds._unavailable', [
+                    'viewerIsTechnician' => $viewerIsTechnician,
+                    'unavailableReason' => $h->unavailableReason,
+                    'pendingLabel' => 'Security figures',
+                    'needsAccountManager' => $needsAm || ! $mapped,
+                ])
             @endif
         </div>
     </div>

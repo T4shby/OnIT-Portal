@@ -16,6 +16,10 @@ class M365InsightsService
 
     public function summaryForClient(Client $client, bool $manualRefresh = false): M365InsightsSummary
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'm365')) {
+            return $this->unavailableSummary('Microsoft 365 is not sold for this organisation.');
+        }
+
         if (! filled($client->entra_tenant_id)) {
             return $this->unavailableSummary('Microsoft 365 is not connected for this organisation.');
         }
@@ -52,7 +56,7 @@ class M365InsightsService
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
     {
-        if (! filled($client->entra_tenant_id) || ! $this->graph->isConfigured()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'm365')) {
             return false;
         }
 
@@ -85,7 +89,7 @@ class M365InsightsService
      */
     public function needsBackgroundRefresh(Client $client): bool
     {
-        if (! filled($client->entra_tenant_id) || ! $this->graph->isConfigured()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'm365')) {
             return false;
         }
 

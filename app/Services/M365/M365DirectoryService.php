@@ -18,7 +18,7 @@ class M365DirectoryService
 
     public function isAvailableForClient(Client $client): bool
     {
-        return filled($client->entra_tenant_id) && $this->graph->isConfigured();
+        return app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'm365');
     }
 
     public function displaySnapshot(Client $client, bool $manualRefresh = false): M365DirectoryDisplayResult

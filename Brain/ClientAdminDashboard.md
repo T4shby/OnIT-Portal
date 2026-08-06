@@ -163,9 +163,30 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Audience | Surface | Tone |
 |----------|---------|------|
-| Client (`client_admin` etc.) | `/client-admin` | No “stale” / SuperOps jargon. Soft note: figures refresh often; timestamp as “Overview as of … UK”. Integration not linked → plain “not enabled yet”. |
-| Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Warning with age, requeue/target minutes, pointer to Integration Health. Footer shows last success + thresholds. |
-| Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING** (past target), queued/running/stuck, queue depths, process hints. |
+| **Client Admin** | `/client-admin` org overview | Tile only if **product entitled** (sold). **Setup needed** (sold, no org ID / platform) → “Please contact your account manager to get this sorted.” Linked/live → metrics. Not sold → **hidden**. |
+| **Requester / Billing** | `/client-admin` personal | Show tile only when product **live** (entitled + mapped + platform). Unsold or setup-needed products hidden. |
+| Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Raw unavailable reasons; age / requeue notes; Integration Health. |
+| Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING**, Not sold / Setup needed; queue depths. |
+
+## Product entitlements (sold vs mapped)
+
+Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_entitlements` JSON.
+
+| Key | Label | Mapping fields |
+|-----|--------|----------------|
+| `superops` | Devices & tickets | `superops_account_id` (+ SSO flag) |
+| `m365` | Microsoft 365 | `entra_tenant_id` |
+| `huntress` | Security | `huntress_organization_id` |
+| `dropsuite` | Backups | `dropsuite_organization_id` |
+| `pax8` | Pax8 | `pax8_company_id` + `pax8_sso_enabled` |
+
+Statuses: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.
+
+**Admin UX:** Clients list product chips (S/M/H/D/P). Client edit **Products** section: toggle sold + paste IDs. Onboarding adds Huntress/Dropsuite map steps only when that product is entitled.
+
+**Single rule:** tiles, gates, prewarm, Integration Health use `isEntitled` / `isMapped` / `shouldRefresh` — never orphan “ID filled but not sold” refreshes for not-sold products.
+
+Migration backfill: existing filled IDs → entitled true.
 
 Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (before Entra/SCIM on `default`). Worker must run `--queue=high,default` — [Deployment.md](Deployment.md#11-run-the-queue-worker).
 

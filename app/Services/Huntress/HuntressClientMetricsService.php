@@ -41,6 +41,10 @@ class HuntressClientMetricsService
 
     public function summaryForClient(Client $client, bool $manualRefresh = false): HuntressClientSecuritySummary
     {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'huntress')) {
+            return $this->unavailableSummary('Huntress is not sold for this organisation.');
+        }
+
         if (! $this->isAvailable()) {
             return $this->unavailableSummary('Huntress API is not configured.');
         }
@@ -86,7 +90,7 @@ class HuntressClientMetricsService
 
     public function queueRefresh(Client $client, bool $respectCooldown = false): bool
     {
-        if (empty($client->huntress_organization_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'huntress')) {
             return false;
         }
 
@@ -112,7 +116,7 @@ class HuntressClientMetricsService
 
     public function needsBackgroundRefresh(Client $client): bool
     {
-        if (empty($client->huntress_organization_id) || ! $this->isAvailable()) {
+        if (! app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'huntress')) {
             return false;
         }
 
