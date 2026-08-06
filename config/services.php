@@ -61,7 +61,7 @@ return [
     ],
 
     'dropsuite' => [
-        'api_url' => env('DROPSUITE_API_URL', 'https://dropsuite.us/api'),
+        'api_url' => env('DROPSUITE_API_URL', 'https://dropsuite.uk/api'),
         'reseller_token' => env('DROPSUITE_RESELLER_TOKEN'),
         'auth_token' => env('DROPSUITE_AUTH_TOKEN'),
         'enabled' => env('DROPSUITE_ENABLED', false),

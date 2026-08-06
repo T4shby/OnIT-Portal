@@ -404,9 +404,9 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 | Setting | Env | Default |
 |---------|-----|---------|
 | Enabled | `DROPSUITE_ENABLED` | `false` |
-| API base URL | `DROPSUITE_API_URL` | `https://dropsuite.us/api` |
-| Reseller token | `DROPSUITE_RESELLER_TOKEN` | — |
-| Access / auth token | `DROPSUITE_AUTH_TOKEN` | — |
+| API base URL | `DROPSUITE_API_URL` | `https://dropsuite.uk/api` (UK). US hosts use `https://dropsuite.us/api` |
+| Reseller token | `DROPSUITE_RESELLER_TOKEN` | Partner **Reseller Token** (numeric id is normal) |
+| Access / auth token | `DROPSUITE_AUTH_TOKEN` | OpenAPI **Admin Token** (list users / resellers) or **User Token** (mailboxes for that user). UI may call these Authentication / Secret — they are not interchangeable blindly |
 
 **Auth (PDF):** every call sends `X-Reseller-Token` + `X-Access-Token` (and `Authorization: Token …` for older gateways).
 
@@ -426,22 +426,18 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 
 ### Production enable (ops)
 
-| Ready on prod (2026-08-06, `main` @ `52bcac9`) | Status |
+| Ready on prod (2026-08-06) | Status |
 |---|---|
-| Code + migration column `dropsuite_organization_id` | Deployed |
-| `.env` keys present (`DROPSUITE_ENABLED`, URL, token lines) | Present; **tokens still empty** |
-| `DROPSUITE_ENABLED` | `false` until probe succeeds |
-| Client `dropsuite_organization_id` mappings | **None yet** |
-| Huntress org IDs (unrelated) | MXVI, 3R, Find mapped |
+| Code + column | Deployed (`52bcac9`+) |
+| API URL | `https://dropsuite.uk/api` |
+| Reseller token | Set and validated (`GET /api/status` → OK) |
+| Access token (`X-Access-Token`) | **Not working yet for data GETs** — see below |
+| `DROPSUITE_ENABLED` | `false` until access token works |
+| Client org maps | None yet |
 
-**Finish enable:**
+**Live API check (prod):** With reseller + either UI “Authentication Token” or “Secret Token” as `X-Access-Token`, `GET /api/users` and `GET /api/accounts` return **401 Unauthorized / account not found**. Reseller alone is enough for `GET /api/status`. Browsable OpenAPI is at `https://dropsuite.uk/api/v1/docs` (tags: users, accounts, …). Paths are **`/api/accounts`** (not `/api/v1/accounts` for mailbox list — that path is a different contract needing `user_ids`).
 
-1. Set `DROPSUITE_RESELLER_TOKEN` + `DROPSUITE_AUTH_TOKEN` on prod `.env` (NinjaOne SaaS Backup / Dropsuite partner API Settings).
-2. Temporarily set `DROPSUITE_ENABLED=true` + `php artisan config:clear`.
-3. `php artisan portal:probe-security-apis --dropsuite-org={organization_id}` — OK when protected_mailboxes / status JSON returns without error.
-4. Admin → Clients → paste that org’s `organization_id` into **Dropsuite organization ID** → Save for each customer with backups.
-5. Integration Health **Dropsuite** column + Client Admin tile (org-wide) vs requester personal last-backup.
-6. Leave enabled only after a clean probe; rotate tokens if exposed in chat/log.
+**What still to get from Dropsuite UI:** the **Admin Token** (for reseller-wide `GET /api/users`) or a **User Token** for a business customer user (for that user’s mailboxes). If only Reseller + Authentication + Secret appear in API Settings, confirm with Dropsuite which value is Admin vs User access token, or regenerate tokens from the admin user account (not only reseller settings).
 
 
 ## Promoting users

@@ -69,7 +69,7 @@ class DropsuiteApiClient
 
     private function apiUrl(): string
     {
-        return rtrim((string) config('services.dropsuite.api_url', 'https://dropsuite.us/api'), '/');
+        return rtrim((string) config('services.dropsuite.api_url', 'https://dropsuite.uk/api'), '/');
     }
 
     private function resellerToken(): string

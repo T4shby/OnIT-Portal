@@ -116,13 +116,14 @@ SUPEROPS_DASHBOARD_REFRESH_COOLDOWN_SECONDS=60
 SUPEROPS_DASHBOARD_MAX_PAGES=10
 
 DROPSUITE_ENABLED=false
-DROPSUITE_API_URL=https://dropsuite.us/api
+DROPSUITE_API_URL=https://dropsuite.uk/api
 DROPSUITE_RESELLER_TOKEN=
 DROPSUITE_AUTH_TOKEN=
 
-# After tokens are set: set DROPSUITE_ENABLED=true, config:clear,
+# After tokens work: set DROPSUITE_ENABLED=true, config:clear,
 # php artisan portal:probe-security-apis --dropsuite-org=ORG_ID
 # then map clients.dropsuite_organization_id (Admin → Clients).
+# Access token must authorize GET /api/users or GET /api/accounts (reseller alone only satisfies GET /api/status).
 
 PAX8_SSO_ENABLED=true
 PAX8_PARTNER_PORTAL_URL=https://app.pax8.com
