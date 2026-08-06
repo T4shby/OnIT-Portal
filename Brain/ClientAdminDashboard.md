@@ -46,14 +46,16 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 
 Service: `App\Services\Portal\ClientVisibilityService`
 
-One rule for Organisation overview, SuperOps tickets, M365 people/directory, Huntress cases, Dropsuite tiles, and future feeds:
+One rule for Organisation overview, SuperOps tickets, M365 people/directory, Huntress cases, Dropsuite tiles, and future feeds.
 
-| Who | What they see for **their** organisation |
-|-----|------------------------------------------|
-| **Client Admin** | All people + all systems (devices, tickets, licences, backups, security cases) |
-| **On IT staff** with client access | Same as Client Admin for that client (Staff Admin paths) |
-| **Requester / Billing Admin** | **Their** tickets, **their** M365 person row, **their** Huntress cases — not colleagues’ |
-| Other organisations / other clients | Never |
+**Do not conflate Client Admin with Technician Admin.**
+
+| Who | Scope | What they see |
+|-----|-------|----------------|
+| **Technician Admin** (`super_admin`, `account_manager`) | **All customers** they can access (`super_admin` = every client; AM = assigned clients) | Full org data for each of those customers. Cross-customer view via **Staff Admin** (Integration Health, Clients, per-client tools). |
+| **Client Admin** (`client_admin`) | **Only their customer** | All people + all systems for **that one** organisation (devices, tickets, licences, backups, security cases). Never other customers. |
+| **Requester / Billing Admin** | Their customer, personal only | **Their** tickets, **their** M365 person row, **their** Huntress cases, **their** Dropsuite last backup time — not colleagues’. |
+| Other organisations | — | Never (client-facing users cannot cross tenants) |
 
 Identity match: work email (preferred), SuperOps requester id when present, else name/local-part on the record. Personal users cannot run org-wide **Refresh**.
 
@@ -391,29 +393,36 @@ After deploy / mapping change: run `php artisan portal:prewarm-client-dashboards
 
 ## Dropsuite / NinjaOne SaaS Backup
 
-Service: `App\Services\Dropsuite\DropsuiteClientMetricsService`
+Service: `App\Services\Dropsuite\DropsuiteClientMetricsService`  
+API client: `DropsuiteApiClient`  
+Contract: sub-reseller **REST API for Sub-reseller v1.00** (partner PDF).
 
-Cache key: `client:{client_id}:dropsuite-backup:v1`
+Cache key: `client:{client_id}:dropsuite-backup:v2`
 
-Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value is the partner **account/organisation id** from NinjaOne SaaS Backup (Dropsuite).
+Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value is the Dropsuite **organization_id** on backed-up accounts (`user.organization_id` in `GET /accounts`).
 
 | Setting | Env | Default |
 |---------|-----|---------|
 | Enabled | `DROPSUITE_ENABLED` | `false` |
 | API base URL | `DROPSUITE_API_URL` | `https://dropsuite.us/api` |
 | Reseller token | `DROPSUITE_RESELLER_TOKEN` | — |
-| Auth / access token | `DROPSUITE_AUTH_TOKEN` | — |
+| Access / auth token | `DROPSUITE_AUTH_TOKEN` | — |
 
-**Free for partners** that already use Dropsuite/NinjaOne SaaS Backup: Settings → API Settings (URL + reseller + auth tokens). Resellers typically have **GET-only**.
+**Auth (PDF):** every call sends `X-Reseller-Token` + `X-Access-Token` (and `Authorization: Token …` for older gateways).
 
-HTTP headers (sent together so both common contracts work):
+**Primary refresh path:** `GET /accounts` (paginated when needed), keep rows whose `user.organization_id` matches the client mapping. Fields used: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`. Optional enrichment: `GET /onedrives` filtered to those emails.
 
-- `X-Access-Token` + `X-Reseller-Token`
-- `Authorization: Token {auth}`
+### Who sees what
 
-Refresh tries detail paths in order (`accounts/{id}/`, `organizations/{id}/`, backup-summary variants), then list endpoints and filters by id. Maps protected mailbox/seat counts and failure/status into the Client Admin **Backups** card (hero count + status + failed count).
+| Who | Scope | Dropsuite view |
+|-----|-------|----------------|
+| **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client (Integration Health column + org-wide tile when viewing that client). Not limited to one customer. |
+| **Client Admin** | **Their customer only** | Org-wide for that tenant: protected mailbox count, latest backup time, status, failure count, OneDrive count, up to 5 problem mailboxes. Cannot see other customers. |
+| **Requester / Billing Admin** | Personal only | Last time **their** mailbox was backed up (matched by work email). No colleague list, no org totals. |
 
-Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds against real tokens. Full method list is on partner **Browsable API** / PDF (portal-gated).
+Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin.
+
+Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds. Do not commit the partner PDF into git.
 
 ## Promoting users
 
@@ -427,6 +436,8 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-06 | Clarify Technician Admin (all customers) vs Client Admin (own customer only) vs requester (personal) — Dropsuite + visibility |
+| 2026-08-06 | Dropsuite: PDF `GET /accounts` org filter; Client Admin org-wide backups; requester personal last-backup only |
 | 2026-08-06 | Integration Health What's going on summary mirrors Refresh timing drawer values (DB + unsaved live preview) |
 | 2026-08-05 | Huntress + Dropsuite: full Client Admin tiles, adaptive requeue, Integration Health, dual Dropsuite auth, `portal:probe-security-apis` |
 | 2026-08-05 | Integration Health: adaptive cadence docs complete; sticky nav; timing as side drawer |

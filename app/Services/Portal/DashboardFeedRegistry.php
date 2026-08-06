@@ -89,19 +89,18 @@ class DashboardFeedRegistry
                 continue;
             }
 
-            // Regular users only see systems relevant to them — org backup/licence fleet is admin.
-            if (! $orgWide && in_array($feed->key(), ['dropsuite', 'm365_insights'], true)) {
+            // Licence fleet stays Client Admin / staff only. Backups stay visible for
+            // requesters as a personal "last backed up" card (org-wide for admins).
+            if (! $orgWide && $feed->key() === 'm365_insights') {
                 continue;
-            }
-
-            if ($feed->key() === 'superops' && method_exists($feed, 'summaryForClient')) {
-                // Adapter delegates; metrics service accepts viewer via metrics call below...
             }
 
             $summary = match ($feed->key()) {
                 'superops' => app(\App\Services\SuperOps\SuperOpsClientMetricsService::class)
                     ->summaryForClient($client, $manualRefresh, $viewer),
                 'huntress' => $this->huntressSummaryForViewer($client, $manualRefresh, $viewer, $orgWide),
+                'dropsuite' => app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class)
+                    ->summaryForClient($client, $manualRefresh, $viewer),
                 default => $feed->summaryForClient($client, $manualRefresh),
             };
 
@@ -110,18 +109,6 @@ class DashboardFeedRegistry
         }
 
         // Ensure BC vars exist when feeds skipped for personal scope.
-        if (! isset($view['dropsuiteSummary'])) {
-            $view['dropsuiteSummary'] = new \App\Services\Dropsuite\DropsuiteClientBackupSummary(
-                protectedMailboxes: null,
-                lastBackupStatus: 'unknown',
-                failedBackupsCount: null,
-                available: false,
-                unavailableReason: 'Organisation backup health is available to Client Admins.',
-                lastRefreshedAt: null,
-                isStale: false,
-                refreshInProgress: false,
-            );
-        }
         if (! isset($view['m365Insights'])) {
             $view['m365Insights'] = new \App\Services\M365\M365InsightsSummary(
                 licensedUserCount: null,

@@ -78,6 +78,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | Visibility: Technician Admin (all customers) ≠ Client Admin (own customer only) ≠ requester personal — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-06 | Dropsuite aligned to sub-reseller PDF (`GET /accounts`); Client Admin org backups vs requester last-run only — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Integration Health: What's going on summary mirrors Refresh timing drawer (same DB settings + live unsaved preview) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Night ship: all 12 onboarding steps automation-first; Client SSO wire wording; Huntress/visibility/bootstrap SP wait — [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md), [ClientAdminDashboard.md](ClientAdminDashboard.md), [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-05 | Huntress security cases: active/resolved list + detail for Client Admin (own org) and staff with client access — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

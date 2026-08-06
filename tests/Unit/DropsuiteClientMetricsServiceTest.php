@@ -2,7 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Enums\UserRole;
 use App\Models\Client;
+use App\Models\User;
 use App\Services\Dropsuite\DropsuiteClientMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -24,49 +26,141 @@ class DropsuiteClientMetricsServiceTest extends TestCase
         ]);
     }
 
-    public function test_refresh_fetches_account_detail_with_dual_auth_headers(): void
+    public function test_refresh_uses_pdf_accounts_endpoint_and_filters_by_organization(): void
     {
-        Http::fake(function (\Illuminate\Http\Client\Request $request) {
-            if (str_contains($request->url(), '/accounts/org-123')) {
-                return Http::response([
-                    'id' => 'org-123',
-                    'protected_mailboxes' => 42,
-                    'failed_backups_count' => 2,
-                ], 200);
-            }
+        Http::fake([
+            'https://dropsuite.us/api/accounts*' => Http::response([
+                [
+                    'id' => 5238,
+                    'last_backup' => '2023-05-11T06:43:27.040Z',
+                    'email' => 'alexw@twx4l.onmicrosoft.com',
+                    'display_name' => 'Alex',
+                    'errors' => [],
+                    'current_backup_status' => 'Running',
+                    'user' => ['organization_id' => 19771],
+                ],
+                [
+                    'id' => 5239,
+                    'last_backup' => '2023-05-10T06:43:27.040Z',
+                    'email' => 'other@elsewhere.com',
+                    'errors' => ['host' => 'timeout'],
+                    'current_backup_status' => 'Failed',
+                    'user' => ['organization_id' => 99999],
+                ],
+                [
+                    'id' => 5240,
+                    'last_backup' => null,
+                    'email' => 'broken@twx4l.onmicrosoft.com',
+                    'errors' => ['host' => 'timeout'],
+                    'current_backup_status' => 'Preparing Backup',
+                    'user' => ['organization_id' => 19771],
+                ],
+            ], 200),
+            'https://dropsuite.us/api/onedrives*' => Http::response([
+                ['email' => 'alexw@twx4l.onmicrosoft.com'],
+            ], 200),
+        ]);
 
-            return Http::response(['detail' => 'not found'], 404);
-        });
-
-        $client = Client::factory()->create(['dropsuite_organization_id' => 'org-123']);
+        $client = Client::factory()->create(['dropsuite_organization_id' => '19771']);
 
         $summary = app(DropsuiteClientMetricsService::class)->refreshAndStore($client);
 
         $this->assertTrue($summary->available);
-        $this->assertSame(42, $summary->protectedMailboxes);
-        $this->assertSame(2, $summary->failedBackupsCount);
+        $this->assertSame(2, $summary->protectedMailboxes);
+        $this->assertSame(1, $summary->failedBackupsCount);
         $this->assertSame('warning', $summary->lastBackupStatus);
-        $this->assertNotNull($summary->lastRefreshedAt);
+        $this->assertSame(1, $summary->onedriveCount);
+        $this->assertNotNull($summary->lastBackupAt);
+        $this->assertCount(2, $summary->accounts);
 
         Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/accounts/org-123')
+            return str_contains($request->url(), '/accounts')
                 && $request->hasHeader('X-Access-Token', 'auth-test-token')
-                && $request->hasHeader('X-Reseller-Token', 'reseller-test-token')
-                && $request->hasHeader('Authorization', 'Token auth-test-token');
+                && $request->hasHeader('X-Reseller-Token', 'reseller-test-token');
         });
     }
 
-    public function test_map_payload_accepts_nested_data_keys(): void
+    public function test_requester_sees_only_personal_last_backup(): void
     {
-        $mapped = app(DropsuiteClientMetricsService::class)->mapPayload([
-            'data' => [
-                'mailbox_count' => 9,
-                'status' => 'ok',
-            ],
-        ], 'org-1');
+        $client = Client::factory()->create(['dropsuite_organization_id' => '19771']);
+        $requester = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientRequester,
+            'email' => 'alexw@twx4l.onmicrosoft.com',
+        ]);
 
-        $this->assertSame(9, $mapped['protected_mailboxes']);
-        $this->assertSame('success', $mapped['last_backup_status']);
+        cache()->put(app(DropsuiteClientMetricsService::class)->cacheKey($client->id), [
+            'protected_mailboxes' => 2,
+            'failed_backups_count' => 1,
+            'last_backup_status' => 'warning',
+            'last_backup_at' => '2023-05-11T06:43:27.040Z',
+            'onedrive_count' => 1,
+            'accounts' => [
+                [
+                    'email' => 'alexw@twx4l.onmicrosoft.com',
+                    'display_name' => 'Alex',
+                    'last_backup_at' => '2023-05-11T06:43:27.040Z',
+                    'current_backup_status' => 'Running',
+                    'has_errors' => false,
+                ],
+                [
+                    'email' => 'broken@twx4l.onmicrosoft.com',
+                    'display_name' => null,
+                    'last_backup_at' => null,
+                    'current_backup_status' => 'Failed',
+                    'has_errors' => true,
+                ],
+            ],
+            'last_refreshed_at' => now()->toIso8601String(),
+        ], now()->addHour());
+
+        $summary = app(DropsuiteClientMetricsService::class)->summaryForClient($client, false, $requester);
+
+        $this->assertTrue($summary->isPersonal());
+        $this->assertSame('alexw@twx4l.onmicrosoft.com', $summary->personalEmail);
+        $this->assertNotNull($summary->lastBackupAt);
+        $this->assertSame('success', $summary->lastBackupStatus);
+        $this->assertCount(1, $summary->accounts);
+    }
+
+    public function test_client_admin_sees_organisation_wide_accounts(): void
+    {
+        $client = Client::factory()->create(['dropsuite_organization_id' => '19771']);
+        $admin = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientAdmin,
+            'email' => 'admin@twx4l.onmicrosoft.com',
+        ]);
+
+        cache()->put(app(DropsuiteClientMetricsService::class)->cacheKey($client->id), [
+            'protected_mailboxes' => 2,
+            'failed_backups_count' => 1,
+            'last_backup_status' => 'warning',
+            'last_backup_at' => '2023-05-11T06:43:27.040Z',
+            'onedrive_count' => 0,
+            'accounts' => [
+                [
+                    'email' => 'alexw@twx4l.onmicrosoft.com',
+                    'last_backup_at' => '2023-05-11T06:43:27.040Z',
+                    'current_backup_status' => 'Running',
+                    'has_errors' => false,
+                ],
+                [
+                    'email' => 'broken@twx4l.onmicrosoft.com',
+                    'last_backup_at' => null,
+                    'current_backup_status' => 'Failed',
+                    'has_errors' => true,
+                ],
+            ],
+            'last_refreshed_at' => now()->toIso8601String(),
+        ], now()->addHour());
+
+        $summary = app(DropsuiteClientMetricsService::class)->summaryForClient($client, false, $admin);
+
+        $this->assertFalse($summary->isPersonal());
+        $this->assertSame(2, $summary->protectedMailboxes);
+        $this->assertSame(1, $summary->failedBackupsCount);
+        $this->assertCount(2, $summary->accounts);
     }
 
     public function test_summary_is_unavailable_when_client_is_not_linked(): void

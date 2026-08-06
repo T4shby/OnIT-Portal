@@ -40,8 +40,8 @@
             @foreach(($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed)
                 @php
                     $orgWide = $organisationWide ?? true;
-                    // Org fleet tiles only for Client Admin; SuperOps/Huntress scoped by data layer.
-                    $skip = ! $orgWide && in_array($feed->key(), ['dropsuite', 'm365_insights'], true);
+                    // Licence fleet is Client Admin only; Dropsuite shows personal last-run for requesters.
+                    $skip = ! $orgWide && $feed->key() === 'm365_insights';
                 @endphp
                 @continue($skip)
                 @include($feed->overviewPartial(), [

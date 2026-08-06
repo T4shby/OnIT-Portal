@@ -8,13 +8,15 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * NinjaOne SaaS Backup (Dropsuite) partner GET client.
+ * NinjaOne SaaS Backup (Dropsuite) sub-reseller GET client.
  *
- * Sends both common reseller auth patterns:
- * - X-Access-Token + X-Reseller-Token (MSPbots / common reseller docs)
- * - Authorization: Token … (legacy/Django Token style)
+ * PDF (REST API for subreseller v1.00) requires:
+ * - X-Reseller-Token
+ * - X-Access-Token
  *
- * @see https://help.dropsuite.com/hc/en-us/articles/20422080552855-15-API-Settings
+ * Also sends Authorization: Token … for older gateways that still expect it.
+ *
+ * @see Brain/ClientAdminDashboard.md (Dropsuite)
  */
 class DropsuiteApiClient
 {

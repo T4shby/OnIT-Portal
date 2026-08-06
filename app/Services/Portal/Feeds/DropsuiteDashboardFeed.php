@@ -35,9 +35,9 @@ class DropsuiteDashboardFeed implements DashboardFeed
         return filled($client->dropsuite_organization_id);
     }
 
-    public function summaryForClient(Client $client, bool $manualRefresh = false): object
+    public function summaryForClient(Client $client, bool $manualRefresh = false, ?\App\Models\User $viewer = null): object
     {
-        return $this->metrics->summaryForClient($client, $manualRefresh);
+        return $this->metrics->summaryForClient($client, $manualRefresh, $viewer);
     }
 
     public function needsBackgroundRefresh(Client $client): bool

@@ -8,9 +8,12 @@ use App\Models\User;
 /**
  * Shared org-vs-personal visibility for SuperOps, M365, Huntress, Dropsuite, etc.
  *
- * - Client Admin (+ staff with client access): organisation-wide people + systems
- * - Requester / Billing: own items only within their organisation
- * - Never cross-tenant
+ * Three distinct audiences (do not conflate):
+ * - Technician Admin (`super_admin` / `account_manager`): all assigned customers
+ *   (super_admin = every client); full org data per customer + Staff Admin tools
+ * - Client Admin (`client_admin`): only their own customer organisation; full
+ *   people + systems for that one tenant — never other customers
+ * - Requester / Billing: personal items only within their organisation
  */
 class ClientVisibilityService
 {

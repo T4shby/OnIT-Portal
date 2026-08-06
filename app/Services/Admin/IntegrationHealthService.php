@@ -588,7 +588,8 @@ class IntegrationHealthService
             return $this->disabled('dropsuite', 'Dropsuite backups', 'Not linked');
         }
 
-        $payload = Cache::get("client:{$client->id}:dropsuite-backup:v1");
+        $payload = Cache::get("client:{$client->id}:dropsuite-backup:v2")
+            ?? Cache::get("client:{$client->id}:dropsuite-backup:v1");
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
