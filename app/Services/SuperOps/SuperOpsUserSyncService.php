@@ -41,12 +41,10 @@ class SuperOpsUserSyncService
                         }
                     GQL, [
                         'input' => [
-                            'page' => $page,
-                            'pageSize' => $pageSize,
-                            'condition' => [
-                                'attribute' => 'client.accountId',
-                                'operator' => 'is',
-                                'value' => $accountId,
+                            'clientId' => $accountId,
+                            'listInfo' => [
+                                'page' => $page,
+                                'pageSize' => $pageSize,
                             ],
                         ],
                     ]);
@@ -180,12 +178,10 @@ class SuperOpsUserSyncService
                     }
                 GQL, [
                     'input' => [
-                        'page' => $page,
-                        'pageSize' => $pageSize,
-                        'condition' => [
-                            'attribute' => 'client.accountId',
-                            'operator' => 'is',
-                            'value' => $accountId,
+                        'clientId' => $accountId,
+                        'listInfo' => [
+                            'page' => $page,
+                            'pageSize' => $pageSize,
                         ],
                     ],
                 ]);
@@ -242,12 +238,14 @@ class SuperOpsUserSyncService
                 }
             GQL, [
                 'input' => [
-                    'page' => 1,
-                    'pageSize' => 1,
-                    'condition' => [
-                        'field' => 'email',
-                        'operator' => 'eq',
-                        'value' => $user->email,
+                    'listInfo' => [
+                        'page' => 1,
+                        'pageSize' => 1,
+                        'condition' => [
+                            'attribute' => 'email',
+                            'operator' => 'is',
+                            'value' => $user->email,
+                        ],
                     ],
                 ],
             ]);
