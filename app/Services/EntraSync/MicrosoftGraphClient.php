@@ -295,14 +295,17 @@ class MicrosoftGraphClient
         }
 
         if ($response->status() === 403) {
+            $body = $response->body();
             throw new RuntimeException(
-                'Microsoft Graph cannot create security groups — add Group.ReadWrite.All (or Group.Create) '
-                .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
+                'Microsoft Graph cannot create security groups (HTTP 403). '
+                .'Add Application permission **Group.ReadWrite.All** (or Group.Create) on **OnIT Portal for Portals** '
+                .'in the On IT tenant, Grant admin consent there, then re-consent in the **customer** tenant '
+                .'and use **Retry Graph setup**. Graph said: '.$this->shortGraphErrorBody($body)
             );
         }
 
         throw new RuntimeException(
-            'Microsoft Graph create group failed: '.$response->status().' '.$response->body()
+            'Microsoft Graph create group failed: '.$response->status().' '.$this->shortGraphErrorBody($response->body())
         );
     }
 

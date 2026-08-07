@@ -107,4 +107,67 @@ class CustomerEntraBootstrapServiceTest extends TestCase
         $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted']);
         $this->assertTrue($client->onboarding_checklist['superops_scim_app']);
     }
+
+    public function test_group_failure_still_saves_p1_and_creates_apps(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'YorPower',
+            'entra_tenant_id' => null,
+            'entra_group_id' => null,
+            'entra_license_tier' => 'free',
+        ]);
+
+        $tenantId = '102598ee-d66c-4f69-a05d-80981b689d23';
+        $scimAppId = 'aaaaaaaa-1111-1111-1111-111111111111';
+        $ssoAppId = 'bbbbbbbb-2222-2222-2222-222222222222';
+
+        $graph = Mockery::mock(MicrosoftGraphClient::class);
+        $graph->shouldReceive('isConfigured')->andReturn(true);
+        $graph->shouldReceive('clearAccessTokenCache')->with($tenantId);
+        $graph->shouldReceive('waitUntilAppOnlyGraphReady')
+            ->once()
+            ->andReturn(['ready' => true, 'attempts' => 1, 'last_error' => null]);
+        $graph->shouldReceive('retryAfterConsentPropagation')
+            ->times(4)
+            ->andReturnUsing(function (string $tid, callable $op) {
+                return $op();
+            });
+        $graph->shouldReceive('detectEntraDirectoryLicenseTier')->once()->andReturn('p1');
+        $graph->shouldReceive('ensurePortalSecurityGroup')
+            ->once()
+            ->andThrow(new \RuntimeException('Microsoft Graph cannot create security groups (HTTP 403)'));
+        $graph->shouldReceive('ensureNamedEnterpriseApplication')
+            ->once()
+            ->with($tenantId, 'SuperOps - YorPower')
+            ->andReturn([
+                'appId' => $scimAppId,
+                'applicationObjectId' => 'scim-obj',
+                'servicePrincipalId' => 'scim-sp',
+            ]);
+        $graph->shouldReceive('ensureNamedEnterpriseApplication')
+            ->once()
+            ->with($tenantId, 'SuperOps Requester SSO - YorPower')
+            ->andReturn([
+                'appId' => $ssoAppId,
+                'applicationObjectId' => 'sso-obj',
+                'servicePrincipalId' => 'sso-sp',
+            ]);
+        $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn('role');
+        $graph->shouldNotReceive('assignGroupToEnterpriseApp');
+
+        $this->app->instance(MicrosoftGraphClient::class, $graph);
+
+        $result = app(CustomerEntraBootstrapService::class)->bootstrap($client, $tenantId);
+
+        $this->assertFalse($result['ok']);
+        $client->refresh();
+        $this->assertSame($tenantId, $client->entra_tenant_id);
+        $this->assertSame(ClientOnboardingService::ENTRA_LICENSE_P1, $client->entra_license_tier);
+        $this->assertNull($client->entra_group_id);
+        $this->assertSame($scimAppId, $client->entra_superops_app_id);
+        $this->assertSame($ssoAppId, $client->entra_superops_sso_app_id);
+        $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted'] ?? false);
+        $this->assertTrue($client->onboarding_checklist['superops_scim_app'] ?? false);
+        $this->assertStringContainsString('group still missing', strtolower($result['summary']));
+    }
 }

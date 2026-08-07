@@ -16,6 +16,9 @@ use Throwable;
  *
  * Always waits/retries Graph after Accept — Azure often returns IdentityNotFound /
  * "insufficient privileges" for a short time even when consent succeeded.
+ *
+ * Progress is saved after each stage so P1/tenant are never lost if group create fails.
+ * Group failure no longer blocks SuperOps Entra app creation.
  */
 class CustomerEntraBootstrapService
 {
@@ -65,9 +68,7 @@ class CustomerEntraBootstrapService
             'entra_tenant_id' => $tenantId,
         ];
         $details[] = 'Tenant ID: '.$tenantId;
-
-        // Save tenant immediately so Retry Graph works if this request times out.
-        $client->update($fields);
+        $this->persist($client, $fields);
 
         $ready = $this->graph->waitUntilAppOnlyGraphReady($tenantId);
         if ($ready['ready']) {
@@ -90,7 +91,9 @@ class CustomerEntraBootstrapService
                 fn () => $this->graph->detectEntraDirectoryLicenseTier($tenantId),
             );
             $fields['entra_license_tier'] = $tier;
-            $details[] = 'Entra licence tier: '.($tier === ClientOnboardingService::ENTRA_LICENSE_P1 ? 'P1 or higher' : 'Free');
+            $details[] = 'Entra licence tier: '.($tier === ClientOnboardingService::ENTRA_LICENSE_P1 ? 'P1 or higher' : 'Free')
+                .' (saved on client)';
+            $this->persist($client, $fields);
         } catch (Throwable $e) {
             Log::warning('Entra bootstrap licence detection failed', [
                 'client_id' => $client->id,
@@ -99,9 +102,11 @@ class CustomerEntraBootstrapService
             $tier = ClientOnboardingService::ENTRA_LICENSE_FREE;
             $fields['entra_license_tier'] = $tier;
             $warnings[] = 'Could not read licence SKUs — left as Free. Set tier on the left if the tenant is P1. ('.$e->getMessage().')';
+            $this->persist($client, $fields);
         }
 
         $groupName = 'On IT Portal - '.$client->name;
+        $groupId = null;
 
         try {
             $groupId = $this->graph->retryAfterConsentPropagation(
@@ -110,35 +115,29 @@ class CustomerEntraBootstrapService
             );
             $fields['entra_group_id'] = $groupId;
             $details[] = "Portal group «{$groupName}»: {$groupId}";
+            $this->persist($client, $fields);
         } catch (Throwable $e) {
             Log::error('Entra bootstrap group failed', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
             $warnings[] = 'Group not created: '.$e->getMessage()
-                .(str_contains(strtolower($e->getMessage()), 'group.readwrite')
-                    ? ''
-                    : ' If this is shortly after Accept, wait ~30s and use **Retry Graph setup**.');
-            $client->update($fields);
-            $this->onboarding->updateChecklist($client->fresh(), [
-                'entra_admin_consent_granted' => true,
-            ]);
-
-            return [
-                'ok' => false,
-                'summary' => 'Accept saved (tenant ID kept) but portal group could not be created yet.',
-                'details' => $details,
-                'warnings' => $warnings,
-            ];
+                .' Licence tier is still saved. Continuing SuperOps Entra apps without a group. '
+                .'Fix: On IT Azure app **Group.ReadWrite.All** → Grant admin consent on On IT app → '
+                .'Re-consent in customer tenant (details under Retry) → **Retry Graph setup**. '
+                .'Or create group «'.$groupName.'» in customer Entra and paste its Object ID on the left.';
+            $groupId = null;
         }
 
         $scimAppName = 'SuperOps - '.$client->name;
         $ssoAppName = 'SuperOps Requester SSO - '.$client->name;
         $usesGroupScim = $tier === ClientOnboardingService::ENTRA_LICENSE_P1;
         $checklist = [
-            'entra_group_created' => true,
             'entra_admin_consent_granted' => true,
         ];
+        if (filled($groupId)) {
+            $checklist['entra_group_created'] = true;
+        }
 
         try {
             $scim = $this->graph->retryAfterConsentPropagation(
@@ -148,6 +147,7 @@ class CustomerEntraBootstrapService
             $fields['entra_superops_app_id'] = $scim['appId'];
             $details[] = "SCIM app «{$scimAppName}»: {$scim['appId']}";
             $checklist['superops_scim_app'] = true;
+            $this->persist($client, $fields);
 
             try {
                 $this->graph->ensureApplicationUserRole(
@@ -159,9 +159,8 @@ class CustomerEntraBootstrapService
                 $warnings[] = 'SCIM app role User incomplete (app ID is saved): '.$e->getMessage();
             }
 
-            if ($usesGroupScim) {
+            if ($usesGroupScim && filled($groupId)) {
                 try {
-                    // Re-resolve SP after role patch — Graph often 404s stale SP ids from create/instantiate.
                     $scimSpId = $this->graph->waitForServicePrincipalForAppId(
                         $tenantId,
                         $scim['appId'],
@@ -182,6 +181,8 @@ class CustomerEntraBootstrapService
                 } catch (Throwable $e) {
                     $warnings[] = 'SCIM group assign skipped: '.$e->getMessage();
                 }
+            } elseif ($usesGroupScim && ! filled($groupId)) {
+                $warnings[] = 'SCIM group assign skipped until portal group exists.';
             }
         } catch (Throwable $e) {
             Log::warning('Entra bootstrap SCIM app failed', [
@@ -198,6 +199,7 @@ class CustomerEntraBootstrapService
             );
             $fields['entra_superops_sso_app_id'] = $sso['appId'];
             $details[] = "Client SSO app «{$ssoAppName}»: {$sso['appId']}";
+            $this->persist($client, $fields);
 
             try {
                 $this->graph->ensureApplicationUserRole(
@@ -209,7 +211,7 @@ class CustomerEntraBootstrapService
                 $warnings[] = 'Client SSO app role User incomplete (app ID is saved): '.$e->getMessage();
             }
 
-            if ($usesGroupScim) {
+            if ($usesGroupScim && filled($groupId)) {
                 try {
                     $ssoSpId = $this->graph->waitForServicePrincipalForAppId(
                         $tenantId,
@@ -231,6 +233,8 @@ class CustomerEntraBootstrapService
                 } catch (Throwable $e) {
                     $warnings[] = 'Client SSO group assign skipped: '.$e->getMessage();
                 }
+            } elseif ($usesGroupScim && ! filled($groupId)) {
+                $warnings[] = 'Client SSO group assign skipped until portal group exists.';
             }
         } catch (Throwable $e) {
             Log::warning('Entra bootstrap SSO app failed', [
@@ -242,20 +246,38 @@ class CustomerEntraBootstrapService
 
         $warnings[] = 'Still required: paste SuperOps SCIM Tenant URL + Secret on Edit Client → **Apply SCIM credentials + start** (or Azure Provisioning). Then Client SSO SAML (step 08).';
 
-        $client->update($fields);
-        $client = $client->fresh();
+        $client = $this->persist($client, $fields);
         $this->onboarding->updateChecklist($client, $checklist);
         $this->onboarding->syncAutoCheckpointsFromClient($client);
+        $client = $client->fresh();
 
-        $ok = filled($client->entra_group_id);
+        $hasGroup = filled($client->entra_group_id);
+        $hasApps = filled($client->entra_superops_app_id) || filled($client->entra_superops_sso_app_id);
+        $ok = filled($client->entra_tenant_id) && $hasGroup;
+
+        if ($ok) {
+            $summary = 'Microsoft tenant connected — tenant, licence, group and Entra apps saved where possible.';
+        } elseif ($hasApps && ! $hasGroup) {
+            $summary = 'Tenant and SuperOps apps saved; portal group still missing — fix Group.ReadWrite.All or paste Group ID, then Retry Graph setup.';
+        } else {
+            $summary = 'Microsoft Accept completed with errors — check warnings and use Retry Graph setup.';
+        }
 
         return [
-            'ok' => $ok && filled($client->entra_tenant_id),
-            'summary' => $ok
-                ? 'Microsoft tenant connected — tenant, licence, group and Entra apps saved where possible.'
-                : 'Microsoft Accept completed with errors — check warnings and Retry Graph setup if needed.',
+            'ok' => $ok,
+            'summary' => $summary,
             'details' => $details,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function persist(Client $client, array $fields): Client
+    {
+        $client->forceFill($fields)->save();
+
+        return $client->fresh() ?? $client;
     }
 }

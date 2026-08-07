@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Bootstrap: save P1 immediately; continue SuperOps apps if group 403; Edit form warns stale Free overwrite — [ClientOnboarding.md](ClientOnboarding.md) |
 | 2026-08-07 | Connect Microsoft: single Accept CTA + **Retry Graph setup**; bootstrap waits/retries Graph after Accept (IdentityNotFound lag) — [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-08-06 | Product entitlements: sold vs mapped per client; CA contact AM when setup needed; Huntress/Dropsuite branch retired — [ClientAdminDashboard.md](ClientAdminDashboard.md), [DatabaseSchema.md](DatabaseSchema.md) |
 | 2026-08-06 | Unlinked integrations (superseded by entitlements): Client Admin “contact AM”; requesters hide unmapped — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
