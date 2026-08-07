@@ -25,7 +25,7 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 2. Portal **Sync now** writes surname + `(User Mailbox)` / `(Shared Mailbox)` into `extensionAttribute1`
 3. Entra provisioning pushes that into SuperOps
 
-**Portal Apply SCIM** should do (1) via Graph schema update, (2) by queuing Sync when tenant + group exist, then start provisioning. If the schema update fails, fix mapping in Entra Provisioning (or re-run Apply after a deploy that fixes Graph payload fields) and run **Sync now**.
+**Portal Apply SCIM** should do (1) via Graph schema update (waits/polls until the SCIM job schema is readable — first Apply on a brand-new app often 404s for 10–40s), (2) by queuing Sync when tenant + group exist, then start provisioning. If the schema update fails after that wait, fix mapping in Entra Provisioning or re-run **Apply SCIM** and run **Sync now**.
 
 **Timing:** SuperOps Requester names update only after background Sync writes `extensionAttribute1` **and** Entra SCIM completes Updates — usually a few minutes. Refresh SuperOps; do not expect instant renames after Apply.
 
