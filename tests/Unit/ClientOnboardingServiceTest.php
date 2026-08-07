@@ -3,9 +3,11 @@
 namespace Tests\Unit;
 
 use App\Models\Client;
+use App\Models\User;
 use App\Services\ClientOnboardingService;
 use App\Support\AdminConsentState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 class ClientOnboardingServiceTest extends TestCase
@@ -50,12 +52,72 @@ class ClientOnboardingServiceTest extends TestCase
         $recoveryTitles = collect($step['guide']['recovery'] ?? [])->pluck('title')->all();
         $this->assertContains('Remaining: Apply SuperOps SCIM tokens', $sectionTitles);
         $this->assertContains('Apply button failed — paste credentials in Azure', $recoveryTitles);
-        $this->assertContains('Names wrong in SuperOps after provisioning', $recoveryTitles);
+        $this->assertContains('Name mappings not auto-applied', $recoveryTitles);
         $this->assertContains('App role or group assign missing', $recoveryTitles);
         $this->assertNotEmpty($step['guide']['automated'] ?? []);
         $this->assertStringContainsString('extensionAttribute1', implode(' ', $step['instructions']));
         $this->assertStringNotContainsString('Ductec', implode(' ', $step['instructions']));
         $this->assertStringNotContainsString('3R Systems', implode(' ', $step['instructions']));
+    }
+
+    public function test_scim_step_07_not_complete_without_mappings_and_sync_queue(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'YorPower',
+            'entra_license_tier' => 'p1',
+            'onboarding_checklist' => [
+                'superops_scim_tokens' => true,
+                'superops_scim_app' => true,
+                'superops_scim_provisioning' => true,
+                'superops_scim_name_mappings' => false,
+                'superops_scim_sync_queued' => false,
+            ],
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_scim_provisioning');
+
+        $this->assertFalse($step['complete']);
+    }
+
+    public function test_scim_step_07_complete_when_mappings_and_sync_recorded(): void
+    {
+        $client = Client::factory()->create([
+            'onboarding_checklist' => [
+                'superops_scim_name_mappings' => true,
+                'superops_scim_sync_queued' => true,
+            ],
+        ]);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_scim_provisioning');
+
+        $this->assertTrue($step['complete']);
+        $this->assertTrue($step['auto_detected']);
+        $this->assertFalse($step['manual']);
+    }
+
+    public function test_scope_warning_when_superops_bulk_exceeds_portal_entra_users(): void
+    {
+        $client = Client::factory()->create([
+            'superops_account_id' => 'acc-1',
+            'entra_synced_at' => now(),
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'entra_object_id' => '11111111-1111-1111-1111-111111111111',
+        ]);
+
+        $syncService = Mockery::mock(\App\Services\SuperOps\SuperOpsUserSyncService::class);
+        $syncService->shouldReceive('countClientRequesters')->andReturn(123);
+        $this->app->instance(\App\Services\SuperOps\SuperOpsUserSyncService::class, $syncService);
+
+        $warnings = app(ClientOnboardingService::class)->superOpsEntraScopeWarnings($client);
+
+        $this->assertNotEmpty($warnings);
+        $this->assertStringContainsString('123', $warnings[0]);
+        $this->assertStringContainsString('1', $warnings[0]);
     }
 
     public function test_checklist_has_twelve_zero_training_steps(): void
@@ -507,10 +569,13 @@ class ClientOnboardingServiceTest extends TestCase
         $service->updateChecklist($client, [
             'superops_scim_tokens' => true,
             'superops_scim_app' => true,
+            'superops_scim_name_mappings' => true,
+            'superops_scim_sync_queued' => true,
             'superops_scim_provisioning' => true,
         ]);
         $client->refresh();
 
         $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
+        $this->assertTrue($client->onboarding_checklist['superops_scim_provisioning']);
     }
 }

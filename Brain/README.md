@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Step 07 Apply SCIM: green only when name mappings + Sync queued; SuperOps bulk outside Entra warns in checklist — [SuperOpsEntraSync.md](SuperOpsEntraSync.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-08-07 | Integration Health: Never loaded (cold) sold feeds flag warning headline/notices — not silent under green SuperOps cells — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Post-deploy always `chown` storage after artisan as root — fixes **500 Permission denied** on compiled views (`/dashboard`) — [Deployment.md](Deployment.md) |
 | 2026-08-07 | Apply SCIM waits/polls Graph until job schema is ready before name.familyName mapping (fix first-apply ProvisioningTaskNotFound on new apps) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |

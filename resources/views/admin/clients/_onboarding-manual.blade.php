@@ -14,6 +14,17 @@
             </div>
         @endif
 
+        @if(!empty($guide['warnings']))
+            <div class="onboarding-manual__callout border border-amber-400/40 bg-amber-500/10">
+                <h3 class="onboarding-manual__block-title text-amber-200">Do not ignore</h3>
+                <ul class="onboarding-manual__notes text-amber-50/90">
+                    @foreach($guide['warnings'] as $line)
+                        <li>{!! \App\Support\OnboardingStepFormatter::rich($line) !!}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if(!empty($guide['notes']))
             <div class="onboarding-manual__callout">
                 <h3 class="onboarding-manual__block-title">What is left</h3>

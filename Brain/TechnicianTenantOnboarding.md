@@ -47,7 +47,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
 | 05 | Get SuperOps SCIM tokens | SuperOps **Generate Tokens** (manual) | Tick after tokens copied |
 | 06 | SuperOps SCIM app | Usually auto after Connect | App ID on portal |
-| 07 | Apply SCIM tokens + start | Paste tokens on step form → Apply | Apply succeeds / provisioning On |
+| 07 | Apply SCIM tokens + start | Paste tokens on step form → Apply | **Done only** when name.familyName←extensionAttribute1 **and** portal Sync was queued (group ID required). Credentials-only = still Pending |
 | 08 | SuperOps Microsoft login (Client SSO) | SuperOps 2 URLs → Wire → SuperOps Step 3 | Client SSO enabled |
 | 09 | Turn on portal sync | Tick Entra sync enabled → Save client | Dry run / Sync now buttons |
 | 10 | Run Dry run then Sync now | Dry run → Sync now → Last synced | Last synced / tick if lagging |
@@ -103,6 +103,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-08-07 | Step 07 Done only when name mappings + Sync queued; SuperOps bulk outside Entra → Do not ignore warning |
 | 2026-08-06 | Guide UX: all 12 steps use automation-first (Already automatic / remaining / recovery only on failure) |
 | 2026-08-06 | Guide UX: automation-first (**Already done automatically** + short remaining work; Azure/SuperOps recovery only under failure) — steps 03–08 + SSO form |
 | 2026-08-04 | SuperOps last names after Apply SCIM / Sync now: expect minutes (background Sync + SCIM); no real customer names in steps — use `{Company}` / this client only |

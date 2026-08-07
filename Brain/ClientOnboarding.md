@@ -338,6 +338,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Step 07 Apply SCIM not green without name mappings + Sync queue; SuperOps bulk vs Entra scope warning |
 | 2026-08-06 | All 12 live checklist guides use automated + remaining + recovery layout |
 | 2026-08-06 | Checklist automation-first guide UX (automated + remaining + recovery); step 08 SuperOps Microsoft login (Client SSO) |
 | 2026-08-04 | Live steps/brain: no real customer names in onboarding copy (only this client’s `{name}`); SuperOps Requester suffixes after background Sync + SCIM (minutes) |

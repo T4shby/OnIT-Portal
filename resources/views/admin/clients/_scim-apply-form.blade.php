@@ -11,14 +11,18 @@
         <div class="mb-4 border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm leading-relaxed text-white/80">
             <p class="portal-label mb-2 text-emerald-300/90">Already automatic</p>
             <p>
-                Entra app <strong class="text-white/90">SuperOps - {{ $client->name }}</strong> (Connect), mappings + start provisioning (this form),
-                P1 group assign when bootstrap succeeds. Expand the guide’s recovery block only if Apply fails.
+                Entra app <strong class="text-white/90">SuperOps - {{ $client->name }}</strong> (Connect),
+                Start provisioning, and P1 group assign when bootstrap succeeds.
+                Apply only turns step 07 <strong class="text-white/90">Done</strong> when
+                <strong class="text-white/90">name.familyName ← extensionAttribute1</strong> is set
+                <strong class="text-white/90">and</strong> portal Sync is queued (group ID must be saved).
             </p>
         </div>
         <p class="portal-label mb-2">@if($inStep) Still needs you @else Push SuperOps SCIM to Entra @endif</p>
         <p class="mb-4 text-sm leading-relaxed text-white/75">
             Paste SuperOps <strong class="text-white/90">Tenant URL</strong> and <strong class="text-white/90">Secret Token</strong>
             (from step 05 Generate Tokens). Secret is <strong class="text-white/90">not stored</strong>.
+            Credentials-only success is <strong class="text-white/90">not enough</strong> for this step — mapping + Sync queue must both succeed.
         </p>
 
         <form method="POST" action="{{ route('admin.clients.apply-scim', $client) }}" class="space-y-4">
@@ -59,7 +63,8 @@
                 Apply SCIM credentials + start
             </button>
             <p class="portal-body-muted text-xs leading-relaxed">
-                Sets SuperOps name mapping (name.familyName ← extensionAttribute1) and queues portal Sync so SuperOps last names can include (User Mailbox) / (Shared Mailbox).
+                Sets SuperOps name mapping (name.familyName ← extensionAttribute1) and queues portal Sync.
+                Step stays Pending if either fails (e.g. missing Entra group ID or schema not ready).
             </p>
         </form>
     </div>

@@ -16,6 +16,7 @@ namespace App\Services;
  *     recovery: list<ManualSection>,
  *     verify: list<string>,
  *     notes: list<string>,
+ *     warnings: list<string>,
  * }
  */
 class OnboardingManual
@@ -27,6 +28,7 @@ class OnboardingManual
      * @param  list<ManualSection>  $recovery  Only if remaining action fails
      * @param  list<string>  $verify
      * @param  list<string>  $notes
+     * @param  list<string>  $warnings  Amber “do not ignore” platform warnings
      * @return ManualGuide
      */
     public static function build(
@@ -36,6 +38,7 @@ class OnboardingManual
         array $notes = [],
         array $automated = [],
         array $recovery = [],
+        array $warnings = [],
     ): array {
         return [
             'prerequisites' => $prerequisites,
@@ -44,6 +47,7 @@ class OnboardingManual
             'recovery' => $recovery,
             'verify' => $verify,
             'notes' => $notes,
+            'warnings' => $warnings,
         ];
     }
 
@@ -112,6 +116,10 @@ class OnboardingManual
 
         foreach ($guide['notes'] as $line) {
             $lines[] = 'Note: '.$line;
+        }
+
+        foreach ($guide['warnings'] ?? [] as $line) {
+            $lines[] = 'Warning: '.$line;
         }
 
         foreach ($guide['sections'] as $section) {

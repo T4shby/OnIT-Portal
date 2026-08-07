@@ -33,6 +33,8 @@ class ClientOnboardingService
         'superops_scim_tokens',
         'superops_scim_app',
         'superops_scim_provisioning',
+        'superops_scim_name_mappings',
+        'superops_scim_sync_queued',
         'superops_scim_configured',
         'superops_client_sso_configured',
         'portal_sync_run',
@@ -114,7 +116,8 @@ class ClientOnboardingService
         $scimAppComplete = $legacyScimComplete
             || (bool) ($checklist['superops_scim_app'] ?? false)
             || filled($client->entra_superops_app_id);
-        $scimProvisioningComplete = $legacyScimComplete || (bool) ($checklist['superops_scim_provisioning'] ?? false);
+        $scimProvisioningComplete = $this->isScimProvisioningComplete($client, $checklist, $legacyScimComplete);
+        $scimScopeWarnings = $this->superOpsEntraScopeWarnings($client);
 
         $ssoComplete = (bool) ($checklist['superops_client_sso_configured'] ?? false);
         $portalSyncRunComplete = $syncRun || (bool) ($checklist['portal_sync_run'] ?? false);
@@ -508,10 +511,18 @@ class ClientOnboardingService
                     : 'Apply SCIM tokens + start (Free)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $scimProvisioningComplete,
-                'manual' => true,
-                'auto_detected' => false,
+                'manual' => false,
+                'auto_detected' => $scimProvisioningComplete,
                 'blocked' => ! $scimAppComplete,
-            ], $this->scimProvisioningGuide($client->name, $groupName, $appName, $usesGroupScim)),
+            ], $this->scimProvisioningGuide(
+                $client,
+                $groupName,
+                $appName,
+                $usesGroupScim,
+                $checklist,
+                $scimProvisioningComplete,
+                $scimScopeWarnings,
+            )),
 
             $this->withManual([
                 'key' => 'superops_client_sso_configured',
@@ -594,11 +605,12 @@ class ClientOnboardingService
                         '**Last synced** is set (or Sync has run) — step Done automatically when the portal records a sync.',
                     ]
                     : [
-                        'Apply SCIM (07) may have queued a background Sync once; you still run Dry run → Sync now here to prove the client.',
+                        'Apply SCIM (07) queues a background Sync only when name mappings **and** Entra group ID are in place — re-run Apply if step 07 is still Pending.',
                     ],
                 notes: $portalSyncRunComplete
                     ? ['Already complete — open recovery only if SuperOps names / Azure membership look wrong.']
                     : ['Remaining: left **Dry run sync** → then **Sync now** → wait a few minutes → confirm **Last synced**.'],
+                warnings: $scimScopeWarnings,
                 sections: $portalSyncRunComplete
                     ? []
                     : [
@@ -783,33 +795,74 @@ class ClientOnboardingService
     }
 
     /**
-     * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>}
+     * @param  array<string, mixed>  $checklist
+     * @param  list<string>  $scopeWarnings
+     * @return array{prerequisites: list<string>, sections: list<array{title: string, where: string|null, steps: list<string>}>, verify: list<string>, notes: list<string>, automated: list<string>, recovery: list<array{title: string, where: string|null, steps: list<string>}>, warnings: list<string>}
      */
-    private function scimProvisioningGuide(string $clientName, string $groupName, string $appName, bool $usesGroupScim): array
-    {
+    private function scimProvisioningGuide(
+        Client $client,
+        string $groupName,
+        string $appName,
+        bool $usesGroupScim,
+        array $checklist,
+        bool $scimComplete,
+        array $scopeWarnings,
+    ): array {
+        $clientName = $client->name;
+        $mappingsOk = (bool) ($checklist['superops_scim_name_mappings'] ?? false);
+        $syncQueued = (bool) ($checklist['superops_scim_sync_queued'] ?? false);
+        $gateNotes = [];
+        if (! $scimComplete) {
+            if (! $mappingsOk) {
+                $gateNotes[] = 'Step stays **Pending** until Apply sets **name.familyName ← extensionAttribute1**. A credentials-only Apply does not count.';
+            }
+            if (! $syncQueued) {
+                $gateNotes[] = 'Step stays **Pending** until Apply queues portal **Sync now** (needs tenant + **Entra group ID** + platform Entra sync enabled). Save group ID first, then re-Apply SCIM.';
+            }
+            if ($gateNotes === []) {
+                $gateNotes[] = 'Paste SuperOps tokens and **Apply SCIM credentials + start**. Done only when name mapping **and** background Sync queue both succeed.';
+            }
+        }
+
         return OnboardingManual::build(
             automated: array_values(array_filter([
                 'Entra app **'.$appName.'** and App role Value **User** from Connect / bootstrap (when Graph allows).',
                 $usesGroupScim
                     ? 'P1: portal group **'.$groupName.'** assigned to the SCIM enterprise app when bootstrap succeeds.'
                     : 'Free: **SCIM Application (client) ID** on the left so **Sync now** can assign users.',
-                'Apply SCIM form writes Tenant URL + Secret into Entra, sets SuperOps name mappings, starts provisioning, and queues background **Sync now**.',
+                $scimComplete
+                    ? 'Apply SCIM wrote tokens, set SuperOps name mappings, started provisioning, and queued background **Sync now**.'
+                    : null,
             ])),
-            notes: [
-                'Remaining work you must do: SuperOps **Generate Tokens** (step 05) → paste Tenant URL + Secret on the form at the top of this step → **Apply SCIM credentials + start**. Secret is not stored.',
-            ],
-            sections: [
-                OnboardingManual::section(
-                    'Remaining: Apply SuperOps SCIM tokens',
-                    'This checklist step → form at the top',
-                    [
-                        'Finish step 05 if needed, then paste SuperOps **Tenant URL** and **Secret Token**.',
-                        'Click **Apply SCIM credentials + start**.',
-                        'When Apply succeeds, a background **Sync now** is queued; SuperOps names can take a few minutes to update after SCIM finishes.',
-                        'Step marks complete when Apply succeeds.',
-                    ],
-                ),
-            ],
+            notes: array_values(array_filter([
+                $scimComplete
+                    ? 'Nothing left here — SuperOps Requester suffixes still need the background Sync + SCIM Updates (step 09 proves Last synced).'
+                    : 'Remaining: SuperOps **Generate Tokens** (step 05) → paste Tenant URL + Secret → **Apply SCIM credentials + start**. Secret is not stored.',
+                ...$gateNotes,
+            ])),
+            warnings: array_values(array_filter([
+                ...$scopeWarnings,
+                ! $scimComplete && array_key_exists('superops_scim_name_mappings', $checklist) && ! $mappingsOk
+                    ? 'Last Apply did **not** set SuperOps name mappings — step cannot go green. Re-Apply SCIM or use recovery for manual attribute mapping.'
+                    : null,
+                ! $scimComplete && array_key_exists('superops_scim_sync_queued', $checklist) && ! $syncQueued
+                    ? 'Last Apply did **not** queue portal Sync — usually missing **Entra group ID**. Fix group, then re-Apply.'
+                    : null,
+            ])),
+            sections: $scimComplete
+                ? []
+                : [
+                    OnboardingManual::section(
+                        'Remaining: Apply SuperOps SCIM tokens',
+                        'This checklist step → form at the top',
+                        [
+                            'Finish step 05 if needed, then paste SuperOps **Tenant URL** and **Secret Token**.',
+                            'Confirm **Entra group ID** is saved on the left (otherwise Sync will not queue and this step stays Pending).',
+                            'Click **Apply SCIM credentials + start**.',
+                            'Success only when flash confirms name mappings **and** Portal Sync queued — then SuperOps names take a few minutes in the **background**.',
+                        ],
+                    ),
+                ],
             recovery: [
                 OnboardingManual::section(
                     'Apply button failed — paste credentials in Azure',
@@ -818,14 +871,16 @@ class ClientOnboardingService
                         ...$this->openCustomerAzureSteps($clientName),
                         'Enterprise applications → **'.$appName.'** → Provisioning → Automatic.',
                         'Admin Credentials → SuperOps Tenant URL + Secret → Test Connection → Save → Start provisioning.',
+                        'Then re-run portal Apply so name mappings + Sync queue are recorded.',
                     ],
                 ),
                 OnboardingManual::section(
-                    'Names wrong in SuperOps after provisioning',
+                    'Name mappings not auto-applied',
                     $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning → Mappings'),
                     [
                         'Attribute mapping → **Provision Microsoft Entra ID Users**.',
                         '**name.givenName** Direct ← givenName; **name.familyName** Direct ← extensionAttribute1 (default surname); **name.formatted** Direct ← displayName → Save.',
+                        'Re-Apply SCIM in the portal so the checklist records name mappings.',
                     ],
                 ),
                 OnboardingManual::section(
@@ -834,15 +889,97 @@ class ClientOnboardingService
                     array_values(array_filter([
                         'App role Value **User** missing → App registrations → **'.$appName.'** → App roles → add enabled Value **User**.',
                         $usesGroupScim
-                            ? 'Group not assigned → Users and groups → Add **'.$groupName.'**. Or **Retry Graph setup**.'
+                            ? 'Group not assigned → Users and groups → Add **'.$groupName.'**. Or **Retry Graph setup**. Ensure left **Entra group ID** is set before Apply so Sync queues.'
                             : 'Confirm left **SCIM Application (client) ID** matches App registrations → **'.$appName.'**.',
                     ])),
                 ),
             ],
             verify: [
-                'Apply SCIM succeeded (or Azure Provisioning shows On), step Done.',
+                'Step **Done** only when Apply recorded SuperOps name mappings **and** queued portal Sync (not credentials-only).',
             ],
         );
+    }
+
+    /**
+     * Step 07 green only when Apply recorded name mappings + Sync queue (or grandfathered legacy).
+     *
+     * @param  array<string, mixed>  $checklist
+     */
+    public function isScimProvisioningComplete(Client $client, array $checklist, ?bool $legacyScimComplete = null): bool
+    {
+        $legacyScimComplete ??= (bool) ($checklist['superops_scim_configured'] ?? false);
+        if ($legacyScimComplete) {
+            return true;
+        }
+
+        $mappings = (bool) ($checklist['superops_scim_name_mappings'] ?? false);
+        $syncQueued = (bool) ($checklist['superops_scim_sync_queued'] ?? false);
+        if ($mappings && $syncQueued) {
+            return true;
+        }
+
+        // Pre-harden clients: provisioning tick without meta keys, and a real Sync already ran.
+        if (
+            (bool) ($checklist['superops_scim_provisioning'] ?? false)
+            && ! array_key_exists('superops_scim_name_mappings', $checklist)
+            && $client->entra_synced_at !== null
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * SuperOps already has many requesters but Entra/portal only tracks a smaller set.
+     *
+     * @return list<string>
+     */
+    public function superOpsEntraScopeWarnings(Client $client): array
+    {
+        $portalScoped = \App\Models\User::query()
+            ->where('client_id', $client->id)
+            ->whereNotNull('entra_object_id')
+            ->count();
+
+        $superOpsCount = null;
+        try {
+            $superOpsCount = app(\App\Services\SuperOps\SuperOpsUserSyncService::class)
+                ->countClientRequesters($client);
+        } catch (\Throwable) {
+            $superOpsCount = null;
+        }
+
+        if ($superOpsCount === null) {
+            if ($portalScoped <= 2 && filled($client->superops_account_id) && $client->entra_synced_at !== null) {
+                return [
+                    'Portal Entra scope is very small (**'.$portalScoped.'** identity/identities with Entra IDs) for a linked SuperOps client. SuperOps may already have a large Requester list from import/CSV — only people in **customer Entra** get `(User Mailbox)` / `(Shared Mailbox)` via SCIM. Confirm SuperOps → Requesters vs **Admin → Users** for this client.',
+                ];
+            }
+
+            return [];
+        }
+
+        if ($superOpsCount < 8) {
+            return [];
+        }
+
+        $threshold = max($portalScoped + 5, (int) ceil($portalScoped * 1.25));
+        if ($superOpsCount <= $threshold && $portalScoped > 0) {
+            return [];
+        }
+
+        if ($portalScoped === 0 && $superOpsCount >= 8) {
+            return [
+                "SuperOps has about **{$superOpsCount}** requesters for this client, but the portal has **no** Entra-synced users yet. Until **Sync now** loads customer Entra identities, SuperOps names stay plain and SCIM cannot apply `(User Mailbox)` / `(Shared Mailbox)` across that SuperOps book.",
+            ];
+        }
+
+        return [
+            "SuperOps has about **{$superOpsCount}** requesters for this client, but portal Entra sync currently tracks **{$portalScoped}**. "
+            .'Only the Entra-scoped set gets last names with `(User Mailbox)` / `(Shared Mailbox)`. '
+            .'Extra SuperOps rows (import/CSV/old data) stay plain until those people exist in this customer’s Entra tenant and enter the portal security group / SCIM scope.',
+        ];
     }
 
     private function superOpsClientSsoGuide(Client $client, string $groupName, bool $usesGroupScim): array
@@ -983,11 +1120,21 @@ class ClientOnboardingService
             $current[$key] = (bool) $value;
         }
 
-        // Keep legacy SCIM key in sync when all new SCIM substeps are complete.
+        // Keep legacy SCIM key in sync when all new SCIM substeps are truly complete.
         if (
             ($current['superops_scim_tokens'] ?? false)
             && ($current['superops_scim_app'] ?? false)
+            && ($current['superops_scim_name_mappings'] ?? false)
+            && ($current['superops_scim_sync_queued'] ?? false)
+        ) {
+            $current['superops_scim_provisioning'] = true;
+            $current['superops_scim_configured'] = true;
+        } elseif (
+            ($current['superops_scim_tokens'] ?? false)
+            && ($current['superops_scim_app'] ?? false)
             && ($current['superops_scim_provisioning'] ?? false)
+            && ($current['superops_scim_name_mappings'] ?? false)
+            && ($current['superops_scim_sync_queued'] ?? false)
         ) {
             $current['superops_scim_configured'] = true;
         }

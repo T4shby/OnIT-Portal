@@ -2,12 +2,82 @@
 
 namespace App\Services\SuperOps;
 
+use App\Models\Client;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class SuperOpsUserSyncService
 {
     public function __construct(private SuperOpsApiClient $api) {}
+
+    /**
+     * Approximate SuperOps requester count for this SuperOps client (cached briefly).
+     * Used by onboarding to flag when SuperOps bulk already exists outside Entra scope.
+     */
+    public function countClientRequesters(Client $client): ?int
+    {
+        $accountId = trim((string) $client->superops_account_id);
+        if ($accountId === '' || ! $this->api->isConfigured()) {
+            return null;
+        }
+
+        $cacheKey = 'superops.requester_count.'.$client->id;
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($accountId, $client): ?int {
+            try {
+                $page = 1;
+                $pageSize = 100;
+                $total = 0;
+                $maxPages = 25;
+
+                do {
+                    $data = $this->api->query(<<<'GQL'
+                        query getClientUserList($input: GetClientUserListInput!) {
+                            getClientUserList(input: $input) {
+                                userList { userId }
+                                listInfo { totalCount hasMore }
+                            }
+                        }
+                    GQL, [
+                        'input' => [
+                            'page' => $page,
+                            'pageSize' => $pageSize,
+                            'condition' => [
+                                'attribute' => 'client.accountId',
+                                'operator' => 'is',
+                                'value' => $accountId,
+                            ],
+                        ],
+                    ]);
+
+                    $payload = $data['getClientUserList'] ?? [];
+                    if (isset($payload['listInfo']['totalCount'])) {
+                        return max(0, (int) $payload['listInfo']['totalCount']);
+                    }
+
+                    $list = $payload['userList'] ?? [];
+                    if (! is_array($list)) {
+                        break;
+                    }
+
+                    $batch = count($list);
+                    $total += $batch;
+                    $hasMore = (bool) ($payload['listInfo']['hasMore'] ?? ($batch === $pageSize));
+                    $page++;
+                } while ($hasMore && $page <= $maxPages);
+
+                return $total;
+            } catch (\Throwable $e) {
+                Log::warning('SuperOps requester count failed', [
+                    'client_id' => $client->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return null;
+            }
+        });
+    }
 
     public function syncUser(User $user): bool
     {

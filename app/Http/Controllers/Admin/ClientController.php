@@ -330,15 +330,16 @@ class ClientController extends Controller
                 ->with('error', 'Could not push SCIM credentials to Entra: '.$e->getMessage());
         }
 
-        $this->onboarding->updateChecklist($client, [
-            'superops_scim_tokens' => true,
-            'superops_scim_app' => true,
-            'superops_scim_provisioning' => true,
-        ]);
+        $nameMappingsOk = (bool) ($result['nameMappingsConfigured'] ?? false);
 
         // Write extensionAttribute1 + provision-on-demand so SuperOps last names include mailbox type suffixes.
         $syncQueued = false;
-        if (config('services.entra_sync.enabled') && filled($client->entra_tenant_id) && filled($client->entra_group_id)) {
+        $syncBlockReason = null;
+        if (! config('services.entra_sync.enabled')) {
+            $syncBlockReason = 'Platform Entra sync is disabled (ENTRA_SYNC_ENABLED).';
+        } elseif (! filled($client->entra_group_id)) {
+            $syncBlockReason = 'Entra group ID is empty — save the security group Object ID, then re-Apply SCIM.';
+        } else {
             if (! $client->entra_sync_enabled) {
                 $client->update(['entra_sync_enabled' => true]);
                 $client->refresh();
@@ -349,23 +350,37 @@ class ClientController extends Controller
             $syncQueued = true;
         }
 
+        $stepComplete = $nameMappingsOk && $syncQueued;
+
+        $this->onboarding->updateChecklist($client, [
+            'superops_scim_tokens' => true,
+            'superops_scim_app' => true,
+            'superops_scim_name_mappings' => $nameMappingsOk,
+            'superops_scim_sync_queued' => $syncQueued,
+            'superops_scim_provisioning' => $stepComplete,
+        ]);
+
         $this->activityLog->log(
             'client.scim_credentials_applied',
             $client,
             properties: [
                 'job_id' => $result['jobId'],
                 'started' => $result['started'],
-                'name_mappings' => $result['nameMappingsConfigured'] ?? false,
+                'name_mappings' => $nameMappingsOk,
                 'sync_queued' => $syncQueued,
+                'step_complete' => $stepComplete,
                 'details' => $result['details'],
+                'warnings' => $result['warnings'] ?? [],
                 'scim_host' => parse_url($request->validated('scim_tenant_url'), PHP_URL_HOST),
             ],
             clientId: $client->id,
         );
 
         $message = 'SuperOps SCIM credentials written to Entra';
-        if ($result['nameMappingsConfigured'] ?? false) {
+        if ($nameMappingsOk) {
             $message .= ', SuperOps name mappings set (familyName ← extensionAttribute1)';
+        } else {
+            $message .= ', name mappings NOT set';
         }
         $message .= ', provisioning start requested.';
         if ($result['details'] !== []) {
@@ -374,18 +389,30 @@ class ClientController extends Controller
         if ($syncQueued) {
             $message .= ' Portal Sync is running in the background. SuperOps Requester names update after that Sync and SCIM finish — usually a few minutes; refresh SuperOps then.';
         } else {
-            $message .= ' Enable Entra sync and run Sync now so extensionAttribute1 is written and names update in SuperOps.';
+            $message .= ' Portal Sync was not queued'.($syncBlockReason ? ' ('.$syncBlockReason.')' : '').'.';
         }
 
-        $redirect = redirect()->route('admin.clients.edit', $client)
-            ->with('success', $message)
-            ->with('warning', 'Still required for Client SSO: step 08 Configure SAML (Entity ID + ACS) if not done.');
+        $blockers = array_values(array_filter([
+            ! $nameMappingsOk
+                ? 'Step 07 stays Pending: name attribute mapping failed — re-Apply SCIM or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.'
+                : null,
+            ! $syncQueued
+                ? 'Step 07 stays Pending: Sync not queued'.($syncBlockReason ? ' — '.$syncBlockReason : '.')
+                : null,
+        ]));
+        $blockers = array_merge($blockers, array_slice($result['warnings'] ?? [], 0, 3));
 
-        if (! empty($result['warnings'])) {
-            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 3)));
+        $redirect = redirect()->route('admin.clients.edit', $client);
+
+        if ($stepComplete) {
+            return $redirect
+                ->with('success', $message)
+                ->with('warning', 'Still required for Client SSO: step 08 Configure SAML (Entity ID + ACS) if not done.');
         }
 
-        return $redirect;
+        return $redirect
+            ->with('warning', $message.' '.implode(' ', $blockers)
+                .' Step 07 will not turn green until name mappings and Sync queue both succeed.');
     }
 
     public function applyClientSso(ApplyClientSsoSamlRequest $request, Client $client): RedirectResponse
