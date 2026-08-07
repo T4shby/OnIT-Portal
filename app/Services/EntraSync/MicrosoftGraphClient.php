@@ -739,30 +739,69 @@ class MicrosoftGraphClient
         string $servicePrincipalId,
         string $groupId,
         string $appRoleId,
+        ?string $appId = null,
     ): void {
-        $response = $this->graphPost($tenantId, "https://graph.microsoft.com/v1.0/groups/{$groupId}/appRoleAssignments", [
-            'principalId' => $groupId,
-            'resourceId' => $servicePrincipalId,
-            'appRoleId' => $appRoleId,
-        ]);
+        $spId = $servicePrincipalId;
+        $lastBody = '';
 
-        if ($response->status() === 201) {
-            return;
+        for ($attempt = 1; $attempt <= 8; $attempt++) {
+            if (filled($appId)) {
+                try {
+                    $spId = $this->waitForServicePrincipalForAppId($tenantId, $appId, $spId, maxAttempts: 4);
+                } catch (Throwable $e) {
+                    $lastBody = $e->getMessage();
+                    if ($attempt >= 8) {
+                        throw new RuntimeException(
+                            'Microsoft Graph assign group to enterprise app failed resolving service principal: '.$lastBody
+                        );
+                    }
+                    usleep(min(2_500_000, 500_000 * $attempt));
+
+                    continue;
+                }
+            }
+
+            $response = $this->graphPost($tenantId, "https://graph.microsoft.com/v1.0/groups/{$groupId}/appRoleAssignments", [
+                'principalId' => $groupId,
+                'resourceId' => $spId,
+                'appRoleId' => $appRoleId,
+            ]);
+
+            if ($response->status() === 201) {
+                return;
+            }
+
+            if ($response->status() === 400 && str_contains($response->body(), 'already exists')) {
+                return;
+            }
+
+            $lastBody = $response->body();
+
+            // Graph often 404s the enterprise app SP for a few seconds after create (SSO more than SCIM).
+            $retryable = $response->status() === 404
+                || $this->isConsentPropagationGraphError($response)
+                || in_array($response->status(), [429, 502, 503, 504], true);
+
+            if ($response->status() === 403 && ! $retryable) {
+                throw new RuntimeException(
+                    'Microsoft Graph cannot assign group to app — AppRoleAssignment.ReadWrite.All missing or not consented.'
+                );
+            }
+
+            if (! $retryable || $attempt >= 8) {
+                throw new RuntimeException(
+                    'Microsoft Graph assign group to enterprise app failed: '.$response->status().' '
+                    .$this->shortGraphErrorBody($lastBody)
+                );
+            }
+
+            // Stale SP id — force re-lookup by appId next loop.
+            if ($response->status() === 404) {
+                $spId = '';
+            }
+
+            usleep(min(2_500_000, 500_000 * $attempt));
         }
-
-        if ($response->status() === 400 && str_contains($response->body(), 'already exists')) {
-            return;
-        }
-
-        if ($response->status() === 403) {
-            throw new RuntimeException(
-                'Microsoft Graph cannot assign group to app — AppRoleAssignment.ReadWrite.All missing or not consented.'
-            );
-        }
-
-        throw new RuntimeException(
-            'Microsoft Graph assign group to enterprise app failed: '.$response->status().' '.$response->body()
-        );
     }
 
     public function listTenantGroups(string $tenantId): array

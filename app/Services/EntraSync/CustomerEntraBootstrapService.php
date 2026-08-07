@@ -176,6 +176,7 @@ class CustomerEntraBootstrapService
                         $scimSpId,
                         $groupId,
                         $roleId,
+                        $scim['appId'],
                     );
                     $details[] = "Assigned «{$groupName}» to SCIM app (P1).";
                 } catch (Throwable $e) {
@@ -228,6 +229,7 @@ class CustomerEntraBootstrapService
                         $ssoSpId,
                         $groupId,
                         $roleId,
+                        $sso['appId'],
                     );
                     $details[] = "Assigned «{$groupName}» to Client SSO app (P1).";
                 } catch (Throwable $e) {
