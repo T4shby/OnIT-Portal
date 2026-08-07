@@ -68,15 +68,21 @@
             >
                 @if($showGraphAccept)
                     @if(! empty($adminConsentUrl))
-                        <div class="onboarding-guide__extra mb-4" x-data="{ copied: false }">
+                        <div class="onboarding-guide__extra mb-4">
                             <p class="portal-label mb-2">Start here</p>
-                            <a
-                                href="{{ $adminConsentUrl }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm sm:w-auto"
-                            >Connect Microsoft tenant</a>
-                            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            @if(! filled($client->entra_tenant_id))
+                                <p class="portal-body-muted text-sm leading-relaxed mb-3">
+                                    Use the orange <strong class="text-white/80">Connect Microsoft tenant</strong> button
+                                    at the top of this guide (do not open a second Accept from elsewhere).
+                                </p>
+                            @else
+                                <p class="portal-body-muted text-sm leading-relaxed mb-3">
+                                    Accept already recorded. If group or app IDs are empty, use
+                                    <strong class="text-white/80">Retry Graph setup</strong> at the top of this guide
+                                    (waits for Azure — not another Accept unless permissions changed).
+                                </p>
+                            @endif
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center" x-data="{ copied: false }">
                                 <input
                                     type="text"
                                     readonly
@@ -88,8 +94,8 @@
                                     type="button"
                                     class="cta-btn-ghost shrink-0 px-4 py-2 text-xs"
                                     @click="navigator.clipboard.writeText(@js($adminConsentUrl)); copied = true; setTimeout(() => copied = false, 2000)"
-                                    x-text="copied ? 'Copied' : 'Copy link'"
-                                >Copy link</button>
+                                    x-text="copied ? 'Copied' : 'Copy Accept link'"
+                                >Copy Accept link</button>
                             </div>
                         </div>
                     @else

@@ -322,11 +322,11 @@ class ClientOnboardingService
                         'No hand-copy of Object ID when Connect / Accept succeeds.',
                     ]
                     : [
-                        'One **Connect Microsoft tenant** / Accept writes tenant ID, licence, portal group **'.$groupName.'**, and SuperOps Entra app IDs — no hand-copy of Object ID when Graph allows.',
+                        'One **Connect Microsoft tenant** / Accept (top of guide) writes tenant ID, licence, portal group **'.$groupName.'**, and SuperOps Entra app IDs — portal waits for Graph after Accept.',
                     ],
                 notes: $entraGroupComplete
                     ? ['Nothing left on this step — expand recovery only if IDs are wrong and you need a re-run.']
-                    : ['Remaining: private browser → orange **Connect Microsoft tenant** once (same action as step 04).'],
+                    : ['Remaining: private browser → orange **Connect Microsoft tenant** once at the top of this guide (same Accept as step 04).'],
                 sections: $entraGroupComplete
                     ? []
                     : [
@@ -335,9 +335,9 @@ class ClientOnboardingService
                             $connectWhere,
                             [
                                 'Private/incognito browser (not your everyday On IT profile).',
-                                'Click orange **Connect Microsoft tenant**.',
+                                'Click orange **Connect Microsoft tenant** at the top of this guide.',
                                 'Sign in with On IT **GDAP** so Microsoft shows **'.$client->name.'** — customer tenant, not On IT first.',
-                                '**Accept** Portal Graph permissions. You return here with IDs on the left.',
+                                '**Accept** Portal Graph permissions. You return here with IDs on the left (Graph waits/retries automatically).',
                             ],
                         ),
                     ],
@@ -346,7 +346,7 @@ class ClientOnboardingService
                         'Connect failed or IDs still empty',
                         'This portal left column + Graph permissions on OnIT Portal for Portals',
                         [
-                            'Fix Graph **Group.ReadWrite.All** / **Application.ReadWrite.All**, re-Accept, or use **Re-run Entra bootstrap**.',
+                            'Fix Graph **Group.ReadWrite.All** / **Application.ReadWrite.All**, re-Accept if needed, or use **Retry Graph setup** (waits for Azure lag after Accept).',
                             'Legacy only: create group in customer Entra → paste **Entra license tier**, **Tenant ID**, **Group ID** → **Save client**.',
                         ],
                     ),
@@ -371,11 +371,11 @@ class ClientOnboardingService
                         'Bootstrap used that consent for group + SuperOps app shells where Graph allowed.',
                     ]
                     : [
-                        'Same orange **Connect Microsoft tenant** as step 03 — Accept once drives bootstrap (group, SCIM app, Client SSO shell).',
+                        'Same orange **Connect Microsoft tenant** at the top of this guide as step 03 — Accept once drives bootstrap (group, SCIM app, Client SSO shell). Graph waits/retries after Accept.',
                     ],
                 notes: $adminConsentComplete
-                    ? ['Nothing left unless a later bootstrap/SCIM step fails — then re-Accept or open recovery.']
-                    : ['Remaining: **Accept** via the orange Connect button (private browser + GDAP for **'.$client->name.'**).'],
+                    ? ['Nothing left unless a later bootstrap/SCIM step fails — then **Retry Graph setup** or re-Accept if permissions changed.']
+                    : ['Remaining: **Accept** via the orange Connect button at the top (private browser + GDAP for **'.$client->name.'**).'],
                 sections: $adminConsentComplete
                     ? []
                     : [
@@ -383,9 +383,9 @@ class ClientOnboardingService
                             'Remaining: Accept once',
                             $connectWhere,
                             [
-                                'Click orange **Connect Microsoft tenant** (or **Open Portal Accept**).',
+                                'Click orange **Connect Microsoft tenant** at the top of this guide.',
                                 'Private browser · GDAP for **'.$client->name.'** · **Accept**.',
-                                'Left-side Entra fields and SuperOps app IDs fill when Graph succeeds.',
+                                'Left-side Entra fields and SuperOps app IDs fill when Graph succeeds (portal waits for Azure lag).',
                             ],
                         ),
                     ],
@@ -396,12 +396,12 @@ class ClientOnboardingService
                         [
                             ...$this->openCustomerAzureSteps($client->name),
                             'Enterprise applications → **OnIT Portal for Portals** → Permissions → Granted for **'.$client->name.'**.',
-                            'Fix missing Graph app permissions on the platform app, then Connect / Re-run bootstrap again.',
+                            'Fix missing Graph app permissions on the platform app, then Connect again or use **Retry Graph setup**.',
                         ],
                     ),
                 ],
                 verify: [
-                    'Accept succeeded and left-side Entra fields are populated (or flash shows Graph permission errors to fix once).',
+                    'Accept recorded; Tenant ID on left. Use Retry Graph setup if group still empty right after Accept.',
                 ],
             )),
 
@@ -473,15 +473,15 @@ class ClientOnboardingService
                     ],
                 notes: filled($client->entra_superops_app_id)
                     ? ['Nothing left on this step unless you need to re-create the app (recovery).']
-                    : ['Remaining: finish Connect / Accept (steps 03–04), then confirm **SuperOps Application (client) ID** on the left — or re-run bootstrap.'],
+                    : ['Remaining: finish Connect / Accept (steps 03–04), then confirm **SuperOps Application (client) ID** on the left — or Retry Graph setup.'],
                 sections: filled($client->entra_superops_app_id)
                     ? []
                     : [
                         OnboardingManual::section(
                             'Remaining: get SCIM Application ID on the left',
-                            'Connect Microsoft / Re-run Entra bootstrap → left column',
+                            'Connect Microsoft / Retry Graph setup → left column',
                             [
-                                'Complete **Connect Microsoft tenant** (or **Re-run Entra bootstrap**) after Graph allows Application.ReadWrite.All.',
+                                'Complete **Connect Microsoft tenant** (or **Retry Graph setup**) after Graph allows Application.ReadWrite.All.',
                                 'Confirm **SuperOps Application (client) ID** is filled — that auto-completes this step.',
                             ],
                         ),
@@ -491,7 +491,7 @@ class ClientOnboardingService
                         'App still missing after Connect',
                         $this->customerAzureWhere($client->name, 'Manage → Enterprise applications'),
                         [
-                            'Confirm Graph **Application.ReadWrite.All** on OnIT Portal for Portals → re-Accept → **Re-run Entra bootstrap**.',
+                            'Confirm Graph **Application.ReadWrite.All** on OnIT Portal for Portals → re-Accept → **Retry Graph setup**.',
                             'Manual last resort: non-gallery enterprise app **'.$appName.'** · App role Value **User** · paste Application (client) ID on left → Save client.',
                         ],
                     ),
@@ -834,7 +834,7 @@ class ClientOnboardingService
                     array_values(array_filter([
                         'App role Value **User** missing → App registrations → **'.$appName.'** → App roles → add enabled Value **User**.',
                         $usesGroupScim
-                            ? 'Group not assigned → Users and groups → Add **'.$groupName.'**. Or **Re-run Entra bootstrap**.'
+                            ? 'Group not assigned → Users and groups → Add **'.$groupName.'**. Or **Retry Graph setup**.'
                             : 'Confirm left **SCIM Application (client) ID** matches App registrations → **'.$appName.'**.',
                     ])),
                 ),
@@ -869,7 +869,7 @@ class ClientOnboardingService
                     'Remaining work is only SuperOps hand-off (they do not expose Entity ID / ACS via API): copy two SuperOps URLs → wire on the form → paste Login URL + cert into SuperOps Step 3 → Save.',
                 ]
                 : [
-                    'Connect Microsoft did not leave a Client SSO app ID — re-run bootstrap first. After that, SuperOps paste → wire → Save is the only remaining work.',
+                    'Connect Microsoft did not leave a Client SSO app ID — Retry Graph setup first. After that, SuperOps paste → wire → Save is the only remaining work.',
                 ],
             sections: [
                 OnboardingManual::section(
@@ -887,9 +887,9 @@ class ClientOnboardingService
                 ! $ssoAppSaved
                     ? OnboardingManual::section(
                         'Bootstrap did not create Client SSO app',
-                        'This Edit Client page → Connect Microsoft / Re-run Entra bootstrap',
+                        'This Edit Client page → Connect Microsoft / Retry Graph setup',
                         [
-                            'Private browser + GDAP into customer tenant → Connect or Re-run bootstrap.',
+                            'Private browser + GDAP into customer tenant → Connect or Retry Graph setup.',
                             'Confirm left column **Client SSO Application (client) ID** is filled.',
                             'Then use the SuperOps hand-off form again.',
                         ],

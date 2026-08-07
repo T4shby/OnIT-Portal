@@ -32,10 +32,10 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 **Before steps 03–04 — Connect Microsoft (preferred):**
 
 1. **Private/incognito browser**.
-2. Edit Client checklist → orange **Connect Microsoft tenant** (Accept Portal Graph).
+2. Edit Client checklist → orange **Connect Microsoft tenant** at the **top of the guide** (Accept Portal Graph). Steps 03/04 point at that single button (no second Connect in the step body).
 3. Sign in with On IT **GDAP** so you land in the **customer** tenant (do **not** open On IT then switch).
-4. **Accept** permissions.
-5. Portal writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
+4. **Accept** permissions. Portal **waits/retries Graph**, then writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
+5. If group or app IDs still empty: **Retry Graph setup** at the top of the guide (not a second Accept). Re-consent only if platform permissions changed.
 
 Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 

@@ -2384,6 +2384,117 @@ class MicrosoftGraphClient
     }
 
     /**
+     * After admin consent, app-only Graph often 401/403 for seconds–minutes
+     * (IdentityNotFound / permissions not live). Poll until organization reads
+     * or attempts are exhausted so Connect bootstrap can continue.
+     *
+     * @return array{ready: bool, attempts: int, last_error: ?string}
+     */
+    public function waitUntilAppOnlyGraphReady(string $tenantId, int $maxAttempts = 12): array
+    {
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $this->clearAccessTokenCache($tenantId);
+
+            try {
+                $response = $this->graphGet(
+                    $tenantId,
+                    'https://graph.microsoft.com/v1.0/organization',
+                    ['$select' => 'id', '$top' => 1],
+                );
+
+                if ($response->successful()) {
+                    return [
+                        'ready' => true,
+                        'attempts' => $attempt,
+                        'last_error' => null,
+                    ];
+                }
+
+                $lastError = 'HTTP '.$response->status().' '.$this->shortGraphErrorBody($response->body());
+
+                if (! $this->isConsentPropagationGraphError($response) && ! in_array($response->status(), [429, 502, 503, 504], true)) {
+                    return [
+                        'ready' => false,
+                        'attempts' => $attempt,
+                        'last_error' => $lastError,
+                    ];
+                }
+            } catch (Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep(min(2_500_000, 600_000 * $attempt));
+            }
+        }
+
+        return [
+            'ready' => false,
+            'attempts' => $maxAttempts,
+            'last_error' => $lastError,
+        ];
+    }
+
+    /**
+     * Retry Graph work that often fails in the seconds after Accept.
+     *
+     * @template T
+     * @param  callable(): T  $operation
+     * @return T
+     */
+    public function retryAfterConsentPropagation(string $tenantId, callable $operation, int $maxAttempts = 6): mixed
+    {
+        $last = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return $operation();
+            } catch (Throwable $e) {
+                $last = $e;
+                if ($attempt >= $maxAttempts || ! $this->isConsentPropagationMessage($e->getMessage())) {
+                    throw $e;
+                }
+                $this->clearAccessTokenCache($tenantId);
+                usleep(min(2_500_000, 700_000 * $attempt));
+            }
+        }
+
+        throw $last ?? new RuntimeException('Graph operation failed after consent wait.');
+    }
+
+    public function isConsentPropagationMessage(string $message): bool
+    {
+        $needle = strtolower($message);
+
+        return str_contains($needle, 'identitynotfound')
+            || str_contains($needle, 'authorization_identitynotfound')
+            || str_contains($needle, 'authorization_requestdenied')
+            || str_contains($needle, 'insufficient privileges')
+            || str_contains($needle, 'identity of the calling application')
+            || str_contains($needle, 'not readable yet')
+            || str_contains($needle, 'could not be established');
+    }
+
+    private function isConsentPropagationGraphError(Response $response): bool
+    {
+        if (in_array($response->status(), [401, 403], true)) {
+            return $this->isConsentPropagationMessage($response->body())
+                || $response->status() === 401;
+        }
+
+        return false;
+    }
+
+    private function shortGraphErrorBody(string $body): string
+    {
+        $trimmed = trim($body);
+
+        return strlen($trimmed) > 180 ? substr($trimmed, 0, 180).'…' : $trimmed;
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      */
     private function graphGetWithTransientRetry(string $tenantId, string $url, array $query = [], int $maxAttempts = 3): Response
@@ -2400,7 +2511,8 @@ class MicrosoftGraphClient
 
     private function shouldRetryTransientGraphError(Response $response): bool
     {
-        return in_array($response->status(), [429, 502, 503, 504], true);
+        return in_array($response->status(), [429, 502, 503, 504], true)
+            || $this->isConsentPropagationGraphError($response);
     }
 
     /**

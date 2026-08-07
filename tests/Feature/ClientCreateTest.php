@@ -122,7 +122,7 @@ class ClientCreateTest extends TestCase
             ->get(route('admin.clients.edit', $client));
 
         $response->assertOk();
-        $response->assertSee('Connect Microsoft tenant', false);
+        $response->assertSee('Retry Graph setup', false);
         $response->assertSee('MXVI', false);
         $response->assertDontSee('Ductec', false);
         $response->assertDontSee('3R Systems', false);

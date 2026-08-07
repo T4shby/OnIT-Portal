@@ -29,6 +29,7 @@
                     <p class="portal-body-muted text-sm mb-6 leading-relaxed">
                         This page is expected — Microsoft redirects here after you click Accept. It is
                         <strong class="text-white/80">not</strong> a failed login.
+                        The portal also runs Graph setup (group + apps); Azure may need a short wait — we retry automatically.
                     </p>
 
                     <ul class="support-list mb-6 text-sm portal-body-muted">
@@ -43,6 +44,10 @@
                             @foreach($bootstrap['warnings'] as $line)
                                 <li class="text-onit">{{ $line }}</li>
                             @endforeach
+                            <li class="text-white/70">
+                                If group or app IDs are still empty after sign-in: Edit client →
+                                <strong class="text-white/85">Retry Graph setup</strong> (not a second Accept unless permissions changed).
+                            </li>
                         @else
                             <li>Return to the portal checklist — SuperOps SCIM tokens and Client SSO SAML still need SuperOps UI steps</li>
                         @endif

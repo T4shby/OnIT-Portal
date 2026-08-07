@@ -35,7 +35,16 @@ class CustomerEntraBootstrapServiceTest extends TestCase
 
         $graph = Mockery::mock(MicrosoftGraphClient::class);
         $graph->shouldReceive('isConfigured')->andReturn(true);
-        $graph->shouldReceive('clearAccessTokenCache')->once()->with($tenantId);
+        $graph->shouldReceive('clearAccessTokenCache')->with($tenantId);
+        $graph->shouldReceive('waitUntilAppOnlyGraphReady')
+            ->once()
+            ->with($tenantId)
+            ->andReturn(['ready' => true, 'attempts' => 1, 'last_error' => null]);
+        $graph->shouldReceive('retryAfterConsentPropagation')
+            ->times(4)
+            ->andReturnUsing(function (string $tid, callable $op) {
+                return $op();
+            });
         $graph->shouldReceive('detectEntraDirectoryLicenseTier')->once()->with($tenantId)->andReturn('p1');
         $graph->shouldReceive('ensurePortalSecurityGroup')
             ->once()

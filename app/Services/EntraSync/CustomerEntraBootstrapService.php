@@ -13,6 +13,9 @@ use Throwable;
  *
  * SuperOps UI steps still required: SCIM tokens (Tenant URL + Secret) and Client SSO
  * Entity ID / Consumer URL / Login URL exchange.
+ *
+ * Always waits/retries Graph after Accept — Azure often returns IdentityNotFound /
+ * "insufficient privileges" for a short time even when consent succeeded.
  */
 class CustomerEntraBootstrapService
 {
@@ -63,8 +66,29 @@ class CustomerEntraBootstrapService
         ];
         $details[] = 'Tenant ID: '.$tenantId;
 
+        // Save tenant immediately so Retry Graph works if this request times out.
+        $client->update($fields);
+
+        $ready = $this->graph->waitUntilAppOnlyGraphReady($tenantId);
+        if ($ready['ready']) {
+            $details[] = 'Graph ready (waited '.$ready['attempts'].' probe'
+                .($ready['attempts'] === 1 ? '' : 's').' after Accept).';
+        } else {
+            $warnings[] = 'Graph still settling after Accept'
+                .($ready['last_error'] ? ' ('.$ready['last_error'].')' : '')
+                .'. Continuing with retries — if group/apps stay empty use **Retry Graph setup**.';
+            Log::warning('Entra bootstrap Graph not ready after wait', [
+                'client_id' => $client->id,
+                'attempts' => $ready['attempts'],
+                'error' => $ready['last_error'],
+            ]);
+        }
+
         try {
-            $tier = $this->graph->detectEntraDirectoryLicenseTier($tenantId);
+            $tier = $this->graph->retryAfterConsentPropagation(
+                $tenantId,
+                fn () => $this->graph->detectEntraDirectoryLicenseTier($tenantId),
+            );
             $fields['entra_license_tier'] = $tier;
             $details[] = 'Entra licence tier: '.($tier === ClientOnboardingService::ENTRA_LICENSE_P1 ? 'P1 or higher' : 'Free');
         } catch (Throwable $e) {
@@ -80,7 +104,10 @@ class CustomerEntraBootstrapService
         $groupName = 'On IT Portal - '.$client->name;
 
         try {
-            $groupId = $this->graph->ensurePortalSecurityGroup($tenantId, $groupName);
+            $groupId = $this->graph->retryAfterConsentPropagation(
+                $tenantId,
+                fn () => $this->graph->ensurePortalSecurityGroup($tenantId, $groupName),
+            );
             $fields['entra_group_id'] = $groupId;
             $details[] = "Portal group «{$groupName}»: {$groupId}";
         } catch (Throwable $e) {
@@ -88,7 +115,10 @@ class CustomerEntraBootstrapService
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
-            $warnings[] = 'Group not created: '.$e->getMessage();
+            $warnings[] = 'Group not created: '.$e->getMessage()
+                .(str_contains(strtolower($e->getMessage()), 'group.readwrite')
+                    ? ''
+                    : ' If this is shortly after Accept, wait ~30s and use **Retry Graph setup**.');
             $client->update($fields);
             $this->onboarding->updateChecklist($client->fresh(), [
                 'entra_admin_consent_granted' => true,
@@ -96,7 +126,7 @@ class CustomerEntraBootstrapService
 
             return [
                 'ok' => false,
-                'summary' => 'Accept saved but portal group could not be created.',
+                'summary' => 'Accept saved (tenant ID kept) but portal group could not be created yet.',
                 'details' => $details,
                 'warnings' => $warnings,
             ];
@@ -111,7 +141,10 @@ class CustomerEntraBootstrapService
         ];
 
         try {
-            $scim = $this->graph->ensureNamedEnterpriseApplication($tenantId, $scimAppName);
+            $scim = $this->graph->retryAfterConsentPropagation(
+                $tenantId,
+                fn () => $this->graph->ensureNamedEnterpriseApplication($tenantId, $scimAppName),
+            );
             $fields['entra_superops_app_id'] = $scim['appId'];
             $details[] = "SCIM app «{$scimAppName}»: {$scim['appId']}";
             $checklist['superops_scim_app'] = true;
@@ -159,7 +192,10 @@ class CustomerEntraBootstrapService
         }
 
         try {
-            $sso = $this->graph->ensureNamedEnterpriseApplication($tenantId, $ssoAppName);
+            $sso = $this->graph->retryAfterConsentPropagation(
+                $tenantId,
+                fn () => $this->graph->ensureNamedEnterpriseApplication($tenantId, $ssoAppName),
+            );
             $fields['entra_superops_sso_app_id'] = $sso['appId'];
             $details[] = "Client SSO app «{$ssoAppName}»: {$sso['appId']}";
 
@@ -211,13 +247,13 @@ class CustomerEntraBootstrapService
         $this->onboarding->updateChecklist($client, $checklist);
         $this->onboarding->syncAutoCheckpointsFromClient($client);
 
-        $ok = ! array_key_exists('entra_group_id', $fields) || filled($client->entra_group_id);
+        $ok = filled($client->entra_group_id);
 
         return [
-            'ok' => $ok && filled($client->entra_tenant_id) && filled($client->entra_group_id),
+            'ok' => $ok && filled($client->entra_tenant_id),
             'summary' => $ok
                 ? 'Microsoft tenant connected — tenant, licence, group and Entra apps saved where possible.'
-                : 'Microsoft Accept completed with errors — check warnings.',
+                : 'Microsoft Accept completed with errors — check warnings and Retry Graph setup if needed.',
             'details' => $details,
             'warnings' => $warnings,
         ];

@@ -78,7 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-06 | Product catalog: **service** vs modular **licence_vendor** (Pax8 = licences via reseller, not “sold product”); Admin products/Lic chips + form partials — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-07 | Connect Microsoft: single Accept CTA + **Retry Graph setup**; bootstrap waits/retries Graph after Accept (IdentityNotFound lag) — [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-08-06 | Product entitlements: sold vs mapped per client; CA contact AM when setup needed; Huntress/Dropsuite branch retired — [ClientAdminDashboard.md](ClientAdminDashboard.md), [DatabaseSchema.md](DatabaseSchema.md) |
 | 2026-08-06 | Unlinked integrations (superseded by entitlements): Client Admin “contact AM”; requesters hide unmapped — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-06 | Production deploy is **GitHub → Plesk bare mirror (`laravel_af3fd1`) → `app.onit.ltd`**, branch **main** — [Deployment.md](Deployment.md#updating-the-application) |

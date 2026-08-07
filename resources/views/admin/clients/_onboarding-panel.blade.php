@@ -18,24 +18,39 @@
         </p>
 
         @if(! empty($adminConsentUrl))
-            <div class="mt-4 space-y-2">
-                <a
-                    href="{{ $adminConsentUrl }}"
-                    target="_blank"
-                    rel="noopener"
-                    class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
-                >Connect Microsoft tenant</a>
-                <p class="portal-body-muted text-xs leading-relaxed">
-                    Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong> · Accept once.
-                    Portal saves tenant, licence, group and SuperOps Entra app IDs automatically.
-                </p>
-                @if(filled($client->entra_tenant_id))
+            <div class="mt-4 space-y-3">
+                @if(! filled($client->entra_tenant_id))
+                    <a
+                        href="{{ $adminConsentUrl }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
+                    >Connect Microsoft tenant</a>
+                    <p class="portal-body-muted text-xs leading-relaxed">
+                        Only button that opens Microsoft Accept (private browser · GDAP into
+                        <strong class="text-white/80">{{ $client->name }}</strong>).
+                        After Accept the portal waits for Graph and creates group + SuperOps app IDs automatically.
+                    </p>
+                @else
                     <form method="POST" action="{{ route('admin.clients.bootstrap-entra', $client) }}">
                         @csrf
-                        <button type="submit" class="cta-btn-ghost w-full px-4 py-2 text-xs">
-                            Re-run Entra bootstrap (tenant already connected)
+                        <button type="submit" class="cta-btn w-full px-5 py-3 text-center text-sm">
+                            Retry Graph setup
                         </button>
                     </form>
+                    <p class="portal-body-muted text-xs leading-relaxed">
+                        Tenant ID is saved. Use this if group or SuperOps app IDs are still empty
+                        (Azure lag after Accept — not a second Microsoft login).
+                    </p>
+                    <details class="text-xs text-white/50">
+                        <summary class="cursor-pointer text-white/60 hover:text-white/80">Re-consent (permissions changed only)</summary>
+                        <a
+                            href="{{ $adminConsentUrl }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="cta-btn-ghost mt-2 inline-flex w-full items-center justify-center px-4 py-2 text-xs"
+                        >Accept Graph again in customer tenant</a>
+                    </details>
                 @endif
             </div>
         @endif

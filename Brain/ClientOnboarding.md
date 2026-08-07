@@ -80,7 +80,7 @@ Deployment resets existing step 08 completions because they represented the reti
 
 **Before step 01:** **Admin → Clients → Add Client** → **Create client**.
 
-**Steps 03–04 (preferred):** orange **Connect Microsoft tenant** — private browser / GDAP → Accept once. Portal bootstraps: `entra_tenant_id`, Free/P1 from `subscribedSkus`, creates/finds portal group, creates SuperOps SCIM + Client SSO Entra apps (App role User), saves Application (client) IDs. Requires platform Graph **Group.ReadWrite.All** + **Application.ReadWrite.All** (see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0).
+**Steps 03–04 (preferred):** one orange **Connect Microsoft tenant** at the top of the setup guide — private browser / GDAP → Accept once. After Accept the portal **waits and retries Graph** (Azure often 401/403 for a short period even though consent succeeded), then bootstraps: `entra_tenant_id`, Free/P1 from `subscribedSkus`, portal group, SuperOps SCIM + Client SSO Entra apps, saves Application (client) IDs. If group/apps stay empty: **Retry Graph setup** (same bootstrap, no second Accept). Re-consent only if platform Graph permissions changed. Requires **Group.ReadWrite.All** + **Application.ReadWrite.All** (see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0).
 
 ### Auto vs manual checklist steps
 
