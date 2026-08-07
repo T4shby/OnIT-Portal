@@ -4,6 +4,12 @@
     $ready = isset($client) && $client->exists
         && filled($client->entra_tenant_id)
         && filled($client->entra_superops_app_id);
+    $scimInFlight = $ready && \Illuminate\Support\Facades\Cache::has(
+        \App\Jobs\ApplySuperOpsScimJob::IN_FLIGHT_KEY_PREFIX.$client->id
+    );
+    $scimLastResult = $ready
+        ? \Illuminate\Support\Facades\Cache::get(\App\Jobs\ApplySuperOpsScimJob::LAST_RESULT_KEY_PREFIX.$client->id)
+        : null;
 @endphp
 
 @if($ready)
@@ -21,12 +27,30 @@
         <p class="portal-label mb-2">@if($inStep) Still needs you @else Push SuperOps SCIM to Entra @endif</p>
         <p class="mb-4 text-sm leading-relaxed text-white/75">
             Paste SuperOps <strong class="text-white/90">Tenant URL</strong> and <strong class="text-white/90">Secret Token</strong>
-            (from step 05 Generate Tokens). Secret is <strong class="text-white/90">not stored</strong>.
-            Credentials-only success is <strong class="text-white/90">not enough</strong> for this step — mapping + Sync queue must both succeed.
+            (from step 05 Generate Tokens). Secret is <strong class="text-white/90">not stored</strong> after the job finishes.
+            Apply runs in a <strong class="text-white/90">background worker</strong> (avoids 504 Gateway Time-out while Graph waits).
+            Credentials-only is <strong class="text-white/90">not enough</strong> — mapping + Sync queue must both succeed.
         </p>
 
-        {{-- Do NOT disable the inputs on submit: disabled controls are omitted from the POST
-             (HTML), so Alpine submitting=true caused “scim_* field is required” even after paste. --}}
+        @if($scimInFlight)
+            <div class="mb-4 border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+                Apply SCIM is running in the background. Refresh this page in about a minute — step 07 turns Done when mappings + Sync queue succeed.
+            </div>
+        @elseif(is_array($scimLastResult))
+            <div @class([
+                'mb-4 border px-4 py-3 text-sm leading-relaxed',
+                'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' => ($scimLastResult['success'] ?? false) || ($scimLastResult['step_complete'] ?? false),
+                'border-amber-500/40 bg-amber-500/10 text-amber-100' => ! (($scimLastResult['success'] ?? false) || ($scimLastResult['step_complete'] ?? false)),
+            ])>
+                <p class="portal-label mb-1">Last Apply SCIM result</p>
+                <p>{{ $scimLastResult['message'] ?? 'Finished' }}</p>
+                @if(! empty($scimLastResult['blockers']) && is_array($scimLastResult['blockers']))
+                    <p class="mt-2">{{ implode(' ', $scimLastResult['blockers']) }}</p>
+                @endif
+            </div>
+        @endif
+
+        {{-- Do NOT disable the inputs on submit: disabled controls are omitted from the POST. --}}
         <form
             method="POST"
             action="{{ route('admin.clients.apply-scim', $client) }}"
@@ -74,18 +98,13 @@
                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                 @enderror
             </div>
-            <button type="submit" class="cta-btn text-sm px-6 py-3" :disabled="submitting">
-                <span x-show="!submitting">Apply SCIM credentials + start</span>
-                <span x-cloak x-show="submitting">Applying… keep this tab open (can take up to ~2 min)</span>
+            <button type="submit" class="cta-btn text-sm px-6 py-3" :disabled="submitting || {{ $scimInFlight ? 'true' : 'false' }}">
+                <span x-show="!submitting">@if($scimInFlight) Apply already running… @else Apply SCIM credentials + start @endif</span>
+                <span x-cloak x-show="submitting">Queued — redirecting…</span>
             </button>
             <p class="portal-body-muted text-xs leading-relaxed" x-show="!submitting">
-                Sets SuperOps name mapping (name.familyName ← extensionAttribute1) and queues portal Sync.
-                Step stays Pending if either fails. There is no separate “progress bar”: the button runs until
-                success/error. Re-Apply reuses the Entra job (nothing to “clear” for hours).
-            </p>
-            <p class="text-sm text-amber-200/90 leading-relaxed" x-cloak x-show="submitting">
-                Waiting on Microsoft Graph (discover job → write tokens → name mappings → start → queue Sync).
-                If Graph says the job exists but is slow to list, this page can sit for about 90 seconds — that is normal lag, not a stuck multi-hour install.
+                Queues a high-priority worker job: Graph tokens + name.familyName ← extensionAttribute1 + portal Sync.
+                Step stays Pending if either fails. Re-Apply if the last result shows an error (job reuses Entra SCIM job).
             </p>
         </form>
     </div>

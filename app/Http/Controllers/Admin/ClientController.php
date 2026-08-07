@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\ApplySuperOpsScimRequest;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
+use App\Jobs\ApplySuperOpsScimJob;
 use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
 use App\Services\ActivityLogService;
@@ -314,105 +315,30 @@ class ClientController extends Controller
                 ->with('error', 'Connect Microsoft first so Tenant ID and SuperOps SCIM Application (client) ID are saved.');
         }
 
-        try {
-            $result = app(\App\Services\EntraSync\MicrosoftGraphClient::class)
-                ->applySuperOpsScimCredentials(
-                    $client->entra_tenant_id,
-                    $client->entra_superops_app_id,
-                    $request->validated('scim_tenant_url'),
-                    $request->validated('scim_secret_token'),
-                );
-        } catch (\Throwable $e) {
-            report($e);
-
-            return redirect()->route('admin.clients.edit', $client)
-                ->withInput($request->except('scim_secret_token'))
-                ->with('error', 'Could not push SCIM credentials to Entra: '.$e->getMessage());
-        }
-
-        $nameMappingsOk = (bool) ($result['nameMappingsConfigured'] ?? false);
-
-        // Write extensionAttribute1 + provision-on-demand so SuperOps last names include mailbox type suffixes.
-        $syncQueued = false;
-        $syncBlockReason = null;
-        if (! config('services.entra_sync.enabled')) {
-            $syncBlockReason = 'Platform Entra sync is disabled (ENTRA_SYNC_ENABLED).';
-        } elseif (! filled($client->entra_group_id)) {
-            $syncBlockReason = 'Entra group ID is empty — save the security group Object ID, then re-Apply SCIM.';
-        } else {
-            if (! $client->entra_sync_enabled) {
-                $client->update(['entra_sync_enabled' => true]);
-                $client->refresh();
-            }
-
-            Cache::put('entra_sync.in_flight.'.$client->id, true, now()->addMinutes(15));
-            SyncEntraClientJob::dispatchMarked($client->id, dryRun: false);
-            $syncQueued = true;
-        }
-
-        $stepComplete = $nameMappingsOk && $syncQueued;
-
-        $this->onboarding->updateChecklist($client, [
-            'superops_scim_tokens' => true,
-            'superops_scim_app' => true,
-            'superops_scim_name_mappings' => $nameMappingsOk,
-            'superops_scim_sync_queued' => $syncQueued,
-            'superops_scim_provisioning' => $stepComplete,
-        ]);
+        // Graph waits (schema / already-exists) can exceed nginx's 60s gateway — never do that inline.
+        ApplySuperOpsScimJob::markQueued($client->id);
+        ApplySuperOpsScimJob::dispatch(
+            $client->id,
+            $request->validated('scim_tenant_url'),
+            $request->validated('scim_secret_token'),
+        );
 
         $this->activityLog->log(
-            'client.scim_credentials_applied',
+            'client.scim_apply_queued',
             $client,
             properties: [
-                'job_id' => $result['jobId'],
-                'started' => $result['started'],
-                'name_mappings' => $nameMappingsOk,
-                'sync_queued' => $syncQueued,
-                'step_complete' => $stepComplete,
-                'details' => $result['details'],
-                'warnings' => $result['warnings'] ?? [],
                 'scim_host' => parse_url($request->validated('scim_tenant_url'), PHP_URL_HOST),
             ],
             clientId: $client->id,
         );
 
-        $message = 'SuperOps SCIM credentials written to Entra';
-        if ($nameMappingsOk) {
-            $message .= ', SuperOps name mappings set (familyName ← extensionAttribute1)';
-        } else {
-            $message .= ', name mappings NOT set';
-        }
-        $message .= ', provisioning start requested.';
-        if ($result['details'] !== []) {
-            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
-        }
-        if ($syncQueued) {
-            $message .= ' Portal Sync is running in the background. SuperOps Requester names update after that Sync and SCIM finish — usually a few minutes; refresh SuperOps then.';
-        } else {
-            $message .= ' Portal Sync was not queued'.($syncBlockReason ? ' ('.$syncBlockReason.')' : '').'.';
-        }
-
-        $blockers = array_values(array_filter([
-            ! $nameMappingsOk
-                ? 'Step 07 stays Pending: name attribute mapping failed — re-Apply SCIM or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.'
-                : null,
-            ! $syncQueued
-                ? 'Step 07 stays Pending: Sync not queued'.($syncBlockReason ? ' — '.$syncBlockReason : '.')
-                : null,
-        ]));
-        $blockers = array_merge($blockers, array_slice($result['warnings'] ?? [], 0, 3));
-
-        $redirect = redirect()->route('admin.clients.edit', $client);
-
-        if ($stepComplete) {
-            return $redirect
-                ->with('success', $message)
-                ->with('warning', 'Still required for Client SSO: step 08 Configure SAML (Entity ID + ACS) if not done.');
-        }
-
-        return $redirect
-            ->with('warning', $message.' '.implode(' ', $blockers)
-                .' Step 07 will not turn green until name mappings and Sync queue both succeed.');
+        return redirect()->route('admin.clients.edit', $client)
+            ->with(
+                'success',
+                'Apply SCIM is running in the background (usually under 2 minutes). '
+                .'You can leave this page — refresh step 07 until Done, or check the banner under Apply SCIM. '
+                .'This avoids the previous 504 Gateway Time-out when Graph is slow.'
+            );
     }
 
     public function applyClientSso(ApplyClientSsoSamlRequest $request, Client $client): RedirectResponse

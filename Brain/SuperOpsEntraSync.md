@@ -95,9 +95,11 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 #### 2b. Customer Entra — create app and SCIM
 
-**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 / **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal uses Graph (`Synchronization.ReadWrite.All`) to write secrets and start the job. Secret is **not** stored on the portal.
+**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 / **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal **queues** `ApplySuperOpsScimJob` on **`high`** (encrypted payload) so the browser is not held open for Graph waits. Worker uses Graph (`Synchronization.ReadWrite.All`) to write secrets, set name mappings, start the job, and queue portal Sync. Secret is **not** stored after the job finishes.
 
-**Apply form:** while the button shows “Applying…”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST and historically produced *The scim tenant url / secret token field is required* even after a correct paste — hard refresh if you still see that banner on an older build.
+**504 Gateway Time-out (fixed):** an older inline path kept the HTTP request open for Graph schema / AlreadyExists polling (~60–180s) → nginx 504 on `…/apply-scim`. Now the POST returns immediately; refresh step 07 until Done / last result banner.
+
+**Apply form:** while status shows “running”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST and historically produced *The scim tenant url / secret token field is required* even after a correct paste.
 
 **Fallback (Azure UI):**
 
