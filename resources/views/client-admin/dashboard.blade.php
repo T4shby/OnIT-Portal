@@ -24,8 +24,8 @@
                 Are your systems healthy? Are issues being dealt with? What value are you getting from On IT?
                 Organisation overview for <strong class="text-white/80">{{ $client->name }}</strong>.
             @else
-                Your tickets and security cases for <strong class="text-white/80">{{ $client->name }}</strong>.
-                You only see items linked to you — Client Admins see the full organisation.
+                Your tickets, security cases, and mailbox backup time for <strong class="text-white/80">{{ $client->name }}</strong>.
+                You only see items linked to you — Client Admins see the full organisation (including all backed-up mailboxes).
             @endif
         </p>
     </section>

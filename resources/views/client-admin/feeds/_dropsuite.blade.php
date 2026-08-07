@@ -7,6 +7,10 @@
     $products = app(\App\Services\Portal\ClientProductService::class);
     $needsAm = $products->needsAccountManagerHelp($client, 'dropsuite');
     $mapped = $products->isMapped($client, 'dropsuite');
+    $accountRows = is_array($d->accounts ?? null) ? array_values(array_filter(
+        $d->accounts,
+        static fn ($row) => is_array($row)
+    )) : [];
 @endphp
 <x-card>
     <div class="flex items-start justify-between gap-3">
@@ -26,10 +30,11 @@
                             {{ $d->lastBackupAt->timezone('Europe/London')->format('d M Y H:i') }} UK
                         </p>
                         <p class="portal-body-muted text-sm mt-2 leading-relaxed">
-                            Last time your mailbox was backed up
+                            Last time <strong class="text-white/80">your</strong> mailbox was backed up
                             @if(filled($d->personalEmail))
                                 ({{ $d->personalEmail }})
                             @endif
+                            — not organisation totals.
                         </p>
                         @if($d->lastBackupStatus === 'warning')
                             <p class="mt-3 text-sm text-amber-300 leading-relaxed">On IT has been notified of a backup issue for your mailbox.</p>
@@ -50,7 +55,7 @@
                     <p class="text-4xl font-condensed font-bold {{ $warn ? 'text-amber-300' : 'text-white' }}">
                         {{ $d->protectedMailboxes === null ? '-' : number_format($d->protectedMailboxes) }}
                     </p>
-                    <p class="portal-body-muted text-sm mt-2 leading-relaxed">Protected mailboxes</p>
+                    <p class="portal-body-muted text-sm mt-2 leading-relaxed">Protected mailboxes (whole organisation)</p>
                     <p class="portal-body-muted text-xs mt-3 leading-relaxed">
                         @if($d->lastBackupAt)
                             Latest backup {{ $d->lastBackupAt->timezone('Europe/London')->format('d M Y H:i') }} UK
@@ -65,26 +70,37 @@
                             · {{ number_format($d->onedriveCount) }} OneDrive
                         @endif
                     </p>
-                    @if($orgWide && is_array($d->accounts ?? null) && $d->accounts !== [])
-                        @php
-                            $problemRows = array_values(array_filter(
-                                $d->accounts,
-                                static fn ($row) => is_array($row) && ! empty($row['has_errors'])
-                            ));
-                            $problemRows = array_slice($problemRows, 0, 5);
-                        @endphp
-                        @if($problemRows !== [])
-                            <ul class="mt-4 space-y-1.5 border-t border-white/10 pt-3">
-                                @foreach($problemRows as $row)
-                                    <li class="text-xs leading-relaxed text-amber-200/90 truncate">
-                                        {{ $row['email'] ?? 'Mailbox' }}
-                                        @if(! empty($row['current_backup_status']))
-                                            · {{ $row['current_backup_status'] }}
-                                        @endif
-                                    </li>
+
+                    @if($orgWide && $accountRows !== [])
+                        <div class="mt-4 border-t border-white/10 pt-3">
+                            <p class="portal-label mb-2 text-white/50">Protected mailboxes &amp; last backup</p>
+                            <div class="max-h-72 overflow-y-auto space-y-0 divide-y divide-white/5 pr-1">
+                                @foreach($accountRows as $row)
+                                    @php
+                                        $rowWarn = ! empty($row['has_errors']);
+                                        $lastAt = filled($row['last_backup_at'] ?? null)
+                                            ? \Carbon\Carbon::parse($row['last_backup_at'])->timezone('Europe/London')->format('d M Y H:i').' UK'
+                                            : 'No run yet';
+                                    @endphp
+                                    <div class="py-2 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3 min-w-0">
+                                        <div class="min-w-0">
+                                            <p class="text-sm leading-snug {{ $rowWarn ? 'text-amber-200' : 'text-white/90' }} truncate">
+                                                {{ $row['email'] ?? ($row['display_name'] ?? 'Mailbox') }}
+                                            </p>
+                                            @if(filled($row['display_name'] ?? null) && filled($row['email'] ?? null))
+                                                <p class="text-xs text-white/40 truncate">{{ $row['display_name'] }}</p>
+                                            @endif
+                                        </div>
+                                        <div class="shrink-0 text-xs leading-snug {{ $rowWarn ? 'text-amber-300/90' : 'text-white/55' }}">
+                                            {{ $lastAt }}
+                                            @if(! empty($row['current_backup_status']))
+                                                · {{ $row['current_backup_status'] }}
+                                            @endif
+                                        </div>
+                                    </div>
                                 @endforeach
-                            </ul>
-                        @endif
+                            </div>
+                        </div>
                     @endif
                 @endif
             @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
@@ -92,7 +108,7 @@
                     @if($personal)
                         Backup figure for your mailbox is not available yet.
                     @else
-                        Backup figures are not available yet.
+                        Backup figures are not available yet — they appear after the first successful refresh.
                     @endif
                 </p>
             @else

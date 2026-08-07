@@ -181,7 +181,12 @@ class DropsuiteClientMetricsServiceTest extends TestCase
     {
         Http::fake();
 
-        $client = Client::factory()->create(['dropsuite_organization_id' => null]);
+        $client = Client::factory()->create([
+            'dropsuite_organization_id' => null,
+            'product_entitlements' => [
+                'dropsuite' => ['entitled' => true],
+            ],
+        ]);
 
         $summary = app(DropsuiteClientMetricsService::class)->summaryForClient($client);
 

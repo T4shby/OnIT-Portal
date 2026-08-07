@@ -458,11 +458,11 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 
 | Who | Scope | Dropsuite view |
 |-----|-------|----------------|
-| **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client: **Staff Admin → Clients → Edit → View Dropsuite backups**, Integration Health Dropsuite column, or Organisation tile only when that user’s portal account is linked to the client. |
-| **Client Admin** | **Their customer only** | Org-wide for that tenant on **Organisation** overview: protected mailbox count, latest backup time, status, failure count, OneDrive count, up to 5 problem mailboxes. Cannot see other customers. |
-| **Requester / Billing Admin** | Personal only | Last time **their** mailbox was backed up (matched by work email). No colleague list, no org totals. |
+| **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client: **Staff Admin → Clients → Edit → View Dropsuite backups**, Integration Health Dropsuite column. |
+| **Client Admin** (`client_admin`) | **Their customer only** | **Organisation overview → Backups (Dropsuite):** org totals (protected mailbox count, latest backup, failures, OneDrive) **and a scrollable list of every protected mailbox** with last backup time + status. Never other customers. |
+| **Requester / Billing Admin** | Personal only | Same overview page tile **My backup**: last time **their** work-email mailbox was backed up. No colleague list, no org totals. Matched by email on the cached org snapshot. |
 
-Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin.
+Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin ≠ requester.
 
 Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integration Health column. Keep `DROPSUITE_ENABLED=false` until `php artisan portal:probe-security-apis --dropsuite-org=…` succeeds (requires tokens filled **and** `DROPSUITE_ENABLED=true` for `isConfigured()`). Do not commit the partner PDF into git.
 
@@ -511,6 +511,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-07 | Client Admin Dropsuite tile lists **all** protected mailboxes; requester still personal “My backup” only |
 | 2026-08-07 | Staff **View Dropsuite backups** on Edit client; Integration Health jobs show client name (fix blank CLIENT from JSON-escaped payloads) |
 | 2026-08-07 | Integration Health: **Never loaded** (`cold`) sold feeds raise warning severity/headline/notices + amber UI (no longer hidden under global OK) |
 | 2026-08-06 | Dropsuite **live on prod**: UUID Reseller Token + Admin Authentication Token; per-org mailboxes via user tokens from `GET /users`; UK host |
