@@ -30,34 +30,60 @@
         @endif
     </div>
 
-    {{-- System health — modular tiles from DashboardFeedRegistry --}}
+    {{-- System health / My services — modular tiles from DashboardFeedRegistry --}}
     <section class="mb-8">
         <div class="flex items-center justify-between gap-4 mb-6">
-            <h2 class="portal-label">System health</h2>
+            <h2 class="portal-label">
+                {{ ($organisationWide ?? true) ? 'System health' : 'Your services' }}
+            </h2>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            @foreach(($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed)
-                @php
-                    $orgWide = $organisationWide ?? true;
-                    $feedKey = $feed->key();
-                    $products = app(\App\Services\Portal\ClientProductService::class);
-                    $viewer = auth()->user();
-                    $skip = false;
-                    // Licence fleet is Client Admin / org-wide only.
-                    if (! $orgWide && $feedKey === 'm365_insights') {
-                        $skip = true;
-                    } elseif (! $products->shouldShowForViewer($client, $feedKey, $viewer)) {
-                        // Not sold (CA) or not live (requester)
-                        $skip = true;
-                    }
-                @endphp
-                @continue($skip)
-                @include($feed->overviewPartial(), [
-                    'viewerIsTechnician' => $viewerIsTechnician,
-                    'organisationWide' => $orgWide,
-                    'client' => $client,
-                ])
+        @php
+            $orgWide = $organisationWide ?? true;
+            $products = app(\App\Services\Portal\ClientProductService::class);
+            $viewer = auth()->user();
+            $systemHealthTiles = [];
+            foreach (($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed) {
+                $feedKey = $feed->key();
+                // Licence fleet is Client Admin / org-wide only.
+                if (! $orgWide && $feedKey === 'm365_insights') {
+                    continue;
+                }
+                if (! $products->shouldShowOverviewTile($client, $feedKey, $viewer)) {
+                    continue;
+                }
+                $tileLabel = match ($feedKey) {
+                    'superops' => $orgWide ? 'Managed devices' : 'Your tickets',
+                    'huntress' => 'Security (Huntress)',
+                    'dropsuite' => $orgWide ? 'Backups (Dropsuite)' : 'My backup',
+                    'm365_insights' => 'Microsoft 365',
+                    default => $feed->label(),
+                };
+                $systemHealthTiles[] = [
+                    'feed' => $feed,
+                    'key' => $feedKey,
+                    'label' => $tileLabel,
+                    'not_sold' => $viewer
+                        && $viewer->isClientAdmin()
+                        && ! $viewer->isTeamMember()
+                        && ! $products->isEntitled($client, $feedKey),
+                ];
+            }
+            $tileCount = count($systemHealthTiles);
+        @endphp
+        <div class="flex flex-wrap gap-4">
+            @foreach($systemHealthTiles as $i => $tile)
+                <div class="{{ $products->overviewTileWidthClass($i, $tileCount) }} min-w-0">
+                    @if($tile['not_sold'])
+                        @include('client-admin.feeds._not-sold', ['label' => $tile['label']])
+                    @else
+                        @include($tile['feed']->overviewPartial(), [
+                            'viewerIsTechnician' => $viewerIsTechnician,
+                            'organisationWide' => $orgWide,
+                            'client' => $client,
+                        ])
+                    @endif
+                </div>
             @endforeach
         </div>
     </section>
@@ -204,18 +230,20 @@
                         <p class="text-2xl font-condensed font-bold text-white">
                             {{ $m365Insights->licensedUserCount === null ? '-' : number_format($m365Insights->licensedUserCount) }}
                         </p>
+                        <p class="text-xs text-white/45 mt-1">User mailboxes only — excludes shared mailboxes</p>
                     </div>
                     <div>
-                        <p class="text-xs portal-body-muted mb-1">Seats assigned</p>
+                        <p class="text-xs portal-body-muted mb-1">Paid seats assigned</p>
                         <p class="text-2xl font-condensed font-bold text-white">
                             {{ $m365Insights->totalSeatsAssigned === null ? '-' : number_format($m365Insights->totalSeatsAssigned) }}
                             @if($m365Insights->totalSeatsPurchased !== null)
                                 <span class="text-base text-white/50">/ {{ number_format($m365Insights->totalSeatsPurchased) }}</span>
                             @endif
                         </p>
+                        <p class="text-xs text-white/45 mt-1">Free / trial pools excluded</p>
                     </div>
                     <div>
-                        <p class="text-xs portal-body-muted mb-1">Overall utilisation</p>
+                        <p class="text-xs portal-body-muted mb-1">Paid utilisation</p>
                         <p class="text-2xl font-condensed font-bold text-onit">
                             {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
                         </p>
@@ -230,7 +258,7 @@
                                 <span class="text-white/60 shrink-0">
                                     {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
                                     @if(($sku['countsTowardUtilisation'] ?? true) === false)
-                                        - Free / preview
+                                        · Free / trial
                                     @else
                                         ({{ number_format($sku['utilizationPct'], 0) }}%)
                                     @endif

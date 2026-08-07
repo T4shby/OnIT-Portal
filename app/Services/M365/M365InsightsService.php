@@ -140,6 +140,7 @@ class M365InsightsService
                 static fn (array $sku): bool => MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
                     $sku['skuPartNumber'],
                     (int) $sku['prepaidEnabled'],
+                    (int) $sku['consumedUnits'],
                 ),
             ));
 
@@ -156,6 +157,7 @@ class M365InsightsService
                     'countsTowardUtilisation' => MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
                         $sku['skuPartNumber'],
                         (int) $sku['prepaidEnabled'],
+                        (int) $sku['consumedUnits'],
                     ),
                 ],
                 $inventory,
@@ -278,6 +280,7 @@ class M365InsightsService
                             ?? MicrosoftLicenseSkuNames::countsTowardOverallUtilisation(
                                 $part,
                                 (int) ($sku['purchased'] ?? 0),
+                                (int) ($sku['assigned'] ?? 0),
                             )),
                     ];
                 }, $payload['top_skus'])

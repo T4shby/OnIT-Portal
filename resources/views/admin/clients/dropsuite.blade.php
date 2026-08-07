@@ -10,28 +10,13 @@
         </form>
     </div>
 
-    @php
-        $d = $summary;
-        $viewerIsTechnician = true;
-        $organisationWide = true;
-        $dropsuiteSummary = $summary;
-    @endphp
-
-    <div class="max-w-xl">
-        @include('client-admin.feeds._dropsuite', [
-            'client' => $client,
-            'dropsuiteSummary' => $summary,
-            'viewerIsTechnician' => true,
-            'organisationWide' => true,
-        ])
-    </div>
+    @include('client-admin._backups-detail', ['summary' => $summary])
 
     @if(filled($client->dropsuite_organization_id))
         <p class="portal-body-muted mt-6 text-xs leading-relaxed max-w-2xl">
             Mapped Dropsuite organization ID: <span class="text-white/80 font-mono">{{ $client->dropsuite_organization_id }}</span>.
-            If this stays “not available yet”, check Integration Health → Dropsuite column, that
-            <code class="text-white/70">DROPSUITE_ENABLED=true</code> and tokens are valid, and that a
-            <code class="text-white/70">high</code> queue worker is draining jobs.
+            If counts stay empty, check Integration Health → Dropsuite, tokens, and a
+            <code class="text-white/70">high</code> queue worker.
         </p>
     @endif
 </x-admin-layout>

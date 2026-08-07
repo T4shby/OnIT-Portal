@@ -74,11 +74,14 @@ class ClientRoleAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Jane ticket')
             ->assertDontSee('Bob ticket')
-            ->assertSeeText('only see items linked to you');
+            ->assertSeeText('only see items linked to you')
+            ->assertSeeText('My')
+            ->assertSeeText('Systems')
+            ->assertDontSee('>Organisation</a>', false);
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
     }
 
-    public function test_client_billing_admin_can_open_organisation_but_not_staff_admin(): void
+    public function test_client_billing_admin_can_open_my_systems_but_not_staff_admin(): void
     {
         $client = $this->clientWithEntra();
         $user = User::factory()->create([
@@ -89,9 +92,14 @@ class ClientRoleAccessTest extends TestCase
         $this->assertTrue($user->canAccessClientBilling());
         $this->assertTrue($user->canViewClientAdminDashboard());
         $this->assertFalse($user->canViewOrganisationWide());
+        $this->assertTrue($user->can('view-my-systems'));
+        $this->assertFalse($user->can('view-organisation-wide'));
 
         $this->actingAs($user)->get(route('dashboard'))->assertOk();
-        $this->actingAs($user)->get(route('client-admin.dashboard'))->assertOk();
+        $this->actingAs($user)->get(route('client-admin.dashboard'))
+            ->assertOk()
+            ->assertSeeText('My')
+            ->assertSeeText('Systems');
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
         $this->actingAs($user)->post(route('client-admin.refresh'))->assertForbidden();
     }
@@ -127,7 +135,11 @@ class ClientRoleAccessTest extends TestCase
         $this->actingAs($user)->get(route('client-admin.dashboard'))
             ->assertOk()
             ->assertSee('Anyone ticket')
-            ->assertSeeText('Organisation overview');
+            ->assertSeeText('Organisation')
+            ->assertSeeText('Overview')
+            ->assertDontSeeText('My Systems');
+        $this->assertTrue($user->can('view-organisation-wide'));
+        $this->assertFalse($user->can('view-my-systems'));
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
     }
 

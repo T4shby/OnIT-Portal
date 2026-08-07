@@ -14,6 +14,8 @@ class DropsuiteClientBackupSummary
      *   current_backup_status: ?string,
      *   has_errors: bool
      * }>  $accounts
+     * @param  list<array<string, mixed>>  $onedrives
+     * @param  list<array<string, mixed>>  $sharepoints
      */
     public function __construct(
         public readonly ?int $protectedMailboxes,
@@ -29,6 +31,11 @@ class DropsuiteClientBackupSummary
         public readonly ?string $personalEmail = null,
         public readonly array $accounts = [],
         public readonly ?int $onedriveCount = null,
+        public readonly ?int $succeededLast24h = null,
+        public readonly ?int $failedLast24h = null,
+        public readonly array $onedrives = [],
+        public readonly array $sharepoints = [],
+        public readonly ?int $sharepointCount = null,
     ) {}
 
     public function hasData(): bool

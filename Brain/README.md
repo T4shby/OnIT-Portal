@@ -78,6 +78,10 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | M365 paid-util free/trial heuristics + licensed-users label; Dropsuite 24h summary + Online backups page — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-07 | Dropsuite protected-mailbox list paginated (10/page) on Organisation + staff View Dropsuite — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-07 | Client users get **My Systems** nav (not Organisation); same `/client-admin` personal feed — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-08-07 | System health tiles: dynamic 3-per-row layout; Client Admin not-sold upsell copy; requesters only live tiles — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | SCIM familyName: no [surname]/expression fallback — Direct extensionAttribute1 only; hybrid uses SuperOps API writes — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | Hybrid SuperOps names: Graph extensionAttribute1 fail → SuperOps API first/last push; SCIM expression drops plain [surname] fallback — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | Apply SCIM runs as encrypted `high` queue job (no nginx 504 on Graph lag) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |

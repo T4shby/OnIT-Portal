@@ -31,10 +31,15 @@
                            class="portal-nav-link {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
                             Dashboard
                         </a>
-                        @can('view-client-admin-dashboard')
+                        @can('view-organisation-wide')
                             <a href="{{ route('client-admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                                 Organisation
+                            </a>
+                        @elsecan('view-my-systems')
+                            <a href="{{ route('client-admin.dashboard') }}"
+                               class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                                My Systems
                             </a>
                         @endcan
                         @can('view-huntress-security')
@@ -101,11 +106,17 @@
                        class="portal-nav-link touch-target {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
                         Dashboard
                     </a>
-                    @can('view-client-admin-dashboard')
+                    @can('view-organisation-wide')
                         <a href="{{ route('client-admin.dashboard') }}"
                            @click="menuOpen = false"
                            class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                             Organisation
+                        </a>
+                    @elsecan('view-my-systems')
+                        <a href="{{ route('client-admin.dashboard') }}"
+                           @click="menuOpen = false"
+                           class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                            My Systems
                         </a>
                     @endcan
                     @can('view-huntress-security')

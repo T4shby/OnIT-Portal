@@ -50,12 +50,20 @@ class AuthServiceProvider extends ServiceProvider
             return $user->canViewClientAdminDashboard() && filled($user->client_id);
         });
 
+        // Client Admin only — Organisation overview + nav label.
         Gate::define('view-organisation-wide', function (User $user) {
             if (! filled($user->client_id) || ! $user->canViewOrganisationWide()) {
                 return false;
             }
 
             return true;
+        });
+
+        // Requester / billing — personal My Systems (same /client-admin URL, filtered data).
+        Gate::define('view-my-systems', function (User $user) {
+            return $user->canViewClientAdminDashboard()
+                && filled($user->client_id)
+                && ! $user->canViewOrganisationWide();
         });
 
         Gate::define('view-m365-directory', function (User $user) {

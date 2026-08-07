@@ -1,4 +1,8 @@
-<x-app-layout title="Client Admin" content-class="max-w-[96rem]">
+@php
+    $orgWide = $organisationWide ?? true;
+    $pageTitle = $orgWide ? 'Organisation Overview' : 'My Systems';
+@endphp
+<x-app-layout :title="$pageTitle" content-class="max-w-[96rem]">
 
     @php
         $refreshing = $summary->refreshInProgress
@@ -16,16 +20,21 @@
     <section class="mb-6">
         <div class="orange-rule"></div>
         <div class="heading-stack mb-4">
-            <h1 class="section-heading-white">Organisation</h1>
-            <h1 class="section-heading-orange">Overview</h1>
+            @if($orgWide)
+                <h1 class="section-heading-white">Organisation</h1>
+                <h1 class="section-heading-orange">Overview</h1>
+            @else
+                <h1 class="section-heading-white">My</h1>
+                <h1 class="section-heading-orange">Systems</h1>
+            @endif
         </div>
         <p class="portal-body-muted max-w-3xl">
-            @if($organisationWide ?? true)
+            @if($orgWide)
                 Are your systems healthy? Are issues being dealt with? What value are you getting from On IT?
                 Organisation overview for <strong class="text-white/80">{{ $client->name }}</strong>.
             @else
-                Your tickets, security cases, and mailbox backup time for <strong class="text-white/80">{{ $client->name }}</strong>.
-                You only see items linked to you — Client Admins see the full organisation (including all backed-up mailboxes).
+                Your tickets, security cases, and mailbox backup status for <strong class="text-white/80">{{ $client->name }}</strong>.
+                You only see items linked to you — services that are live for your organisation.
             @endif
         </p>
     </section>
@@ -63,7 +72,9 @@
             <x-alert type="info" class="mb-6">
                 These figures refresh often through the day. Overview includes data as of
                 {{ $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK.
-                Use Refresh now if you need the latest pull.
+                @if($orgWide)
+                    Use Refresh now if you need the latest pull.
+                @endif
             </x-alert>
         @endif
     @endif

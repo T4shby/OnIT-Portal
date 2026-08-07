@@ -7,10 +7,7 @@
     $products = app(\App\Services\Portal\ClientProductService::class);
     $needsAm = $products->needsAccountManagerHelp($client, 'dropsuite');
     $mapped = $products->isMapped($client, 'dropsuite');
-    $accountRows = is_array($d->accounts ?? null) ? array_values(array_filter(
-        $d->accounts,
-        static fn ($row) => is_array($row)
-    )) : [];
+    $canOpenBackups = $orgWide && ($viewerIsTechnician || auth()->user()?->can('view-organisation-wide'));
 @endphp
 <x-card>
     <div class="flex items-start justify-between gap-3">
@@ -49,58 +46,55 @@
                     @endif
                 @else
                     @php
-                        $failCount = $d->failedBackupsCount;
-                        $warn = ($failCount ?? 0) > 0 || $d->lastBackupStatus === 'warning';
+                        $failCount = $d->failedBackupsCount ?? 0;
+                        $ok24 = $d->succeededLast24h;
+                        $fail24 = $d->failedLast24h;
+                        $warn = $failCount > 0 || $d->lastBackupStatus === 'warning';
                     @endphp
                     <p class="text-4xl font-condensed font-bold {{ $warn ? 'text-amber-300' : 'text-white' }}">
                         {{ $d->protectedMailboxes === null ? '-' : number_format($d->protectedMailboxes) }}
                     </p>
-                    <p class="portal-body-muted text-sm mt-2 leading-relaxed">Protected mailboxes (whole organisation)</p>
+                    <p class="portal-body-muted text-sm mt-2 leading-relaxed">Protected mailboxes</p>
+
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-2xl font-condensed font-bold text-white">
+                                {{ $ok24 === null ? '—' : number_format($ok24) }}
+                            </p>
+                            <p class="text-xs portal-body-muted mt-1 leading-snug">Succeeded in last 24 hours</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-condensed font-bold {{ ($failCount ?? 0) > 0 ? 'text-amber-300' : 'text-white' }}">
+                                {{ $failCount === null ? '—' : number_format($failCount) }}
+                            </p>
+                            <p class="text-xs portal-body-muted mt-1 leading-snug">With issues (open)</p>
+                        </div>
+                    </div>
+
                     <p class="portal-body-muted text-xs mt-3 leading-relaxed">
                         @if($d->lastBackupAt)
-                            Latest backup {{ $d->lastBackupAt->timezone('Europe/London')->format('d M Y H:i') }} UK
+                            Latest {{ $d->lastBackupAt->timezone('Europe/London')->format('d M Y H:i') }} UK
                         @else
                             Latest backup unknown
                         @endif
-                        · Status: {{ ucfirst($d->lastBackupStatus) }}
-                        @if($failCount !== null)
-                            · {{ number_format($failCount) }} with issues
-                        @endif
-                        @if($d->onedriveCount !== null)
+                        @if(($d->onedriveCount ?? 0) > 0)
                             · {{ number_format($d->onedriveCount) }} OneDrive
+                        @endif
+                        @if(($d->sharepointCount ?? 0) > 0)
+                            · {{ number_format($d->sharepointCount) }} SharePoint
+                        @endif
+                        @if($fail24 !== null && $fail24 > 0)
+                            · {{ number_format($fail24) }} failed in last 24h
                         @endif
                     </p>
 
-                    @if($orgWide && $accountRows !== [])
-                        <div class="mt-4 border-t border-white/10 pt-3">
-                            <p class="portal-label mb-2 text-white/50">Protected mailboxes &amp; last backup</p>
-                            <div class="max-h-72 overflow-y-auto space-y-0 divide-y divide-white/5 pr-1">
-                                @foreach($accountRows as $row)
-                                    @php
-                                        $rowWarn = ! empty($row['has_errors']);
-                                        $lastAt = filled($row['last_backup_at'] ?? null)
-                                            ? \Carbon\Carbon::parse($row['last_backup_at'])->timezone('Europe/London')->format('d M Y H:i').' UK'
-                                            : 'No run yet';
-                                    @endphp
-                                    <div class="py-2 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3 min-w-0">
-                                        <div class="min-w-0">
-                                            <p class="text-sm leading-snug {{ $rowWarn ? 'text-amber-200' : 'text-white/90' }} truncate">
-                                                {{ $row['email'] ?? ($row['display_name'] ?? 'Mailbox') }}
-                                            </p>
-                                            @if(filled($row['display_name'] ?? null) && filled($row['email'] ?? null))
-                                                <p class="text-xs text-white/40 truncate">{{ $row['display_name'] }}</p>
-                                            @endif
-                                        </div>
-                                        <div class="shrink-0 text-xs leading-snug {{ $rowWarn ? 'text-amber-300/90' : 'text-white/55' }}">
-                                            {{ $lastAt }}
-                                            @if(! empty($row['current_backup_status']))
-                                                · {{ $row['current_backup_status'] }}
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
+                    @if($canOpenBackups)
+                        <a href="{{ $viewerIsTechnician && request()->routeIs('admin.*')
+                                ? route('admin.clients.dropsuite', $client)
+                                : route('client-admin.backups') }}"
+                           class="inline-block mt-4 text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">
+                            View all online backups &rarr;
+                        </a>
                     @endif
                 @endif
             @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)

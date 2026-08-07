@@ -5,14 +5,18 @@ namespace App\Services\M365;
 /**
  * Maps Graph subscribedSku skuPartNumber values to customer-friendly product names,
  * and flags free/bulk SKUs that must not skew "overall utilisation".
+ *
+ * Free / trial detection is heuristic (patterns + large prepaid pools) so new Microsoft
+ * giveaway SKUs do not need a hard-coded list each time.
  */
 class MicrosoftLicenseSkuNames
 {
     /**
-     * Prepaid seat pools at or above this are almost always free/unmetered Microsoft offers
-     * (e.g. FLOW_FREE with 1,000,000 seats), not paid licenses.
+     * Prepaid seat pools at or above this are treated as free/unmetered Microsoft offers
+     * (Power Pages maker trials, Business Central IW, FLOW_FREE millions, …).
+     * Paid MSP seat buys almost never sit at 10k+ unconsumed capacity.
      */
-    public const BULK_FREE_PREPAID_THRESHOLD = 100_000;
+    public const BULK_FREE_PREPAID_THRESHOLD = 10_000;
 
     /**
      * Common MSP / commercial SKU part numbers → portal labels (Microsoft marketing names).
@@ -97,7 +101,7 @@ class MicrosoftLicenseSkuNames
     ];
 
     /**
-     * SKU part numbers (exact) that are free, trial, or unmetered and never count toward paid utilisation.
+     * Optional exact free SKUs (fast path). Prefer name/bulk heuristics for new SKUs.
      *
      * @var list<string>
      */
@@ -111,9 +115,33 @@ class MicrosoftLicenseSkuNames
         'WINDOWS_STORE',
         'CCIBOTS_PRIVPREV_VIRAL',
         'Microsoft_Teams_Exploratory_Dept',
-        // Dynamics 365 Business Central for IWs — free IW pool (often 10,000 seats)
         'PROJECT_MADEIRA_PREVIEW_IW_SKU',
         'PROJECTMADEIRA_PREVIEW',
+    ];
+
+    /**
+     * Substrings in skuPartNumber (case-insensitive) that mark free, trial, or non-billable seats.
+     *
+     * @var list<string>
+     */
+    private const EXCLUDED_NAME_FRAGMENTS = [
+        'FREE',
+        'TRIAL',
+        'VIRAL',
+        'EXPLORATORY',
+        'DEVELOPER',
+        'PREVIEW',
+        'MADEIRA',
+        'STUDENT',
+        'FOR_MAKERS',
+        'MAKER',
+        'POWERPAGE',
+        'POWER_PAGE',
+        'POWERPAGES',
+        'RIGHTSMANAGEMENT_ADHOC',
+        'WINDOWS_STORE',
+        '_IW_SKU',
+        '_IW',
     ];
 
     public static function displayName(string $skuPartNumber): string
@@ -128,7 +156,6 @@ class MicrosoftLicenseSkuNames
             return self::DISPLAY_NAMES[$key];
         }
 
-        // Case-insensitive exact match (Graph casing varies on newer SKUs).
         foreach (self::DISPLAY_NAMES as $part => $name) {
             if (strcasecmp($part, $key) === 0) {
                 return $name;
@@ -139,6 +166,10 @@ class MicrosoftLicenseSkuNames
             return 'Dynamics 365 Business Central for IWs';
         }
 
+        if (stripos($key, 'POWERPAGE') !== false || stripos($key, 'POWER_PAGE') !== false) {
+            return 'Power Pages Trial for Makers';
+        }
+
         return self::humanizePartNumber($key);
     }
 
@@ -146,8 +177,11 @@ class MicrosoftLicenseSkuNames
      * Whether this inventory row should contribute to seats purchased/assigned overall utilisation.
      * Free/trial/preview/bulk-capacity Microsoft SKUs are excluded so free seat pools do not report ~0%.
      */
-    public static function countsTowardOverallUtilisation(string $skuPartNumber, int $prepaidEnabled): bool
-    {
+    public static function countsTowardOverallUtilisation(
+        string $skuPartNumber,
+        int $prepaidEnabled,
+        ?int $consumedUnits = null,
+    ): bool {
         if ($prepaidEnabled <= 0) {
             return false;
         }
@@ -156,29 +190,56 @@ class MicrosoftLicenseSkuNames
             return false;
         }
 
-        $key = strtoupper(trim($skuPartNumber));
-
         foreach (self::EXCLUDED_EXACT as $excluded) {
             if (strcasecmp($excluded, $skuPartNumber) === 0) {
                 return false;
             }
         }
 
-        if (str_ends_with($key, '_FREE')
-            || str_contains($key, '_FREE_')
-            || str_ends_with($key, '_TRIAL')
-            || str_contains($key, '_TRIAL_')
-            || str_contains($key, '_VIRAL')
-            || str_contains($key, 'EXPLORATORY')
-            || str_contains($key, 'DEVELOPER')
-            || str_contains($key, 'PREVIEW')
-            || str_contains($key, 'MADEIRA')
-            || str_contains($key, '_IW_SKU')
-            || str_ends_with($key, '_IW')) {
+        if (self::partNumberLooksNonBillable($skuPartNumber)) {
+            return false;
+        }
+
+        // Sparse use of a large prepaid pool (typical Microsoft giveaway, not a paid MSP buy).
+        if ($consumedUnits !== null
+            && $prepaidEnabled >= 1_000
+            && $consumedUnits <= max(5, (int) floor($prepaidEnabled * 0.02))) {
             return false;
         }
 
         return true;
+    }
+
+    public static function partNumberLooksNonBillable(string $skuPartNumber): bool
+    {
+        $key = strtoupper(str_replace(['-', ' '], '_', trim($skuPartNumber)));
+
+        if ($key === '') {
+            return false;
+        }
+
+        foreach (self::EXCLUDED_NAME_FRAGMENTS as $fragment) {
+            $needle = strtoupper(str_replace(['-', ' '], '_', $fragment));
+            if ($needle === '') {
+                continue;
+            }
+            // Avoid matching ordinary product names that merely end with "E" then something —
+            // fragments are deliberate free/trial keywords.
+            if (str_contains($key, $needle)) {
+                // "_IW" alone is short — require end or _IW_ form.
+                if ($needle === '_IW') {
+                    if (str_ends_with($key, '_IW') || str_contains($key, '_IW_')) {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function humanizePartNumber(string $skuPartNumber): string
@@ -187,7 +248,6 @@ class MicrosoftLicenseSkuNames
         $label = preg_replace('/\s+/', ' ', $label) ?? $label;
         $label = trim($label);
 
-        // Preserve common tokens while title-casing the rest.
         $words = array_map(static function (string $word): string {
             $upper = strtoupper($word);
             if (in_array($upper, ['M365', 'O365', 'EMS', 'AAD', 'SKU', 'E1', 'E3', 'E5', 'F1', 'F3', 'P1', 'P2'], true)) {

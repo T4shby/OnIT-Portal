@@ -69,6 +69,8 @@ class DropsuiteClientMetricsServiceTest extends TestCase
                     ['email' => 'alexw@twx4l.onmicrosoft.com'],
                 ],
             ], 200),
+            'https://dropsuite.us/api/sharepoints*' => Http::response(['result_set' => []], 200),
+            'https://dropsuite.us/api/sites*' => Http::response(['result_set' => []], 200),
         ]);
 
         $client = Client::factory()->create(['dropsuite_organization_id' => '19771']);

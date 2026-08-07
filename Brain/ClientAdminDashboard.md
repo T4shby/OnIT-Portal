@@ -1,6 +1,13 @@
 # Client Admin dashboard
 
-Client Admins (`client_admin`) see an organisation overview at `/client-admin` scoped to their own client. The page answers:
+**Same URL** `/client-admin` for both surfaces (data still filtered by role):
+
+| Role | Nav label | Page |
+|------|-----------|------|
+| **Client Admin** | **Organisation** | Organisation Overview — org-wide people/systems |
+| **Requester / Billing** | **My Systems** | Personal summary — live products only, items linked to them |
+
+Client Admins see organisation overview scoped to their own client. The page answers:
 
 1. **Are my systems healthy?** — modular **dashboard feeds** (SuperOps devices, Huntress, Dropsuite, M365 licences)
 2. **Are my issues being dealt with?** — open tickets (with priority breakdown and table), SLA %, ticket activity
@@ -70,7 +77,7 @@ Entra sync creates new users as `client_requester` only. Sync updates never chan
 **Who:** On IT `super_admin` / `account_manager` only — **Staff Admin → Integration Health** (`/admin/integration-health`).  
 **Not** shown on Client Organisation overview / requester portals.
 
-**Nav:** Own sidebar tab under Staff Admin (not buried on the dashboard). Dashboard shows a compact “Refresh pipeline” card linking to the tab. Portal top nav: **Organisation** (client metrics), **Microsoft 365**, **Staff Admin** (MSP).
+**Nav:** Own sidebar tab under Staff Admin (not buried on the dashboard). Dashboard shows a compact “Refresh pipeline” card linking to the tab. Portal top nav: **Organisation** (Client Admin only) / **My Systems** (requester & billing), **Microsoft 365**, **Staff Admin** (MSP).
 
 Service: `App\Services\Admin\IntegrationHealthService`  
 Controller: `App\Http\Controllers\Admin\IntegrationHealthController`
@@ -169,10 +176,12 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Audience | Surface | Tone |
 |----------|---------|------|
-| **Client Admin** | `/client-admin` org overview | Tile only if **product entitled** (sold). **Setup needed** (sold, no org ID / platform) → “Please contact your account manager to get this sorted.” Linked/live → metrics. Not sold → **hidden**. |
-| **Requester / Billing** | `/client-admin` personal | Show tile only when product **live** (entitled + mapped + platform). Unsold or setup-needed products hidden. |
+| **Client Admin** | `/client-admin` · nav **Organisation** | **All service tiles** always. Live → metrics. **Setup needed** → “Please contact your account manager to get this sorted.” **Not sold** → still shown: “Please contact your Account manager if you want this enabling”. Support & SLA only when SuperOps **entitled**. |
+| **Requester / Billing** | `/client-admin` · nav **My Systems** | Show tile only when product **live**. Unsold/setup-needed **hidden**. Section “Your services”; dynamic width (1/2/3 per row). No Organisation nav. |
 | Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Raw unavailable reasons; age / requeue notes; Integration Health. |
 | Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING**, Not sold / Setup needed; queue depths. |
+
+**System health layout** (`shouldShowOverviewTile` + `overviewTileWidthClass`): max **3 tiles per row**, flex + `gap-4`. Row of 1 = full width; 2 = 50/50; 3 = thirds. Orphans: 4→3+1, 5→3+2, 6→3+3, 7→3+3+1.
 
 ## Product entitlements (sold services vs licence vendors)
 
@@ -182,7 +191,7 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 
 | Kind | Meaning | Keys today | Client Admin tiles |
 |------|---------|------------|--------------------|
-| `service` | On IT sells this product to the client | `superops`, `m365`, `huntress`, `dropsuite` | When **entitled**; contact AM if setup needed |
+| `service` | On IT sells this product to the client | `superops`, `m365`, `huntress`, `dropsuite` | Always on System health (upsell if not sold; AM if setup needed; metrics if live) |
 | `licence_vendor` | Where they buy Microsoft / cloud **licences** | `pax8` (more vendors later) | Not system-health tiles — staff assignment + Pax8 launch only |
 
 | Key | Label | Mapping fields |
@@ -394,21 +403,22 @@ Source: Microsoft Graph `/subscribedSkus` (enabled user SKUs only). Licensed use
 
 ### Seat totals + overall utilisation %
 
-Counts **paid / commercial seats only**. Excluded from overall purchased/assigned/%:
+Counts **paid / commercial seats only**. Free / trial detection is heuristic (no need to hard-code every new SKU):
 
 | Rule | Why |
 |------|-----|
-| Prepaid seats ≥ 100,000 | Free bulk pools (e.g. `FLOW_FREE` = 1,000,000) |
-| Exact free SKUs (`FLOW_FREE`, `POWER_BI_STANDARD`, Teams Exploratory, …) | Not bought seats |
-| Part number contains `PREVIEW`, `MADEIRA`, `_TRIAL`, `_FREE`, `_VIRAL`, `EXPLORATORY`, `DEVELOPER`, `_IW` | Free / IW / preview pools (e.g. `PROJECT_MADEIRA_PREVIEW_IW_SKU` = 10,000 seats) |
+| Prepaid seats ≥ **10,000** | Free bulk pools (Power Pages maker trial, FLOW_FREE, IW, …) |
+| Name contains FREE / TRIAL / VIRAL / PREVIEW / MADEIRA / MAKER / POWERPAGE / … | Microsoft giveaway part numbers |
+| Sparse use of a ≥1,000 seat pool (≤2% consumed or ≤5 seats) | Unsold trial capacity disguised as prepaid |
+| Exact free list for common SKUs | Fast path |
 
-Free/preview rows still appear in the licence list marked **Free / preview**, but do not affect Seats assigned or Overall utilisation %.
+**Licensed users** count = directory **user mailboxes with licences only** — **does not** include shared mailboxes. UI labels say so.
 
-Duplicate marketing names (e.g. two “Business Premium” Graph SKUs) are disambiguated with `· {skuPartNumber}`.
+Free/trial rows still appear in the licence list marked **Free / trial**, but do not affect Seats assigned or Paid utilisation %.
 
-So a tenant with Business Premium full and Project Madeira / Power Automate Free pools does **not** show ~1% overall utilisation.
+### Dropsuite tile + full backups
 
-**“Seats assigned / purchased”** on the insight panel uses the same paid-only totals.
+Org tile: totals + **succeeded in last 24 hours** + **with issues (open)** — no long mailbox list. **View all online backups** → `/client-admin/backups` (Client Admin) or staff client Dropsuite page (mailboxes / OneDrive / SharePoint tabs, 25/page).
 
 ### SKU row display
 
@@ -459,7 +469,7 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 | Who | Scope | Dropsuite view |
 |-----|-------|----------------|
 | **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client: **Staff Admin → Clients → Edit → View Dropsuite backups**, Integration Health Dropsuite column. |
-| **Client Admin** (`client_admin`) | **Their customer only** | **Organisation overview → Backups (Dropsuite):** org totals (protected mailbox count, latest backup, failures, OneDrive) **and a scrollable list of every protected mailbox** with last backup time + status. Never other customers. |
+| **Client Admin** (`client_admin`) | **Their customer only** | **Organisation overview → Backups (Dropsuite):** protected count, **succeeded last 24h**, **open issues**, OneDrive/SharePoint counts. Full inventory on **Online backups** (`/client-admin/backups`) with Mailboxes / OneDrive / SharePoint tabs. Same detail on staff View Dropsuite. Never other customers. |
 | **Requester / Billing Admin** | Personal only | Same overview page tile **My backup**: last time **their** work-email mailbox was backed up. No colleague list, no org totals. Matched by email on the cached org snapshot. |
 
 Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin ≠ requester.
@@ -513,6 +523,10 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-07 | M365: licensed users label excludes shared; free/trial SKUs via heuristics (10k pool + name fragments); Dropsuite tile = 24h success/issues + full backups page |
+| 2026-08-07 | Dropsuite org mailbox list: **10 per page** (Prev/Next) on every surface using the tile partial |
+| 2026-08-07 | Client users: nav **My Systems** (not Organisation); personal live tiles only. Client Admin keeps **Organisation** |
+| 2026-08-07 | System health grid: max 3/row (1=full, 2=50/50, orphans 3+1 / 3+2…); Client Admin keeps not-sold upsell tiles; requester live-only |
 | 2026-08-07 | Client Admin Dropsuite tile lists **all** protected mailboxes; requester still personal “My backup” only |
 | 2026-08-07 | Staff **View Dropsuite backups** on Edit client; Integration Health jobs show client name (fix blank CLIENT from JSON-escaped payloads) |
 | 2026-08-07 | Integration Health: **Never loaded** (`cold`) sold feeds raise warning severity/headline/notices + amber UI (no longer hidden under global OK) |

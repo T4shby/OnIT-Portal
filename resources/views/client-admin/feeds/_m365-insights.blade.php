@@ -15,11 +15,12 @@
                     {{ $m->overallUtilizationPct === null ? '-' : number_format($m->overallUtilizationPct, 0).'%' }}
                 </p>
                 <p class="portal-body-muted text-sm mt-2">
-                    Licence utilisation
+                    Paid licence utilisation
                     @if($m->licensedUserCount !== null)
-                        / {{ number_format($m->licensedUserCount) }} users
+                        / {{ number_format($m->licensedUserCount) }} licensed users
                     @endif
                 </p>
+                <p class="portal-body-muted text-xs mt-1">User mailboxes only — not shared mailboxes</p>
             @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
                 <p class="text-sm portal-body-muted mt-2 leading-relaxed">Licence figures are not available yet.</p>
             @else

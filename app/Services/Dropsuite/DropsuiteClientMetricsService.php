@@ -29,7 +29,7 @@ class DropsuiteClientMetricsService
 
     private const STALE_RETENTION_MINUTES = 1440;
 
-    private const CACHE_VERSION = 'v2';
+    private const CACHE_VERSION = 'v3';
 
     private const MAX_ACCOUNT_PAGES = 40;
 
@@ -203,15 +203,18 @@ class DropsuiteClientMetricsService
     {
         $accessToken = $this->userAccessTokenForOrganization($organizationId);
         $accounts = $this->fetchAccountsForOrganization($organizationId, $accessToken);
-        $onedrives = $this->fetchOneDriveRowsForEmails(
-            array_values(array_filter(array_map(
-                static fn (array $row): string => (string) ($row['email'] ?? ''),
-                $accounts,
-            ))),
-            $accessToken,
-        );
+        $emails = array_values(array_filter(array_map(
+            static fn (array $row): string => (string) ($row['email'] ?? ''),
+            $accounts,
+        )));
+        $onedrives = $this->fetchOptionalResourceRows('onedrives', $emails, $accessToken);
+        $sharepoints = $this->fetchOptionalResourceRows('sharepoints', $emails, $accessToken);
+        // Alternate path used by some Dropsuite tenants
+        if ($sharepoints === []) {
+            $sharepoints = $this->fetchOptionalResourceRows('sites', $emails, $accessToken);
+        }
 
-        return $this->mapAccountsPayload($accounts, $onedrives, $organizationId);
+        return $this->mapAccountsPayload($accounts, $onedrives, $sharepoints, $organizationId);
     }
 
     /**
@@ -338,37 +341,67 @@ class DropsuiteClientMetricsService
      * @param  list<string>  $emails
      * @return list<array<string, mixed>>
      */
-    private function fetchOneDriveRowsForEmails(array $emails, ?string $accessToken = null): array
+    private function fetchOptionalResourceRows(string $path, array $emails, ?string $accessToken = null): array
     {
-        if ($emails === []) {
-            return [];
-        }
-
         try {
-            $payload = $this->api->get('onedrives', accessToken: $accessToken);
-            $rows = $this->extractListRows($payload);
-            if ($rows === []) {
-                return [];
+            $out = [];
+            for ($page = 1; $page <= 20; $page++) {
+                $payload = $this->api->get($path, ['page' => $page, 'per_page' => 100], accessToken: $accessToken);
+                $rows = $this->extractListRows($payload);
+                if ($rows === []) {
+                    break;
+                }
+                foreach ($rows as $row) {
+                    if (is_array($row)) {
+                        $out[] = $row;
+                    }
+                }
+                $pagination = is_array($payload['pagination'] ?? null) ? $payload['pagination'] : [];
+                $totalPages = (int) ($pagination['total_pages'] ?? $page);
+                if ($page >= $totalPages) {
+                    break;
+                }
             }
 
+            if ($emails === [] || $out === []) {
+                return $out;
+            }
+
+            // Prefer org-scoped rows; if API returns tenant-wide, filter by protected mailbox emails when present.
             $wanted = array_fill_keys(array_map('strtolower', $emails), true);
-            $out = [];
-            foreach ($rows as $row) {
-                if (! is_array($row)) {
+            $filtered = [];
+            $hadEmail = false;
+            foreach ($out as $row) {
+                $email = strtolower(trim((string) ($row['email'] ?? $row['owner_email'] ?? $row['user_email'] ?? '')));
+                if ($email === '') {
+                    $filtered[] = $row;
+
                     continue;
                 }
-                $email = strtolower(trim((string) ($row['email'] ?? $row['owner_email'] ?? '')));
-                if ($email !== '' && isset($wanted[$email])) {
-                    $out[] = $row;
+                $hadEmail = true;
+                if (isset($wanted[$email])) {
+                    $filtered[] = $row;
                 }
             }
 
-            return $out;
+            return $hadEmail ? $filtered : $out;
         } catch (Throwable $e) {
-            Log::info('Dropsuite OneDrive enrichment skipped', ['error' => $e->getMessage()]);
+            Log::info('Dropsuite optional resource skipped', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
 
             return [];
         }
+    }
+
+    /**
+     * @param  list<string>  $emails
+     * @return list<array<string, mixed>>
+     */
+    private function fetchOneDriveRowsForEmails(array $emails, ?string $accessToken = null): array
+    {
+        return $this->fetchOptionalResourceRows('onedrives', $emails, $accessToken);
     }
 
     /**
@@ -387,13 +420,21 @@ class DropsuiteClientMetricsService
     /**
      * @param  list<array<string, mixed>>  $accounts
      * @param  list<array<string, mixed>>  $onedrives
+     * @param  list<array<string, mixed>>  $sharepoints
      * @return array<string, mixed>
      */
-    public function mapAccountsPayload(array $accounts, array $onedrives, string $organizationId): array
-    {
+    public function mapAccountsPayload(
+        array $accounts,
+        array $onedrives,
+        array $sharepoints,
+        string $organizationId,
+    ): array {
         $normalized = [];
         $failed = 0;
+        $succeededLast24h = 0;
+        $failedLast24h = 0;
         $latestBackup = null;
+        $since = now()->subDay();
 
         foreach ($accounts as $row) {
             $email = trim((string) ($row['email'] ?? ''));
@@ -410,8 +451,17 @@ class DropsuiteClientMetricsService
             $errors = $row['errors'] ?? [];
             $hasErrors = is_array($errors) ? $errors !== [] : filled($errors);
             $status = trim((string) ($row['current_backup_status'] ?? $row['backup_status'] ?? ''));
-            if ($hasErrors || $this->statusLooksFailed($status)) {
+            $isFailed = $hasErrors || $this->statusLooksFailed($status);
+            if ($isFailed) {
                 $failed++;
+            }
+
+            if ($lastBackupAt !== null && $lastBackupAt->gte($since)) {
+                if ($isFailed) {
+                    $failedLast24h++;
+                } else {
+                    $succeededLast24h++;
+                }
             }
 
             $normalized[] = [
@@ -419,7 +469,7 @@ class DropsuiteClientMetricsService
                 'display_name' => filled($row['display_name'] ?? null) ? (string) $row['display_name'] : null,
                 'last_backup_at' => $lastBackupAt?->toIso8601String(),
                 'current_backup_status' => $status !== '' ? $status : null,
-                'has_errors' => $hasErrors || $this->statusLooksFailed($status),
+                'has_errors' => $isFailed,
             ];
         }
 
@@ -427,16 +477,70 @@ class DropsuiteClientMetricsService
             return strcmp((string) ($b['last_backup_at'] ?? ''), (string) ($a['last_backup_at'] ?? ''));
         });
 
+        $onedriveRows = $this->normalizeSecondaryRows($onedrives);
+        $sharepointRows = $this->normalizeSecondaryRows($sharepoints);
+
         return [
             'organization_id' => $organizationId,
             'protected_mailboxes' => count($normalized),
             'failed_backups_count' => $failed,
+            'succeeded_last_24h' => $succeededLast24h,
+            'failed_last_24h' => $failedLast24h,
             'last_backup_status' => $failed > 0 ? 'warning' : ($normalized === [] ? 'unknown' : 'success'),
             'last_backup_at' => $latestBackup?->toIso8601String(),
-            'onedrive_count' => count($onedrives),
+            'onedrive_count' => count($onedriveRows),
+            'sharepoint_count' => count($sharepointRows),
             'accounts' => $normalized,
+            'onedrives' => $onedriveRows,
+            'sharepoints' => $sharepointRows,
             'source_path' => 'accounts',
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array{name: string, email: ?string, last_backup_at: ?string, status: ?string, has_errors: bool}>
+     */
+    private function normalizeSecondaryRows(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $name = trim((string) (
+                $row['name']
+                ?? $row['site_name']
+                ?? $row['display_name']
+                ?? $row['url']
+                ?? $row['email']
+                ?? $row['owner_email']
+                ?? ''
+            ));
+            if ($name === '') {
+                continue;
+            }
+            $lastBackupRaw = $row['last_backup'] ?? $row['last_backup_at'] ?? null;
+            $lastBackupAt = filled($lastBackupRaw) ? Carbon::parse((string) $lastBackupRaw) : null;
+            $status = trim((string) ($row['current_backup_status'] ?? $row['backup_status'] ?? $row['status'] ?? ''));
+            $errors = $row['errors'] ?? [];
+            $hasErrors = (is_array($errors) ? $errors !== [] : filled($errors))
+                || $this->statusLooksFailed($status);
+
+            $out[] = [
+                'name' => $name,
+                'email' => filled($row['email'] ?? $row['owner_email'] ?? null)
+                    ? (string) ($row['email'] ?? $row['owner_email'])
+                    : null,
+                'last_backup_at' => $lastBackupAt?->toIso8601String(),
+                'status' => $status !== '' ? $status : null,
+                'has_errors' => $hasErrors,
+            ];
+        }
+
+        usort($out, static fn (array $a, array $b): int => strcmp((string) ($b['last_backup_at'] ?? ''), (string) ($a['last_backup_at'] ?? '')));
+
+        return $out;
     }
 
     /**
@@ -547,6 +651,7 @@ class DropsuiteClientMetricsService
 
         $accounts = is_array($payload['accounts'] ?? null) ? $payload['accounts'] : [];
         $refreshing = $refreshInProgress || Cache::has('dropsuite_backup.refresh_queued.'.$client->id);
+        $window = $this->windowCountsFromAccounts($accounts);
 
         if (! $orgWide && $viewer !== null) {
             return $this->personalSummaryFromAccounts(
@@ -563,10 +668,13 @@ class DropsuiteClientMetricsService
             ? Carbon::parse($payload['last_backup_at'])
             : null;
 
+        $onedrives = is_array($payload['onedrives'] ?? null) ? $payload['onedrives'] : [];
+        $sharepoints = is_array($payload['sharepoints'] ?? null) ? $payload['sharepoints'] : [];
+
         return new DropsuiteClientBackupSummary(
             protectedMailboxes: isset($payload['protected_mailboxes']) ? (int) $payload['protected_mailboxes'] : count($accounts),
             lastBackupStatus: $this->validStatus($payload['last_backup_status'] ?? null),
-            failedBackupsCount: isset($payload['failed_backups_count']) ? (int) $payload['failed_backups_count'] : null,
+            failedBackupsCount: isset($payload['failed_backups_count']) ? (int) $payload['failed_backups_count'] : $window['failed_open'],
             available: true,
             unavailableReason: null,
             lastRefreshedAt: $lastRefreshedAt,
@@ -576,8 +684,58 @@ class DropsuiteClientMetricsService
             lastBackupAt: $lastBackupAt,
             personalEmail: null,
             accounts: $accounts,
-            onedriveCount: isset($payload['onedrive_count']) ? (int) $payload['onedrive_count'] : null,
+            onedriveCount: isset($payload['onedrive_count']) ? (int) $payload['onedrive_count'] : count($onedrives),
+            succeededLast24h: isset($payload['succeeded_last_24h']) ? (int) $payload['succeeded_last_24h'] : $window['succeeded_24h'],
+            failedLast24h: isset($payload['failed_last_24h']) ? (int) $payload['failed_last_24h'] : $window['failed_24h'],
+            onedrives: $onedrives,
+            sharepoints: $sharepoints,
+            sharepointCount: isset($payload['sharepoint_count']) ? (int) $payload['sharepoint_count'] : count($sharepoints),
         );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $accounts
+     * @return array{succeeded_24h: int, failed_24h: int, failed_open: int}
+     */
+    private function windowCountsFromAccounts(array $accounts): array
+    {
+        $since = now()->subDay();
+        $succeeded = 0;
+        $failed24 = 0;
+        $failedOpen = 0;
+
+        foreach ($accounts as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $isFailed = ! empty($row['has_errors'])
+                || $this->statusLooksFailed((string) ($row['current_backup_status'] ?? ''));
+            if ($isFailed) {
+                $failedOpen++;
+            }
+            if (! filled($row['last_backup_at'] ?? null)) {
+                continue;
+            }
+            try {
+                $at = Carbon::parse((string) $row['last_backup_at']);
+            } catch (Throwable) {
+                continue;
+            }
+            if ($at->lt($since)) {
+                continue;
+            }
+            if ($isFailed) {
+                $failed24++;
+            } else {
+                $succeeded++;
+            }
+        }
+
+        return [
+            'succeeded_24h' => $succeeded,
+            'failed_24h' => $failed24,
+            'failed_open' => $failedOpen,
+        ];
     }
 
     /**

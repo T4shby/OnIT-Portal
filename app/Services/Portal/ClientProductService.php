@@ -260,10 +260,13 @@ class ClientProductService
     }
 
     /**
-     * Client Admin: show product surface when entitled.
+     * Client Admin: show product surface when entitled (Support & SLA, gates).
      * Requester/billing: only when live.
      * Technician: always (ops diagnostics).
      * Licence vendors are staff/tracking only (not system-health tiles).
+     *
+     * For System health overview tiles (incl. not-sold upsell for Client Admins),
+     * use {@see shouldShowOverviewTile()}.
      */
     public function shouldShowForViewer(Client $client, string $key, ?User $viewer): bool
     {
@@ -282,6 +285,52 @@ class ClientProductService
         }
 
         return $this->isLive($client, $key);
+    }
+
+    /**
+     * System health tile visibility on Organisation Overview.
+     *
+     * - Technician: all service tiles
+     * - Client Admin: all service tiles (not sold → upsell placeholder)
+     * - Requester/billing: live products only
+     * - Licence vendors: never
+     */
+    public function shouldShowOverviewTile(Client $client, string $key, ?User $viewer): bool
+    {
+        $key = $this->normalizeKey($key);
+
+        if ($this->isLicenceVendor($key)) {
+            return false;
+        }
+
+        if ($viewer === null || $viewer->isTeamMember() || $viewer->isClientAdmin()) {
+            return true;
+        }
+
+        return $this->isLive($client, $key);
+    }
+
+    /**
+     * Tailwind width classes for System health rows (max 3 per row).
+     *
+     * Row sizes: 1 → full width; 2 → 50/50; 3 → thirds. Orphans fill remaining row
+     * (4 = 3+1, 5 = 3+2, …). Uses gap-4 (1rem) between cards.
+     */
+    public function overviewTileWidthClass(int $index, int $total): string
+    {
+        if ($total < 1) {
+            return 'w-full';
+        }
+
+        $index = max(0, $index);
+        $rowStart = intdiv($index, 3) * 3;
+        $rowSize = min(3, $total - $rowStart);
+
+        return match ($rowSize) {
+            1 => 'w-full',
+            2 => 'w-full sm:w-[calc((100%-1rem)/2)]',
+            default => 'w-full sm:w-[calc((100%-2rem)/3)]',
+        };
     }
 
     /**

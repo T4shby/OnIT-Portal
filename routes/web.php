@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\ClientAdminDashboardController;
+use App\Http\Controllers\ClientBackupsController;
 use App\Http\Controllers\HuntressSecurityController;
 use App\Http\Controllers\Admin\ClientDropsuiteBackupController;
 use App\Http\Controllers\Admin\ClientHuntressSecurityController;
@@ -77,6 +78,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/client-admin/refresh', [ClientAdminDashboardController::class, 'refresh'])
         ->middleware(['can:view-client-admin-dashboard', 'throttle:6,1'])
         ->name('client-admin.refresh');
+
+    Route::get('/client-admin/backups', [ClientBackupsController::class, 'index'])
+        ->middleware('can:view-organisation-wide')
+        ->name('client-admin.backups');
 
     Route::get('/security/huntress', [HuntressSecurityController::class, 'index'])
         ->middleware('can:view-huntress-security')
