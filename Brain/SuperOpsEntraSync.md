@@ -27,6 +27,8 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 
 **Portal Apply SCIM** should do (1) via Graph schema update (waits/polls until the SCIM job schema is readable — first Apply on a brand-new app often 404s for 10–40s), (2) by queuing Sync when tenant + **group ID** exist, then start provisioning. **Checklist step 07 stays Pending** until both (1) name mappings and (2) Sync queue succeed — credentials-only Apply is **not** Done. Missing group ID blocks Sync queue; mapping failures become an amber flash and Do not ignore copy.
 
+**Re-Apply / “already exists”:** Apply reuses the existing Entra SCIM job. There is **no multi-hour portal install** to stop. If Graph returns *job already exists* without an id yet, Apply waits up to ~90s for the id, then continues or errors — after an error, **nothing is running in the portal**. Check **live progress** via: (a) the browser button (“Applying…” only while the request is in flight), (b) step 07 Done / flash after redirect, (c) customer Entra → Enterprise apps → SuperOps app → **Provisioning** On/Off + logs, (d) portal **Last synced** / Integration Health after Sync is queued. Do not create a second Provisioning job in Azure.
+
 **SuperOps already full of requesters:** SCIM renames only Entra-scoped people the portal Sync sees. Onboarding steps **07** and **09** show a **Do not ignore** warning when SuperOps requester count greatly exceeds portal Entra users (common after CSV import). Extra SuperOps rows stay plain until those people exist in customer Entra and enter the security group / SCIM scope.
 
 If the schema update fails after that wait, fix mapping in Entra Provisioning or re-run **Apply SCIM** and run **Sync now**.

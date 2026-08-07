@@ -25,7 +25,13 @@
             Credentials-only success is <strong class="text-white/90">not enough</strong> for this step — mapping + Sync queue must both succeed.
         </p>
 
-        <form method="POST" action="{{ route('admin.clients.apply-scim', $client) }}" class="space-y-4">
+        <form
+            method="POST"
+            action="{{ route('admin.clients.apply-scim', $client) }}"
+            class="space-y-4"
+            x-data="{ submitting: false }"
+            @submit="submitting = true"
+        >
             @csrf
             <div>
                 <label for="{{ $idPrefix }}scim_tenant_url" class="portal-label mb-2 block">SuperOps SCIM Tenant URL</label>
@@ -38,6 +44,7 @@
                     autocomplete="off"
                     placeholder="https://usserv.superops.ai/accounts-web/scim/…"
                     class="admin-input"
+                    :disabled="submitting"
                 >
                 @error('scim_tenant_url')
                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
@@ -54,17 +61,24 @@
                     autocomplete="new-password"
                     placeholder="scim-…"
                     class="admin-input"
+                    :disabled="submitting"
                 >
                 @error('scim_secret_token')
                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                 @enderror
             </div>
-            <button type="submit" class="cta-btn text-sm px-6 py-3">
-                Apply SCIM credentials + start
+            <button type="submit" class="cta-btn text-sm px-6 py-3" :disabled="submitting">
+                <span x-show="!submitting">Apply SCIM credentials + start</span>
+                <span x-cloak x-show="submitting">Applying… keep this tab open (can take up to ~2 min)</span>
             </button>
-            <p class="portal-body-muted text-xs leading-relaxed">
+            <p class="portal-body-muted text-xs leading-relaxed" x-show="!submitting">
                 Sets SuperOps name mapping (name.familyName ← extensionAttribute1) and queues portal Sync.
-                Step stays Pending if either fails (e.g. missing Entra group ID or schema not ready).
+                Step stays Pending if either fails. There is no separate “progress bar”: the button runs until
+                success/error. Re-Apply reuses the Entra job (nothing to “clear” for hours).
+            </p>
+            <p class="text-sm text-amber-200/90 leading-relaxed" x-cloak x-show="submitting">
+                Waiting on Microsoft Graph (discover job → write tokens → name mappings → start → queue Sync).
+                If Graph says the job exists but is slow to list, this page can sit for about 90 seconds — that is normal lag, not a stuck multi-hour install.
             </p>
         </form>
     </div>

@@ -1652,6 +1652,11 @@ class MicrosoftGraphClient
         string $scimTenantUrl,
         string $scimSecretToken,
     ): array {
+        // Ensure / wait-for-job / schema can run longer than default PHP request limits.
+        if (function_exists('set_time_limit')) {
+            set_time_limit(180);
+        }
+
         $tenantId = strtolower(trim($tenantId));
         $scimTenantUrl = rtrim(trim($scimTenantUrl), '/');
         $scimSecretToken = trim($scimSecretToken);
@@ -2034,14 +2039,14 @@ class MicrosoftGraphClient
 
     private function ensureScimSynchronizationJob(string $tenantId, string $servicePrincipalId): string
     {
-        // List can lag briefly after Create — probe then create, then recover "already exists".
-        for ($listAttempt = 1; $listAttempt <= 4; $listAttempt++) {
+        // List can lag after Create — probe, then create, then recover "already exists" without a second job.
+        for ($listAttempt = 1; $listAttempt <= 6; $listAttempt++) {
             $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
             if ($existingId !== '') {
                 return $existingId;
             }
-            if ($listAttempt < 4) {
-                usleep(400_000 * $listAttempt);
+            if ($listAttempt < 6) {
+                usleep(500_000 * $listAttempt);
             }
         }
 
@@ -2064,8 +2069,18 @@ class MicrosoftGraphClient
         }
 
         $body = $create->body();
+        $fromBody = $this->extractProvisioningJobIdFromBody($body);
+        if ($fromBody !== '') {
+            Log::info('SCIM job id recovered from create response body', [
+                'tenant_id' => $tenantId,
+                'job_id' => $fromBody,
+            ]);
 
-        // First Apply already created the job — list was empty/stale; re-list and continue.
+            return $fromBody;
+        }
+
+        // First Apply (or concurrent Apply) already created the job — list can lag empty for tens of seconds.
+        // Re-Apply must reuse that job; never open a second Provisioning job in the Azure UI.
         if (
             $create->status() === 400
             && (
@@ -2073,17 +2088,25 @@ class MicrosoftGraphClient
                 || str_contains($body, 'already exists')
             )
         ) {
-            for ($attempt = 1; $attempt <= 10; $attempt++) {
-                usleep(min(2_500_000, 500_000 * $attempt));
+            // Poll ~90s. Browser will sit on “Applying…” — that is the wait, not a silent hours-long install.
+            for ($attempt = 1; $attempt <= 30; $attempt++) {
+                usleep(3_000_000);
                 $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
                 if ($existingId !== '') {
+                    Log::info('SCIM job id appeared after AlreadyExists lag', [
+                        'tenant_id' => $tenantId,
+                        'job_id' => $existingId,
+                        'attempt' => $attempt,
+                    ]);
+
                     return $existingId;
                 }
             }
 
             throw new RuntimeException(
-                'A SCIM provisioning job already exists in Entra but Graph has not returned its id yet. '
-                .'Wait ~30s and re-run Apply SCIM (do not create a second job in the Azure UI).'
+                'A SCIM provisioning job already exists in Entra, but Microsoft Graph still did not return its id after ~90s. '
+                .'Nothing is running in the portal after this error — re-check customer Entra → Enterprise applications → SuperOps - {Company} → Provisioning (On/Off). '
+                .'Then re-run Apply SCIM once more. Do not create a second job in the Azure UI. The old job is reused; there is no hours-long portal install to “clear”.'
             );
         }
 
@@ -2093,30 +2116,66 @@ class MicrosoftGraphClient
         );
     }
 
+    /**
+     * Try v1.0 then beta list — Graph sometimes lags one surface after job create.
+     */
     private function listScimSynchronizationJobId(string $tenantId, string $servicePrincipalId): string
     {
-        $jobsResponse = $this->graphGet(
-            $tenantId,
-            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
-        );
-
-        if ($jobsResponse->status() === 403) {
-            throw new RuntimeException(
-                'Microsoft Graph cannot manage Entra provisioning — add Synchronization.ReadWrite.All '
-                .'on OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry.'
+        foreach (['v1.0', 'beta'] as $version) {
+            $jobsResponse = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/{$version}/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
             );
+
+            if ($jobsResponse->status() === 403 && $version === 'v1.0') {
+                throw new RuntimeException(
+                    'Microsoft Graph cannot manage Entra provisioning — add Synchronization.ReadWrite.All '
+                    .'on OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry.'
+                );
+            }
+
+            if ($jobsResponse->failed()) {
+                if ($version === 'beta') {
+                    continue;
+                }
+                throw new RuntimeException(
+                    'Microsoft Graph list provisioning jobs failed: '.$jobsResponse->status().' '
+                    .$this->shortGraphErrorBody($jobsResponse->body())
+                );
+            }
+
+            $jobs = $jobsResponse->json('value') ?? [];
+            $id = $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
+            if ($id !== '') {
+                return $id;
+            }
         }
 
-        if ($jobsResponse->failed()) {
-            throw new RuntimeException(
-                'Microsoft Graph list provisioning jobs failed: '.$jobsResponse->status().' '
-                .$this->shortGraphErrorBody($jobsResponse->body())
-            );
+        return '';
+    }
+
+    /**
+     * Pull a job id out of Graph error/success JSON when list is still empty.
+     */
+    private function extractProvisioningJobIdFromBody(string $body): string
+    {
+        if ($body === '') {
+            return '';
         }
 
-        $jobs = $jobsResponse->json('value') ?? [];
+        if (preg_match('/"id"\s*:\s*"((?:scim\.)?[^"]{8,})"/i', $body, $m)) {
+            $id = trim($m[1]);
+            // Avoid grabbing unrelated "id" fields that are plain tokens.
+            if (str_contains(strtolower($id), 'scim') || preg_match('/^[0-9a-f-]{36}$/i', $id) || str_contains($id, '.')) {
+                return $id;
+            }
+        }
 
-        return $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
+        if (preg_match('/job[\"\'\s:]+([a-z0-9._-]{12,})/i', $body, $m)) {
+            return trim($m[1]);
+        }
+
+        return '';
     }
 
     private function pickScimSynchronizationTemplateId(string $tenantId, string $servicePrincipalId): string
@@ -2483,7 +2542,12 @@ class MicrosoftGraphClient
         $preferredStates = ['active', 'paused', 'quarantine', 'notstarted', 'entryimport', 'entriesexport'];
 
         foreach ($jobs as $job) {
-            $state = strtolower((string) ($job['status']['code'] ?? $job['status']['state'] ?? ''));
+            $state = strtolower((string) (
+                $job['status']['code']
+                ?? $job['status']['state']
+                ?? $job['schedule']['state']
+                ?? ''
+            ));
 
             if (in_array($state, $preferredStates, true) && ! empty($job['id'])) {
                 return (string) $job['id'];
