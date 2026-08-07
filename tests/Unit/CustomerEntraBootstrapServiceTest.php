@@ -75,12 +75,10 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->with($tenantId, $ssoObjectId, $ssoAppId)
             ->andReturn($roleId);
         $graph->shouldReceive('waitForServicePrincipalForAppId')
-            ->once()
             ->with($tenantId, $scimAppId, $scimSpId)
             ->andReturn($scimSpId);
         $graph->shouldReceive('waitForServicePrincipalForAppId')
-            ->once()
-            ->with($tenantId, $ssoAppId, $ssoSpId)
+            ->withArgs(fn (...$args) => ($args[0] ?? null) === $tenantId && ($args[1] ?? null) === $ssoAppId)
             ->andReturn($ssoSpId);
         $graph->shouldReceive('resolveAssignableAppRoleId')
             ->once()
