@@ -1644,11 +1644,15 @@ class MicrosoftGraphClient
         $this->putScimSynchronizationSecrets($tenantId, $servicePrincipalId, $scimTenantUrl, $scimSecretToken);
         $details[] = 'SCIM BaseAddress + SecretToken written to Entra';
 
-        // Brief pause so job/schema exist before attribute mapping (avoids ProvisioningTaskNotFound on first Apply).
-        usleep(1_200_000);
-
         $nameMappingsConfigured = false;
         try {
+            // Brand-new non-gallery apps often return ProvisioningTaskNotFound for schema for ~10–30s.
+            $waited = $this->waitUntilScimSchemaReady($tenantId, $servicePrincipalId, $jobId);
+            if ($waited['probes'] > 1) {
+                $details[] = 'Waited for SCIM schema ('.$waited['probes'].' probes)';
+            }
+            $jobId = $waited['jobId'];
+
             $mappingResult = $this->ensureSuperOpsScimNameAttributeMappings($tenantId, $servicePrincipalId, $jobId);
             $nameMappingsConfigured = $mappingResult['configured'];
             $details = array_merge($details, $mappingResult['details']);
@@ -1657,8 +1661,8 @@ class MicrosoftGraphClient
                 'tenant_id' => $tenantId,
                 'error' => $e->getMessage(),
             ]);
-            $warnings[] = 'Name attribute mapping not auto-applied: '.$e->getMessage()
-                .' — set SCIM name.familyName Direct ← extensionAttribute1 in Entra Provisioning if SuperOps last names stay plain. Or re-run Apply SCIM after ~30s.';
+            $warnings[] = 'Name attribute mapping not auto-applied after wait: '.$e->getMessage()
+                .' — re-run Apply SCIM once more, or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.';
         }
 
         $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
@@ -1679,6 +1683,78 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Poll until SCIM job schema is readable (or re-pick job id if the list changes).
+     *
+     * @return array{jobId: string, probes: int}
+     */
+    private function waitUntilScimSchemaReady(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $jobId,
+        int $maxAttempts = 16,
+    ): array {
+        $currentJobId = $jobId;
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            // Refresh job id from Graph — create can return an id before the task is fully registered.
+            try {
+                $resolved = $this->resolveCurrentScimJobId($tenantId, $servicePrincipalId);
+                if ($resolved !== '') {
+                    $currentJobId = $resolved;
+                }
+            } catch (Throwable) {
+                // keep previous id
+            }
+
+            $schemaResponse = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$currentJobId}/schema",
+            );
+
+            if ($schemaResponse->successful()) {
+                return ['jobId' => $currentJobId, 'probes' => $attempt];
+            }
+
+            $lastError = $schemaResponse->status().' '.$this->shortGraphErrorBody($schemaResponse->body());
+            $body = $schemaResponse->body();
+            $retryable = $schemaResponse->status() === 404
+                || str_contains($body, 'ProvisioningTaskNotFound')
+                || str_contains($body, 'Template is not supported')
+                || in_array($schemaResponse->status(), [429, 502, 503, 504], true);
+
+            if (! $retryable) {
+                throw new RuntimeException('Microsoft Graph SCIM schema not ready: '.$lastError);
+            }
+
+            if ($attempt < $maxAttempts) {
+                // ~2s, 2.5s, … capped at 3s — typically 15–40s total for first Apply on a new app.
+                usleep(min(3_000_000, 1_500_000 + (250_000 * $attempt)));
+            }
+        }
+
+        throw new RuntimeException(
+            'Microsoft Graph SCIM schema still not ready after waiting: '.($lastError ?? 'unknown')
+        );
+    }
+
+    private function resolveCurrentScimJobId(string $tenantId, string $servicePrincipalId): string
+    {
+        $jobsResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
+        );
+
+        if ($jobsResponse->failed()) {
+            return '';
+        }
+
+        $jobs = $jobsResponse->json('value') ?? [];
+
+        return $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
+    }
+
+    /**
      * Align SCIM name mappings with the known SuperOps pattern:
      * portal writes surname + (User Mailbox)/(Shared Mailbox) to extensionAttribute1;
      * SCIM maps name.familyName from that attribute.
@@ -1690,39 +1766,15 @@ class MicrosoftGraphClient
         string $servicePrincipalId,
         string $jobId,
     ): array {
-        $schemaResponse = null;
-        $lastError = null;
+        $schemaResponse = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/schema",
+        );
 
-        // Schema is often not readable for a short time after Create job / Start — Graph 404 ProvisioningTaskNotFound.
-        for ($attempt = 1; $attempt <= 8; $attempt++) {
-            $schemaResponse = $this->graphGet(
-                $tenantId,
-                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs/{$jobId}/schema",
-            );
-
-            if ($schemaResponse->successful()) {
-                break;
-            }
-
-            $lastError = $schemaResponse->status().' '.$schemaResponse->body();
-            $body = $schemaResponse->body();
-            $retryable = $schemaResponse->status() === 404
-                || str_contains($body, 'ProvisioningTaskNotFound')
-                || str_contains($body, 'Template is not supported')
-                || in_array($schemaResponse->status(), [429, 502, 503, 504], true);
-
-            if (! $retryable || $attempt >= 8) {
-                throw new RuntimeException(
-                    'Microsoft Graph read SCIM schema failed: '.$lastError
-                );
-            }
-
-            usleep(min(2_500_000, 600_000 * $attempt));
-        }
-
-        if ($schemaResponse === null || $schemaResponse->failed()) {
+        if ($schemaResponse->failed()) {
             throw new RuntimeException(
-                'Microsoft Graph read SCIM schema failed: '.($lastError ?? 'unknown')
+                'Microsoft Graph read SCIM schema failed: '.$schemaResponse->status().' '
+                .$this->shortGraphErrorBody($schemaResponse->body())
             );
         }
 
