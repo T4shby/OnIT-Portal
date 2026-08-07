@@ -54,6 +54,51 @@ class EntraSyncDisplayName
         return $familyBase.' ('.$suffix.')';
     }
 
+    /**
+     * SuperOps first name (given). Never return a full email as first name.
+     */
+    public static function formatSuperOpsGivenName(
+        ?string $givenName,
+        ?string $displayName,
+        ?string $emailFallback = null,
+    ): string {
+        $given = trim((string) $givenName);
+        if ($given !== '' && ! str_contains($given, '@') && ! filter_var($given, FILTER_VALIDATE_EMAIL)) {
+            return $given;
+        }
+
+        $base = self::baseName($displayName, $emailFallback);
+        if ($base !== '' && ! str_contains($base, '@')) {
+            // Prefer space-split first of display (Joe from "Joe Pearce")
+            $parts = preg_split('/\s+/u', $base) ?: [];
+            if (count($parts) >= 2 && isset($parts[0]) && $parts[0] !== '') {
+                return $parts[0];
+            }
+            // Dot-local UPN style (richard.palmer) → first segment titled
+            if (str_contains($base, '.')) {
+                $segment = (string) str($base)->before('.');
+                if ($segment !== '') {
+                    return str($segment)->title()->toString();
+                }
+            }
+            if (isset($parts[0]) && $parts[0] !== '' && ! str_contains($parts[0], '.')) {
+                return $parts[0];
+            }
+        }
+
+        if (is_string($emailFallback) && str_contains($emailFallback, '@')) {
+            $local = (string) str($emailFallback)->before('@');
+            $segment = str_contains($local, '.')
+                ? (string) str($local)->before('.')
+                : $local;
+            if ($segment !== '') {
+                return str($segment)->title()->toString();
+            }
+        }
+
+        return 'User';
+    }
+
     public static function hasSuperOpsSuffix(?string $displayName): bool
     {
         return (bool) preg_match('/\s+\((User Mailbox|User|Shared Mailbox)\)$/i', (string) $displayName);

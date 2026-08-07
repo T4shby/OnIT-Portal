@@ -1816,15 +1816,22 @@ class MicrosoftGraphClient
         }
 
         $desired = [
+            // Prefer extensionAttribute1 when Graph could write it (cloud-only tenants).
+            // When empty (hybrid / write failed), expression still appends (User Mailbox)
+            // instead of plain [surname] which caused SuperOps "email First Last" leftovers.
             'familyname' => [
+                'mode' => 'expression',
+                'expression' => 'IIF(IsNullOrEmpty([extensionAttribute1]), Append(IIF(IsNullOrEmpty([surname]), IIF(IsNullOrEmpty([displayName]), [mail], [displayName]), [surname]), " (User Mailbox)"), [extensionAttribute1])',
                 'sourceName' => 'extensionAttribute1',
-                'defaultValue' => '[surname]',
+                'defaultValue' => null,
             ],
             'givenname' => [
+                'mode' => 'attribute',
                 'sourceName' => 'givenName',
                 'defaultValue' => null,
             ],
             'formatted' => [
+                'mode' => 'attribute',
                 'sourceName' => 'displayName',
                 'defaultValue' => null,
             ],
@@ -1895,11 +1902,51 @@ class MicrosoftGraphClient
                     $want = $desired[$desiredKey];
                     $source = is_array($attributeMapping['source'] ?? null) ? $attributeMapping['source'] : [];
                     $currentSourceName = strtolower((string) ($source['name'] ?? ''));
-                    $currentExpression = strtolower((string) ($source['expression'] ?? ''));
+                    $currentExpression = (string) ($source['expression'] ?? '');
+                    $currentExpressionLower = strtolower($currentExpression);
+                    $mode = (string) ($want['mode'] ?? 'attribute');
+
+                    if ($mode === 'expression') {
+                        $wantExpression = (string) ($want['expression'] ?? '');
+                        $alreadyOk = $wantExpression !== ''
+                            && (
+                                $currentExpression === $wantExpression
+                                || (
+                                    str_contains($currentExpressionLower, 'extensionattribute1')
+                                    && str_contains($currentExpressionLower, 'user mailbox')
+                                )
+                            );
+
+                        if ($alreadyOk) {
+                            $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
+
+                            continue;
+                        }
+
+                        $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite([
+                            'defaultValue' => $want['defaultValue'] ?? null,
+                            'exportMissingReferences' => $attributeMapping['exportMissingReferences'] ?? false,
+                            'flowBehavior' => $attributeMapping['flowBehavior'] ?? 'FlowWhenChanged',
+                            'flowType' => 'Always',
+                            'matchingPriority' => $attributeMapping['matchingPriority'] ?? 0,
+                            'source' => [
+                                'expression' => $wantExpression,
+                                'name' => null,
+                                'parameters' => [],
+                                'type' => 'Expression',
+                            ],
+                            'targetAttributeName' => $targetName,
+                        ]);
+
+                        $changed = true;
+                        $touched[] = $targetName.' ← expression (extensionAttribute1 or surname + User Mailbox)';
+
+                        continue;
+                    }
 
                     $alreadyOk = (
-                        $currentSourceName === strtolower($want['sourceName'])
-                        || str_contains($currentExpression, strtolower($want['sourceName']))
+                        $currentSourceName === strtolower((string) $want['sourceName'])
+                        || str_contains($currentExpressionLower, strtolower((string) $want['sourceName']))
                     );
 
                     $needsDefault = ($want['defaultValue'] ?? null) !== null
@@ -1996,6 +2043,12 @@ class MicrosoftGraphClient
         if ($out['defaultValue'] === null) {
             unset($out['defaultValue']);
         }
+        if (($out['source']['name'] ?? null) === null) {
+            unset($out['source']['name']);
+        }
+        if (($out['source']['expression'] ?? null) === null) {
+            unset($out['source']['expression']);
+        }
 
         return $out;
     }
@@ -2065,7 +2118,10 @@ class MicrosoftGraphClient
         }
 
         if ($create->successful() && filled($create->json('id'))) {
-            return (string) $create->json('id');
+            $id = (string) $create->json('id');
+            Cache::put('scim.job_id.'.$servicePrincipalId, $id, now()->addDays(7));
+
+            return $id;
         }
 
         $body = $create->body();
@@ -2088,8 +2144,8 @@ class MicrosoftGraphClient
                 || str_contains($body, 'already exists')
             )
         ) {
-            // Poll ~90s. Browser will sit on “Applying…” — that is the wait, not a silent hours-long install.
-            for ($attempt = 1; $attempt <= 30; $attempt++) {
+            // Poll longer in background worker (~2.5 min). Prefer reusing job; never create a second.
+            for ($attempt = 1; $attempt <= 50; $attempt++) {
                 usleep(3_000_000);
                 $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
                 if ($existingId !== '') {
@@ -2098,13 +2154,26 @@ class MicrosoftGraphClient
                         'job_id' => $existingId,
                         'attempt' => $attempt,
                     ]);
+                    Cache::put('scim.job_id.'.$servicePrincipalId, $existingId, now()->addDays(7));
 
                     return $existingId;
+                }
+
+                // Fall back to last known job id for this SP if list is still empty.
+                $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
+                if (is_string($cached) && $cached !== '' && $attempt >= 10) {
+                    Log::info('SCIM job id recovered from portal cache after AlreadyExists lag', [
+                        'tenant_id' => $tenantId,
+                        'job_id' => $cached,
+                        'attempt' => $attempt,
+                    ]);
+
+                    return $cached;
                 }
             }
 
             throw new RuntimeException(
-                'A SCIM provisioning job already exists in Entra, but Microsoft Graph still did not return its id after ~90s. '
+                'A SCIM provisioning job already exists in Entra, but Microsoft Graph still did not return its id after ~2.5 min. '
                 .'Nothing is running in the portal after this error — re-check customer Entra → Enterprise applications → SuperOps - {Company} → Provisioning (On/Off). '
                 .'Then re-run Apply SCIM once more. Do not create a second job in the Azure UI. The old job is reused; there is no hours-long portal install to “clear”.'
             );
@@ -2147,8 +2216,15 @@ class MicrosoftGraphClient
             $jobs = $jobsResponse->json('value') ?? [];
             $id = $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
             if ($id !== '') {
+                Cache::put('scim.job_id.'.$servicePrincipalId, $id, now()->addDays(7));
+
                 return $id;
             }
+        }
+
+        $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
         }
 
         return '';

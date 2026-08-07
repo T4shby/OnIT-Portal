@@ -710,6 +710,18 @@ class EntraGroupSyncServiceTest extends TestCase
         );
     }
 
+    public function test_superops_given_name_never_uses_raw_email(): void
+    {
+        $this->assertSame(
+            'Richard',
+            EntraSyncDisplayName::formatSuperOpsGivenName(null, null, 'richard.palmer@yorpower.com'),
+        );
+        $this->assertSame(
+            'Joe',
+            EntraSyncDisplayName::formatSuperOpsGivenName('Joe', 'Joe Pearce', 'joe@example.com'),
+        );
+    }
+
     /**
      * @param  array<string, array<string, mixed>>  $usersById
      * @param  list<string>  $initialGroupMembers

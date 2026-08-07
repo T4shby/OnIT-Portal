@@ -9,6 +9,7 @@ use App\Jobs\ProvisionSuperOpsScimUsersJob;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\ExternalServicesService;
+use App\Services\SuperOps\SuperOpsUserSyncService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,7 @@ class EntraGroupSyncService
     public function __construct(
         private MicrosoftGraphClient $graph,
         private ExternalServicesService $portalLinks,
+        private SuperOpsUserSyncService $superOpsUsers,
     ) {}
 
     public function syncClient(Client $client, bool $dryRun = false): EntraSyncResult
@@ -85,6 +87,9 @@ class EntraGroupSyncService
         $requesterSsoUsersAssigned = 0;
         $requesterSsoUsersRemoved = 0;
         $superOpsNameHintsUpdated = 0;
+        $superOpsApiNamesUpdated = 0;
+        /** @var array<string, array{firstName: string, lastName: string}> */
+        $superOpsApiNameQueue = [];
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
@@ -131,6 +136,11 @@ class EntraGroupSyncService
                     $identityType,
                     $email,
                 );
+                $superOpsGivenName = EntraSyncDisplayName::formatSuperOpsGivenName(
+                    $graphUser['givenName'] ?? null,
+                    $graphUser['displayName'],
+                    $email,
+                );
 
                 $currentHint = $graphUser['superOpsNameHint'] ?? null;
 
@@ -148,7 +158,16 @@ class EntraGroupSyncService
                             $superOpsNameHintsUpdated++;
                             $scimProvisionUserIds[] = $graphUser['id'];
                         } catch (Throwable $e) {
-                            $errors[] = "Failed to set SuperOps last name for {$email}: {$e->getMessage()}";
+                            // Hybrid / AD-synced users cannot receive Graph writes to extensionAttribute1.
+                            // Queue SuperOps API name push so requesters still get (User Mailbox)/(Shared Mailbox).
+                            if ($this->shouldQueueSuperOpsApiNameFallback($e->getMessage())) {
+                                $superOpsApiNameQueue[strtolower($email)] = [
+                                    'firstName' => $superOpsGivenName,
+                                    'lastName' => $superOpsFamilyName,
+                                ];
+                            } else {
+                                $errors[] = "Failed to set SuperOps last name for {$email}: {$e->getMessage()}";
+                            }
                         }
                     }
                 }
@@ -256,6 +275,18 @@ class EntraGroupSyncService
 
         $superOpsUsersProvisioned = 0;
 
+        if (! $dryRun && $superOpsApiNameQueue !== [] && (bool) config('services.entra_sync.superops_name_api_fallback', true)) {
+            try {
+                $superOpsApiNamesUpdated = $this->superOpsUsers->pushRequesterNames($client, $superOpsApiNameQueue);
+                if ($superOpsApiNamesUpdated === 0 && $superOpsApiNameQueue !== []) {
+                    $errors[] = 'Graph could not write SuperOps names for hybrid users and SuperOps API update matched 0 requesters '
+                        .'(check superops_account_id and that those emails exist as SuperOps requesters).';
+                }
+            } catch (Throwable $e) {
+                $errors[] = 'SuperOps API name fallback failed: '.$e->getMessage();
+            }
+        }
+
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
             $scimProvisionUserIds = array_values(array_unique(array_merge(
                 $scimProvisionUserIds,
@@ -296,9 +327,25 @@ class EntraGroupSyncService
             requesterSsoUsersAssigned: $requesterSsoUsersAssigned,
             requesterSsoUsersRemoved: $requesterSsoUsersRemoved,
             superOpsNameHintsUpdated: $superOpsNameHintsUpdated,
+            superOpsApiNamesUpdated: $superOpsApiNamesUpdated,
             superOpsUsersProvisioned: $superOpsUsersProvisioned,
             errors: $errors,
         );
+    }
+
+    private function shouldQueueSuperOpsApiNameFallback(string $message): bool
+    {
+        if (! (bool) config('services.entra_sync.superops_name_api_fallback', true)) {
+            return false;
+        }
+
+        $needle = strtolower($message);
+
+        return str_contains($needle, 'on-premises')
+            || str_contains($needle, 'onpremises')
+            || str_contains($needle, 'directory sync')
+            || str_contains($needle, 'originated within an external service')
+            || str_contains($needle, 'cannot update the specified properties');
     }
 
     /**

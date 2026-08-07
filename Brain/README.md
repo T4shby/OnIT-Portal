@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Hybrid SuperOps names: Graph extensionAttribute1 fail → SuperOps API first/last push; SCIM expression drops plain [surname] fallback — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | Apply SCIM runs as encrypted `high` queue job (no nginx 504 on Graph lag) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | Apply SCIM: stop disabling inputs on submit (browser omitted paste; false “fields required”) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | YorPower Dropsuite: correct map is org **`6182`** not user-id; cold refresh failures mark `last_result` failed — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

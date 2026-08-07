@@ -156,8 +156,11 @@ Existing requesters in SuperOps are matched and updated by SCIM — not duplicat
 | Step | System | What happens |
 |---|---|---|
 | 1 | **Portal** | `formatSuperOpsFamilyName()` → e.g. `Smith (User Mailbox)` or `Accounts (Shared Mailbox)` |
-| 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` |
-| 3 | **Entra SCIM** | `name.familyName` **Direct** ← `extensionAttribute1` (fallback `[surname]`) |
+| 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` when Graph allows (cloud-only users) |
+| 2b | **Portal** (SuperOps API) | **Hybrid fallback:** if Graph rejects on-prem mastered users, portal calls SuperOps `updateClientUser` with firstName + lastName (includes suffix) so requesters still rename |
+| 3 | **Entra SCIM** | `name.familyName` expression prefers `extensionAttribute1`, else surname/displayName + ` (User Mailbox)` |
+
+**Why other customers worked first time and YorPower did not:** cloud-only Entra users allow Graph to write `extensionAttribute1`. AD Connect / hybrid users return *Unable to update … on-premises mastered Directory Sync objects* — SCIM then fell back to plain **surname** only (`Palmer`), producing SuperOps `email Palmer` instead of `Joe Pearce (User Mailbox)`. Not a silent remove of the feature — first hybrid tenant at full sync volume.
 | 4 | **SuperOps** | First name plain; last name includes mailbox type when mapped |
 
 ### Entra SCIM attribute mapping — Direct only (no Expression)

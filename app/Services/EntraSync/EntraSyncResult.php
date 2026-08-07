@@ -16,6 +16,7 @@ class EntraSyncResult
         public readonly int $requesterSsoUsersAssigned = 0,
         public readonly int $requesterSsoUsersRemoved = 0,
         public readonly int $superOpsNameHintsUpdated = 0,
+        public readonly int $superOpsApiNamesUpdated = 0,
         public readonly int $superOpsUsersProvisioned = 0,
         public readonly array $errors = [],
     ) {}
@@ -32,6 +33,7 @@ class EntraSyncResult
             + $this->superOpsAppUsersAssigned + $this->superOpsAppUsersRemoved
             + $this->requesterSsoUsersAssigned + $this->requesterSsoUsersRemoved
             + $this->superOpsNameHintsUpdated
+            + $this->superOpsApiNamesUpdated
             + $this->superOpsUsersProvisioned;
     }
 
@@ -74,6 +76,13 @@ class EntraSyncResult
 
         if ($this->superOpsNameHintsUpdated > 0) {
             $parts .= sprintf('; SuperOps last names updated %d', $this->superOpsNameHintsUpdated);
+        }
+
+        if ($this->superOpsApiNamesUpdated > 0) {
+            $parts .= sprintf(
+                '; SuperOps API names fixed %d (hybrid Graph fallback)',
+                $this->superOpsApiNamesUpdated,
+            );
         }
 
         if ($this->superOpsUsersProvisioned > 0) {

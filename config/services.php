@@ -118,6 +118,9 @@ return [
         'directory_refresh_cooldown_seconds' => env('ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS', 60),
         'maintain_superops_group' => env('ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP', true),
         'superops_name_extension_attribute' => (int) env('ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE', 1),
+        // Hybrid/AD-synced users cannot receive Graph writes to extensionAttribute1.
+        // When Graph fails, portal updates SuperOps requester first/last names via API.
+        'superops_name_api_fallback' => filter_var(env('ENTRA_SYNC_SUPEROPS_NAME_API_FALLBACK', true), FILTER_VALIDATE_BOOLEAN),
         'superops_provision_on_demand' => env('ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND', true),
         // Seconds to wait after writing extensionAttribute1 before SCIM provision-on-demand (Entra replication).
         'superops_provision_delay_after_names_seconds' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS', 3),
