@@ -212,12 +212,16 @@ class CustomerEntraBootstrapService
                 $warnings[] = 'Client SSO app role User incomplete (app ID is saved): '.$e->getMessage();
             }
 
+            // Give Graph time to publish the new SP + appRoles before group assignment.
+            usleep(2_000_000);
+
             if ($usesGroupScim && filled($groupId)) {
                 try {
                     $ssoSpId = $this->graph->waitForServicePrincipalForAppId(
                         $tenantId,
                         $sso['appId'],
                         $sso['servicePrincipalId'],
+                        maxAttempts: 16,
                     );
                     $roleId = $this->graph->resolveAssignableAppRoleId(
                         $tenantId,
@@ -233,7 +237,8 @@ class CustomerEntraBootstrapService
                     );
                     $details[] = "Assigned «{$groupName}» to Client SSO app (P1).";
                 } catch (Throwable $e) {
-                    $warnings[] = 'Client SSO group assign skipped: '.$e->getMessage();
+                    $warnings[] = 'Client SSO group assign deferred (app IDs are saved): '.$e->getMessage()
+                        .' — use **Retry Graph setup** on Edit client, or assign group manually in Entra Users and groups. Not required to continue SCIM / Client SSO wire.';
                 }
             } elseif ($usesGroupScim && ! filled($groupId)) {
                 $warnings[] = 'Client SSO group assign skipped until portal group exists.';

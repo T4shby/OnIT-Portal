@@ -45,8 +45,9 @@
                                 <li class="text-onit">{{ $line }}</li>
                             @endforeach
                             <li class="text-white/70">
-                                If group or app IDs are still empty after sign-in: Edit client →
-                                <strong class="text-white/85">Retry Graph setup</strong> (not a second Accept unless permissions changed).
+                                Orange items are usually Azure lag (e.g. Client SSO group assign), not a failed Accept.
+                                Sign in → Edit client → <strong class="text-white/85">Retry Graph setup</strong> if needed,
+                                then continue checklist (SCIM / Client SSO). Do not re-Accept unless Graph app permissions changed.
                             </li>
                         @else
                             <li>Return to the portal checklist — SuperOps SCIM tokens and Client SSO SAML still need SuperOps UI steps</li>
