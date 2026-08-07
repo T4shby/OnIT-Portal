@@ -182,7 +182,9 @@ class DropsuiteClientMetricsService
                 return $this->summaryFromCache($client, $cached, isStale: true);
             }
 
-            return $this->unavailableSummary('Dropsuite backup data is currently unavailable.');
+            // No snapshot yet: rethrow so RefreshDropsuiteBackupJob records last_result
+            // success=false (was silently "success" while Integration Health stayed Never loaded).
+            throw $e;
         } finally {
             Cache::forget('dropsuite_backup.refresh_queued.'.$client->id);
             $lock->release();
@@ -227,7 +229,8 @@ class DropsuiteClientMetricsService
                 continue;
             }
             $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
-            if ($oid !== $organizationId) {
+            // API sends int; staff mapping is a string. Reject dotted/user-id shapes separately below.
+            if ($oid === '' || $oid !== (string) $organizationId) {
                 continue;
             }
             $token = trim((string) ($user['authentication_token'] ?? ''));
@@ -244,8 +247,12 @@ class DropsuiteClientMetricsService
         }
 
         if ($match === null) {
+            $hint = str_contains($organizationId, '-')
+                ? ' Mapped value looks like a Dropsuite user/plan id (…-12), not organization_id. Use the numeric organization_id from GET /users (Admin → Clients map; e.g. YorPower is 6182).'
+                : ' Confirm clients.dropsuite_organization_id is the numeric organization_id from the reseller GET /users list.';
+
             throw new \RuntimeException(
-                'Dropsuite has no user access token for organization '.$organizationId
+                'Dropsuite has no user access token for organization '.$organizationId.'.'.$hint
             );
         }
 

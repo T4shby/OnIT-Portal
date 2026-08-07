@@ -707,6 +707,10 @@ class IntegrationHealthService
                 : '';
             $detail = $processHint.' · waiting on queue worker'.$wait
                 .($job && $job['reserved'] ? ' (reserved)' : '');
+        } elseif ($lastSuccessAt === null && $lastFailed) {
+            // Cold + last job failed: show Failed so Mapping ID / API errors surface in IH.
+            $status = 'failed';
+            $detail = $error ?: 'Last refresh failed — no successful cache yet';
         } elseif ($lastSuccessAt === null) {
             $status = 'cold';
             $detail = 'No successful refresh stored yet';

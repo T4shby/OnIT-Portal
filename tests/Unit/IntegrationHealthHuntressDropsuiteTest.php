@@ -105,4 +105,41 @@ class IntegrationHealthHuntressDropsuiteTest extends TestCase
             fn (string $n): bool => str_contains($n, 'Nothing blocking'),
         ));
     }
+
+    public function test_cold_plus_failed_last_result_surfaces_as_failed(): void
+    {
+        config([
+            'services.dropsuite.enabled' => true,
+            'services.dropsuite.api_url' => 'https://dropsuite.us/api',
+            'services.dropsuite.reseller_token' => 'r',
+            'services.dropsuite.auth_token' => 'a',
+        ]);
+
+        Cache::put(IntegrationHealthService::SCHEDULER_TICK_KEY, now()->toIso8601String(), now()->addHour());
+        Cache::put(IntegrationHealthService::PREWARM_CACHE_KEY, [
+            'at' => now()->toIso8601String(),
+        ], now()->addHour());
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'dropsuite_organization_id' => '177210-12',
+            'product_entitlements' => [
+                'dropsuite' => ['entitled' => true],
+            ],
+        ]);
+
+        Cache::put('dropsuite_backup.last_result.'.$client->id, [
+            'success' => false,
+            'error' => 'Dropsuite has no user access token for organization 177210-12.',
+            'duration_ms' => 400,
+            'finished_at' => now()->toIso8601String(),
+        ], now()->addDay());
+
+        $overview = app(IntegrationHealthService::class)->overview();
+        $cell = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'dropsuite');
+
+        $this->assertSame('failed', $cell['status']);
+        $this->assertSame('Failed', $cell['status_label']);
+        $this->assertStringContainsString('no user access token', (string) $cell['error']);
+    }
 }

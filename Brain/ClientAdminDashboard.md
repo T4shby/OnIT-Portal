@@ -476,7 +476,9 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 | Authentication Token | Admin token (lists users) |
 | `DROPSUITE_ENABLED` | **true** (after successful probe) |
 | Sample probe | org `10879` Reid & Rose: 3 mailboxes; org `5979` On IT NFR: 23 mailboxes |
-| Client map | Client #1 On IT Technology Partners → `5979` (NFR). Other Dropsuite orgs need Admin → Clients mapping |
+| Client map | Client #1 On IT Technology Partners → `5979` (NFR). **YorPower → `6182`**. Other orgs: Admin → Clients |
+
+**Map only numeric `organization_id`.** Do **not** paste user `id` / plan_id shapes like `177210-12` — those never match `GET /users` and log *no user access token…* while Integration Health stays Never loaded. A first cold refresh that fails now records `last_result.success=false` (was falsely “success” with no cache).
 
 **Dropsuite organizations seen under On IT reseller (map `dropsuite_organization_id`):**
 

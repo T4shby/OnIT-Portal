@@ -194,4 +194,29 @@ class DropsuiteClientMetricsServiceTest extends TestCase
         $this->assertSame('Dropsuite is not connected for this organisation.', $summary->unavailableReason);
         Http::assertNothingSent();
     }
+
+    public function test_refresh_throws_when_org_has_no_user_token_and_no_cache(): void
+    {
+        Http::fake([
+            'https://dropsuite.us/api/users*' => Http::response([
+                'result_set' => [
+                    [
+                        'id' => '1',
+                        'email' => 'admin@other.test',
+                        'organization_id' => 999,
+                        'authentication_token' => 'other-token',
+                        'admin' => true,
+                    ],
+                ],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1],
+            ], 200),
+        ]);
+
+        $client = Client::factory()->create(['dropsuite_organization_id' => '177210-12']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('no user access token for organization 177210-12');
+
+        app(DropsuiteClientMetricsService::class)->refreshAndStore($client);
+    }
 }

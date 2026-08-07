@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | YorPower Dropsuite: correct map is org **`6182`** not user-id; cold refresh failures mark `last_result` failed — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Client Admin Dropsuite: full mailbox list; requester My backup only — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Staff View Dropsuite on Edit client; Integration Health jobs show resolved client names — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Apply SCIM reuses Entra job (longer Graph lag wait); no multi-hour “clear”; progress = button/step 07/Entra Provisioning/Last synced — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
