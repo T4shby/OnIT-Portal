@@ -95,7 +95,9 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 #### 2b. Customer Entra — create app and SCIM
 
-**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal uses Graph (`Synchronization.ReadWrite.All`) to write secrets and start the job. Secret is **not** stored on the portal.
+**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 / **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal uses Graph (`Synchronization.ReadWrite.All`) to write secrets and start the job. Secret is **not** stored on the portal.
+
+**Apply form:** while the button shows “Applying…”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST and historically produced *The scim tenant url / secret token field is required* even after a correct paste — hard refresh if you still see that banner on an older build.
 
 **Fallback (Azure UI):**
 

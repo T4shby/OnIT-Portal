@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Apply SCIM: stop disabling inputs on submit (browser omitted paste; false “fields required”) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | YorPower Dropsuite: correct map is org **`6182`** not user-id; cold refresh failures mark `last_result` failed — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Client Admin Dropsuite: full mailbox list; requester My backup only — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Staff View Dropsuite on Edit client; Integration Health jobs show resolved client names — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

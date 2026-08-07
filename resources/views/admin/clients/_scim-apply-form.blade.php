@@ -25,6 +25,8 @@
             Credentials-only success is <strong class="text-white/90">not enough</strong> for this step — mapping + Sync queue must both succeed.
         </p>
 
+        {{-- Do NOT disable the inputs on submit: disabled controls are omitted from the POST
+             (HTML), so Alpine submitting=true caused “scim_* field is required” even after paste. --}}
         <form
             method="POST"
             action="{{ route('admin.clients.apply-scim', $client) }}"
@@ -44,7 +46,8 @@
                     autocomplete="off"
                     placeholder="https://usserv.superops.ai/accounts-web/scim/…"
                     class="admin-input"
-                    :disabled="submitting"
+                    :readonly="submitting"
+                    :class="{ 'opacity-70 pointer-events-none': submitting }"
                 >
                 @error('scim_tenant_url')
                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
@@ -58,10 +61,14 @@
                     id="{{ $idPrefix }}scim_secret_token"
                     value=""
                     required
-                    autocomplete="new-password"
+                    autocomplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-form-type="other"
                     placeholder="scim-…"
                     class="admin-input"
-                    :disabled="submitting"
+                    :readonly="submitting"
+                    :class="{ 'opacity-70 pointer-events-none': submitting }"
                 >
                 @error('scim_secret_token')
                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>

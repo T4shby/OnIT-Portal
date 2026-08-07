@@ -3,7 +3,7 @@
 
     @if($errors->any())
         <x-alert type="error" class="mb-6">
-            <p class="font-semibold">Could not save — fix the following:</p>
+            <p class="font-semibold">Could not complete — fix the following:</p>
             <ul class="mt-2 list-disc pl-5">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
