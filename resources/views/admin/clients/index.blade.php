@@ -4,27 +4,27 @@
         'action' => '<a href="'.route('admin.clients.create').'" class="cta-btn text-sm px-6 py-3">Add Client</a>'
     ])
 
-    {{-- Visual key: chips + colour meaning (not a wall of prose). --}}
+    {{-- Visual key: equal-size chips + solid status colours. --}}
     <div class="mb-5 border border-white/10 bg-white/[0.02] p-4">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
             <div class="min-w-0 space-y-3">
                 <div>
                     <p class="portal-label mb-2">Products</p>
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/55">
-                        <span class="inline-flex items-center gap-1.5"><span class="inline-flex h-6 w-6 items-center justify-center border border-white/15 bg-white/[0.04] text-[11px] font-condensed font-semibold !text-white/50">S</span> SuperOps</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="inline-flex h-6 w-6 items-center justify-center border border-white/15 bg-white/[0.04] text-[11px] font-condensed font-semibold !text-white/50">M</span> Microsoft 365</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="inline-flex h-6 w-6 items-center justify-center border border-white/15 bg-white/[0.04] text-[11px] font-condensed font-semibold !text-white/50">H</span> Huntress</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="inline-flex h-6 w-6 items-center justify-center border border-white/15 bg-white/[0.04] text-[11px] font-condensed font-semibold !text-white/50">D</span> Dropsuite</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">S</span> SuperOps</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">M</span> Microsoft 365</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">H</span> Huntress</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">D</span> Dropsuite</span>
                     </div>
                 </div>
                 <div>
                     <p class="portal-label mb-2">Licence vendor</p>
                     <p class="text-xs text-white/55 leading-relaxed">
                         After the
-                        <span class="mx-0.5 text-white/30">·</span>
-                        separator (dashed box).
-                        <span class="inline-flex h-6 min-w-[1.5rem] items-center justify-center border border-dashed border-white/20 px-1 text-[11px] font-condensed font-semibold !text-white/50">P</span>
-                        = Pax8. Not an On IT product — where they buy cloud licences. More vendors can share this slot later.
+                        <span class="product-chip-sep">·</span>
+                        separator.
+                        <span class="product-chip product-chip--vendor product-chip--muted">P</span>
+                        = Pax8 (dashed border). Where they buy cloud licences — not an On IT product.
                     </p>
                 </div>
             </div>
@@ -32,20 +32,20 @@
                 <p class="portal-label mb-2">Colours</p>
                 <div class="flex flex-col gap-1.5 text-xs text-white/55">
                     <span class="inline-flex items-center gap-2">
-                        <span class="inline-flex h-5 w-5 items-center justify-center border border-white/15 bg-white/[0.04] text-[10px] font-condensed !text-white/40">·</span>
-                        Not sold / not assigned
+                        <span class="product-chip product-chip--live">·</span>
+                        Green — live / assigned
                     </span>
                     <span class="inline-flex items-center gap-2">
-                        <span class="inline-flex h-5 w-5 items-center justify-center border border-amber-400/60 bg-amber-500/20 text-[10px] font-condensed !text-amber-300">·</span>
-                        Setup / link needed
+                        <span class="product-chip product-chip--setup">·</span>
+                        Yellow — setup / link needed
                     </span>
                     <span class="inline-flex items-center gap-2">
-                        <span class="inline-flex h-5 w-5 items-center justify-center border border-emerald-400/60 bg-emerald-500/20 text-[10px] font-condensed !text-emerald-300">·</span>
-                        Live / assigned
+                        <span class="product-chip product-chip--error">·</span>
+                        Red — platform error
                     </span>
                     <span class="inline-flex items-center gap-2">
-                        <span class="inline-flex h-5 w-5 items-center justify-center border border-red-400/60 bg-red-500/20 text-[10px] font-condensed !text-red-300">·</span>
-                        Platform error
+                        <span class="product-chip product-chip--muted">·</span>
+                        Greyed out — not sold / not assigned
                     </span>
                 </div>
             </div>

@@ -190,7 +190,7 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 Status codes: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.  
 Labels differ by kind (e.g. vendor: “Not assigned” / “Assigned” instead of “Not sold” / “Live”).
 
-**Admin UX:** Clients list = one row of chips `S M H D · P` (dashed = licence vendor; colour = status). Visual key above table. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
+**Admin UX:** Clients list = one row of equal-size chips `S M H D · P` (dashed = licence vendor). **Colours (solid fill):** green = live/assigned · yellow = setup/link needed · red = platform error · greyed out = not sold/not assigned. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
 
 **Adding a future licence vendor:** (1) key in `KEYS`, (2) catalog entry `kind => licence_vendor`, (3) `isMapped` / `isPlatformReady`, (4) blade `products/_newvendor.blade.php`.
 
