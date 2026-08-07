@@ -1816,22 +1816,19 @@ class MicrosoftGraphClient
         }
 
         $desired = [
-            // Prefer extensionAttribute1 when Graph could write it (cloud-only tenants).
-            // When empty (hybrid / write failed), expression still appends (User Mailbox)
-            // instead of plain [surname] which caused SuperOps "email First Last" leftovers.
+            // Direct only — no expression and no default [surname]. Empty extensionAttribute1
+            // must not invent plain surnames (that produced SuperOps "email Palmer").
+            // Hybrid users get SuperOps names via SuperOps API when Graph cannot write this attribute.
             'familyname' => [
-                'mode' => 'expression',
-                'expression' => 'IIF(IsNullOrEmpty([extensionAttribute1]), Append(IIF(IsNullOrEmpty([surname]), IIF(IsNullOrEmpty([displayName]), [mail], [displayName]), [surname]), " (User Mailbox)"), [extensionAttribute1])',
                 'sourceName' => 'extensionAttribute1',
                 'defaultValue' => null,
+                'clearDefault' => true,
             ],
             'givenname' => [
-                'mode' => 'attribute',
                 'sourceName' => 'givenName',
                 'defaultValue' => null,
             ],
             'formatted' => [
-                'mode' => 'attribute',
                 'sourceName' => 'displayName',
                 'defaultValue' => null,
             ],
@@ -1902,57 +1899,29 @@ class MicrosoftGraphClient
                     $want = $desired[$desiredKey];
                     $source = is_array($attributeMapping['source'] ?? null) ? $attributeMapping['source'] : [];
                     $currentSourceName = strtolower((string) ($source['name'] ?? ''));
-                    $currentExpression = (string) ($source['expression'] ?? '');
-                    $currentExpressionLower = strtolower($currentExpression);
-                    $mode = (string) ($want['mode'] ?? 'attribute');
-
-                    if ($mode === 'expression') {
-                        $wantExpression = (string) ($want['expression'] ?? '');
-                        $alreadyOk = $wantExpression !== ''
-                            && (
-                                $currentExpression === $wantExpression
-                                || (
-                                    str_contains($currentExpressionLower, 'extensionattribute1')
-                                    && str_contains($currentExpressionLower, 'user mailbox')
-                                )
-                            );
-
-                        if ($alreadyOk) {
-                            $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
-
-                            continue;
-                        }
-
-                        $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite([
-                            'defaultValue' => $want['defaultValue'] ?? null,
-                            'exportMissingReferences' => $attributeMapping['exportMissingReferences'] ?? false,
-                            'flowBehavior' => $attributeMapping['flowBehavior'] ?? 'FlowWhenChanged',
-                            'flowType' => 'Always',
-                            'matchingPriority' => $attributeMapping['matchingPriority'] ?? 0,
-                            'source' => [
-                                'expression' => $wantExpression,
-                                'name' => null,
-                                'parameters' => [],
-                                'type' => 'Expression',
-                            ],
-                            'targetAttributeName' => $targetName,
-                        ]);
-
-                        $changed = true;
-                        $touched[] = $targetName.' ← expression (extensionAttribute1 or surname + User Mailbox)';
-
-                        continue;
-                    }
+                    $currentExpression = strtolower((string) ($source['expression'] ?? ''));
+                    $currentDefault = (string) ($attributeMapping['defaultValue'] ?? '');
+                    $sourceType = strtolower((string) ($source['type'] ?? 'attribute'));
 
                     $alreadyOk = (
-                        $currentSourceName === strtolower((string) $want['sourceName'])
-                        || str_contains($currentExpressionLower, strtolower((string) $want['sourceName']))
+                        $sourceType !== 'expression'
+                        && (
+                            $currentSourceName === strtolower((string) $want['sourceName'])
+                            || str_contains($currentExpression, strtolower((string) $want['sourceName']))
+                        )
                     );
 
                     $needsDefault = ($want['defaultValue'] ?? null) !== null
-                        && (string) ($attributeMapping['defaultValue'] ?? '') !== (string) $want['defaultValue'];
+                        && $currentDefault !== (string) $want['defaultValue'];
 
-                    if ($alreadyOk && ! $needsDefault) {
+                    // Strip Entra default [surname] / expressions for familyName — no inventing last names.
+                    $mustClearDefault = ! empty($want['clearDefault'])
+                        && $currentDefault !== ''
+                        && ($want['defaultValue'] ?? null) === null;
+                    $mustDropExpression = ! empty($want['clearDefault'])
+                        && ($sourceType === 'expression' || str_contains($currentExpression, 'append'));
+
+                    if ($alreadyOk && ! $needsDefault && ! $mustClearDefault && ! $mustDropExpression) {
                         $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
 
                         continue;
@@ -1974,7 +1943,8 @@ class MicrosoftGraphClient
                     ]);
 
                     $changed = true;
-                    $touched[] = $targetName.' ← '.$want['sourceName'];
+                    $touched[] = $targetName.' ← '.$want['sourceName']
+                        .(! empty($want['clearDefault']) ? ' (no default / no expression fallback)' : '');
                 }
 
                 $objectMappings[$mapIndex]['attributeMappings'] = $attributeMappings;

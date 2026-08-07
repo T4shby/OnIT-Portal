@@ -21,8 +21,8 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 
 **Required path (standard for every client):**
 
-1. SCIM mapping **`name.familyName` Direct ← `extensionAttribute1`** (default `[surname]` if null)
-2. Portal **Sync now** writes surname + `(User Mailbox)` / `(Shared Mailbox)` into `extensionAttribute1`
+1. SCIM mapping **`name.familyName` Direct ← `extensionAttribute1` only** — **no** default `[surname]`, **no** expression inventing a last name when the attribute is empty
+2. Portal **Sync now** writes surname + `(User Mailbox)` / `(Shared Mailbox)` into `extensionAttribute1` (cloud-only) **or** SuperOps API first/last names (hybrid when Graph cannot write the attribute)
 3. Entra provisioning pushes that into SuperOps
 
 **Portal Apply SCIM** should do (1) via Graph schema update (waits/polls until the SCIM job schema is readable — first Apply on a brand-new app often 404s for 10–40s), (2) by queuing Sync when tenant + **group ID** exist, then start provisioning. **Checklist step 07 stays Pending** until both (1) name mappings and (2) Sync queue succeed — credentials-only Apply is **not** Done. Missing group ID blocks Sync queue; mapping failures become an amber flash and Do not ignore copy.
@@ -157,10 +157,12 @@ Existing requesters in SuperOps are matched and updated by SCIM — not duplicat
 |---|---|---|
 | 1 | **Portal** | `formatSuperOpsFamilyName()` → e.g. `Smith (User Mailbox)` or `Accounts (Shared Mailbox)` |
 | 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` when Graph allows (cloud-only users) |
-| 2b | **Portal** (SuperOps API) | **Hybrid fallback:** if Graph rejects on-prem mastered users, portal calls SuperOps `updateClientUser` with firstName + lastName (includes suffix) so requesters still rename |
-| 3 | **Entra SCIM** | `name.familyName` expression prefers `extensionAttribute1`, else surname/displayName + ` (User Mailbox)` |
+| 2b | **Portal** (SuperOps API) | **Hybrid only (authoritative write to SuperOps):** if Graph rejects on-prem mastered users, portal `updateClientUser` sets firstName + lastName (with suffix). This is **not** SCIM inventing a name — Entra still uses Direct `extensionAttribute1` with **null** default |
+| 3 | **Entra SCIM** | `name.familyName` **Direct** ← `extensionAttribute1` only. Empty attribute does **not** fall back to surname |
 
-**Why other customers worked first time and YorPower did not:** cloud-only Entra users allow Graph to write `extensionAttribute1`. AD Connect / hybrid users return *Unable to update … on-premises mastered Directory Sync objects* — SCIM then fell back to plain **surname** only (`Palmer`), producing SuperOps `email Palmer` instead of `Joe Pearce (User Mailbox)`. Not a silent remove of the feature — first hybrid tenant at full sync volume.
+**No SCIM fallbacks:** never map familyName to bare `[surname]` when extensionAttribute1 is empty (that produced `email Palmer` junk). If Graph cannot write the attribute, SuperOps names are set via SuperOps API; SCIM must not guess.
+
+**Why other customers worked first time and YorPower struggled:** cloud-only Entra allows Graph → `extensionAttribute1` → SCIM → SuperOps. Hybrid AD-synced users reject Graph extensionAttribute writes — SCIM with a **surname default** then looked “half working”. Joe Pearce style `(User Mailbox)` on another ticket is the **full** path when the attribute (or SuperOps API) actually holds the full string.
 | 4 | **SuperOps** | First name plain; last name includes mailbox type when mapped |
 
 ### Entra SCIM attribute mapping — Direct only (no Expression)
@@ -168,7 +170,7 @@ Existing requesters in SuperOps are matched and updated by SCIM — not duplicat
 | Target | Mapping type | Source | Default if null |
 |---|---|---|---|
 | `name.givenName` | Direct | `givenName` | — |
-| `name.familyName` | Direct | `extensionAttribute1` | `[surname]` |
+| `name.familyName` | Direct | `extensionAttribute1` | *(none — empty stays empty)* |
 | `name.formatted` | Direct | `displayName` | — |
 
 **Remove** any Expression on `name.familyName` — portal already sends the full last name.
