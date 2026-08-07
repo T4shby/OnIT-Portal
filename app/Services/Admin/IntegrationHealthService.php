@@ -952,17 +952,20 @@ class IntegrationHealthService
             return null;
         }
 
-        $row = DB::table('jobs')
+        $candidates = DB::table('jobs')
             ->where('payload', 'like', '%'.$hint.'%')
-            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
             ->orderBy('id')
-            ->first();
+            ->limit(80)
+            ->get();
 
-        if ($row === null) {
-            return null;
+        foreach ($candidates as $row) {
+            $formatted = $this->formatJobRow($row);
+            if (($formatted['client_id'] ?? null) === $clientId) {
+                return $formatted;
+            }
         }
 
-        return $this->formatJobRow($row);
+        return null;
     }
 
     /**
@@ -974,12 +977,27 @@ class IntegrationHealthService
             return [];
         }
 
-        return DB::table('jobs')
+        $rows = DB::table('jobs')
             ->orderBy('id')
             ->limit($limit)
             ->get()
             ->map(fn ($row) => $this->formatJobRow($row))
+            ->values()
             ->all();
+
+        $ids = collect($rows)->pluck('client_id')->filter()->unique()->values()->all();
+        $names = $ids === []
+            ? []
+            : Client::query()->whereIn('id', $ids)->pluck('name', 'id')->all();
+
+        return array_map(static function (array $row) use ($names): array {
+            $id = $row['client_id'] ?? null;
+            $row['client_name'] = ($id !== null && isset($names[$id]))
+                ? (string) $names[$id]
+                : null;
+
+            return $row;
+        }, $rows);
     }
 
     /**
@@ -995,10 +1013,7 @@ class IntegrationHealthService
             $displayName = $m[1];
         }
 
-        $clientId = null;
-        if (preg_match('/clientId";i:(\d+);/', $payload, $m)) {
-            $clientId = (int) $m[1];
-        }
+        $clientId = $this->extractClientIdFromJobPayload($payload);
 
         $created = (int) ($row->created_at ?? time());
         $reservedAt = $row->reserved_at !== null ? (int) $row->reserved_at : null;
@@ -1009,11 +1024,46 @@ class IntegrationHealthService
             'attempts' => (int) ($row->attempts ?? 0),
             'job' => $displayName ?? 'UnknownJob',
             'client_id' => $clientId,
+            'client_name' => null,
             'age_seconds' => max(0, time() - $created),
             'reserved' => $reservedAt !== null,
             'reserved_for_seconds' => $reservedAt !== null ? max(0, time() - $reservedAt) : null,
             'available_at' => (int) ($row->available_at ?? $created),
         ];
+    }
+
+    /**
+     * Database queue payloads store PHP-serialized commands inside JSON and often escape quotes,
+     * so a naive clientId";i:N; match fails (blank CLIENT column).
+     */
+    public function extractClientIdFromJobPayload(string $payload): ?int
+    {
+        $variants = array_values(array_filter([
+            $payload,
+            stripcslashes($payload),
+            // JSON "command":"…" body
+            preg_match('/"command"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/s', $payload, $m)
+                ? stripcslashes($m[1])
+                : null,
+        ]));
+
+        foreach ($variants as $text) {
+            if (preg_match('/clientId";i:(\d+);/', $text, $m)) {
+                return (int) $m[1];
+            }
+            if (preg_match('/clientId\\\\";i:(\d+);/', $text, $m)) {
+                return (int) $m[1];
+            }
+            if (preg_match('/"clientId"\s*:\s*(\d+)/', $text, $m)) {
+                return (int) $m[1];
+            }
+            // PHP serialize with leading string length still present after partial unescape.
+            if (preg_match('/s:\d+:\\\\?"clientId\\\\?";i:(\d+);/', $text, $m)) {
+                return (int) $m[1];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1038,10 +1088,7 @@ class IntegrationHealthService
                     $job = $m[1];
                 }
 
-                $clientId = null;
-                if (preg_match('/clientId";i:(\d+);/', $payload, $m)) {
-                    $clientId = (int) $m[1];
-                }
+                $clientId = $this->extractClientIdFromJobPayload($payload);
 
                 $exception = (string) ($row->exception ?? '');
                 $firstLine = trim(strtok($exception, "\n") ?: $exception);

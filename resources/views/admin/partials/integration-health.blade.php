@@ -149,7 +149,14 @@
                     <div class="px-4 py-3 space-y-1">
                         <p class="text-sm text-white font-medium leading-snug break-words">{{ class_basename($job['job']) }}</p>
                         <p class="text-xs text-white/50">
-                            Client #{{ $job['client_id'] ?? '—' }}
+                            @if(! empty($job['client_name']))
+                                {{ $job['client_name'] }}
+                                @if(! empty($job['client_id']))
+                                    <span class="text-white/35">#{{ $job['client_id'] }}</span>
+                                @endif
+                            @else
+                                Client #{{ $job['client_id'] ?? '—' }}
+                            @endif
                             · {{ $job['queue'] }}
                             · <span class="{{ ! empty($job['reserved']) ? 'text-onit' : 'text-sky-300' }}">
                                 {{ ! empty($job['reserved']) ? 'Worker has it' : 'Waiting' }}
@@ -175,7 +182,18 @@
                         @foreach($q['jobs'] as $job)
                             <tr class="border-t border-white/5">
                                 <td class="px-4 py-2 text-white">{{ class_basename($job['job']) }}</td>
-                                <td class="px-4 py-2">#{{ $job['client_id'] ?? '—' }}</td>
+                                <td class="px-4 py-2">
+                                    @if(! empty($job['client_name']))
+                                        <span class="text-white">{{ $job['client_name'] }}</span>
+                                        @if(! empty($job['client_id']))
+                                            <span class="text-white/40 text-xs">#{{ $job['client_id'] }}</span>
+                                        @endif
+                                    @elseif(! empty($job['client_id']))
+                                        #{{ $job['client_id'] }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="px-4 py-2">{{ $job['queue'] }}</td>
                                 <td class="px-4 py-2 {{ ! empty($job['reserved']) ? 'text-onit' : 'text-sky-300' }}">
                                     {{ ! empty($job['reserved']) ? 'Worker has it' : 'Waiting for worker' }}
@@ -200,7 +218,7 @@
                 @foreach($q['recent_failures'] as $fail)
                     <li class="leading-relaxed break-words">
                         {{ class_basename($fail['job']) }}
-                        @if($fail['client_id']) · client #{{ $fail['client_id'] }} @endif
+                        @if(! empty($fail['client_id'])) · client #{{ $fail['client_id'] }} @endif
                         @if($fail['failed_at'])
                             · {{ $fail['failed_at']->timezone('Europe/London')->format('d M H:i') }} UK
                         @endif

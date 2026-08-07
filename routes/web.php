@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\ClientAdminDashboardController;
 use App\Http\Controllers\HuntressSecurityController;
+use App\Http\Controllers\Admin\ClientDropsuiteBackupController;
 use App\Http\Controllers\Admin\ClientHuntressSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
@@ -112,6 +113,11 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/security/huntress/refresh', [ClientHuntressSecurityController::class, 'refreshForClient'])
                 ->middleware('throttle:6,1')
                 ->name('clients.security.huntress.refresh');
+            Route::get('clients/{client}/dropsuite', [ClientDropsuiteBackupController::class, 'show'])
+                ->name('clients.dropsuite');
+            Route::post('clients/{client}/dropsuite/refresh', [ClientDropsuiteBackupController::class, 'refresh'])
+                ->middleware('throttle:6,1')
+                ->name('clients.dropsuite.refresh');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->middleware('throttle:entra-sync')

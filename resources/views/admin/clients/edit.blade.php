@@ -51,6 +51,19 @@
                             Huntress is sold — paste Organization ID above and Save to open the security dashboard.
                         </p>
                     @endif
+                    @if($client->isProductEntitled('dropsuite') && filled($client->dropsuite_organization_id) && config('services.dropsuite.enabled'))
+                        <a href="{{ route('admin.clients.dropsuite', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            View Dropsuite backups
+                        </a>
+                    @elseif($client->isProductEntitled('dropsuite') && config('services.dropsuite.enabled'))
+                        <p class="portal-body-muted text-xs self-center max-w-sm">
+                            Dropsuite is sold — paste Organization ID above and Save to open backup metrics.
+                        </p>
+                    @elseif($client->isProductEntitled('dropsuite') && ! config('services.dropsuite.enabled'))
+                        <p class="portal-body-muted text-xs self-center max-w-sm">
+                            Dropsuite is sold for this client but <code class="text-white/70">DROPSUITE_ENABLED</code> is off on the server.
+                        </p>
+                    @endif
                 </div>
             </div>
 

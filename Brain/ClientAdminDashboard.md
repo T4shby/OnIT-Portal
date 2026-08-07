@@ -458,8 +458,8 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 
 | Who | Scope | Dropsuite view |
 |-----|-------|----------------|
-| **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client (Integration Health column + org-wide tile when viewing that client). Not limited to one customer. |
-| **Client Admin** | **Their customer only** | Org-wide for that tenant: protected mailbox count, latest backup time, status, failure count, OneDrive count, up to 5 problem mailboxes. Cannot see other customers. |
+| **Technician Admin** (`super_admin` / `account_manager`) | All accessible customers | Full org backup health per client: **Staff Admin → Clients → Edit → View Dropsuite backups**, Integration Health Dropsuite column, or Organisation tile only when that user’s portal account is linked to the client. |
+| **Client Admin** | **Their customer only** | Org-wide for that tenant on **Organisation** overview: protected mailbox count, latest backup time, status, failure count, OneDrive count, up to 5 problem mailboxes. Cannot see other customers. |
 | **Requester / Billing Admin** | Personal only | Last time **their** mailbox was backed up (matched by work email). No colleague list, no org totals. |
 
 Shared rule: `ClientVisibilityService` (same as Huntress / tickets). Technician ≠ Client Admin.
@@ -511,6 +511,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-07 | Staff **View Dropsuite backups** on Edit client; Integration Health jobs show client name (fix blank CLIENT from JSON-escaped payloads) |
 | 2026-08-07 | Integration Health: **Never loaded** (`cold`) sold feeds raise warning severity/headline/notices + amber UI (no longer hidden under global OK) |
 | 2026-08-06 | Dropsuite **live on prod**: UUID Reseller Token + Admin Authentication Token; per-org mailboxes via user tokens from `GET /users`; UK host |
 | 2026-08-06 | Prod `main` @ `52bcac9` deployed Dropsuite PDF path; env keys present disabled; wait reseller/access tokens + client org maps before enable |
