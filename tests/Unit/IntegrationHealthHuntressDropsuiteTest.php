@@ -64,4 +64,45 @@ class IntegrationHealthHuntressDropsuiteTest extends TestCase
 
         $this->assertSame('disabled', $cell['status']);
     }
+
+    public function test_cold_sold_feed_raises_warning_not_all_ok(): void
+    {
+        config([
+            'services.dropsuite.enabled' => true,
+            'services.dropsuite.api_url' => 'https://dropsuite.us/api',
+            'services.dropsuite.reseller_token' => 'r',
+            'services.dropsuite.auth_token' => 'a',
+        ]);
+
+        // Scheduler/prewarm look healthy so cold is the only reason for attention.
+        Cache::put(IntegrationHealthService::SCHEDULER_TICK_KEY, now()->toIso8601String(), now()->addHour());
+        Cache::put(IntegrationHealthService::PREWARM_CACHE_KEY, [
+            'at' => now()->toIso8601String(),
+        ], now()->addHour());
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'dropsuite_organization_id' => '177210-12',
+            'product_entitlements' => [
+                'dropsuite' => ['entitled' => true],
+            ],
+        ]);
+
+        $overview = app(IntegrationHealthService::class)->overview();
+        $cell = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'dropsuite');
+
+        $this->assertSame('cold', $cell['status']);
+        $this->assertSame('Never loaded', $cell['status_label']);
+        $this->assertSame(1, $overview['cold_count']);
+        $this->assertSame(1, $overview['clients'][0]['cold_count']);
+        $this->assertSame('warning', $overview['pipeline']['severity_level']);
+        $this->assertStringContainsString('never loaded', strtolower($overview['pipeline']['headline']));
+        $this->assertTrue(collect($overview['notices'])->contains(
+            fn (string $n): bool => str_contains(strtolower($n), 'never loaded')
+                || str_contains(strtolower($n), 'never loaded a snapshot'),
+        ));
+        $this->assertFalse(collect($overview['notices'])->contains(
+            fn (string $n): bool => str_contains($n, 'Nothing blocking'),
+        ));
+    }
 }

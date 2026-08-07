@@ -230,7 +230,7 @@
                     'ok' => 'text-emerald-400',
                     'due' => 'text-sky-300',
                     'aging' => 'text-amber-300',
-                    'cold' => 'text-white/40',
+                    'cold' => 'text-amber-300',
                     'queued' => 'text-sky-300',
                     'running' => 'text-onit',
                     'stuck' => 'text-rose-400',
@@ -248,7 +248,8 @@
                         $byKey = collect($row['integrations'])->keyBy('key');
                         $highlight = $row['is_stuck']
                             || ($row['due_count'] ?? 0) > 0
-                            || ($row['aging_count'] ?? 0) > 0;
+                            || ($row['aging_count'] ?? 0) > 0
+                            || ($row['cold_count'] ?? 0) > 0;
                     @endphp
                     <div class="px-4 py-4 space-y-3 {{ $highlight ? 'bg-amber-500/5' : '' }}">
                         <a href="{{ route('admin.clients.edit', $row['client_id']) }}" class="text-white hover:text-onit font-medium text-sm">
@@ -274,7 +275,7 @@
                             @endforeach
                         </div>
                         <div class="text-xs text-white/55 pt-0.5">
-                            @if($row['is_stuck'] || ($row['aging_count'] ?? 0) > 0 || ($row['due_count'] ?? 0) > 0 || ! empty($row['blockers']))
+                            @if($row['is_stuck'] || ($row['aging_count'] ?? 0) > 0 || ($row['due_count'] ?? 0) > 0 || ($row['cold_count'] ?? 0) > 0 || ! empty($row['blockers']))
                                 <ul class="space-y-1 list-disc list-inside">
                                     @foreach(array_slice($row['blockers'] ?? [], 0, 3) as $blocker)
                                         <li class="leading-snug">{{ $blocker }}</li>
@@ -306,7 +307,8 @@
                                 $byKey = collect($row['integrations'])->keyBy('key');
                                 $highlight = $row['is_stuck']
                                     || ($row['due_count'] ?? 0) > 0
-                                    || ($row['aging_count'] ?? 0) > 0;
+                                    || ($row['aging_count'] ?? 0) > 0
+                                    || ($row['cold_count'] ?? 0) > 0;
                             @endphp
                             <tr class="{{ $highlight ? 'bg-amber-500/5' : '' }}">
                                 <td class="align-top">
@@ -332,7 +334,7 @@
                                     @endif
                                 @endforeach
                                 <td class="align-top text-xs text-white/60 max-w-xs">
-                                    @if($row['is_stuck'] || ($row['aging_count'] ?? 0) > 0 || ($row['due_count'] ?? 0) > 0 || ! empty($row['blockers']))
+                                    @if($row['is_stuck'] || ($row['aging_count'] ?? 0) > 0 || ($row['due_count'] ?? 0) > 0 || ($row['cold_count'] ?? 0) > 0 || ! empty($row['blockers']))
                                         <ul class="space-y-1.5 list-disc list-inside leading-snug">
                                             @foreach(array_slice($row['blockers'] ?? [], 0, 3) as $blocker)
                                                 <li>{{ $blocker }}</li>

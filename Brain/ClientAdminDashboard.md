@@ -106,6 +106,9 @@ Schedule (`routes/console.php`): every minute scheduler tick; when adaptive inte
 | Huntress | Security cache when org linked; adaptive requeue |
 | Dropsuite | Backup cache when org linked; adaptive requeue |
 | Blockers / active | Queued/running/**stuck** (&gt;5m) |
+| **Never loaded** (`cold`) | Sold + mapped product with **no successful snapshot yet** — incomplete, not “fine” |
+
+**Cold is a platform warning:** sold feeds with status `cold` raise pipeline `severity_level` **warning**, change the headline away from “All systems refreshing normally”, list per-client notices, amber cell copy, and row highlight. Do **not** treat “other columns Up to date” as all-clear when any entitled feed has never loaded.
 
 Clients never see this page. Also shows queue depth (`jobs` high/default/failed) and oldest pending age.
 
@@ -121,8 +124,11 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 | Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
 | failed_jobs | Last failures with first error line |
 | Status **due** | Feed past **adaptive requeue** age but under soft window — waiting prewarm/workers (not silent OK) |
+| Status **cold** / **Never loaded** | No successful cache for a sold/mapped feed — warning headline + notice (not OK just because SuperOps is green) |
 
 Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
+
+**Severity order (headline):** scheduler dead / stuck schedule locks / prewarm late / worker lag → then **cold sold feeds** → then “jobs pending” (info) → OK.
 
 **Soft-client banner caveat:** SuperOps Organisation page soft wording still uses `SUPEROPS_DASHBOARD_*` config minutes for client-facing “as of …” thresholds; technicians should trust Integration Health for true adaptive requeue.
 
@@ -505,6 +511,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-07 | Integration Health: **Never loaded** (`cold`) sold feeds raise warning severity/headline/notices + amber UI (no longer hidden under global OK) |
 | 2026-08-06 | Dropsuite **live on prod**: UUID Reseller Token + Admin Authentication Token; per-org mailboxes via user tokens from `GET /users`; UK host |
 | 2026-08-06 | Prod `main` @ `52bcac9` deployed Dropsuite PDF path; env keys present disabled; wait reseller/access tokens + client org maps before enable |
 | 2026-08-06 | Clarify Technician Admin (all customers) vs Client Admin (own customer only) vs requester (personal) — Dropsuite + visibility |

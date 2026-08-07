@@ -87,10 +87,11 @@ class IntegrationHealthService
         $stuckCount = collect($rows)->where('is_stuck', true)->count();
         $agingCount = collect($rows)->sum(fn (array $row): int => (int) ($row['aging_count'] ?? 0));
         $dueCount = collect($rows)->sum(fn (array $row): int => (int) ($row['due_count'] ?? 0));
+        $coldCount = collect($rows)->sum(fn (array $row): int => (int) ($row['cold_count'] ?? 0));
 
         $queue = $this->queueSummary();
-        $pipeline = $this->pipelineSummary($queue);
-        $notices = $this->buildNotices($pipeline, $rows, $clearedOrphans, $stuckCount, $agingCount, $dueCount);
+        $pipeline = $this->pipelineSummary($queue, $coldCount);
+        $notices = $this->buildNotices($pipeline, $rows, $clearedOrphans, $stuckCount, $agingCount, $dueCount, $coldCount);
 
         return [
             'queue' => $queue,
@@ -101,6 +102,7 @@ class IntegrationHealthService
             'stuck_count' => $stuckCount,
             'aging_count' => $agingCount,
             'due_count' => $dueCount,
+            'cold_count' => $coldCount,
             'cleared_orphans' => $clearedOrphans,
         ];
     }
@@ -159,7 +161,7 @@ class IntegrationHealthService
      * @param  array<string, mixed>  $queue
      * @return array<string, mixed>
      */
-    private function pipelineSummary(array $queue): array
+    private function pipelineSummary(array $queue, int $coldCount = 0): array
     {
         $prewarm = Cache::get(self::PREWARM_CACHE_KEY);
         $prewarmAt = is_array($prewarm) && filled($prewarm['at'] ?? null)
@@ -207,6 +209,11 @@ class IntegrationHealthService
         } elseif ($workerLagSuspect) {
             $headline = 'Jobs are waiting but no worker is processing them';
             $severityLevel = 'critical';
+        } elseif ($coldCount > 0) {
+            $headline = $coldCount === 1
+                ? '1 sold integration has never loaded a snapshot — prewarm/workers should fill it'
+                : "{$coldCount} sold integration feeds have never loaded a snapshot — check prewarm, workers, and mapping IDs";
+            $severityLevel = 'warning';
         } elseif (($queue['pending'] ?? 0) > 0) {
             $headline = 'Refresh jobs are in the queue and should finish shortly';
             $severityLevel = 'info';
@@ -216,6 +223,7 @@ class IntegrationHealthService
             'generated_at' => now(),
             'headline' => $headline,
             'severity_level' => $severityLevel,
+            'cold_count' => $coldCount,
             'superops_requeue_after_minutes' => $superOpsRequeueAfter,
             'superops_client_window_minutes' => $superOpsClientWindow,
             'freshness' => $freshness,
@@ -292,6 +300,7 @@ class IntegrationHealthService
         int $stuckCount,
         int $agingCount,
         int $dueCount,
+        int $coldCount = 0,
     ): array {
         $notices = [];
 
@@ -312,7 +321,7 @@ class IntegrationHealthService
             $notices[] = 'Prewarm has never recorded a run. Auto client metrics will stay empty/old.';
         } elseif ($pipeline['prewarm']['overdue'] ?? false) {
             $age = $pipeline['prewarm']['age_minutes'] ?? '?';
-            $notices[] = "Prewarm last ran {$age}m ago (expect every 5m). Until it runs, aging data will not auto-reset.";
+            $notices[] = "Prewarm last ran {$age}m ago (expect every ~".($pipeline['prewarm']['interval_minutes'] ?? 2.5).'m). Until it runs, aging data will not auto-reset.';
         }
 
         if ($pipeline['workers']['lag_suspect'] ?? false) {
@@ -327,6 +336,10 @@ class IntegrationHealthService
 
         if ($stuckCount > 0) {
             $notices[] = "{$stuckCount} refresh job(s) stuck (running over ".self::STUCK_AFTER_MINUTES.' minutes).';
+        }
+
+        if ($coldCount > 0) {
+            $notices[] = "{$coldCount} sold integration feed(s) never loaded a snapshot (Never loaded). Prewarm should queue cold pulls; if this persists check mapping IDs, platform tokens, and that queue depth is not skipping optional feeds.";
         }
 
         if ($agingCount > 0) {
@@ -344,6 +357,9 @@ class IntegrationHealthService
             foreach ($row['integrations'] as $cell) {
                 if (($cell['status'] ?? '') === 'failed' && filled($cell['error'] ?? null)) {
                     $notices[] = "{$row['client_name']}: {$cell['friendly_label']} failed — {$cell['error']}";
+                }
+                if (($cell['status'] ?? '') === 'cold') {
+                    $notices[] = "{$row['client_name']}: {$cell['label']} never loaded — no successful cache yet.";
                 }
             }
         }
@@ -379,6 +395,7 @@ class IntegrationHealthService
 
         $agingCount = collect($integrations)->where('status', 'aging')->count();
         $dueCount = collect($integrations)->where('status', 'due')->count();
+        $coldCount = collect($integrations)->where('status', 'cold')->count();
 
         $worstAgeMinutes = collect($integrations)
             ->pluck('age_minutes')
@@ -400,6 +417,7 @@ class IntegrationHealthService
             'worst_age_minutes' => $worstAgeMinutes,
             'aging_count' => $agingCount,
             'due_count' => $dueCount,
+            'cold_count' => $coldCount,
             'blockers' => $blockers,
             'integrations' => $integrations,
         ];
@@ -837,8 +855,8 @@ class IntegrationHealthService
             ],
             'cold' => [
                 'status_label' => 'Never loaded',
-                'what_it_is_doing' => 'No snapshot stored yet.',
-                'what_next' => 'Prewarm should queue a first pull automatically.',
+                'what_it_is_doing' => 'No snapshot stored yet — this is incomplete for a sold/mapped product.',
+                'what_next' => 'Should not sit forever: check prewarm, workers, then mapping ID / platform credentials. Force a refresh from Integration Health or the product page.',
             ],
             'disabled' => [
                 'status_label' => 'Not linked',
