@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-07 | Post-deploy always `chown` storage after artisan as root — fixes **500 Permission denied** on compiled views (`/dashboard`) — [Deployment.md](Deployment.md) |
 | 2026-08-07 | Apply SCIM waits/polls Graph until job schema is ready before name.familyName mapping (fix first-apply ProvisioningTaskNotFound on new apps) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-07 | Bootstrap: save P1 immediately; continue SuperOps apps if group 403; Edit form warns stale Free overwrite — [ClientOnboarding.md](ClientOnboarding.md) |
 | 2026-08-07 | Connect Microsoft: single Accept CTA + **Retry Graph setup**; bootstrap waits/retries Graph after Accept (IdentityNotFound lag) — [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |

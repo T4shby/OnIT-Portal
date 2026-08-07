@@ -427,6 +427,10 @@ php artisan view:clear
 php artisan db:seed --class=PortalLinkSeeder --force
 
 php artisan optimize
+
+# Artisan as root leaves files root-owned → PHP-FPM (vhost user) cannot write compiled views → 500 Permission denied
+chown -R onit.ltd_1hfwweogk0mj:psaserv storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
 ```
 
 > **`cache:clear`:** wipes application cache store (directory snapshots, SuperOps/M365 insights, Entra health flags). Only use when intentionally resetting caches; otherwise clear route/config/view only.
@@ -437,6 +441,8 @@ php artisan optimize
 > **Why `PortalLinkSeeder`?** Upserts dashboard links to `superops_sso` and `pax8_sso` launch routes. Safe to re-run.
 
 > **Why `rm -f public/hot`?** A leftover Vite dev file makes production load CSS from `localhost:5173` — unstyled pages. See [CSS not loading](#css-not-loading-unstyled-html).
+
+> **500 Permission denied on `storage/framework/views`:** Post-deploy `php artisan optimize` (or archive) ran as **root** and left `storage/` root-owned. Fix: `chown -R onit.ltd_1hfwweogk0mj:psaserv storage bootstrap/cache` (always run after artisan as root).
 
 `php artisan portal:purge-demo-data --force` is safe to re-run on older installs; skip if you have already cleaned demo data.
 
@@ -467,7 +473,7 @@ Then run the deploy block above. Set **Pax8 company ID** per client in Admin →
 
 | Issue | Solution |
 |---|---|
-| **500 on `/admin` after deploy** | Run the full update block above. Then: `tail -50 storage/logs/laravel.log` — look for `Route [...] not defined`, missing class, or SQL "column not found" (run `php artisan migrate --force`) |
+| **500 on `/admin` or `/dashboard`** | Check `storage/logs/laravel.log`. Common: **Permission denied** writing `storage/framework/views` after root `optimize` → `chown -R onit.ltd_1hfwweogk0mj:psaserv storage bootstrap/cache`. Or `Route [...] not defined` / missing migration. |
 | 500 error (general) | Check `storage/logs/laravel.log`, verify permissions |
 | Login redirect fails | Verify `MICROSOFT_REDIRECT_URI` matches Entra app registration exactly |
 | Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists (`php artisan tinker --execute="echo Schema::hasTable('sessions') ? 'yes' : 'no';"`), `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset). After deploy, set `MICROSOFT_OAUTH_STATELESS=true` in `.env` and `php artisan config:clear` if login still fails with session-lost message. |
