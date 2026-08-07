@@ -2439,7 +2439,7 @@ class MicrosoftGraphClient
 
         if ($create->status() === 403) {
             throw new RuntimeException(
-                'Policy.ReadWrite.ApplicationConfiguration missing — add it to OnIT Portal for Portals (Application), re-consent Find, then retry; or set claims manually in Azure.'
+                'Policy.ReadWrite.ApplicationConfiguration missing — add it to OnIT Portal for Portals (Application permission), Grant admin consent in the On IT tenant, re-consent the **customer** tenant (Connect / Accept again), then Retry Wire; or set Attributes & Claims manually in Azure for this Client SSO app.'
             );
         }
 
