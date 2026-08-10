@@ -15,6 +15,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
+use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Http\RedirectResponse;
@@ -30,6 +31,7 @@ class ClientController extends Controller
         private ClientOnboardingService $onboarding,
         private SuperOpsClientMetricsService $superOpsMetrics,
         private ClientProductService $products,
+        private ClientHomeOverviewService $homeOverview,
     ) {}
 
     public function index(Request $request): View
@@ -98,6 +100,8 @@ class ClientController extends Controller
             'onboardingProgress' => $this->onboarding->progress($client),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
             'fieldHelps' => $this->onboarding->fieldHelps($client),
+            // What this customer’s /dashboard + Reports look like from sold products (no live numbers).
+            'clientHomeComposition' => $this->homeOverview->staffHomeComposition($client),
         ];
     }
 

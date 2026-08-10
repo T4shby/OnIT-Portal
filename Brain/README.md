@@ -81,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Staff: **What the client sees at home** on Edit Client + Clients/admin copy so product-mix dashboards are not “forgotten” — [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Glance/Reports: no empty “Threats stopped” when MDR not sold; Huntress/Dropsuite labelled **Add-on** with support-still-helps copy — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Admin **Graph re-consent** page (batch Accept links for all linked tenants) — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-10 | Bootstrap remaining-work warnings honour SCIM/SSO checklist; `portal:graph-reconsent-urls`; guide Re-consent CTA — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |

@@ -97,6 +97,111 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Staff-facing: what this client’s home (/dashboard) and Reports show, given product entitlements.
+     * Does not load live feed numbers — only sold/setup state so technicians can explain differences
+     * between customers (e.g. support-only vs MDR included) without inventing metrics.
+     *
+     * @return array{
+     *   value_strip_mode: 'support_led'|'mdr_included',
+     *   value_strip_labels: list<string>,
+     *   value_strip_summary: string,
+     *   headline: string,
+     *   detail: string,
+     *   bullets: list<string>,
+     *   columns: list<array{
+     *     key: string,
+     *     title: string,
+     *     status: string,
+     *     staff_status_label: string,
+     *     client_card_label: string,
+     *     client_reason: ?string
+     *   }>
+     * }
+     */
+    public function staffHomeComposition(Client $client): array
+    {
+        $columnMeta = [
+            'superops' => 'Support & Devices',
+            'm365' => 'Microsoft 365',
+            'huntress' => 'Detection & Response',
+            'dropsuite' => 'Backup',
+        ];
+
+        $columns = [];
+        foreach ($columnMeta as $key => $title) {
+            $status = $this->products->status($client, $key);
+            $staffLabel = $this->products->statusLabel($status, $key);
+            $clientLabel = $staffLabel;
+            $clientReason = null;
+
+            if ($status === ClientProductService::STATUS_NOT_SOLD) {
+                $notSold = $this->notSoldPresentation($key);
+                $clientLabel = $notSold['label'];
+                $clientReason = $notSold['reason'];
+            } elseif ($status === ClientProductService::STATUS_SETUP_NEEDED) {
+                $clientLabel = 'Setup needed';
+                $clientReason = 'Sold and on the plan — mapping or tenant link still needed before numbers appear.';
+            } elseif ($status === ClientProductService::STATUS_PLATFORM_DOWN) {
+                $clientLabel = 'Critical';
+                $clientReason = 'Platform credentials disabled or incomplete on the On IT side.';
+            } elseif ($status === ClientProductService::STATUS_ERROR) {
+                $clientLabel = 'Critical';
+                $clientReason = 'Last refresh failed; staff should check Integration Health.';
+            } else {
+                $clientLabel = 'Healthy (when feed is live)';
+                $clientReason = 'When the feed is live, traffic lights use operational rules (SLA, seats, incidents, backup failures).';
+            }
+
+            $columns[] = [
+                'key' => $key,
+                'title' => $title,
+                'status' => $status,
+                'staff_status_label' => $staffLabel,
+                'client_card_label' => $clientLabel,
+                'client_reason' => $clientReason,
+            ];
+        }
+
+        $huntressSold = $this->products->isEntitled($client, ClientProductService::KEY_HUNTRESS);
+        $mode = $huntressSold ? 'mdr_included' : 'support_led';
+
+        if ($mode === 'support_led') {
+            $labels = ['Tickets resolved', 'Open tickets', 'SLA met'];
+            $headline = 'Support-led home (Huntress MDR not sold)';
+            $summary = 'Hero stats: Tickets resolved · Open tickets · SLA met. No “Threats stopped” tile.';
+            $detail = 'This is intentional. Empty MDR metrics would look like “we stop no threats.” '
+                .'Support tickets and technicians remain how On IT handles security for this organisation. '
+                .'Detection & Response shows as an optional Add-on, not unprotected.';
+            $bullets = [
+                'Turning Huntress sold + mapping the org ID switches hero stats to include Threats stopped (via MDR).',
+                'Grey H on the Clients list means not sold — the client home stays support-led, not “broken AV.”',
+                'Never invent threat counts from SuperOps tickets — that would mislabel ticket work as MDR.',
+            ];
+        } else {
+            $labels = ['Threats stopped (MDR)', 'Tickets resolved', 'SLA met'];
+            $headline = 'MDR + support home (Huntress sold)';
+            $summary = 'Hero stats: Threats stopped · Tickets resolved · SLA met (threats may show — until the Huntress feed is live).';
+            $detail = 'Client sees automated Huntress metrics when the feed is live. '
+                .'If the feed is cold or setup is incomplete, threats can be blank — finish mapping and Integration Health, do not invent figures.';
+            $bullets = [
+                'Sold but not mapped = Setup needed on the client home (amber), not Add-on.',
+                'Live feed zero threats is fine; a dash only while loading/cold is OK — not when product is not sold.',
+                'Untick Huntress sold only if they are truly off that product (reverts home to support-led).',
+            ];
+        }
+
+        return [
+            'value_strip_mode' => $mode,
+            'value_strip_labels' => $labels,
+            'value_strip_summary' => $summary,
+            'headline' => $headline,
+            'detail' => $detail,
+            'bullets' => $bullets,
+            'columns' => $columns,
+        ];
+    }
+
+    /**
      * Org-facing metrics bundle for nightly snapshots (uses a privileged client user).
      *
      * @return array{overall_band: ?string, columns: list<array<string, mixed>>, value: array<string, mixed>}

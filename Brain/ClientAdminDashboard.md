@@ -78,6 +78,33 @@ New feeds: use `ClientVisibilityService::canViewOrganisationWide` / `matchesPers
 
 Staff roles (`account_manager`, `super_admin`) are unchanged.
 
+## Different clients see different homes (product mix)
+
+**Clients do not all get the same dashboard layout.** Sold products (especially Huntress MDR and Dropsuite) change hero stats and tile labels. This is **by design**, not a bug or missing protection.
+
+| Scenario | What the **client** home shows | Why |
+|----------|--------------------------------|-----|
+| Support sold; **Huntress not sold** | Hero: tickets resolved · open · SLA. Detection & Response = **Add-on** (optional). No empty “Threats stopped —”. | Empty MDR would look like zero security. On IT still handles security via tickets; automated MDR metrics only when Huntress is sold. |
+| Huntress **sold** + mapped | Hero includes **Threats stopped** (from Huntress feed) + tickets + SLA | Real MDR numbers only — never invent from SuperOps tickets. |
+| Huntress sold but **not mapped / cold** | Threats may show `—` until IH live | Finish org ID + Integration Health; status Setup needed, not Add-on. |
+
+### Where technicians see this
+
+| Surface | What’s there |
+|---------|----------------|
+| **Admin → Clients → Edit** | Panel **What the client sees at home** — mode badge (Support-led vs MDR + support), hero strip labels, four tiles with staff entitlement vs client card label, bullets. Source: `ClientHomeOverviewService::staffHomeComposition()`. |
+| **Admin → Clients** (list) | Legend note: grey **H** → support-led home; open Edit for full panel. |
+| **Admin → Dashboard** (Sold product coverage) | Short note + client name links to Edit `#client-home-composition`. Coverage KPI is still “sold feeds live”; not-sold Huntress is **not** a cold-cell fail. |
+| **Brain** | [UIOverhaul.md](UIOverhaul.md) — value strip rules + product mix table. |
+
+**No staff impersonation / “view as client” in-app.** Live numbers: Integration Health or sign in as a real client user.
+
+**Anti-patterns**
+
+- Treating support-only homes as broken because Threats stopped is missing  
+- Inventing threat counts from tickets  
+- Telling the client they are “unprotected” when MDR is simply not on the plan  
+
 Entra sync creates new users as `client_requester` only. Sync updates never change `role`, so manually promoted `client_billing_admin` and `client_admin` users are preserved.
 
 ## Technician Integration Health (own tab)
@@ -189,7 +216,7 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 |----------|---------|------|
 | **Client Admin** | `/client-admin` · nav **Organisation** | **All service tiles** always. Live → metrics. **Setup needed** → “Please contact your account manager to get this sorted.” **Not sold** → still shown: “Please contact your Account manager if you want this enabling”. Support & SLA only when SuperOps **entitled**. |
 | **Requester / Billing** | `/client-admin` · nav **My Systems** | Show tile only when product **live**. Unsold/setup-needed **hidden**. Section “Your services”; dynamic width (1/2/3 per row). No Organisation nav. |
-| Technician (`super_admin` / `account_manager`) on same URL | `/client-admin` (when staff uses client switch) | Raw unavailable reasons; age / requeue notes; Integration Health. |
+| Technician (`super_admin` / `account_manager`) | **No** shared `/client-admin` “view as” session | Staff use **Admin → Clients / Integration Health** + product tools. Per-client home layout: **Edit Client → What the client sees at home**. |
 | Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING**, Not sold / Setup needed; queue depths. |
 
 **System health layout** (`shouldShowOverviewTile` + `overviewTileWidthClass`): max **3 tiles per row**, flex + `gap-4`. Row of 1 = full width; 2 = 50/50; 3 = thirds. Orphans: 4→3+1, 5→3+2, 6→3+3, 7→3+3+1.

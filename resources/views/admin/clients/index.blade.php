@@ -31,7 +31,7 @@
                     </p>
                 </div>
             </div>
-            <div class="shrink-0 space-y-2 border-t border-white/10 pt-3 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                <div class="shrink-0 space-y-2 border-t border-white/10 pt-3 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                 <p class="portal-label mb-2">Colours</p>
                 <div class="flex flex-col gap-1.5 text-xs text-white/55">
                     <span class="inline-flex items-center gap-2">
@@ -53,6 +53,12 @@
                 </div>
             </div>
         </div>
+        <p class="mt-4 border-t border-white/10 pt-3 text-xs text-white/50 leading-relaxed max-w-4xl">
+            <strong class="text-white/70 font-medium">Client home differs by sold products.</strong>
+            Grey <span class="product-chip product-chip--muted">H</span> (Huntress not sold) → support-led dashboard
+            (tickets + SLA as hero stats — not empty “Threats stopped”).
+            Open <strong class="text-white/65 font-medium">Edit</strong> on a client for the full “What the client sees at home” panel.
+        </p>
     </div>
 
     <div class="admin-table-wrap">

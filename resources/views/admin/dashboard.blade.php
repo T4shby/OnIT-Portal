@@ -49,6 +49,8 @@
                     <p class="text-xs text-white/50 max-w-2xl">
                         KPI: sold service feeds should be <strong class="text-white/70">live</strong> (snapshot present).
                         Target <strong class="text-white/70">0 never loaded (cold)</strong>. Setup = sold but map/platform pending.
+                        Clients without Huntress still get a full support-led home — missing MDR is not “unprotected.”
+                        See composition on <a href="{{ route('admin.clients.index') }}" class="text-onit hover:text-white">each client’s Edit</a> page.
                     </p>
                 </div>
                 <a href="{{ route('admin.integration-health.index') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Detail →</a>
@@ -95,7 +97,15 @@
                         <tbody>
                             @foreach(array_slice($coverage['rows'], 0, 15) as $row)
                                 <tr>
-                                    <td>{{ $row['client_name'] }}</td>
+                                    <td>
+                                        @if(! empty($row['client_id']))
+                                            <a href="{{ route('admin.clients.edit', $row['client_id']) }}#client-home-composition" class="text-onit hover:text-white">
+                                                {{ $row['client_name'] }}
+                                            </a>
+                                        @else
+                                            {{ $row['client_name'] }}
+                                        @endif
+                                    </td>
                                     <td>{{ $row['sold'] }}</td>
                                     <td>{{ $row['live'] }}</td>
                                     <td>{{ $row['setup'] }}</td>

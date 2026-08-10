@@ -40,7 +40,7 @@ Pill label is **Healthy / Issues / Critical**. Each column also exposes **`statu
 | cold | yellow | Issues |
 | loading | yellow | Loading |
 | platform / error | red | Critical |
-| not_sold | grey | Not sold |
+| not_sold | grey | **Add-on** (Huntress/Dropsuite) or **Not on plan** (other) |
 
 Hero uses the **worst** live/setup signal: critical → “N services need critical attention”; issues → “N services have issues to review”; else “All systems protected.”
 
@@ -72,6 +72,20 @@ For **Huntress** / **Dropsuite** when entitlement is not sold:
 
 Support (SuperOps) remains the protection signal for support-only orgs.
 
+### Product mix → different client homes (source of truth)
+
+| Huntress sold? | Value strip (hero) | Detection & Response tile | Technician notes |
+|----------------|--------------------|---------------------------|------------------|
+| **No** | Tickets resolved · Open tickets · SLA met | **Add-on** + support-still-helps copy | **Support-led home** — grey H chip is expected, not a fault |
+| **Yes**, feed live | Threats stopped · Tickets resolved · SLA | Traffic lights from incidents/agents | MDR metrics are real Huntress feed only |
+| **Yes**, not mapped / cold | Same triple; threats may be `—` until live | Setup needed / loading | Finish mapping + IH; do **not** invent counts from tickets |
+
+**Code:** `ClientHomeOverviewService::staffHomeComposition()` + glance/Reports value strip rules.  
+**Staff UI:** Admin → **Clients → Edit** → panel **What the client sees at home** (`_client-home-composition.blade.php`). Clients list legend + Admin Dashboard sold-coverage blurb link here.  
+**No in-app “view as client”** — use Integration Health or a real client login for live numbers.
+
+Technicians: if a customer asks “why no threats stopped?”, check Huntress sold. Grey H = by design. Do not treat support-led homes as broken MDR.
+
 ## Reports layout (critical)
 
 Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main split on production. Purged CSS left `display:flex` (row) + full-width rail, which pushed the light main panel into a thin strip off the right edge.
@@ -82,19 +96,21 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Path | Role |
 |------|------|
-| `app/Services/Portal/ClientHomeOverviewService.php` | Column/metric assembly (live metrics only on home) |
+| `app/Services/Portal/ClientHomeOverviewService.php` | Column/metric assembly; **`staffHomeComposition()`** for technicians |
 | `app/Services/Portal/ClientActivityFeedService.php` | Composed “what we’ve done” list |
 | `app/Services/Portal/ClientMetricSnapshotService.php` | Daily MoM snapshot store/compare |
 | `app/Console/Commands/CaptureClientMetricSnapshotsCommand.php` | `portal:capture-metric-snapshots` |
 | `resources/views/dashboard/glance.blade.php` | 1a home |
 | `resources/views/dashboard/partials/_glance-column.blade.php` | Source card |
 | `resources/views/reports/index.blade.php` | 1c report (CSS Grid, not Tailwind flex) |
+| `resources/views/admin/clients/_client-home-composition.blade.php` | Staff “what client sees” panel |
 | `ClientReportsController` | `/reports` |
 
 ## Changelog
 
 | Date | Note |
 |------|------|
+| 2026-08-10 | **Staff composition panel:** Edit Client shows support-led vs MDR home from sold products; Clients list + Admin coverage copy. |
 | 2026-08-10 | **Not-sold reframed:** Huntress/Dropsuite “Add-on” + support-still-helps copy; value strip omits empty Threats stopped when MDR not sold. |
 | 2026-08-10 | **Customer gap close:** waiting-on-client; Huntress threats/responses MTD; activity feed; nightly metric snapshots + last-month deltas; Graph Secure Score/MFA (soft-fail). Still open: avg first response, patch posture, restore retention days. |
 | 2026-08-10 | **Security posture Graph:** `SecurityEvents.Read.All` + `AuditLog.Read.All` + `Reports.Read.All` on OnIT Portal for Portals; existing tenants re-Accept only — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md). |

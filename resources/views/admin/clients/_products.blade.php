@@ -16,6 +16,9 @@
             <p class="portal-body-muted text-xs leading-relaxed">
                 What On IT sells this client. Toggle sold, then paste IDs when ready.
                 Status: grey not sold · amber setup needed · green live · red platform/error.
+                <span class="mt-1.5 block text-white/50">
+                    Sold mix shapes the client’s home dashboard (hero stats and tiles). After Save, the panel below explains this client.
+                </span>
             </p>
         </div>
         <div class="space-y-4">

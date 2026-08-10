@@ -22,6 +22,10 @@
                     'fieldHelps' => $fieldHelps,
                     'showEntra' => true,
                 ])
+                @include('admin.clients._client-home-composition', [
+                    'client' => $client,
+                    'clientHomeComposition' => $clientHomeComposition ?? null,
+                ])
                 @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                 @include('admin.clients._entra-sync-fields', ['client' => $client])
                 <div class="mt-6 flex flex-wrap gap-3">
