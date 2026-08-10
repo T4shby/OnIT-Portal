@@ -45,6 +45,47 @@ class IntegrationHealthHuntressDropsuiteTest extends TestCase
         $this->assertSame('Huntress security', $cell['friendly_label']);
     }
 
+    public function test_dropsuite_reads_current_cache_version_key(): void
+    {
+        config([
+            'services.dropsuite.enabled' => true,
+            'services.dropsuite.api_url' => 'https://dropsuite.us/api',
+            'services.dropsuite.reseller_token' => 'r',
+            'services.dropsuite.auth_token' => 'a',
+        ]);
+
+        Setting::set('freshness.hot_minutes', '10');
+        Setting::set('freshness.work_idle_minutes', '10');
+        Setting::set('freshness.off_hours_idle_minutes', '10');
+        Cache::forget('portal.freshness.snapshot.live');
+        Cache::put(IntegrationHealthService::SCHEDULER_TICK_KEY, now()->toIso8601String(), now()->addHour());
+        Cache::put(IntegrationHealthService::PREWARM_CACHE_KEY, [
+            'at' => now()->toIso8601String(),
+        ], now()->addHour());
+
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'dropsuite_organization_id' => '6182',
+            'product_entitlements' => [
+                'dropsuite' => ['entitled' => true],
+            ],
+        ]);
+
+        $key = app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class)->cacheKey($client->id);
+        Cache::put($key, [
+            'protected_mailboxes' => 3,
+            'last_backup_status' => 'success',
+            'last_refreshed_at' => now()->subMinutes(2)->toIso8601String(),
+        ], now()->addDay());
+
+        $overview = app(IntegrationHealthService::class)->overview();
+        $cell = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'dropsuite');
+
+        $this->assertNotSame('cold', $cell['status']);
+        $this->assertContains($cell['status'], ['ok', 'due', 'aging']);
+        $this->assertSame(0, $overview['cold_count']);
+    }
+
     public function test_dropsuite_disabled_when_not_linked(): void
     {
         config([

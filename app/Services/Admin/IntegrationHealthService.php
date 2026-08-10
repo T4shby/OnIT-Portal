@@ -627,7 +627,9 @@ class IntegrationHealthService
             return $this->disabled('dropsuite', 'Dropsuite backups', 'Setup needed');
         }
 
-        $payload = Cache::get("client:{$client->id}:dropsuite-backup:v2")
+        $metrics = app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class);
+        $payload = Cache::get($metrics->cacheKey($client->id))
+            ?? Cache::get("client:{$client->id}:dropsuite-backup:v2")
             ?? Cache::get("client:{$client->id}:dropsuite-backup:v1");
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])

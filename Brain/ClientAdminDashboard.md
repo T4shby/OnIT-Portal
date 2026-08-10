@@ -523,6 +523,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-10 | Integration Health read Dropsuite **v2** cache while feed wrote **v3** → false “Never loaded” for live snapshots (YorPower / On IT) |
 | 2026-08-07 | M365: licensed users label excludes shared; free/trial SKUs via heuristics (10k pool + name fragments); Dropsuite tile = 24h success/issues + full backups page |
 | 2026-08-07 | Dropsuite org mailbox list: **10 per page** (Prev/Next) on every surface using the tile partial |
 | 2026-08-07 | Client users: nav **My Systems** (not Organisation); personal live tiles only. Client Admin keeps **Organisation** |

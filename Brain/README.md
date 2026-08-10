@@ -78,6 +78,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Integration Health Dropsuite “Never loaded” false alarm: read current `cacheKey()` (v3) not only v2 — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | M365 paid-util free/trial heuristics + licensed-users label; Dropsuite 24h summary + Online backups page — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Dropsuite protected-mailbox list paginated (10/page) on Organisation + staff View Dropsuite — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-07 | Client users get **My Systems** nav (not Organisation); same `/client-admin` personal feed — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
