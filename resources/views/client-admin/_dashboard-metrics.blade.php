@@ -1,205 +1,200 @@
-﻿    @php
-        $viewerIsTechnician = auth()->user()?->isTeamMember() ?? false;
-        $lastUk = $summary->lastRefreshedAt
-            ? $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i').' UK'
-            : null;
-        $ageMinutes = $summary->lastRefreshedAt
-            ? (int) round($summary->lastRefreshedAt->diffInMinutes(now()))
-            : null;
-    @endphp
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        @if($lastUk)
-            <p class="portal-body-muted text-xs">
-                @if($viewerIsTechnician)
-                    SuperOps last success {{ $lastUk }}
-                    @if($ageMinutes !== null)
-                        ({{ $ageMinutes }}m ago · requeue ≥{{ config('services.superops.dashboard_refresh_after_minutes', 2.5) }}m · client note ≥{{ config('services.superops.dashboard_cache_minutes', 5) }}m)
-                    @endif
-                @else
-                    Overview as of {{ $lastUk }}
+﻿@php
+    $viewerIsTechnician = auth()->user()?->isTeamMember() ?? false;
+    $lastUk = $summary->lastRefreshedAt
+        ? $summary->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i').' UK'
+        : null;
+    $ageMinutes = $summary->lastRefreshedAt
+        ? (int) round($summary->lastRefreshedAt->diffInMinutes(now()))
+        : null;
+    $orgWide = $organisationWide ?? true;
+    $products = app(\App\Services\Portal\ClientProductService::class);
+    $viewer = auth()->user();
+    $systemHealthTiles = [];
+    foreach (($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed) {
+        $feedKey = $feed->key();
+        if (! $orgWide && $feedKey === 'm365_insights') {
+            continue;
+        }
+        if (! $products->shouldShowOverviewTile($client, $feedKey, $viewer)) {
+            continue;
+        }
+        $tileLabel = match ($feedKey) {
+            'superops' => $orgWide ? 'Managed devices' : 'Your tickets',
+            'huntress' => 'Security',
+            'dropsuite' => $orgWide ? 'Backups' : 'My backup',
+            'm365_insights' => 'Microsoft 365',
+            default => $feed->label(),
+        };
+        $systemHealthTiles[] = [
+            'feed' => $feed,
+            'key' => $feedKey,
+            'label' => $tileLabel,
+            'not_sold' => $viewer
+                && $viewer->isClientAdmin()
+                && ! $viewer->isTeamMember()
+                && ! $products->isEntitled($client, $feedKey),
+        ];
+    }
+@endphp
+
+{{-- Toolbar --}}
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin-bottom:1.25rem">
+    @if($lastUk)
+        <p class="org-muted" style="margin:0;font-size:12px">
+            @if($viewerIsTechnician)
+                SuperOps last success {{ $lastUk }}
+                @if($ageMinutes !== null)
+                    ({{ $ageMinutes }}m ago)
                 @endif
-            </p>
-        @else
-            <span></span>
-        @endif
-        @if($organisationWide ?? true)
-            <form method="POST" action="{{ route('client-admin.refresh') }}">
-                @csrf
-                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3 w-full sm:w-auto">Refresh now</button>
-            </form>
+            @else
+                Updated {{ $lastUk }}
+            @endif
+        </p>
+    @else
+        <span></span>
+    @endif
+    @if($organisationWide ?? true)
+        <form method="POST" action="{{ route('client-admin.refresh') }}" style="margin:0">
+            @csrf
+            <button type="submit" class="org-cta">Refresh now</button>
+        </form>
+    @endif
+</div>
+
+{{-- System health — dense equal grid (no full-width empty cards) --}}
+<section style="margin-bottom:1.75rem">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <h2 class="org-label" style="margin:0">
+            {{ $orgWide ? 'System health' : 'Your services' }}
+        </h2>
+    </div>
+
+    <div class="org-grid">
+        @foreach($systemHealthTiles as $tile)
+            <div class="min-w-0">
+                @if($tile['not_sold'])
+                    @include('client-admin.feeds._not-sold', ['label' => $tile['label']])
+                @else
+                    @include($tile['feed']->overviewPartial(), [
+                        'viewerIsTechnician' => $viewerIsTechnician,
+                        'organisationWide' => $orgWide,
+                        'client' => $client,
+                        'tileLabel' => $tile['label'],
+                    ])
+                @endif
+            </div>
+        @endforeach
+    </div>
+</section>
+
+{{-- Support & SLA --}}
+@php
+    $showSupport = $products->shouldShowForViewer($client, 'superops', auth()->user());
+    $superOpsNeedsAm = $products->needsAccountManagerHelp($client, 'superops');
+@endphp
+@if($showSupport)
+<section style="margin-bottom:1.75rem">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px">
+        <h2 class="org-label" style="margin:0">Support &amp; response times</h2>
+        @if($summary->hasData())
+            <a href="{{ route('integrations.superops.launch') }}" class="org-link">Open SuperOps →</a>
         @endif
     </div>
 
-    {{-- System health / My services — modular tiles from DashboardFeedRegistry --}}
-    <section class="mb-8">
-        <div class="flex items-center justify-between gap-4 mb-6">
-            <h2 class="portal-label">
-                {{ ($organisationWide ?? true) ? 'System health' : 'Your services' }}
-            </h2>
+    @if(! $summary->hasData() && $superOpsNeedsAm && ! $viewerIsTechnician)
+        <div class="org-card org-card-pad">
+            <p class="org-muted" style="margin:0;font-size:13px;line-height:1.5">
+                Please contact your account manager to get this sorted.
+            </p>
         </div>
-
-        @php
-            $orgWide = $organisationWide ?? true;
-            $products = app(\App\Services\Portal\ClientProductService::class);
-            $viewer = auth()->user();
-            $systemHealthTiles = [];
-            foreach (($dashboardFeeds ?? app(\App\Services\Portal\DashboardFeedRegistry::class))->overviewTiles() as $feed) {
-                $feedKey = $feed->key();
-                // Licence fleet is Client Admin / org-wide only.
-                if (! $orgWide && $feedKey === 'm365_insights') {
-                    continue;
-                }
-                if (! $products->shouldShowOverviewTile($client, $feedKey, $viewer)) {
-                    continue;
-                }
-                $tileLabel = match ($feedKey) {
-                    'superops' => $orgWide ? 'Managed devices' : 'Your tickets',
-                    'huntress' => 'Security (Huntress)',
-                    'dropsuite' => $orgWide ? 'Backups (Dropsuite)' : 'My backup',
-                    'm365_insights' => 'Microsoft 365',
-                    default => $feed->label(),
-                };
-                $systemHealthTiles[] = [
-                    'feed' => $feed,
-                    'key' => $feedKey,
-                    'label' => $tileLabel,
-                    'not_sold' => $viewer
-                        && $viewer->isClientAdmin()
-                        && ! $viewer->isTeamMember()
-                        && ! $products->isEntitled($client, $feedKey),
-                ];
-            }
-            $tileCount = count($systemHealthTiles);
-        @endphp
-        <div class="flex flex-wrap gap-4">
-            @foreach($systemHealthTiles as $i => $tile)
-                <div class="{{ $products->overviewTileWidthClass($i, $tileCount) }} min-w-0">
-                    @if($tile['not_sold'])
-                        @include('client-admin.feeds._not-sold', ['label' => $tile['label']])
-                    @else
-                        @include($tile['feed']->overviewPartial(), [
-                            'viewerIsTechnician' => $viewerIsTechnician,
-                            'organisationWide' => $orgWide,
-                            'client' => $client,
-                        ])
-                    @endif
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    {{-- Support & SLA (SuperOps). Hide when SuperOps not sold / not live for viewer. --}}
-    @php
-        $products = app(\App\Services\Portal\ClientProductService::class);
-        $showSupport = $products->shouldShowForViewer($client, 'superops', auth()->user());
-        $superOpsStatus = $products->status($client, 'superops');
-        $superOpsNeedsAm = $products->needsAccountManagerHelp($client, 'superops');
-    @endphp
-    @if($showSupport)
-    <section class="mb-8">
-        <div class="flex items-center justify-between gap-4 mb-6">
-            <h2 class="portal-label">Support &amp; SLA</h2>
-            @if($summary->hasData())
-                <a href="{{ route('integrations.superops.launch') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Open SuperOps &rarr;</a>
-            @endif
-        </div>
-
-        @if(! $summary->hasData() && $superOpsNeedsAm && ! $viewerIsTechnician)
-            <x-card>
-                <p class="text-sm portal-body-muted leading-relaxed">
-                    Please contact your account manager to get this sorted.
-                </p>
-            </x-card>
-        @else
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <x-card>
-                <p class="portal-label mb-2">Open tickets</p>
-                <p class="text-4xl font-condensed font-bold text-onit">
-                    {{ $summary->openTicketsTotal === null ? '-' : number_format($summary->openTicketsTotal) }}
+    @else
+        <div class="org-support-grid" style="margin-bottom:1rem">
+            <div class="org-card org-card-pad">
+                <p class="org-label" style="margin:0 0 8px">Open tickets</p>
+                <p class="org-hero-num org-accent" style="margin:0">
+                    {{ $summary->openTicketsTotal === null ? '—' : number_format($summary->openTicketsTotal) }}
                 </p>
                 @if($summary->openTicketsByPriority !== [])
-                    <div class="flex flex-wrap gap-2 mt-4">
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
                         @foreach($summary->openTicketsByPriority as $priority => $count)
-                            <span class="text-xs border border-white/15 px-2 py-1 text-white/80">
-                                {{ $priority }}: {{ $count }}
-                            </span>
+                            <span class="org-chip">{{ $priority }}: {{ $count }}</span>
                         @endforeach
                     </div>
                 @endif
-            </x-card>
+            </div>
 
-            <x-card>
-                <p class="portal-label mb-2">SLA performance</p>
-                <p class="text-4xl font-condensed font-bold text-white">
-                    {{ $summary->slaMetPercent === null ? '-' : $summary->slaMetPercent.'%' }}
+            <div class="org-card org-card-pad">
+                <p class="org-label" style="margin:0 0 8px">SLA performance</p>
+                <p class="org-hero-num" style="margin:0">
+                    {{ $summary->slaMetPercent === null ? '—' : $summary->slaMetPercent.'%' }}
                 </p>
-                <p class="portal-body-muted text-sm mt-2">
-                    Resolution SLA met (30 days)
+                <p class="org-muted" style="margin:8px 0 0;font-size:12px;line-height:1.4">
+                    Tickets answered on time (last 30 days)
                     @if($summary->slaSampleSize)
-                        / {{ number_format($summary->slaSampleSize) }} tickets
+                        · {{ number_format($summary->slaSampleSize) }} tickets
                     @endif
                 </p>
-            </x-card>
+            </div>
 
-            <x-card x-data="{ range: '7' }">
-                <p class="portal-label mb-2">Ticket activity</p>
-                <div class="flex flex-wrap gap-2 mb-4">
+            <div class="org-card org-card-pad" x-data="{ range: '7' }">
+                <p class="org-label" style="margin:0 0 8px">Ticket activity</p>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
                     @foreach(['7' => '7d', '14' => '14d', '30' => '30d', 'all' => 'All'] as $key => $label)
                         <button type="button"
                                 @click="range = '{{ $key }}'"
-                                :class="range === '{{ $key }}' ? 'border-onit text-onit' : 'border-white/15 text-white/60'"
-                                class="px-2 py-1 text-xs border font-condensed uppercase tracking-wide">
+                                :class="range === '{{ $key }}' ? 'org-range-btn is-on' : 'org-range-btn'"
+                                class="org-range-btn">
                             {{ $label }}
                         </button>
                     @endforeach
                 </div>
                 @foreach(['7', '14', '30', 'all'] as $key)
-                    <div x-show="range === '{{ $key }}'" class="grid grid-cols-2 gap-4">
+                    <div x-show="range === '{{ $key }}'" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div>
-                            <p class="text-xs portal-body-muted mb-1">Logged</p>
-                            <p class="text-2xl font-condensed font-bold text-white">
+                            <p class="org-muted" style="margin:0 0 4px;font-size:11px">Logged</p>
+                            <p style="margin:0;font-size:1.35rem;font-weight:700">
                                 @php $logged = $summary->ticketsCreated[$key] ?? null; @endphp
-                                {{ $logged === null ? '-' : number_format($logged) }}
+                                {{ $logged === null ? '—' : number_format($logged) }}
                             </p>
                         </div>
                         <div>
-                            <p class="text-xs portal-body-muted mb-1">Closed</p>
-                            <p class="text-2xl font-condensed font-bold text-white">
+                            <p class="org-muted" style="margin:0 0 4px;font-size:11px">Closed</p>
+                            <p style="margin:0;font-size:1.35rem;font-weight:700">
                                 @php $closed = $summary->ticketsClosed[$key] ?? null; @endphp
-                                {{ $closed === null ? '-' : number_format($closed) }}
+                                {{ $closed === null ? '—' : number_format($closed) }}
                             </p>
                         </div>
                     </div>
                 @endforeach
-            </x-card>
+            </div>
         </div>
 
         @if($summary->openTicketsTable !== [])
-            <x-card>
-                <p class="portal-label mb-4">Open tickets</p>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
+            <div class="org-card org-card-pad" style="padding-top:1rem;padding-bottom:.5rem">
+                <p class="org-label" style="margin:0 0 10px">Open tickets</p>
+                <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                    <table class="org-table">
                         <thead>
-                            <tr class="border-b border-white/10 text-white/60">
-                                <th class="py-2 pr-4 font-normal">ID</th>
-                                <th class="py-2 pr-4 font-normal">Subject</th>
-                                <th class="py-2 pr-4 font-normal">Priority</th>
-                                <th class="py-2 pr-4 font-normal">Status</th>
-                                <th class="py-2 font-normal">Opened</th>
+                            <tr>
+                                <th>ID</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Opened</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($summary->openTicketsTable as $ticket)
-                                <tr class="border-b border-white/5">
-                                    <td class="py-3 pr-4 text-onit font-mono text-xs">{{ $ticket['displayId'] }}</td>
-                                    <td class="py-3 pr-4 text-white/90">{{ $ticket['subject'] }}</td>
-                                    <td class="py-3 pr-4 text-white/70">{{ $ticket['priority'] ?: '-' }}</td>
-                                    <td class="py-3 pr-4 text-white/70">{{ $ticket['status'] }}</td>
-                                    <td class="py-3 text-white/60 text-xs">
+                                <tr>
+                                    <td style="color:#FF7000;font-family:ui-monospace,monospace;font-size:12px;white-space:nowrap">{{ $ticket['displayId'] }}</td>
+                                    <td style="color:rgba(255,255,255,.9);min-width:10rem">{{ $ticket['subject'] }}</td>
+                                    <td class="org-muted" style="white-space:nowrap">{{ $ticket['priority'] ?: '—' }}</td>
+                                    <td class="org-muted" style="white-space:nowrap">{{ $ticket['status'] }}</td>
+                                    <td class="org-muted" style="font-size:12px;white-space:nowrap">
                                         @if(filled($ticket['createdTime']))
                                             {{ \Carbon\Carbon::parse($ticket['createdTime'])->timezone('Europe/London')->format('d M Y') }}
                                         @else
-                                            -
+                                            —
                                         @endif
                                     </td>
                                 </tr>
@@ -207,69 +202,68 @@
                         </tbody>
                     </table>
                 </div>
-            </x-card>
+            </div>
         @endif
-        @endif
-    </section>
     @endif
+</section>
+@endif
 
-    {{-- M365 detail --}}
-    @if($m365Insights->hasData() && $m365Insights->topSkus !== [])
-        <section>
-            <div class="flex items-center justify-between gap-4 mb-6">
-                <h2 class="portal-label">Microsoft 365 licence insight</h2>
-                @can('view-m365-directory')
-                    <a href="{{ route('microsoft-365.directory') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">Full directory &rarr;</a>
-                @endcan
+{{-- M365 licence breakdown --}}
+@if($m365Insights->hasData() && $m365Insights->topSkus !== [])
+    <section>
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px">
+            <h2 class="org-label" style="margin:0">Microsoft 365 licences</h2>
+            @can('view-m365-directory')
+                <a href="{{ route('microsoft-365.directory') }}" class="org-link">Full directory →</a>
+            @endcan
+        </div>
+
+        <div class="org-card org-card-pad">
+            <div class="org-support-grid" style="margin-bottom:1.25rem">
+                <div>
+                    <p class="org-muted" style="margin:0 0 4px;font-size:11px">Licensed users</p>
+                    <p style="margin:0;font-size:1.35rem;font-weight:700">
+                        {{ $m365Insights->licensedUserCount === null ? '—' : number_format($m365Insights->licensedUserCount) }}
+                    </p>
+                    <p class="org-muted" style="margin:4px 0 0;font-size:11px">User mailboxes only</p>
+                </div>
+                <div>
+                    <p class="org-muted" style="margin:0 0 4px;font-size:11px">Paid seats assigned</p>
+                    <p style="margin:0;font-size:1.35rem;font-weight:700">
+                        {{ $m365Insights->totalSeatsAssigned === null ? '—' : number_format($m365Insights->totalSeatsAssigned) }}
+                        @if($m365Insights->totalSeatsPurchased !== null)
+                            <span class="org-muted" style="font-size:1rem;font-weight:500">/ {{ number_format($m365Insights->totalSeatsPurchased) }}</span>
+                        @endif
+                    </p>
+                </div>
+                <div>
+                    <p class="org-muted" style="margin:0 0 4px;font-size:11px">Paid utilisation</p>
+                    <p class="org-hero-num org-accent" style="margin:0;font-size:1.35rem">
+                        {{ $m365Insights->overallUtilizationPct === null ? '—' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
+                    </p>
+                </div>
             </div>
 
-            <x-card>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div style="display:flex;flex-direction:column;gap:12px">
+                @foreach($m365Insights->topSkus as $sku)
                     <div>
-                        <p class="text-xs portal-body-muted mb-1">Licensed users</p>
-                        <p class="text-2xl font-condensed font-bold text-white">
-                            {{ $m365Insights->licensedUserCount === null ? '-' : number_format($m365Insights->licensedUserCount) }}
-                        </p>
-                        <p class="text-xs text-white/45 mt-1">User mailboxes only — excludes shared mailboxes</p>
-                    </div>
-                    <div>
-                        <p class="text-xs portal-body-muted mb-1">Paid seats assigned</p>
-                        <p class="text-2xl font-condensed font-bold text-white">
-                            {{ $m365Insights->totalSeatsAssigned === null ? '-' : number_format($m365Insights->totalSeatsAssigned) }}
-                            @if($m365Insights->totalSeatsPurchased !== null)
-                                <span class="text-base text-white/50">/ {{ number_format($m365Insights->totalSeatsPurchased) }}</span>
-                            @endif
-                        </p>
-                        <p class="text-xs text-white/45 mt-1">Free / trial pools excluded</p>
-                    </div>
-                    <div>
-                        <p class="text-xs portal-body-muted mb-1">Paid utilisation</p>
-                        <p class="text-2xl font-condensed font-bold text-onit">
-                            {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    @foreach($m365Insights->topSkus as $sku)
-                        <div>
-                            <div class="flex justify-between text-xs mb-1 gap-3">
-                                <span class="text-white/80">{{ $sku['displayName'] ?? $sku['skuPartNumber'] }}</span>
-                                <span class="text-white/60 shrink-0">
-                                    {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
-                                    @if(($sku['countsTowardUtilisation'] ?? true) === false)
-                                        · Free / trial
-                                    @else
-                                        ({{ number_format($sku['utilizationPct'], 0) }}%)
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div class="h-full bg-onit rounded-full" style="width: {{ min(100, $sku['utilizationPct']) }}%"></div>
-                            </div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:4px">
+                            <span style="color:rgba(255,255,255,.85)">{{ $sku['displayName'] ?? $sku['skuPartNumber'] }}</span>
+                            <span class="org-muted" style="flex:none">
+                                {{ $sku['assigned'] }} / {{ $sku['purchased'] }}
+                                @if(($sku['countsTowardUtilisation'] ?? true) === false)
+                                    · Free / trial
+                                @else
+                                    ({{ number_format($sku['utilizationPct'], 0) }}%)
+                                @endif
+                            </span>
                         </div>
-                    @endforeach
-                </div>
-            </x-card>
-        </section>
-    @endif
+                        <div style="height:6px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden">
+                            <div style="height:100%;width:{{ min(100, $sku['utilizationPct']) }}%;background:#FF7000;border-radius:999px"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif

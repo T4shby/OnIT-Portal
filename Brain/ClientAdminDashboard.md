@@ -1,6 +1,6 @@
 # Client Admin dashboard
 
-**Same URL** `/client-admin` for both surfaces (data still filtered by role):
+**Nav / layout (2026-08-10):** Organisation overview restyled to match glance: Poppins + dense `#0a2537` cards, **equal CSS grid** (1 / 2 / 4 columns) so System health never stretches one orphan tile full-width. Feed partials use metric rows; device offline is informational (“not checking in”) with a short offline-by-design note.
 
 | Role | Nav label | Page |
 |------|-----------|------|
@@ -534,6 +534,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |
 | 2026-08-10 | Prewarm card UI: “SuperOps N, other feeds M” (not “critical N”) — counts are last-run queue totals |
 | 2026-08-10 | Roadmap/PRD rewrite shipped; Admin sold coverage KPI; support SSO-first threads; prewarm cold-optional under queue deep; IH **only** service `cacheKey()` |
 | 2026-08-10 | Integration Health read Dropsuite **v2** cache while feed wrote **v3** → false “Never loaded” for live snapshots (YorPower / On IT) |

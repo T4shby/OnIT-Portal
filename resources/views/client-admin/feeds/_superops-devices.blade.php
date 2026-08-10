@@ -6,54 +6,55 @@
     $products = app(\App\Services\Portal\ClientProductService::class);
     $needsAm = $products->needsAccountManagerHelp($client, 'superops');
     $mapped = $products->isMapped($client, 'superops');
+    $title = $tileLabel ?? ($orgWide ? 'Managed devices' : 'Your tickets');
 @endphp
-<x-card>
-    <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0 flex-1">
-            <p class="portal-label mb-2">
-                @if($orgWide)
-                    Managed devices
-                @else
-                    Your tickets
-                @endif
-            </p>
-            @if($s->hasData())
-                @if($orgWide)
-                    <p class="text-4xl font-condensed font-bold text-onit">
-                        {{ $s->assetsTotal === null ? '-' : number_format($s->assetsTotal) }}
-                    </p>
-                    <p class="portal-body-muted text-sm mt-2">
-                        @if($s->assetsOnline !== null && $s->assetsOffline !== null)
-                            {{ number_format($s->assetsOnline) }} online / {{ number_format($s->assetsOffline) }} offline
-                        @else
-                            Devices in SuperOps
-                        @endif
-                    </p>
-                @else
-                    <p class="text-4xl font-condensed font-bold text-onit">
-                        {{ $s->openTicketsTotal === null ? '-' : number_format($s->openTicketsTotal) }}
-                    </p>
-                    <p class="portal-body-muted text-sm mt-2">Your open tickets</p>
-                @endif
-            @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
-                <p class="text-sm portal-body-muted mt-2 leading-relaxed">
-                    @if($orgWide)
-                        Device figures are not available yet.
-                    @else
-                        Ticket figures are not available yet.
-                    @endif
-                </p>
-            @else
-                @include('client-admin.feeds._unavailable', [
-                    'viewerIsTechnician' => $viewerIsTechnician,
-                    'unavailableReason' => $s->unavailableReason,
-                    'pendingLabel' => $orgWide ? 'Device figures' : 'Ticket figures',
-                    'needsAccountManager' => $needsAm || ! $mapped,
-                ])
-            @endif
-        </div>
+<div class="org-card org-card-pad">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px">
+        <p class="org-label" style="margin:0">{{ $title }}</p>
         @if($s->hasData())
-            <a href="{{ route('integrations.superops.launch') }}" class="text-onit hover:text-white text-lg leading-none shrink-0" title="Open SuperOps">&rarr;</a>
+            <a href="{{ route('integrations.superops.launch') }}" class="org-link" title="Open SuperOps">→</a>
         @endif
     </div>
-</x-card>
+
+    @if($s->hasData())
+        @if($orgWide)
+            <p class="org-hero-num org-accent" style="margin:8px 0 0">
+                {{ $s->assetsTotal === null ? '—' : number_format($s->assetsTotal) }}
+            </p>
+            <p class="org-muted" style="margin:4px 0 0;font-size:12px">devices managed</p>
+            <div class="org-stack">
+                <div class="org-metric">
+                    <span class="org-metric-l">Checking in</span>
+                    <span class="org-metric-v">{{ $s->assetsOnline === null ? '—' : number_format($s->assetsOnline) }}</span>
+                </div>
+                <div class="org-metric">
+                    <span class="org-metric-l">Not checking in</span>
+                    <span class="org-metric-v" style="font-weight:500;color:rgba(255,255,255,.55)">{{ $s->assetsOffline === null ? '—' : number_format($s->assetsOffline) }}</span>
+                </div>
+            </div>
+            <p class="org-muted" style="margin:12px 0 0;font-size:11px;line-height:1.35">
+                Offline can be normal for field kit without internet.
+            </p>
+        @else
+            <p class="org-hero-num org-accent" style="margin:8px 0 0">
+                {{ $s->openTicketsTotal === null ? '—' : number_format($s->openTicketsTotal) }}
+            </p>
+            <p class="org-muted" style="margin:4px 0 0;font-size:12px">your open tickets</p>
+        @endif
+    @elseif($mapped && ! $viewerIsTechnician && ! $needsAm)
+        <p class="org-muted" style="margin:12px 0 0;font-size:13px;line-height:1.45">
+            @if($orgWide)
+                Device figures are not available yet.
+            @else
+                Ticket figures are not available yet.
+            @endif
+        </p>
+    @else
+        @include('client-admin.feeds._unavailable', [
+            'viewerIsTechnician' => $viewerIsTechnician,
+            'unavailableReason' => $s->unavailableReason,
+            'pendingLabel' => $orgWide ? 'Device figures' : 'Ticket figures',
+            'needsAccountManager' => $needsAm || ! $mapped,
+        ])
+    @endif
+</div>

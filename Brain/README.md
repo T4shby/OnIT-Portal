@@ -81,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Organisation overview visual revolve: dense grid + glance card language — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-10 | SuperOps traffic lights: **drop offline devices** (field/night offline-by-design); drive by SLA + ticket backlog — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Traffic lights: client-facing **why** sentence (`status_reason`) on cards/hero/reports — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Glance traffic lights: Healthy/Issues/Critical bands per feed + worst-case hero — [UIOverhaul.md](UIOverhaul.md) |

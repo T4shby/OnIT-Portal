@@ -5,7 +5,7 @@
     $pendingLabel = $pendingLabel ?? 'These figures';
     $needsAm = $needsAccountManager ?? true;
 @endphp
-<p class="text-sm portal-body-muted mt-2 leading-relaxed">
+<p class="org-muted" style="margin:12px 0 0;font-size:13px;line-height:1.45">
     @if($viewerIsTechnician)
         {{ $reason !== '' ? $reason : $pendingLabel.' are not available yet.' }}
     @elseif($needsAm)

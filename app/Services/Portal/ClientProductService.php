@@ -311,26 +311,13 @@ class ClientProductService
     }
 
     /**
-     * Tailwind width classes for System health rows (max 3 per row).
+     * Width utility for legacy flex layouts. Prefer equal CSS grid on Organisation overview.
      *
-     * Row sizes: 1 → full width; 2 → 50/50; 3 → thirds. Orphans fill remaining row
-     * (4 = 3+1, 5 = 3+2, …). Uses gap-4 (1rem) between cards.
+     * @deprecated Organisation overview uses fixed auto-fit grid; kept for any remaining callers.
      */
     public function overviewTileWidthClass(int $index, int $total): string
     {
-        if ($total < 1) {
-            return 'w-full';
-        }
-
-        $index = max(0, $index);
-        $rowStart = intdiv($index, 3) * 3;
-        $rowSize = min(3, $total - $rowStart);
-
-        return match ($rowSize) {
-            1 => 'w-full',
-            2 => 'w-full sm:w-[calc((100%-1rem)/2)]',
-            default => 'w-full sm:w-[calc((100%-2rem)/3)]',
-        };
+        return 'w-full';
     }
 
     /**
