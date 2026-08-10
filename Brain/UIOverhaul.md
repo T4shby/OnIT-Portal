@@ -1,69 +1,37 @@
 # Client portal UI overhaul (`UIOverhaul` branch)
 
-**Status (2026-08-10):** In progress on branch **`UIOverhaul`** (keep off `main` until accepted).  
-Mockup source: local *Client Dashboard Mockups* HTML (directions 1a home · 1c value report).
+**Status (2026-08-10):** In progress on branch **`UIOverhaul`**.  
+**Canonical mockup:** `Customer dashboard UI mockups.zip` → `Client Dashboard Mockups.dc.html`
 
-## Intent
+| Mockup ID | Portal page | Notes |
+|-----------|-------------|--------|
+| **1a** Dark | `/dashboard` (`dashboard/glance.blade.php`) | Hero + traffic lights + value stats + services strip + 4 source columns + activity |
+| **1b** Light | Not implemented (dark site palette preferred) | Same content model as 1a |
+| **1c** Value report | `/reports` (`reports/index.blade.php`) | Navy services rail + light main + stacked rows + activity |
 
-| Route | Audience | Purpose |
-|-------|----------|---------|
-| `/dashboard` | Client Admin (and requesters with systems) | **Primary home** — “Your IT at a glance” + four service columns; portals + support remain |
-| `/reports` | Org-wide only (`view-organisation-wide`) | Monthly **service review** layout (value report mockup 1c) |
-| `/client-admin` | Unchanged | Deep Organisation / My Systems metrics (tiles, tickets table, refresh) |
-| Security · M365 | Unchanged | Drill-downs from home columns |
+Organisation / Security / M365 routes stay as drill-downs (“Details →”).
 
-Dashboard and Organisation are **related, not deleted**: home is the narrative glance; Organisation remains the operational detail page.
+## First pass mistake
 
-## Architecture
+An early `UIOverhaul` commit reused the marketing heading-stack home (Logged in / Your portals). That is **not** the customer mockup. Rewritten against zip **1a / 1c** (Poppins, `#0a2537` cards, traffic lights, value strip, report rail).
 
-Service: `App\Services\Portal\ClientHomeOverviewService`  
-Builds presentation columns from existing feeds (`DashboardFeedRegistry` + `ClientProductService`), **never invents numbers**.
+## Live vs Not set up
 
-### Column states
+Numbers only from existing feeds. Mockup fields without data show **Not set up** + reason (Secure Score, MFA, avg response, MoM, activity history, restore retention, etc.).
 
-| State | Meaning |
-|-------|---------|
-| `live` | Snapshot present; metrics shown |
-| `loading` | Refresh in flight |
-| `not_sold` | Entitlement off |
-| `setup_needed` | Sold but map/tenant incomplete |
-| `platform` | MSP-side credentials/`*_ENABLED` missing |
-| `cold` | Linked but no snapshot |
-| `pipeline` (metrics) | Sold/live product can work, but **this metric** needs future work |
+## Files
 
-### Explicit pipeline gaps (do not “skip” quietly)
-
-Marked **Not set up** in UI with why:
-
-| Gap | Needed later |
-|-----|----------------|
-| Month vs last month comparisons | Daily/period snapshot store |
-| Avg first response (SuperOps) | Ticket response-time aggregation |
-| Secure Score | Graph Secure Score + consent |
-| MFA coverage / users without MFA | Graph auth methods/registration reports + consent |
-| ITDR narrative outcomes | Huntress ITDR event mapping |
-| Restore points kept (Dropsuite) | Extra API field |
-| “What we’ve done for you” activity | Cross-product event pipeline |
-| Incidents this month vs open/resolved snapshot | Period-scoped Huntress query |
-
-## Layout files
-
-| File | Role |
+| Path | Role |
 |------|------|
-| `resources/views/dashboard/glance.blade.php` | New client home |
-| `resources/views/dashboard/partials/_service-column.blade.php` | Column card |
-| `resources/views/reports/index.blade.php` | Reports page |
-| `resources/views/dashboard/index.blade.php` | Legacy simple home (staff / no client) |
-| Controllers | `DashboardController`, `ClientReportsController` |
-
-## Branch / release
-
-1. Develop only on **`UIOverhaul`**.  
-2. When accepted: merge to `main` → Plesk deploy as usual.  
-3. Do **not** deploy mid-experiment without review.
+| `app/Services/Portal/ClientHomeOverviewService.php` | Column/metric assembly |
+| `resources/views/dashboard/glance.blade.php` | 1a home |
+| `resources/views/dashboard/partials/_glance-column.blade.php` | Source card |
+| `resources/views/reports/index.blade.php` | 1c report |
+| `ClientReportsController` | `/reports` |
 
 ## Changelog
 
 | Date | Note |
 |------|------|
-| 2026-08-10 | Branch + home glance UI + Reports scaffold + pipeline/setup callouts; Organisation kept. |
+| 2026-08-10 | Initial glance scaffold (wrong visual language). |
+| 2026-08-10 | **Rewrite** to match zip 1a/1c; explicit gaps kept. |
