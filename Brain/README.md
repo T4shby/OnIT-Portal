@@ -81,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Traffic lights: client-facing **why** sentence (`status_reason`) on cards/hero/reports — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Glance traffic lights: Healthy/Issues/Critical bands per feed + worst-case hero — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Reports: drop dual logo in rail (nav already brands); full-width shell; mobile stack + 44px targets — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Reports **CSS Grid** layout fix (Tailwind flex purge shoved main off-screen); glance live metrics only — [UIOverhaul.md](UIOverhaul.md) |

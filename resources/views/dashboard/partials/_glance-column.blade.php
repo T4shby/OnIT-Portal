@@ -26,25 +26,38 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icon !!}</svg>
             <div style="min-width:0">
                 <div style="font-size:14px;font-weight:600;line-height:1.25">{{ $col['title'] }}</div>
-                <div style="margin-top:2px;font-size:10.5px" class="glance-muted">{{ $col['source'] }}</div>
             </div>
         </div>
         <span class="glance-dot" style="background:{{ $dot }};margin-top:6px" title="{{ $col['status_label'] ?? '' }}"></span>
     </div>
 
-    @if(($col['message'] ?? null) && $state !== 'live')
-        <div style="border-radius:4px;border:1px solid rgba(250,204,21,.25);background:rgba(250,204,21,.06);padding:8px 10px">
-            <p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#FDE68A">
-                @if($state === 'not_sold') Not sold
-                @elseif($state === 'setup_needed') Setup needed
-                @elseif($state === 'platform') Platform off
-                @elseif($state === 'cold') Never loaded
-                @elseif($state === 'loading') Loading
-                @elseif($state === 'error') Error
-                @else Attention
-                @endif
+    @if(! empty($col['status_reason']) || (! empty($col['message']) && $state !== 'live'))
+        @php
+            $why = $col['status_reason'] ?? $col['message'];
+            $whyBorder = match ($tone) {
+                'ok' => 'rgba(34,197,94,.3)',
+                'bad' => 'rgba(239,68,68,.35)',
+                'warn' => 'rgba(250,204,21,.3)',
+                default => 'rgba(100,116,139,.3)',
+            };
+            $whyBg = match ($tone) {
+                'ok' => 'rgba(34,197,94,.08)',
+                'bad' => 'rgba(239,68,68,.1)',
+                'warn' => 'rgba(250,204,21,.08)',
+                default => 'rgba(100,116,139,.1)',
+            };
+            $whyLabel = match ($tone) {
+                'ok' => '#86EFAC',
+                'bad' => '#FCA5A5',
+                'warn' => '#FDE68A',
+                default => 'rgba(255,255,255,.7)',
+            };
+        @endphp
+        <div style="border-radius:4px;border:1px solid {{ $whyBorder }};background:{{ $whyBg }};padding:8px 10px">
+            <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.04em;color:{{ $whyLabel }}">
+                {{ $col['status_label'] ?? 'Status' }}
             </p>
-            <p style="margin:4px 0 0;font-size:11.5px;line-height:1.35" class="glance-muted">{{ \Illuminate\Support\Str::limit($col['message'], 120) }}</p>
+            <p style="margin:4px 0 0;font-size:12px;line-height:1.4" class="glance-muted">{{ $why }}</p>
         </div>
     @endif
 
@@ -81,7 +94,7 @@
     @endif
 
     @if(! empty($col['as_of']))
-        <p style="margin:0;font-size:10px;color:rgba(255,255,255,.35)">As of {{ $col['as_of']->timezone('Europe/London')->format('d M Y H:i') }} UK</p>
+        <p style="margin:0;font-size:10px;color:rgba(255,255,255,.35)">Updated {{ $col['as_of']->timezone('Europe/London')->format('d M Y H:i') }} UK</p>
     @endif
 
     @if(! empty($col['href']) && $state !== 'not_sold' && $state !== 'hidden')

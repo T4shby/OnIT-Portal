@@ -36,6 +36,22 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
         $h = $this->health('superOpsHealth', $summary);
         $this->assertSame($tone, $h['tone']);
         $this->assertSame($label, $h['status_label']);
+        $this->assertNotSame('', $h['status_reason'] ?? '');
+        $this->assertStringNotContainsStringIgnoringCase('sla', $h['status_reason'] ?? 'x');
+        $this->assertStringNotContainsStringIgnoringCase('superops', $h['status_reason'] ?? 'x');
+        $this->assertStringNotContainsStringIgnoringCase('graph', $h['status_reason'] ?? 'x');
+    }
+
+    public function test_offline_reason_is_plain_language(): void
+    {
+        $h = $this->health('superOpsHealth', (object) [
+            'openTicketsTotal' => 0,
+            'assetsOffline' => 31,
+            'assetsTotal' => 64,
+            'slaMetPercent' => 100,
+        ]);
+        $this->assertSame('bad', $h['tone']);
+        $this->assertStringContainsString('computers are offline', $h['status_reason']);
     }
 
     public function test_huntress_open_is_issues_until_three(): void
@@ -46,6 +62,7 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
             'agentsUnresponsive' => 0,
         ]);
         $this->assertSame('warn', $one['tone']);
+        $this->assertStringContainsString('security case', $one['status_reason']);
 
         $three = $this->health('huntressHealth', (object) [
             'openIncidents' => 3,
@@ -59,10 +76,12 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
     {
         $ok = $this->health('dropsuiteHealth', (object) ['failedLast24h' => 0]);
         $this->assertSame('ok', $ok['tone']);
+        $this->assertStringContainsString('backup', strtolower($ok['status_reason']));
 
         $fail = $this->health('dropsuiteHealth', (object) ['failedLast24h' => 2]);
         $this->assertSame('bad', $fail['tone']);
         $this->assertSame('Critical', $fail['status_label']);
+        $this->assertStringContainsString('backup', strtolower($fail['status_reason']));
     }
 
     public function test_m365_oversubscription(): void
@@ -78,6 +97,7 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
             'totalSeatsPurchased' => 100,
         ]);
         $this->assertSame('warn', $over['tone']);
+        $this->assertStringContainsString('licence', strtolower($over['status_reason']));
 
         $crit = $this->health('m365Health', (object) [
             'totalSeatsAssigned' => 120,

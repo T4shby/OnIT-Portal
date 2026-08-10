@@ -19,11 +19,7 @@ An early `UIOverhaul` commit reused the marketing heading-stack home (Logged in 
 
 Dots and pill labels are driven by `tone` + `status_label` on each column in `ClientHomeOverviewService`.
 
-| Band | Tone | Colour | Label (live) |
-|------|------|--------|----------------|
-| Healthy | `ok` | green | Healthy |
-| Issues | `warn` | yellow | Issues |
-| Critical | `bad` | red | Critical |
+Pill label is **Healthy / Issues / Critical**. Each column also exposes **`status_reason`**: one plain-English sentence for client admins (why this colour). Shown on cards, top pills (title tooltip), hero detail, and reports rows. No feed product names, mapping IDs, or “snapshot” jargon in that reason.
 
 ### Live service rules
 
@@ -75,4 +71,5 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 | 2026-08-10 | **Polish:** reports layout inline-safe; glance compact “not set up”; quieter activity. |
 | 2026-08-10 | **Reports layout:** CSS Grid (broken Tailwind flex purging). Home: pipeline rows removed; quieter activity; Pax8 logo white/`8` orange on dark. |
 | 2026-08-10 | **Traffic lights:** explicit Healthy / Issues / Critical bands per SuperOps, M365, Huntress, Dropsuite; hero takes worst. |
+| 2026-08-10 | **Why this colour:** `status_reason` plain English for client admins on each service card + hero detail. |
 | 2026-08-10 | **Reports width/mobile:** full content width (no 1280 cap); rail no secondary On IT logo; stack + larger tap targets on small screens. |

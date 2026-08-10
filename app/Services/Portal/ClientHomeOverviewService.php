@@ -96,7 +96,7 @@ class ClientHomeOverviewService
      * Hero takes the worst traffic light across sold live services (and product setup failures).
      *
      * @param  list<array<string, mixed>>  $columns
-     * @return array{title: string, status_line: string, status_tone: string}
+     * @return array{title: string, status_line: string, status_tone: string, status_detail: ?string}
      */
     private function heroFromColumns(Client $client, array $columns, bool $orgWide): array
     {
@@ -104,10 +104,13 @@ class ClientHomeOverviewService
         $critical = 0;
         $issues = 0;
         $setupAttention = 0;
+        $firstCriticalWhy = null;
+        $firstIssuesWhy = null;
 
         foreach ($columns as $col) {
             $s = (string) ($col['state'] ?? '');
             $tone = (string) ($col['tone'] ?? 'neutral');
+            $why = $this->clientFacingWhy($col);
 
             if ($s === 'not_sold' || $s === 'hidden') {
                 continue;
@@ -117,8 +120,10 @@ class ClientHomeOverviewService
                 $setupAttention++;
                 if ($tone === 'bad' || in_array($s, ['platform', 'error'], true)) {
                     $critical++;
+                    $firstCriticalWhy ??= $why;
                 } else {
                     $issues++;
+                    $firstIssuesWhy ??= $why;
                 }
 
                 continue;
@@ -128,8 +133,10 @@ class ClientHomeOverviewService
                 $live++;
                 if ($tone === 'bad') {
                     $critical++;
+                    $firstCriticalWhy ??= $why;
                 } elseif ($tone === 'warn') {
                     $issues++;
+                    $firstIssuesWhy ??= $why;
                 }
             }
         }
@@ -141,6 +148,7 @@ class ClientHomeOverviewService
                     ? '1 service needs critical attention.'
                     : "{$critical} services need critical attention.",
                 'status_tone' => 'bad',
+                'status_detail' => $firstCriticalWhy,
             ];
         }
 
@@ -153,6 +161,7 @@ class ClientHomeOverviewService
                     ? '1 service has issues to review.'
                     : "{$n} services have issues to review.",
                 'status_tone' => 'warn',
+                'status_detail' => $firstIssuesWhy,
             ];
         }
 
@@ -161,6 +170,7 @@ class ClientHomeOverviewService
                 'title' => 'Your IT at a glance',
                 'status_line' => 'All systems protected.',
                 'status_tone' => 'ok',
+                'status_detail' => 'Every connected service is healthy right now.',
             ];
         }
 
@@ -168,30 +178,48 @@ class ClientHomeOverviewService
             'title' => 'Your IT at a glance',
             'status_line' => 'Services not live yet.',
             'status_tone' => 'neutral',
+            'status_detail' => null,
         ];
+    }
+
+    /**
+     * Plain-English “why this colour” for client admins (not tech staff jargon).
+     */
+    private function clientFacingWhy(array $col): ?string
+    {
+        $reason = trim((string) ($col['status_reason'] ?? ''));
+        if ($reason !== '') {
+            return $reason;
+        }
+
+        $message = trim((string) ($col['message'] ?? ''));
+
+        return $message !== '' ? $message : null;
     }
 
     /**
      * Traffic-light band for live service health.
      *
-     * @return array{tone: string, status_label: string}
+     * @return array{tone: string, status_label: string, status_reason: string}
      */
-    private function healthBand(string $band): array
+    private function healthBand(string $band, string $reason): array
     {
         return match ($band) {
-            'critical' => ['tone' => 'bad', 'status_label' => 'Critical'],
-            'issues' => ['tone' => 'warn', 'status_label' => 'Issues'],
-            default => ['tone' => 'ok', 'status_label' => 'Healthy'],
+            'critical' => ['tone' => 'bad', 'status_label' => 'Critical', 'status_reason' => $reason],
+            'issues' => ['tone' => 'warn', 'status_label' => 'Issues', 'status_reason' => $reason],
+            default => ['tone' => 'ok', 'status_label' => 'Healthy', 'status_reason' => $reason],
         };
     }
 
+    private function countPhrase(int $n, string $one, string $many): string
+    {
+        return $n === 1 ? "1 {$one}" : "{$n} {$many}";
+    }
+
     /**
-     * SuperOps live health.
-     * Critical: open tickets ≥ 15, or SLA &lt; 90% (when sample exists), or offline ≥ 25% of fleet (min 5) or offline ≥ 20.
-     * Issues: open tickets ≥ 1, or any offline, or SLA &lt; 95%.
-     * Healthy: otherwise.
+     * SuperOps live health with client-facing reason.
      *
-     * @return array{tone: string, status_label: string}
+     * @return array{tone: string, status_label: string, status_reason: string}
      */
     private function superOpsHealth(object $summary): array
     {
@@ -204,24 +232,53 @@ class ClientHomeOverviewService
         $offlineCritical = $offline >= 20
             || ($total >= 5 && $offline / max($total, 1) >= 0.25);
 
-        if ($open >= 15 || ($slaVal !== null && $slaVal < 90) || $offlineCritical) {
-            return $this->healthBand('critical');
+        if ($open >= 15) {
+            return $this->healthBand(
+                'critical',
+                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').' — this is more than we would normally expect.',
+            );
         }
 
-        if ($open >= 1 || $offline > 0 || ($slaVal !== null && $slaVal < 95)) {
-            return $this->healthBand('issues');
+        if ($slaVal !== null && $slaVal < 90) {
+            return $this->healthBand(
+                'critical',
+                'We answered only '.rtrim(rtrim(number_format($slaVal, 1), '0'), '.').'% of tickets within the agreed time this month.',
+            );
         }
 
-        return $this->healthBand('healthy');
+        if ($offlineCritical) {
+            return $this->healthBand(
+                'critical',
+                $this->countPhrase($offline, 'computer is offline', 'computers are offline').' and not checking in.',
+            );
+        }
+
+        if ($open >= 1) {
+            return $this->healthBand(
+                'issues',
+                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').'.',
+            );
+        }
+
+        if ($offline > 0) {
+            return $this->healthBand(
+                'issues',
+                $this->countPhrase($offline, 'computer is offline', 'computers are offline').' and not checking in.',
+            );
+        }
+
+        if ($slaVal !== null && $slaVal < 95) {
+            return $this->healthBand(
+                'issues',
+                'Response times dipped to '.rtrim(rtrim(number_format($slaVal, 1), '0'), '.').'% of the agreed target this month.',
+            );
+        }
+
+        return $this->healthBand('healthy', 'Tickets and devices look in good shape.');
     }
 
     /**
-     * M365 live health (licence snapshot).
-     * Critical: assigned seats materially over purchased (&gt;110% of purchased when purchased &gt; 0).
-     * Issues: any over-assignment (assigned &gt; purchased).
-     * Healthy: otherwise.
-     *
-     * @return array{tone: string, status_label: string}
+     * @return array{tone: string, status_label: string, status_reason: string}
      */
     private function m365Health(object $summary): array
     {
@@ -232,23 +289,24 @@ class ClientHomeOverviewService
             $a = (int) $assigned;
             $p = (int) $purchased;
             if ($a > (int) round($p * 1.10)) {
-                return $this->healthBand('critical');
+                return $this->healthBand(
+                    'critical',
+                    "More Microsoft 365 licences are in use ({$a}) than you have paid for ({$p}).",
+                );
             }
             if ($a > $p) {
-                return $this->healthBand('issues');
+                return $this->healthBand(
+                    'issues',
+                    "A few more licences are assigned ({$a}) than purchased ({$p}). We should review this with you.",
+                );
             }
         }
 
-        return $this->healthBand('healthy');
+        return $this->healthBand('healthy', 'Microsoft 365 licences look fine.');
     }
 
     /**
-     * Huntress live health.
-     * Critical: open incidents ≥ 3, or unresponsive agents ≥ 20% of agents (min 5 unresponsive).
-     * Issues: any open incident, or any unresponsive agents.
-     * Healthy: otherwise.
-     *
-     * @return array{tone: string, status_label: string}
+     * @return array{tone: string, status_label: string, status_reason: string}
      */
     private function huntressHealth(object $summary): array
     {
@@ -259,33 +317,52 @@ class ClientHomeOverviewService
 
         $unrespCritical = $un >= 5 && $agents > 0 && ($un / $agents) >= 0.20;
 
-        if ($open >= 3 || $unrespCritical) {
-            return $this->healthBand('critical');
+        if ($open >= 3) {
+            return $this->healthBand(
+                'critical',
+                $this->countPhrase($open, 'security case is open', 'security cases are open').' and needing attention.',
+            );
         }
 
-        if ($open >= 1 || $un > 0) {
-            return $this->healthBand('issues');
+        if ($unrespCritical) {
+            return $this->healthBand(
+                'critical',
+                $this->countPhrase($un, 'computer is not protected right now', 'computers are not protected right now').' (protection software is not reporting in).',
+            );
         }
 
-        return $this->healthBand('healthy');
+        if ($open >= 1) {
+            return $this->healthBand(
+                'issues',
+                $this->countPhrase($open, 'security case is open', 'security cases are open').' — our team is on it.',
+            );
+        }
+
+        if ($un > 0) {
+            return $this->healthBand(
+                'issues',
+                $this->countPhrase($un, 'computer is not protected right now', 'computers are not protected right now').'.',
+            );
+        }
+
+        return $this->healthBand('healthy', 'No open security cases. Devices are protected.');
     }
 
     /**
-     * Dropsuite live health.
-     * Critical: any failed/retrying backup in the last 24h feed.
-     * Healthy: otherwise (no "issues" band without partial signals).
-     *
-     * @return array{tone: string, status_label: string}
+     * @return array{tone: string, status_label: string, status_reason: string}
      */
     private function dropsuiteHealth(object $summary): array
     {
         $failed = (int) ($summary->failedLast24h ?? $summary->failedBackupsCount ?? 0);
 
         if ($failed > 0) {
-            return $this->healthBand('critical');
+            return $this->healthBand(
+                'critical',
+                $this->countPhrase($failed, 'backup did not complete cleanly', 'backups did not complete cleanly').' in the last 24 hours.',
+            );
         }
 
-        return $this->healthBand('healthy');
+        return $this->healthBand('healthy', 'Email and data backups are running normally.');
     }
 
     /**
@@ -344,7 +421,7 @@ class ClientHomeOverviewService
             $this->metric(
                 'SLA met',
                 $summary->slaMetPercent !== null ? $summary->slaMetPercent.'%' : null,
-                $summary->slaSampleSize !== null ? 'sample '.$summary->slaSampleSize : null,
+                $summary->slaSampleSize !== null ? 'of '.$summary->slaSampleSize.' tickets' : null,
             ),
         ];
 
@@ -354,6 +431,7 @@ class ClientHomeOverviewService
             'state' => 'live',
             'tone' => $health['tone'],
             'status_label' => $health['status_label'],
+            'status_reason' => $health['status_reason'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -390,6 +468,7 @@ class ClientHomeOverviewService
                 'state' => 'live',
                 'tone' => 'ok',
                 'status_label' => 'Healthy',
+                'status_reason' => 'Open Microsoft 365 for your people and groups.',
                 'message' => null,
                 'metrics' => [
                     $this->metric('Directory', 'Open Microsoft 365', null),
@@ -447,6 +526,7 @@ class ClientHomeOverviewService
             'state' => 'live',
             'tone' => $health['tone'],
             'status_label' => $health['status_label'],
+            'status_reason' => $health['status_reason'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -493,8 +573,8 @@ class ClientHomeOverviewService
             $this->metric('Agent coverage', $summary->agentsTotal, null),
             $this->metric('24/7 monitoring', $summary->agentsTotal !== null ? 'Active' : null, null),
             $this->metric('Open incidents', $summary->openIncidents, null),
-            $this->metric('Remediated', $summary->resolvedIncidents, 'snapshot'),
-            $this->metric('Unresponsive agents', $summary->agentsUnresponsive, null),
+            $this->metric('Remediated', $summary->resolvedIncidents, 'handled'),
+            $this->metric('Devices not reporting', $summary->agentsUnresponsive, null),
         ];
 
         $health = $this->huntressHealth($summary);
@@ -503,6 +583,7 @@ class ClientHomeOverviewService
             'state' => 'live',
             'tone' => $health['tone'],
             'status_label' => $health['status_label'],
+            'status_reason' => $health['status_reason'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -573,6 +654,7 @@ class ClientHomeOverviewService
             'state' => 'live',
             'tone' => $health['tone'],
             'status_label' => $health['status_label'],
+            'status_reason' => $health['status_reason'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -605,6 +687,7 @@ class ClientHomeOverviewService
             'state' => 'live_candidate',
             'tone' => 'neutral',
             'status_label' => '—',
+            'status_reason' => null,
             'message' => null,
             'metrics' => [],
             'as_of' => null,
@@ -623,7 +706,7 @@ class ClientHomeOverviewService
             return $this->markState(
                 $column,
                 'not_sold',
-                'Not sold for this organisation. Contact your account manager if you want this enabling.',
+                'This is not part of your current plan. Ask your On IT account manager if you would like it added.',
             );
         }
 
@@ -631,7 +714,7 @@ class ClientHomeOverviewService
             return $this->markState(
                 $column,
                 'setup_needed',
-                'Sold but not fully linked (mapping ID / tenant). Contact your account manager — technicians will finish setup.',
+                'We are still finishing the connection for this service. Your On IT account manager can help if this stays open.',
             );
         }
 
@@ -639,7 +722,7 @@ class ClientHomeOverviewService
             return $this->markState(
                 $column,
                 'platform',
-                'On IT platform credentials for this product are off or incomplete. Staff must enable in portal config.',
+                'This service is temporarily unavailable on our side. On IT is fixing it.',
             );
         }
 
@@ -647,7 +730,7 @@ class ClientHomeOverviewService
             return $this->markState(
                 $column,
                 'error',
-                'Recent refresh failed for this product. Staff: check Integration Health last_result; map ID and credentials.',
+                'We could not update this service just now. On IT is looking into it.',
             );
         }
 
@@ -679,13 +762,48 @@ class ClientHomeOverviewService
             default => 'Issues',
         };
 
+        $friendly = $this->clientFacingStatusMessage($state, $message, (string) ($column['title'] ?? 'This service'));
+
         return array_merge($column, [
             'state' => $state,
             'tone' => $tone,
             'status_label' => $label,
-            'message' => $message,
+            'status_reason' => $friendly,
+            'message' => $friendly,
             'metrics' => $column['metrics'] ?? [],
         ]);
+    }
+
+    /**
+     * Prefer plain language for client admins; hide technical feed errors.
+     */
+    private function clientFacingStatusMessage(string $state, string $message, string $serviceTitle): string
+    {
+        $trimmed = trim($message);
+        $lower = strtolower($trimmed);
+
+        // Already written for clients (our product copy).
+        if (
+            str_contains($lower, 'on it')
+            || str_contains($lower, 'your account manager')
+            || str_contains($lower, 'your current plan')
+            || str_contains($lower, 'loading the latest')
+            || str_contains($lower, 'gathering the latest')
+            || str_contains($lower, 'temporarily unavailable')
+            || str_contains($lower, 'could not update')
+            || str_contains($lower, 'still finishing')
+        ) {
+            return $trimmed;
+        }
+
+        return match ($state) {
+            'loading' => 'Loading the latest figures…',
+            'cold' => "We do not have the latest {$serviceTitle} figures yet. They will appear automatically when ready.",
+            'setup_needed' => 'We are still finishing the connection for this service. Your On IT account manager can help if this stays open.',
+            'platform', 'error' => 'We could not update this service just now. On IT is looking into it.',
+            'not_sold' => 'This is not part of your current plan. Ask your On IT account manager if you would like it added.',
+            default => $trimmed !== '' ? $trimmed : "Status for {$serviceTitle} is being checked.",
+        };
     }
 
     /**

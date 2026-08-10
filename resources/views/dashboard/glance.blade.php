@@ -83,6 +83,11 @@
                 <p style="margin:10px 0 0;font-size:14px" class="glance-muted">
                     {{ $period }} · {{ $clientName }}
                 </p>
+                @if(! empty($hero['status_detail']))
+                    <p style="margin:8px 0 0;font-size:13px;line-height:1.45;max-width:40rem" class="glance-muted">
+                        {{ $hero['status_detail'] }}
+                    </p>
+                @endif
             </div>
             <div class="glance-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
                 <span style="background:#FF7000;font-weight:600;color:#fff">This month</span>
@@ -111,7 +116,7 @@
                         default => $col['status_label'] ?? '—',
                     };
                 @endphp
-                <div class="glance-pill">
+                <div class="glance-pill" title="{{ $col['status_reason'] ?? $col['status_label'] ?? '' }}">
                     <span class="glance-dot" style="background:{{ $dot }}"></span>
                     <span>{{ $col['title'] }}</span>
                     <span style="font-size:11px" class="glance-muted">{{ $short }}</span>

@@ -307,16 +307,15 @@
                     @foreach($cols as $col)
                         @php
                             $tone = $col['tone'] ?? 'neutral';
-                            $statusShort = match ($col['state'] ?? '') {
-                                'live' => $col['status_label'] ?? 'Live',
-                                'not_sold' => 'Not sold',
-                                'setup_needed' => 'Setup needed',
-                                'platform' => 'Platform off',
-                                'cold' => 'Never loaded',
-                                'loading' => 'Loading',
-                                'error' => 'Error',
-                                default => $col['status_label'] ?? '—',
-                            };
+                            $statusShort = $col['status_label']
+                                ?? match ($col['state'] ?? '') {
+                                    'live' => 'Healthy',
+                                    'not_sold' => 'Not sold',
+                                    'setup_needed' => 'Setup needed',
+                                    'loading' => 'Loading',
+                                    default => '—',
+                                };
+                            $why = $col['status_reason'] ?? $col['message'] ?? null;
                             $pillBg = match ($tone) {
                                 'ok' => 'rgba(34,197,94,.1)',
                                 'warn' => 'rgba(250,204,21,.14)',
@@ -363,9 +362,11 @@
                             <div class="rp-row-top">
                                 <div style="min-width:0">
                                     <div style="font-size:14px;font-weight:600">{{ $col['title'] }}</div>
-                                    <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $col['source'] }}</div>
+                                    @if($why)
+                                        <div class="rp-muted" style="font-size:12px;margin-top:4px;line-height:1.35;max-width:28rem">{{ $why }}</div>
+                                    @endif
                                 </div>
-                                <span class="rp-row-status" style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:4px;font-size:11.5px;font-weight:600;background:{{ $pillBg }};color:{{ $pillColor }};width:fit-content">
+                                <span class="rp-row-status" title="{{ $why }}" style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:4px;font-size:11.5px;font-weight:600;background:{{ $pillBg }};color:{{ $pillColor }};width:fit-content">
                                     <span style="width:7px;height:7px;border-radius:50%;background:{{ $dot }};flex:none"></span>
                                     {{ $statusShort }}
                                 </span>
@@ -385,7 +386,7 @@
                                 <a class="rp-link" href="{{ $col['href'] }}">Details →</a>
                             @endif
                         </div>
-                        @if(($col['state'] ?? '') !== 'live' && ! empty($col['message']))
+                        @if(($col['state'] ?? '') !== 'live' && ! empty($col['message']) && empty($why))
                             <p class="rp-note" style="margin:-2px 0 12px 4px">{{ $col['message'] }}</p>
                         @endif
                     @endforeach
