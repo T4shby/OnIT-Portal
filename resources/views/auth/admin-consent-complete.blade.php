@@ -46,11 +46,14 @@
                             @endforeach
                             <li class="text-white/70">
                                 Orange items are usually Azure lag (e.g. Client SSO group assign), not a failed Accept.
-                                Sign in → Edit client → <strong class="text-white/85">Retry Graph setup</strong> if needed,
-                                then continue checklist (SCIM / Client SSO). Do not re-Accept unless Graph app permissions changed.
+                                Sign in → Edit client → <strong class="text-white/85">Retry Graph setup</strong> if needed.
+                                Do not re-Accept unless Graph Application permissions changed again.
                             </li>
-                        @else
-                            <li>Return to the portal checklist — SuperOps SCIM tokens and Client SSO SAML still need SuperOps UI steps</li>
+                        @elseif(! empty($bootstrap['ok']))
+                            <li>
+                                Consent and Graph setup look complete for this tenant.
+                                Secure Score / MFA appear after the next Microsoft 365 insights refresh — no SCIM or Client SSO redo.
+                            </li>
                         @endif
                     </ul>
 
