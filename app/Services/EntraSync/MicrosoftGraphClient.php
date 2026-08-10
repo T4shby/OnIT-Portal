@@ -2416,8 +2416,14 @@ class MicrosoftGraphClient
             $this->ensureBasicSamlClaimsMappingPolicy($tenantId, $servicePrincipalId);
             $details[] = 'SAML claims email/firstname/lastname policy assigned (or already present)';
         } catch (Throwable $e) {
-            $warnings[] = 'SAML claims not auto-applied: '.$e->getMessage()
-                .' — if SuperOps fails login, set Attributes & Claims in Azure: email=user.mail, firstname=user.givenname, lastname=user.surname.';
+            // Claims are required for clean SuperOps login; main SAML wire still succeeded above.
+            // Do not shrug this as "optional meh" — surface as warning with remediation after retries.
+            $warnings[] = 'SAML claims policy NOT applied (after Graph retries): '.$e->getMessage();
+            Log::warning('Client SSO SAML claims mapping failed after retries', [
+                'tenant_id' => $tenantId,
+                'service_principal_id' => $servicePrincipalId,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $certificateBase64 = $this->ensureTokenSigningCertificateBase64($tenantId, $servicePrincipalId);
@@ -2523,17 +2529,127 @@ class MicrosoftGraphClient
             ],
         ], JSON_UNESCAPED_SLASHES);
 
+        // SP must be readable in this tenant before policy $ref assign (404 Directory_ObjectNotFound otherwise).
+        $this->waitUntilServicePrincipalReadable($tenantId, $servicePrincipalId);
+
+        if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
+            return;
+        }
+
+        $policyId = $this->resolveOrCreateClaimsMappingPolicyId($tenantId, $policyName, $definitionJson);
+        $this->waitUntilClaimsMappingPolicyReadable($tenantId, $policyId);
+
+        $lastStatus = null;
+        $lastBody = '';
+        for ($attempt = 1; $attempt <= 8; $attempt++) {
+            if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
+                return;
+            }
+
+            // Re-resolve SP id by current object (handles rare SP replace mid-bootstrap).
+            $spCheck = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
+                ['$select' => 'id'],
+            );
+            if ($spCheck->status() === 404) {
+                throw new RuntimeException(
+                    'Service principal disappeared while assigning SAML claims (HTTP 404). '
+                    .'Re-run Wire SuperOps into Microsoft Entra on Edit Client; do not recreate SuperOps Client SSO in SuperOps unless wire fails after 2 minutes.'
+                );
+            }
+
+            $assign = $this->graphPost(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/claimsMappingPolicies/\$ref",
+                [
+                    '@odata.id' => "https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies/{$policyId}",
+                ],
+            );
+
+            $lastStatus = $assign->status();
+            $lastBody = $assign->body();
+
+            if ($assign->successful() || $assign->status() === 204
+                || str_contains($lastBody, 'already')) {
+                usleep(400_000);
+                if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
+                    return;
+                }
+            }
+
+            // 400 often means already assigned under another name or conflict — re-check list.
+            if ($assign->status() === 400) {
+                usleep(500_000);
+                if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
+                    return;
+                }
+            }
+
+            // 404 / 429 / 5xx: directory replication or throttle — wait and retry.
+            if (in_array($assign->status(), [404, 408, 409, 429, 500, 502, 503, 504], true)
+                || $assign->failed()) {
+                usleep(min(2_000_000, 250_000 * $attempt * $attempt));
+                // Policy may have been created under another attempt / concurrent wire.
+                try {
+                    $policyId = $this->resolveOrCreateClaimsMappingPolicyId($tenantId, $policyName, $definitionJson);
+                    $this->waitUntilClaimsMappingPolicyReadable($tenantId, $policyId, maxAttempts: 4);
+                } catch (Throwable) {
+                    // keep last error below
+                }
+
+                continue;
+            }
+
+            break;
+        }
+
+        if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Assign claims mapping policy failed after retries'
+            .($lastStatus !== null ? " (last HTTP {$lastStatus})" : '')
+            .($lastBody !== '' ? ': '.$this->shortGraphErrorBody($lastBody) : '.')
+            .' Policy Id '.$policyId.' → service principal '.$servicePrincipalId.'. '
+            .'This is a real Graph failure (policy assign), not a soft success. '
+            .'Fix: (1) Re-run Wire after ~2 minutes; (2) confirm Policy.ReadWrite.ApplicationConfiguration consented in this customer; '
+            .'(3) or set Attributes & Claims manually on the Client SSO enterprise app: email=user.mail, firstname=user.givenname, lastname=user.surname.'
+        );
+    }
+
+    private function servicePrincipalHasClaimsPolicyNamed(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $policyName,
+    ): bool {
         $existingAssigned = $this->graphGet(
             $tenantId,
             "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/claimsMappingPolicies",
         );
 
-        if ($existingAssigned->successful()) {
-            foreach ($existingAssigned->json('value') ?? [] as $policy) {
-                if (strcasecmp((string) ($policy['displayName'] ?? ''), $policyName) === 0) {
-                    return;
-                }
+        if (! $existingAssigned->successful()) {
+            return false;
+        }
+
+        foreach ($existingAssigned->json('value') ?? [] as $policy) {
+            if (strcasecmp((string) ($policy['displayName'] ?? ''), $policyName) === 0) {
+                return true;
             }
+        }
+
+        return false;
+    }
+
+    private function resolveOrCreateClaimsMappingPolicyId(
+        string $tenantId,
+        string $policyName,
+        string $definitionJson,
+    ): string {
+        $listed = $this->findClaimsMappingPolicyIdByName($tenantId, $policyName);
+        if ($listed !== null) {
+            return $listed;
         }
 
         $create = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies', [
@@ -2548,36 +2664,76 @@ class MicrosoftGraphClient
             );
         }
 
-        if ($create->failed() || empty($create->json('id'))) {
-            // Reuse if already exists by display name
-            $list = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies', [
-                '$filter' => "displayName eq '".str_replace("'", "''", $policyName)."'",
-            ]);
-            $policyId = (string) (($list->json('value')[0]['id'] ?? ''));
-            if ($policyId === '') {
-                throw new RuntimeException(
-                    'Create claims mapping policy failed: '.$create->status().' '.$create->body()
-                );
-            }
-        } else {
-            $policyId = (string) $create->json('id');
+        $policyId = (string) ($create->json('id') ?? '');
+        if ($policyId !== '') {
+            return $policyId;
         }
 
-        $assign = $this->graphPost(
-            $tenantId,
-            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/claimsMappingPolicies/\$ref",
-            [
-                '@odata.id' => "https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies/{$policyId}",
-            ],
+        // Create may race / conflict if another Wire request just created it.
+        $again = $this->findClaimsMappingPolicyIdByName($tenantId, $policyName);
+        if ($again !== null) {
+            return $again;
+        }
+
+        throw new RuntimeException(
+            'Create claims mapping policy failed: '.$create->status().' '.$this->shortGraphErrorBody($create->body())
         );
+    }
 
-        if ($assign->failed() && $assign->status() !== 204
-            && ! str_contains($assign->body(), 'already')
-            && $assign->status() !== 400) {
-            throw new RuntimeException(
-                'Assign claims mapping policy failed: '.$assign->status().' '.$assign->body()
-            );
+    private function findClaimsMappingPolicyIdByName(string $tenantId, string $policyName): ?string
+    {
+        $list = $this->graphGet($tenantId, 'https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies', [
+            '$filter' => "displayName eq '".str_replace("'", "''", $policyName)."'",
+        ]);
+
+        if (! $list->successful()) {
+            return null;
         }
+
+        $id = (string) (($list->json('value')[0]['id'] ?? ''));
+
+        return $id !== '' ? $id : null;
+    }
+
+    private function waitUntilClaimsMappingPolicyReadable(
+        string $tenantId,
+        string $policyId,
+        int $maxAttempts = 10,
+    ): void {
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $get = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/policies/claimsMappingPolicies/{$policyId}",
+                ['$select' => 'id,displayName'],
+            );
+            if ($get->successful() && filled($get->json('id'))) {
+                return;
+            }
+            usleep(min(1_500_000, 200_000 * $attempt));
+        }
+
+        throw new RuntimeException(
+            "Claims mapping policy {$policyId} not readable in Graph after create (directory not ready). Re-run Wire in 1–2 minutes."
+        );
+    }
+
+    private function waitUntilServicePrincipalReadable(string $tenantId, string $servicePrincipalId): void
+    {
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $get = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
+                ['$select' => 'id,appId,displayName'],
+            );
+            if ($get->successful() && filled($get->json('id'))) {
+                return;
+            }
+            usleep(min(1_500_000, 200_000 * $attempt));
+        }
+
+        throw new RuntimeException(
+            "Service principal {$servicePrincipalId} not readable before claims assign. Re-run Wire SuperOps into Microsoft Entra after Connect/bootstrap settles."
+        );
     }
 
     /**
