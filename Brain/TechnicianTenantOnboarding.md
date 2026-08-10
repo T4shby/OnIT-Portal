@@ -36,6 +36,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 3. Sign in with On IT **GDAP** so you land in the **customer** tenant (do **not** open On IT then switch).
 4. **Accept** permissions. Portal **waits/retries Graph**, then writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
 5. If group or app IDs still empty: **Retry Graph setup** at the top of the guide (not a second Accept). Re-consent only if platform permissions changed.
+6. **Platform permission adds** (On IT tenant Step 0 — e.g. Secure Score / MFA): after Grant consent in On IT, **re-Accept once per customer**. Do **not** delete the client or redo SuperOps SCIM/SSO from scratch — [CustomerEntraSyncRunbook.md §0.3a](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
 
 Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 

@@ -27,6 +27,7 @@ class ClientOperationsSummary
         public readonly bool $isStale,
         public readonly bool $refreshInProgress,
         public readonly ?string $unavailableReason = null,
+        public readonly ?int $waitingOnClientTotal = null,
     ) {}
 
     public function hasData(): bool

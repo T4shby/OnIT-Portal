@@ -41,3 +41,8 @@ Schedule::call(function () {
         now()->addDay(),
     );
 })->everyMinute()->name('portal-scheduler-tick');
+
+// Nightly org metric snapshots for glance/report “last month” compare.
+Schedule::command('portal:capture-metric-snapshots')
+    ->dailyAt('02:15')
+    ->withoutOverlapping(120);

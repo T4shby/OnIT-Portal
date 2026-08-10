@@ -92,7 +92,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 
 1. **Microsoft Entra ID → App registrations → OnIT Portal for Portals → API permissions**
 2. **+ Add a permission → Microsoft Graph → Application permissions** (not Delegated)
-3. Add all Application permissions (see full table in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0), including Connect bootstrap:
+3. Add all Application permissions (see full table in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0), including Connect bootstrap + client security posture:
    - `User.Read.All`
    - `User.ReadWrite.All`
    - `LicenseAssignment.Read.All`
@@ -104,6 +104,9 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
    - `Application.Read.All`
    - `Application.ReadWrite.All` (create SuperOps SCIM + Client SSO apps)
    - `Synchronization.ReadWrite.All`
+   - `SecurityEvents.Read.All` (Secure Score on client Dashboard)
+   - `AuditLog.Read.All` (MFA registration report)
+   - `Reports.Read.All` (MFA registration report)
 4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
 ### Expected result
@@ -111,7 +114,9 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
 | Type | Permissions | Status |
 |------|-------------|--------|
 | Delegated (4) | email, openid, profile, User.Read | Granted |
-| Application (11) | User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, Group.ReadWrite.All, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, Application.ReadWrite.All, Synchronization.ReadWrite.All | Granted |
+| Application (14) | …eleven sync/bootstrap… + SecurityEvents.Read.All, AuditLog.Read.All, Reports.Read.All | Granted |
+
+After any **new** Application permission: re-Accept in each customer tenant (Connect Microsoft) — [runbook §0.3a](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time). Do not delete portal clients.
 
 ### Consent error fix
 

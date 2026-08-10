@@ -28,6 +28,18 @@ Account manager ↔ client many-to-many pivot (not a user role).
 
 Standard Laravel / audit tables.
 
+### client_metric_daily_snapshots
+
+Nightly (or on-demand) dashboard metric snapshots per client for **last-month compare** on glance home + Reports.
+
+| Column | Notes |
+|--------|--------|
+| `client_id` | FK → clients, cascade delete |
+| `snapshot_date` | Date (unique with client_id) |
+| `payload` | JSON: `overall_band`, `value` (threats/resolved/sla), `services.{key}.metrics` map |
+
+Command: `portal:capture-metric-snapshots` (scheduled **02:15** daily).
+
 ## Migrations
 
 - `0001_01_01_000000_create_users_table.php`
@@ -41,6 +53,7 @@ Standard Laravel / audit tables.
 - `2026_07_15_140000_add_dropsuite_organization_id_to_clients.php`
 - `2026_07_15_141000_add_huntress_organization_id_to_clients.php`
 - `2026_08_06_120000_add_product_entitlements_to_clients.php`
+- `2026_08_10_120000_create_client_metric_daily_snapshots_table.php`
 
 ## Tenant Rules
 

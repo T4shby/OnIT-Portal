@@ -147,4 +147,9 @@ class Client extends Model
     {
         return $this->hasMany(ClientOpportunity::class);
     }
+
+    public function metricDailySnapshots(): HasMany
+    {
+        return $this->hasMany(ClientMetricDailySnapshot::class);
+    }
 }

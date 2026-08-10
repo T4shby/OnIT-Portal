@@ -46,7 +46,21 @@ Hero uses the **worst** live/setup signal: critical → “N services need criti
 
 ## Live vs Not set up
 
-Numbers only from existing feeds. **Customer home/report cards only show live snapshot metrics** — missing mockup fields (Secure Score, MFA, avg response, MoM, activity history, restore retention) are omitted rather than listed as amber “Not set up” walls under every row. Value strip uses `—` when a headline number has no feed; never invent MTD.
+Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional posture fields (Secure Score, MFA) when Graph returns 403 / empty over walls of “Not set up”.
+
+### Shipped enrichment (2026-08-10 customer gap close)
+
+| Field | Source | Notes |
+|-------|--------|--------|
+| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v3` |
+| **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip prefers this over lifetime remediated |
+| **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
+| **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
+| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, toggle stays disabled with honest message |
+| **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
+| **Avg first response** | — | **Not shipped** — SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
+| **Device patch / need updates** | — | **Not shipped** — SuperOps asset payload has no patch posture fields yet |
+| **Restore retention days** | — | **Not shipped** — not in Dropsuite summary payload |
 
 ## Reports layout (critical)
 
@@ -59,6 +73,9 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 | Path | Role |
 |------|------|
 | `app/Services/Portal/ClientHomeOverviewService.php` | Column/metric assembly (live metrics only on home) |
+| `app/Services/Portal/ClientActivityFeedService.php` | Composed “what we’ve done” list |
+| `app/Services/Portal/ClientMetricSnapshotService.php` | Daily MoM snapshot store/compare |
+| `app/Console/Commands/CaptureClientMetricSnapshotsCommand.php` | `portal:capture-metric-snapshots` |
 | `resources/views/dashboard/glance.blade.php` | 1a home |
 | `resources/views/dashboard/partials/_glance-column.blade.php` | Source card |
 | `resources/views/reports/index.blade.php` | 1c report (CSS Grid, not Tailwind flex) |
@@ -68,6 +85,8 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-08-10 | **Customer gap close:** waiting-on-client; Huntress threats/responses MTD; activity feed; nightly metric snapshots + last-month deltas; Graph Secure Score/MFA (soft-fail). Still open: avg first response, patch posture, restore retention days. |
+| 2026-08-10 | **Security posture Graph:** `SecurityEvents.Read.All` + `AuditLog.Read.All` + `Reports.Read.All` on OnIT Portal for Portals; existing tenants re-Accept only — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md). |
 | 2026-08-10 | Initial glance scaffold (wrong visual language). |
 | 2026-08-10 | **Rewrite** to match zip 1a/1c; explicit gaps kept. |
 | 2026-08-10 | **Polish:** reports layout inline-safe; glance compact “not set up”; quieter activity. |

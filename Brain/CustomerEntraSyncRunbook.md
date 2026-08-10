@@ -142,6 +142,9 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | `Application.Read` | **Application.Read.All** | Resolve SuperOps Application (client) ID → enterprise app during sync |
 | `Application.ReadWrite` | **Application.ReadWrite.All** | Create SuperOps SCIM + Client SSO non-gallery apps + App role User on Connect |
 | `Synchronization.ReadWrite` | **Synchronization.ReadWrite.All** | Trigger SCIM provision-on-demand when portal Sync now runs |
+| `SecurityEvents` | **SecurityEvents.Read.All** | Microsoft Secure Score on client Dashboard / Reports (M365 column) |
+| `AuditLog` | **AuditLog.Read.All** | MFA registration coverage (auth methods report) |
+| `Reports.Read` | **Reports.Read.All** | MFA registration coverage (auth methods report) |
 
 5. Click **Add permissions** at the bottom of the panel
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
@@ -156,16 +159,27 @@ All **Application** rows must show:
 Expected Microsoft Graph permissions:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (11):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All
+**Application (14):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All, **SecurityEvents.Read.All**, **AuditLog.Read.All**, **Reports.Read.All**
 
-> **Connect Microsoft** (checklist 03/04) needs the two new Application permissions above. After adding them in the **On IT** tenant, re-run Connect / Accept once per customer so those permissions are consented there.
+> **Connect Microsoft** (checklist 03/04) and customer **re-consent** only pick up permissions that already exist on the app in the **On IT** tenant. After adding or changing Application permissions: (1) Grant consent in On IT, (2) **re-run Accept** once per customer — do **not** delete the client record or SuperOps Entra apps.
+
+### 0.3a Existing customers after a platform permission add (e.g. Secure Score / MFA)
+
+You do **not** need to delete clients, wipe SCIM, or redo SuperOps Client SSO.
+
+1. Complete Step 0.2–0.3 in the **On IT** tenant (new rows + Grant admin consent for On IT).
+2. For each **active** customer with `entra_tenant_id` already set: private/GDAP browser → Edit Client → orange **Connect Microsoft tenant** / **Accept** again (or the same Step 04 Accept link).
+3. Wait a few minutes for Graph; optional **Retry Graph setup** if bootstrap stages lag.
+4. Force an M365 insights refresh (prewarm / Organisation visit); Secure Score and MFA appear only when consent includes the three security report permissions. Licence util continues to work either way.
+
+If Accept shows only the **new** permissions, that is normal — Azure is extending the grant. If Accept errors on RequiredResourceAccess, refresh Azure API permissions page, re-Grant in On IT, wait 2–3 minutes, retry customer Accept.
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`
 
 This happened on first deploy (June 2026). **Fix:**
 
 1. **Refresh the browser page** (F5)
-2. Confirm all **nine** Application permissions still appear in the table
+2. Confirm all Application permissions still appear in the table
 3. Click **Grant admin consent for On IT Technology Partners LTD** again
 
 That was enough — no manifest edit, no PowerShell. If it still fails after refresh, wait 2–3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
@@ -395,6 +409,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-08-10 | Graph **Application (14):** add `SecurityEvents.Read.All`, `AuditLog.Read.All`, `Reports.Read.All` for Secure Score + MFA on client home; existing customers **re-consent only** (§0.3a) |
 | 2026-08-06 | Step 08 + all 12: automation-first guide; Wire SuperOps wording in brain runbooks |
 | 2026-08-04 | Scrub pilot client names and GUIDs from steps; placeholders `{Company}` only |
 | 2026-07-14 | Step 08 changed from Global SSO Accept to per-customer SuperOps Client SSO |

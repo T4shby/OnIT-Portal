@@ -51,6 +51,10 @@ class M365InsightsService
             isStale: true,
             refreshInProgress: true,
             unavailableReason: 'Data has not been synchronised yet.',
+            secureScorePct: null,
+            mfaRegisteredPct: null,
+            mfaUserSample: null,
+            securityMetricsNote: null,
         );
     }
 
@@ -193,6 +197,14 @@ class M365InsightsService
                 return $sku;
             }, $topSkus);
 
+            $secure = $this->graph->getSecureScoreSummary((string) $client->entra_tenant_id);
+            $mfa = $this->graph->getMfaRegistrationSummary((string) $client->entra_tenant_id);
+
+            $securityNotes = array_values(array_filter([
+                ! ($secure['available'] ?? false) ? ($secure['reason'] ?? null) : null,
+                ! ($mfa['available'] ?? false) ? ($mfa['reason'] ?? null) : null,
+            ]));
+
             $payload = [
                 'licensed_user_count' => $licensedUserCount,
                 'total_seats_purchased' => $totalSeatsPurchased,
@@ -201,6 +213,10 @@ class M365InsightsService
                     ? round(($totalSeatsAssigned / $totalSeatsPurchased) * 100, 1)
                     : 0.0,
                 'top_skus' => array_slice($topSkus, 0, 8),
+                'secure_score_pct' => ($secure['available'] ?? false) ? $secure['percentage'] : null,
+                'mfa_registered_pct' => ($mfa['available'] ?? false) ? $mfa['registered_pct'] : null,
+                'mfa_user_sample' => ($mfa['available'] ?? false) ? $mfa['total_users'] : null,
+                'security_metrics_note' => $securityNotes !== [] ? implode(',', $securityNotes) : null,
                 'last_refreshed_at' => now()->toIso8601String(),
             ];
 
@@ -289,6 +305,18 @@ class M365InsightsService
             isStale: $isStale,
             refreshInProgress: $refreshInProgress || $this->refreshInProgress($clientId),
             unavailableReason: null,
+            secureScorePct: isset($payload['secure_score_pct']) && is_numeric($payload['secure_score_pct'])
+                ? (float) $payload['secure_score_pct']
+                : null,
+            mfaRegisteredPct: isset($payload['mfa_registered_pct']) && is_numeric($payload['mfa_registered_pct'])
+                ? (float) $payload['mfa_registered_pct']
+                : null,
+            mfaUserSample: isset($payload['mfa_user_sample']) && is_numeric($payload['mfa_user_sample'])
+                ? (int) $payload['mfa_user_sample']
+                : null,
+            securityMetricsNote: isset($payload['security_metrics_note'])
+                ? (string) $payload['security_metrics_note']
+                : null,
         );
     }
 
@@ -304,6 +332,10 @@ class M365InsightsService
             isStale: false,
             refreshInProgress: false,
             unavailableReason: $reason,
+            secureScorePct: null,
+            mfaRegisteredPct: null,
+            mfaUserSample: null,
+            securityMetricsNote: null,
         );
     }
 
@@ -343,6 +375,6 @@ class M365InsightsService
 
     public function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:m365-insights:v3";
+        return "client:{$clientId}:m365-insights:v4";
     }
 }

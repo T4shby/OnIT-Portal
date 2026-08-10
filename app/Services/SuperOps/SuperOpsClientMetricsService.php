@@ -41,6 +41,16 @@ class SuperOpsClientMetricsService
     ];
 
     /**
+     * Open tickets waiting on the customer (client admin action needed).
+     *
+     * @var list<string>
+     */
+    public const WAITING_ON_CLIENT_STATUSES = [
+        'Waiting on Client',
+        'Waiting on Customer',
+    ];
+
+    /**
      * Lower sort weight = higher priority in open-ticket table.
      *
      * @var array<string, int>
@@ -129,6 +139,7 @@ class SuperOpsClientMetricsService
             isStale: true,
             refreshInProgress: true,
             unavailableReason: 'Data has not been synchronised yet.',
+            waitingOnClientTotal: null,
         );
     }
 
@@ -174,6 +185,13 @@ class SuperOpsClientMetricsService
             $byPriority[$priority] = ($byPriority[$priority] ?? 0) + 1;
         }
 
+        $waiting = 0;
+        foreach ($mine as $row) {
+            if ($this->isWaitingOnClientStatus((string) ($row['status'] ?? ''))) {
+                $waiting++;
+            }
+        }
+
         return new ClientOperationsSummary(
             assetsTotal: null,
             assetsOnline: null,
@@ -189,6 +207,7 @@ class SuperOpsClientMetricsService
             isStale: $summary->isStale,
             refreshInProgress: $summary->refreshInProgress,
             unavailableReason: $summary->unavailableReason,
+            waitingOnClientTotal: $waiting,
         );
     }
 
@@ -297,6 +316,7 @@ class SuperOpsClientMetricsService
                 'assets_online' => $assetHealth['online'],
                 'assets_offline' => $assetHealth['offline'],
                 'open_tickets_total' => $this->countOpenTickets($tickets),
+                'waiting_on_client_total' => $this->countWaitingOnClient($tickets),
                 'open_tickets_by_priority' => $this->openTicketsByPriority($tickets),
                 'open_tickets_table' => $this->openTicketsTable($tickets),
                 'sla_met_percent' => $this->slaMetPercent($tickets),
@@ -501,6 +521,27 @@ class SuperOpsClientMetricsService
         }
 
         return $count;
+    }
+
+    /**
+     * @param  list<array{status: string}>  $tickets
+     */
+    private function countWaitingOnClient(array $tickets): int
+    {
+        $count = 0;
+
+        foreach ($tickets as $ticket) {
+            if ($this->isWaitingOnClientStatus($ticket['status'] ?? '')) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    private function isWaitingOnClientStatus(string $status): bool
+    {
+        return in_array($status, self::WAITING_ON_CLIENT_STATUSES, true);
     }
 
     /**
@@ -774,6 +815,16 @@ class SuperOpsClientMetricsService
             ));
         }
 
+        $waiting = $payload['waiting_on_client_total'] ?? null;
+        if ($waiting === null && is_array($payload['open_tickets_table'] ?? null)) {
+            $waiting = 0;
+            foreach ($payload['open_tickets_table'] as $row) {
+                if (is_array($row) && $this->isWaitingOnClientStatus((string) ($row['status'] ?? ''))) {
+                    $waiting++;
+                }
+            }
+        }
+
         return new ClientOperationsSummary(
             assetsTotal: $payload['assets_total'] ?? null,
             assetsOnline: $payload['assets_online'] ?? null,
@@ -788,6 +839,7 @@ class SuperOpsClientMetricsService
             lastRefreshedAt: $lastRefreshedAt,
             isStale: $isStale,
             refreshInProgress: $refreshInProgress || Cache::has('superops_dashboard.refresh_queued.'.$clientId),
+            waitingOnClientTotal: is_numeric($waiting) ? (int) $waiting : null,
         );
     }
 
@@ -808,6 +860,7 @@ class SuperOpsClientMetricsService
             isStale: false,
             refreshInProgress: false,
             unavailableReason: $reason,
+            waitingOnClientTotal: null,
         );
     }
 
@@ -821,7 +874,7 @@ class SuperOpsClientMetricsService
 
     public function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:superops-dashboard:v2";
+        return "client:{$clientId}:superops-dashboard:v3";
     }
 
     /**

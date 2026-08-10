@@ -27,13 +27,13 @@
     $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $okMetric($super, ['Resolved this month', 'Resolved (30d)']);
     $sla = $okMetric($super, 'SLA met');
-    $threats = $okMetric($hunt, ['Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
+    $threats = $okMetric($hunt, ['Threats stopped (MTD)', 'Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
 
     $valueStrip = [
         [
             'label' => 'Threats stopped',
             'value' => $threats,
-            'note' => $threats !== null ? 'remediated' : null,
+            'note' => $threats !== null ? ($okMetric($hunt, 'Threats stopped (MTD)') !== null ? 'this month' : 'remediated') : null,
             'empty' => '—',
         ],
         [
@@ -49,6 +49,7 @@
             'empty' => '—',
         ],
     ];
+    $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
 
 {{-- Mockup 1a: live numbers only; no pipeline walls under every metric --}}
@@ -91,9 +92,30 @@
             </div>
             <div class="glance-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
                 <span style="background:#FF7000;font-weight:600;color:#fff">This month</span>
-                <span class="glance-muted" style="font-weight:500;cursor:not-allowed">Last month</span>
+                @if($monthReady)
+                    <span class="glance-muted" style="font-weight:500" title="{{ $monthCompare['message'] ?? '' }}">
+                        Last month
+                        @if(! empty($monthCompare['as_of']))
+                            <span style="opacity:.75">({{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }})</span>
+                        @endif
+                    </span>
+                @else
+                    <span class="glance-muted" style="font-weight:500;cursor:not-allowed">Last month</span>
+                @endif
             </div>
         </div>
+
+        @if($monthReady && ! empty($monthCompare['value_deltas']))
+            <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:10px 16px">
+                @foreach($monthCompare['value_deltas'] as $delta)
+                    <div style="font-size:12px" class="glance-muted">
+                        <span style="font-weight:600;color:rgba(255,255,255,.85)">{{ $delta['label'] }}</span>
+                        now {{ $delta['current'] ?? '—' }}
+                        · then {{ $delta['previous'] ?? '—' }}
+                    </div>
+                @endforeach
+            </div>
+        @endif
 
         <div style="margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:10px">
             @foreach($cols as $col)
@@ -174,9 +196,41 @@
             <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px">
                 <div style="font-size:14px;font-weight:600">What we've done for you</div>
             </div>
-            <p style="margin:0;font-size:13px;line-height:1.5" class="glance-muted">
-                {{ $activity['message'] ?? 'Activity history not available yet.' }}
-            </p>
+            @if(! empty($activity['items']))
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    @foreach($activity['items'] as $item)
+                        @php
+                            $at = filled($item['at'] ?? null)
+                                ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
+                                : null;
+                            $sourceLabel = match ($item['source'] ?? '') {
+                                'support' => 'Support',
+                                'security' => 'Security',
+                                'backup' => 'Backup',
+                                default => 'Update',
+                            };
+                        @endphp
+                        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:start">
+                            <div style="min-width:0">
+                                <div style="font-size:13px;font-weight:600;line-height:1.3">
+                                    {{ $item['title'] ?? $sourceLabel }}
+                                </div>
+                                <div style="margin-top:2px;font-size:12.5px;line-height:1.4" class="glance-muted">
+                                    {{ $item['text'] ?? '' }}
+                                </div>
+                            </div>
+                            <div style="text-align:right;font-size:11px;white-space:nowrap" class="glance-muted">
+                                @if($at){{ $at }}@endif
+                                <div style="margin-top:2px;font-weight:500;letter-spacing:.04em;text-transform:uppercase">{{ $sourceLabel }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p style="margin:0;font-size:13px;line-height:1.5" class="glance-muted">
+                    {{ $activity['message'] ?? 'Activity history not available yet.' }}
+                </p>
+            @endif
         </div>
     </div>
 

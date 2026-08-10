@@ -4,6 +4,7 @@ namespace App\Services\Portal;
 
 use App\Models\Client;
 use App\Models\User;
+use App\Services\Huntress\HuntressIncidentService;
 use Carbon\Carbon;
 
 /**
@@ -23,6 +24,9 @@ class ClientHomeOverviewService
         private DashboardFeedRegistry $feeds,
         private ClientProductService $products,
         private ClientVisibilityService $visibility,
+        private ClientActivityFeedService $activity,
+        private ClientMetricSnapshotService $snapshots,
+        private HuntressIncidentService $huntressIncidents,
     ) {}
 
     /**
@@ -33,8 +37,8 @@ class ClientHomeOverviewService
      *   period_label: string,
      *   hero: array{title: string, status_line: string, status_tone: string},
      *   columns: list<array<string, mixed>>,
-     *   activity: array{status: string, message: string, items: list<array{at: ?string, source: string, text: string}>},
-     *   month_compare: array{status: string, message: string},
+     *   activity: array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string}>},
+     *   month_compare: array{status: string, message: string, available?: bool, as_of?: ?string, value?: ?array, services?: array},
      *   portals_available: bool,
      *   generated_at: Carbon
      * }
@@ -58,7 +62,7 @@ class ClientHomeOverviewService
                     'status_tone' => 'neutral',
                 ],
                 'columns' => [],
-                'activity' => $this->activityPipelinePlaceholder(),
+                'activity' => $this->emptyActivity('Sign in with a client workspace to see recent work.'),
                 'month_compare' => $this->monthComparePlaceholder(),
                 'portals_available' => true,
                 'generated_at' => now(),
@@ -84,12 +88,154 @@ class ClientHomeOverviewService
             'period_label' => $periodLabel,
             'hero' => $hero,
             'columns' => $columns,
-            'activity' => $this->activityPipelinePlaceholder(),
-            'month_compare' => $this->monthComparePlaceholder(),
+            'activity' => $this->activityFor($client, $user),
+            'month_compare' => $this->monthCompareFor($client, $columns, $hero),
             'portals_available' => true,
             'generated_at' => now(),
             'feed_view' => $summaries['view'],
         ];
+    }
+
+    /**
+     * Org-facing metrics bundle for nightly snapshots (uses a privileged client user).
+     *
+     * @return array{overall_band: ?string, columns: list<array<string, mixed>>, value: array<string, mixed>}
+     */
+    public function snapshotBundleForClient(Client $client, User $user): array
+    {
+        $overview = $this->forUser($user);
+        $columns = $overview['columns'] ?? [];
+        $value = $this->valueStripFromColumns($columns);
+        $tone = (string) ($overview['hero']['status_tone'] ?? 'neutral');
+
+        return [
+            'overall_band' => $tone,
+            'columns' => $columns,
+            'value' => $value,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $columns
+     * @return array{threats: ?string, resolved: ?string, sla: ?string}
+     */
+    public function valueStripFromColumns(array $columns): array
+    {
+        $byKey = [];
+        foreach ($columns as $col) {
+            if (is_array($col) && filled($col['key'] ?? null)) {
+                $byKey[(string) $col['key']] = $col;
+            }
+        }
+
+        return [
+            'threats' => $this->okMetricValue($byKey['huntress'] ?? null, [
+                'Threats stopped (MTD)',
+                'Remediated',
+                'Remediated (snapshot)',
+                'Resolved incidents',
+            ]),
+            'resolved' => $this->okMetricValue($byKey['superops'] ?? null, [
+                'Resolved this month',
+                'Resolved (30d)',
+            ]),
+            'sla' => $this->okMetricValue($byKey['superops'] ?? null, ['SLA met']),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $labels
+     */
+    private function okMetricValue(?array $col, array $labels): ?string
+    {
+        if ($col === null) {
+            return null;
+        }
+        foreach ($col['metrics'] ?? [] as $m) {
+            if (($m['kind'] ?? '') !== 'ok') {
+                continue;
+            }
+            if (in_array($m['label'] ?? '', $labels, true)) {
+                return (string) $m['value'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string}>}
+     */
+    private function activityFor(Client $client, User $user): array
+    {
+        $rows = $this->activity->recentFor($client, $user, 8);
+        if ($rows === []) {
+            return $this->emptyActivity('No recent support or security activity in the latest snapshots.');
+        }
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = [
+                'at' => $row['at'] ?? null,
+                'source' => $row['source'] ?? 'portal',
+                'title' => $row['title'] ?? null,
+                'text' => $row['detail'] ?? '',
+            ];
+        }
+
+        return [
+            'status' => 'live',
+            'message' => 'Recent activity from support tickets, security cases, and backup attention items.',
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @return array{status: string, message: string, items: list}
+     */
+    private function emptyActivity(string $message): array
+    {
+        return [
+            'status' => 'empty',
+            'message' => $message,
+            'items' => [],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $columns
+     * @param  array<string, mixed>  $hero
+     * @return array<string, mixed>
+     */
+    private function monthCompareFor(Client $client, array $columns, array $hero): array
+    {
+        $compare = $this->snapshots->previousMonthCompare($client);
+        if (! ($compare['available'] ?? false)) {
+            return $compare;
+        }
+
+        $currentValue = $this->valueStripFromColumns($columns);
+        $priorValue = is_array($compare['value'] ?? null) ? $compare['value'] : [];
+
+        $deltas = [];
+        foreach (['threats' => 'Threats stopped', 'resolved' => 'Tickets resolved', 'sla' => 'SLA met'] as $key => $label) {
+            $cur = $priorValue !== [] ? ($currentValue[$key] ?? null) : ($currentValue[$key] ?? null);
+            $prev = $priorValue[$key] ?? null;
+            if ($cur === null && $prev === null) {
+                continue;
+            }
+            $deltas[] = [
+                'label' => $label,
+                'current' => $cur,
+                'previous' => $prev,
+            ];
+        }
+
+        $compare['value_deltas'] = $deltas;
+        $compare['current_value'] = $currentValue;
+        $compare['current_band'] = $hero['status_tone'] ?? null;
+
+        return $compare;
     }
 
     /**
@@ -419,6 +565,7 @@ class ClientHomeOverviewService
 
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
+            $this->metric('Waiting on you', $summary->waitingOnClientTotal ?? null, null),
             $this->metric('Resolved this month', $closed30, null),
             $this->metric('Devices managed', $summary->assetsTotal, null),
             $this->metric('Healthy', $summary->assetsOnline, null),
@@ -525,6 +672,19 @@ class ClientHomeOverviewService
             $this->metric('Licensed users', $summary->licensedUserCount ?? null, 'User mailboxes only'),
         ];
 
+        if (isset($summary->secureScorePct) && $summary->secureScorePct !== null) {
+            $metrics[] = $this->metric('Secure Score', rtrim(rtrim(number_format((float) $summary->secureScorePct, 1), '0'), '.').'%', null);
+        }
+        if (isset($summary->mfaRegisteredPct) && $summary->mfaRegisteredPct !== null) {
+            $metrics[] = $this->metric(
+                'MFA registered',
+                rtrim(rtrim(number_format((float) $summary->mfaRegisteredPct, 1), '0'), '.').'%',
+                isset($summary->mfaUserSample) && $summary->mfaUserSample !== null
+                    ? 'of '.$summary->mfaUserSample.' members'
+                    : null,
+            );
+        }
+
         $health = $this->m365Health($summary);
 
         return array_merge($base, [
@@ -574,13 +734,26 @@ class ClientHomeOverviewService
             return $this->markState($base, 'cold', $reason);
         }
 
-        $metrics = [
+        $threatsMtd = $this->huntressThreatsStoppedMtd($client, $user);
+        $threatResponses = $this->huntressThreatResponsesMtd($client, $user);
+
+        $metrics = array_values(array_filter([
             $this->metric('Agent coverage', $summary->agentsTotal, null),
             $this->metric('24/7 monitoring', $summary->agentsTotal !== null ? 'Active' : null, null),
             $this->metric('Open incidents', $summary->openIncidents, null),
-            $this->metric('Remediated', $summary->resolvedIncidents, 'handled'),
+            $threatsMtd !== null
+                ? $this->metric('Threats stopped (MTD)', $threatsMtd, 'closed this month')
+                : null,
+            $this->metric(
+                'Remediated',
+                $summary->resolvedIncidents,
+                'lifetime handled',
+            ),
+            $threatResponses !== null && $threatResponses > 0
+                ? $this->metric('Threat responses (MTD)', $threatResponses, 'actions logged')
+                : null,
             $this->metric('Devices not reporting', $summary->agentsUnresponsive, null),
-        ];
+        ]));
 
         $health = $this->huntressHealth($summary);
 
@@ -780,6 +953,73 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Cases closed (or last updated while resolved) in the current calendar month (Europe/London).
+     */
+    private function huntressThreatsStoppedMtd(Client $client, User $user): ?int
+    {
+        if (! $this->huntressIncidents->isAvailableForClient($client)) {
+            return null;
+        }
+
+        $list = $this->huntressIncidents->listForClient($client, null, $user);
+        if (! $list->available && $list->incidents === []) {
+            return null;
+        }
+
+        $start = now()->timezone('Europe/London')->startOfMonth();
+        $count = 0;
+        foreach ($list->incidents as $incident) {
+            if ($incident->isActive) {
+                continue;
+            }
+            $when = $incident->closedAt ?? $incident->updatedAt ?? $incident->sentAt;
+            if ($when === null) {
+                continue;
+            }
+            if ($when->copy()->timezone('Europe/London')->gte($start)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Remediation actions on incidents touched this month (proxy ITDR narrative).
+     */
+    private function huntressThreatResponsesMtd(Client $client, User $user): ?int
+    {
+        if (! $this->huntressIncidents->isAvailableForClient($client)) {
+            return null;
+        }
+
+        $list = $this->huntressIncidents->listForClient($client, null, $user);
+        if (! $list->available && $list->incidents === []) {
+            return null;
+        }
+
+        $start = now()->timezone('Europe/London')->startOfMonth();
+        $count = 0;
+        foreach ($list->incidents as $incident) {
+            $when = $incident->updatedAt ?? $incident->closedAt ?? $incident->sentAt;
+            if ($when === null || $when->copy()->timezone('Europe/London')->lt($start)) {
+                continue;
+            }
+            foreach ($incident->remediations as $remediation) {
+                if (is_array($remediation) && (
+                    filled($remediation['action'] ?? null)
+                    || filled($remediation['type'] ?? null)
+                    || filled($remediation['status'] ?? null)
+                )) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
      * Prefer plain language for client admins; hide technical feed errors.
      */
     private function clientFacingStatusMessage(string $state, string $message, string $serviceTitle): string
@@ -850,25 +1090,14 @@ class ClientHomeOverviewService
     }
 
     /**
-     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string}>}
-     */
-    private function activityPipelinePlaceholder(): array
-    {
-        return [
-            'status' => 'pipeline',
-            'message' => 'Activity history not available yet.',
-            'items' => [],
-        ];
-    }
-
-    /**
-     * @return array{status: string, message: string}
+     * @return array{status: string, message: string, available: bool}
      */
     private function monthComparePlaceholder(): array
     {
         return [
+            'available' => false,
             'status' => 'pipeline',
-            'message' => 'Month-to-date vs last month comparisons need retained daily snapshots. Not set up yet — current numbers are live snapshots only.',
+            'message' => 'Last-month compare appears after the first full month of nightly snapshots.',
         ];
     }
 }

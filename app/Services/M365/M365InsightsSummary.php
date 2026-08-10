@@ -19,6 +19,10 @@ class M365InsightsSummary
         public readonly bool $isStale,
         public readonly bool $refreshInProgress,
         public readonly ?string $unavailableReason,
+        public readonly ?float $secureScorePct = null,
+        public readonly ?float $mfaRegisteredPct = null,
+        public readonly ?int $mfaUserSample = null,
+        public readonly ?string $securityMetricsNote = null,
     ) {}
 
     public function hasData(): bool

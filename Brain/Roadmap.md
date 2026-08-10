@@ -29,7 +29,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 4. **Notification hooks** — email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
 5. **Client-facing branding** — per-tenant logo / colour when multiportal presentation needs it.
 6. **Performance budget** — queue round-robin fairness if partner count grows past current prewarm model.
-7. **UI pipeline metrics** — Secure Score, MFA coverage, MoM history, activity timeline (called out on new home) — [UIOverhaul.md](UIOverhaul.md).
+7. **UI pipeline metrics** — **mostly closed on UIOverhaul** (activity, MTD threats, MoM snapshots, Secure Score/MFA soft-fail). Still open: avg first response, patch posture, restore retention — [UIOverhaul.md](UIOverhaul.md).
 
 ## Later / optional
 

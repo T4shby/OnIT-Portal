@@ -19,11 +19,15 @@
     $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
     $sla = $metricVal($super, 'SLA met');
-    $threats = $metricVal($hunt, 'Remediated')
+    $threats = $metricVal($hunt, 'Threats stopped (MTD)')
+        ?? $metricVal($hunt, 'Remediated')
         ?? $metricVal($hunt, 'Remediated (snapshot)')
         ?? $metricVal($hunt, 'Resolved incidents');
-    $threatsLabel = $threats !== null ? 'remediated' : 'threats stopped';
+    $threatsLabel = $metricVal($hunt, 'Threats stopped (MTD)') !== null
+        ? 'threats stopped (MTD)'
+        : ($threats !== null ? 'remediated' : 'threats stopped');
     $monthTitle = now()->timezone('Europe/London')->format('F Y');
+    $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
 
 {{--
@@ -284,9 +288,24 @@
                     </div>
                     <div class="rp-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
                         <span style="font-weight:600;background:#011926;color:#fff">This month</span>
-                        <span style="font-weight:500;color:#999;cursor:not-allowed">Last month</span>
+                        @if($monthReady)
+                            <span style="font-weight:500;color:#555">Last month@if(! empty($monthCompare['as_of'])) · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}@endif</span>
+                        @else
+                            <span style="font-weight:500;color:#999;cursor:not-allowed">Last month</span>
+                        @endif
                     </div>
                 </div>
+
+                @if($monthReady && ! empty($monthCompare['value_deltas']))
+                    <div class="rp-card" style="margin-top:12px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 18px">
+                        @foreach($monthCompare['value_deltas'] as $delta)
+                            <div style="font-size:12.5px;color:#64748B">
+                                <strong style="color:#011926">{{ $delta['label'] }}</strong>
+                                now {{ $delta['current'] ?? '—' }} · then {{ $delta['previous'] ?? '—' }}
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="rp-card rp-stats">
                     <div>
@@ -337,17 +356,19 @@
                             $highlights = match ($col['key'] ?? '') {
                                 'superops' => [
                                     ['v' => $metricVal($col, 'Open tickets'), 'l' => 'open tickets'],
+                                    ['v' => $metricVal($col, 'Waiting on you'), 'l' => 'waiting on you'],
                                     ['v' => $metricVal($col, 'Resolved this month') ?? $metricVal($col, 'Resolved (30d)'), 'l' => 'resolved'],
                                     ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
                                 ],
                                 'm365' => [
                                     ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences'],
+                                    ['v' => $metricVal($col, 'Secure Score'), 'l' => 'secure score'],
+                                    ['v' => $metricVal($col, 'MFA registered'), 'l' => 'MFA'],
                                     ['v' => $metricVal($col, 'Utilisation'), 'l' => 'utilisation'],
-                                    ['v' => $metricVal($col, 'Licensed users'), 'l' => 'users'],
                                 ],
                                 'huntress' => [
                                     ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'covered'],
-                                    ['v' => $metricVal($col, 'Remediated') ?? $metricVal($col, 'Remediated (snapshot)'), 'l' => 'remediated'],
+                                    ['v' => $metricVal($col, 'Threats stopped (MTD)') ?? $metricVal($col, 'Remediated') ?? $metricVal($col, 'Remediated (snapshot)'), 'l' => 'stopped'],
                                     ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open'],
                                 ],
                                 'dropsuite' => [
@@ -392,9 +413,40 @@
                     @endforeach
                 </div>
 
+                @php $activity = $overview['activity'] ?? []; @endphp
                 <div class="rp-card" style="margin-top:12px;padding:16px 18px">
-                    <div style="font-size:14px;font-weight:600;margin-bottom:6px">What we've done for you</div>
-                    <p class="rp-muted" style="margin:0;font-size:13px;line-height:1.5">Activity history not available yet.</p>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">What we've done for you</div>
+                    @if(! empty($activity['items']))
+                        <div style="display:flex;flex-direction:column;gap:12px">
+                            @foreach($activity['items'] as $item)
+                                @php
+                                    $at = filled($item['at'] ?? null)
+                                        ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
+                                        : null;
+                                    $sourceLabel = match ($item['source'] ?? '') {
+                                        'support' => 'Support',
+                                        'security' => 'Security',
+                                        'backup' => 'Backup',
+                                        default => 'Update',
+                                    };
+                                @endphp
+                                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px">
+                                    <div style="min-width:0">
+                                        <div style="font-size:13px;font-weight:600">{{ $item['title'] ?? $sourceLabel }}</div>
+                                        <div class="rp-muted" style="margin-top:2px;font-size:12.5px;line-height:1.4">{{ $item['text'] ?? '' }}</div>
+                                    </div>
+                                    <div class="rp-muted" style="text-align:right;font-size:11px;white-space:nowrap">
+                                        @if($at){{ $at }}@endif
+                                        <div style="margin-top:2px;text-transform:uppercase;letter-spacing:.04em;font-weight:500">{{ $sourceLabel }}</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="rp-muted" style="margin:0;font-size:13px;line-height:1.5">
+                            {{ $activity['message'] ?? 'No recent support or security activity in the latest snapshots.' }}
+                        </p>
+                    @endif
                 </div>
             </div>
         </div>

@@ -2911,4 +2911,168 @@ class MicrosoftGraphClient
             }
         );
     }
+
+    /**
+     * Latest Microsoft Secure Score percentage (0–100), if Graph grants SecurityEvents.Read.All.
+     * Returns null when the call is forbidden or unconfigured — never throws for 403.
+     *
+     * @return array{score: ?float, max: ?float, percentage: ?float, available: bool, reason: ?string}
+     */
+    public function getSecureScoreSummary(string $tenantId): array
+    {
+        try {
+            $response = $this->request($tenantId)
+                ->get('https://graph.microsoft.com/v1.0/security/secureScores', [
+                    '$top' => 1,
+                    '$orderby' => 'createdDateTime desc',
+                    '$select' => 'currentScore,maxScore,createdDateTime',
+                ]);
+        } catch (Throwable $e) {
+            return [
+                'score' => null,
+                'max' => null,
+                'percentage' => null,
+                'available' => false,
+                'reason' => 'secure_score_request_failed',
+            ];
+        }
+
+        if ($response->status() === 403 || $response->status() === 401) {
+            return [
+                'score' => null,
+                'max' => null,
+                'percentage' => null,
+                'available' => false,
+                'reason' => 'secure_score_permission_missing',
+            ];
+        }
+
+        if ($response->failed()) {
+            return [
+                'score' => null,
+                'max' => null,
+                'percentage' => null,
+                'available' => false,
+                'reason' => 'secure_score_unavailable',
+            ];
+        }
+
+        $value = $response->json('value') ?? [];
+        $row = (is_array($value) && isset($value[0]) && is_array($value[0])) ? $value[0] : null;
+        if ($row === null) {
+            return [
+                'score' => null,
+                'max' => null,
+                'percentage' => null,
+                'available' => false,
+                'reason' => 'secure_score_empty',
+            ];
+        }
+
+        $current = isset($row['currentScore']) ? (float) $row['currentScore'] : null;
+        $max = isset($row['maxScore']) ? (float) $row['maxScore'] : null;
+        $pct = ($current !== null && $max !== null && $max > 0)
+            ? round(($current / $max) * 100, 1)
+            : null;
+
+        return [
+            'score' => $current,
+            'max' => $max,
+            'percentage' => $pct,
+            'available' => $pct !== null,
+            'reason' => $pct === null ? 'secure_score_empty' : null,
+        ];
+    }
+
+    /**
+     * MFA / passwordless registration coverage from auth methods reports.
+     * Needs Reports.Read.All (or ReportsReader) + AuditLog.Read.All depending on tenant.
+     *
+     * @return array{registered_pct: ?float, capable_pct: ?float, total_users: ?int, available: bool, reason: ?string}
+     */
+    public function getMfaRegistrationSummary(string $tenantId): array
+    {
+        $registered = 0;
+        $capable = 0;
+        $total = 0;
+        $url = 'https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails';
+        $query = [
+            '$select' => 'id,isMfaRegistered,isMfaCapable,userType',
+            '$top' => 999,
+        ];
+
+        try {
+            do {
+                $response = $this->request($tenantId)->get($url, $query);
+                $query = []; // nextLink already absolute
+
+                if ($response->status() === 403 || $response->status() === 401) {
+                    return [
+                        'registered_pct' => null,
+                        'capable_pct' => null,
+                        'total_users' => null,
+                        'available' => false,
+                        'reason' => 'mfa_permission_missing',
+                    ];
+                }
+
+                if ($response->failed()) {
+                    return [
+                        'registered_pct' => null,
+                        'capable_pct' => null,
+                        'total_users' => null,
+                        'available' => false,
+                        'reason' => 'mfa_unavailable',
+                    ];
+                }
+
+                foreach ($response->json('value') ?? [] as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    // Member users only — skip guests when Graph marks them.
+                    $type = strtolower((string) ($row['userType'] ?? 'member'));
+                    if ($type !== '' && $type !== 'member') {
+                        continue;
+                    }
+                    $total++;
+                    if (! empty($row['isMfaRegistered'])) {
+                        $registered++;
+                    }
+                    if (! empty($row['isMfaCapable'])) {
+                        $capable++;
+                    }
+                }
+
+                $next = $response->json('@odata.nextLink');
+                $url = is_string($next) && $next !== '' ? $next : '';
+            } while ($url !== '');
+        } catch (Throwable) {
+            return [
+                'registered_pct' => null,
+                'capable_pct' => null,
+                'total_users' => null,
+                'available' => false,
+                'reason' => 'mfa_request_failed',
+            ];
+        }
+
+        if ($total === 0) {
+            return [
+                'registered_pct' => null,
+                'capable_pct' => null,
+                'total_users' => 0,
+                'available' => false,
+                'reason' => 'mfa_empty',
+            ];
+        }
+
+        return [
+            'registered_pct' => round(($registered / $total) * 100, 1),
+            'capable_pct' => round(($capable / $total) * 100, 1),
+            'total_users' => $total,
+            'available' => true,
+            'reason' => null,
+        ];
+    }
 }
