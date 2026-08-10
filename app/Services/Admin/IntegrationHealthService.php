@@ -284,8 +284,21 @@ class IntegrationHealthService
             && ($queue['oldest_pending_seconds'] ?? 0) >= 90;
 
         $scheduleLocks = $this->scheduleLockRows();
+        // True problems only: expired mutex rows still in the table, or a long-lived
+        // schedule mutex while the minute tick is late (process died mid withoutOverlapping).
+        // Do NOT treat "TTL remaining > 5m" alone as stuck — Laravel withoutOverlapping
+        // often sets expiry ~24h ahead, so healthy locks always look "long-held".
         $stuckScheduleLocks = collect($scheduleLocks)
-            ->filter(fn (array $lock): bool => ($lock['held_for_seconds'] ?? 0) > 300)
+            ->filter(function (array $lock) use ($tickAgeMinutes): bool {
+                if (! empty($lock['is_expired'])) {
+                    return true;
+                }
+
+                $tickLate = $tickAgeMinutes === null || $tickAgeMinutes > 5;
+                $longTtl = ($lock['expires_in_seconds'] ?? 0) >= 600;
+
+                return $tickLate && $longTtl;
+            })
             ->values()
             ->all();
 
@@ -298,8 +311,8 @@ class IntegrationHealthService
             $headline = 'Minute scheduler is not ticking — cron schedule:run may be dead';
             $severityLevel = 'critical';
         } elseif ($stuckScheduleLocks !== []) {
-            $headline = 'A schedule lock is stuck — auto-refresh cannot start until it is cleared';
-            $severityLevel = 'critical';
+            $headline = 'Schedule mutex problem — expired lock left behind or lock held while cron tick is late';
+            $severityLevel = 'warning';
         } elseif (! $prewarmOk) {
             $headline = 'Auto-refresh (prewarm) is late — client data will age until it runs again';
             $severityLevel = 'warning';
@@ -358,7 +371,16 @@ class IntegrationHealthService
     }
 
     /**
-     * @return list<array{key: string, age_seconds: int, held_for_seconds: int, expiration: int}>
+     * Laravel schedule withoutOverlapping rows only (not every cache lock in the app).
+     *
+     * @return list<array{
+     *   key: string,
+     *   expiration: int,
+     *   is_expired: bool,
+     *   expires_in_seconds: int,
+     *   expired_for_seconds: int,
+     *   held_for_seconds: int
+     * }>
      */
     private function scheduleLockRows(): array
     {
@@ -369,18 +391,27 @@ class IntegrationHealthService
         $now = time();
 
         return DB::table('cache_locks')
+            ->where(function ($q): void {
+                $q->where('key', 'like', '%framework/schedule%')
+                    ->orWhere('key', 'like', '%schedule-%');
+            })
             ->orderBy('key')
             ->get()
             ->map(function ($row) use ($now): array {
                 $exp = (int) ($row->expiration ?? 0);
+                $expired = $exp > 0 && $exp <= $now;
+                $expiresIn = $exp > $now ? ($exp - $now) : 0;
+                $expiredFor = $expired ? ($now - $exp) : 0;
 
                 return [
                     'key' => (string) $row->key,
                     'expiration' => $exp,
-                    'age_seconds' => max(0, $exp > $now ? 0 : ($now - $exp)),
-                    // Approximate held time only if we know expiry was set far ahead; use remaining as signal.
-                    'held_for_seconds' => $exp > $now ? max(0, (int) ($exp - $now)) : max(0, $now - $exp),
-                    'seconds_until_release' => max(0, $exp - $now),
+                    'is_expired' => $expired,
+                    'expires_in_seconds' => $expiresIn,
+                    'expired_for_seconds' => $expiredFor,
+                    // Kept for BC in views — meaning: remaining TTL while active; age when expired.
+                    'held_for_seconds' => $expired ? $expiredFor : $expiresIn,
+                    'seconds_until_release' => $expiresIn,
                 ];
             })
             ->all();
@@ -412,7 +443,7 @@ class IntegrationHealthService
 
         if (! empty($pipeline['stuck_schedule_locks'])) {
             $n = count($pipeline['stuck_schedule_locks']);
-            $notices[] = "{$n} schedule lock(s) held in cache_locks — auto tasks can wait forever. Cleared on next prewarm start if still stuck after deploy.";
+            $notices[] = "{$n} schedule mutex issue(s): expired lock left in cache_locks, or a long withoutOverlapping lock while the minute tick is late. Healthy withoutOverlapping locks are normal during schedule:run — they are not failures. Expired rows clear on next prewarm.";
         }
 
         if ($pipeline['prewarm']['never_ran'] ?? false) {

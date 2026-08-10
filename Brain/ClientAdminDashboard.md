@@ -143,7 +143,10 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 
 Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
 
-**Severity order (headline):** scheduler dead / stuck schedule locks / prewarm late / worker lag → then **cold sold feeds** → then “jobs pending” (info) → OK.
+**Severity order (headline):** scheduler dead → **truly stuck schedule locks** (expired mutexes, or long withoutOverlapping **while tick is late** — *not* healthy Laravel withoutOverlapping TTL while cron is fine) → prewarm late / worker lag → cold sold feeds → jobs pending (info) → OK.
+
+**False alarm fixed (2026-08-10):** Integration Health used lock *remaining TTL* as “held for”. Laravel `withoutOverlapping` often sets expiry ~24h ahead, so any active schedule mutex looked “stuck >5m” and drove a critical headline even while prewarm/tick were OK. Detection now only flags **expired** schedule locks, or long TTL **with a late minute tick**.
+
 
 **Soft-client banner caveat:** SuperOps Organisation page soft wording still uses `SUPEROPS_DASHBOARD_*` config minutes for client-facing “as of …” thresholds; technicians should trust Integration Health for true adaptive requeue.
 

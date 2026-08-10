@@ -81,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Integration Health: stop false “schedule lock stuck” panic — TTL remaining ≠ held duration (Laravel withoutOverlapping) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-10 | Client home “at a glance” + Reports scaffold on branch **UIOverhaul**; pipeline gaps explicit — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | usecure integration **design only**: sold-some clients, MSP tenant like Huntress, request beta GraphQL key from support, full modular build plan — [UsecureIntegration.md](UsecureIntegration.md) |
 | 2026-08-10 | Integration Health prewarm card: label SuperOps/other **jobs queued** (was misleading “critical N”) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
