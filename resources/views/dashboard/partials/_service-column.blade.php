@@ -30,7 +30,7 @@
             @if(in_array($state, ['setup_needed', 'platform', 'not_sold', 'cold'], true))
                 <p class="mb-4 text-xs leading-relaxed text-amber-200/90 border border-amber-400/20 bg-amber-400/5 px-3 py-2">
                     @if($state === 'not_sold')
-                        Not included in this organisation’s products.
+                        Optional product add-on — not the same as “no support”.
                     @elseif($state === 'setup_needed')
                         Sold — mapping / tenant setup still needed. Account manager / On IT technicians must finish this.
                     @elseif($state === 'platform')

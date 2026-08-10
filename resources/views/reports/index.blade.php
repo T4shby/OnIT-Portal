@@ -19,13 +19,33 @@
     $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
     $sla = $metricVal($super, 'SLA met');
+    $openTickets = $metricVal($super, 'Open tickets');
     $threats = $metricVal($hunt, 'Threats stopped (MTD)')
         ?? $metricVal($hunt, 'Remediated')
         ?? $metricVal($hunt, 'Remediated (snapshot)')
         ?? $metricVal($hunt, 'Resolved incidents');
-    $threatsLabel = $metricVal($hunt, 'Threats stopped (MTD)') !== null
-        ? 'threats stopped (MTD)'
-        : ($threats !== null ? 'remediated' : 'threats stopped');
+    $huntLive = is_array($hunt) && ($hunt['state'] ?? '') === 'live';
+    $huntSold = is_array($hunt) && ! in_array($hunt['state'] ?? '', ['not_sold', 'hidden'], true);
+    // Same rule as glance: no empty “threats stopped” when MDR isn’t sold.
+    if ($huntLive && $threats !== null) {
+        $statCards = [
+            ['value' => $threats, 'label' => $metricVal($hunt, 'Threats stopped (MTD)') !== null ? 'threats stopped via MDR (MTD)' : 'remediated (MDR)'],
+            ['value' => $resolved, 'label' => 'tickets resolved'],
+            ['value' => $sla, 'label' => 'SLA met'],
+        ];
+    } elseif ($huntSold) {
+        $statCards = [
+            ['value' => $threats, 'label' => $threats !== null ? 'threats stopped via MDR' : 'threats stopped (MDR)'],
+            ['value' => $resolved, 'label' => 'tickets resolved'],
+            ['value' => $sla, 'label' => 'SLA met'],
+        ];
+    } else {
+        $statCards = [
+            ['value' => $resolved, 'label' => 'tickets resolved'],
+            ['value' => $openTickets, 'label' => 'open tickets'],
+            ['value' => $sla, 'label' => 'SLA met'],
+        ];
+    }
     $monthTitle = now()->timezone('Europe/London')->format('F Y');
     $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
@@ -308,18 +328,12 @@
                 @endif
 
                 <div class="rp-card rp-stats">
-                    <div>
-                        <div class="rp-stats-v" style="{{ $threats === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $threats ?? '—' }}</div>
-                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $threatsLabel }}</div>
-                    </div>
-                    <div>
-                        <div class="rp-stats-v" style="{{ $resolved === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $resolved ?? '—' }}</div>
-                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">tickets resolved</div>
-                    </div>
-                    <div>
-                        <div class="rp-stats-v" style="{{ $sla === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $sla ?? '—' }}</div>
-                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">SLA met</div>
-                    </div>
+                    @foreach($statCards as $stat)
+                        <div>
+                            <div class="rp-stats-v" style="{{ ($stat['value'] ?? null) === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $stat['value'] ?? '—' }}</div>
+                            <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $stat['label'] }}</div>
+                        </div>
+                    @endforeach
                 </div>
 
                 <div style="margin-top:16px">
@@ -329,7 +343,7 @@
                             $statusShort = $col['status_label']
                                 ?? match ($col['state'] ?? '') {
                                     'live' => 'Healthy',
-                                    'not_sold' => 'Not sold',
+                                    'not_sold' => 'Not on plan',
                                     'setup_needed' => 'Setup needed',
                                     'loading' => 'Loading',
                                     default => '—',

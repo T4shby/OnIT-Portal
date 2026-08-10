@@ -27,28 +27,80 @@
     $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $okMetric($super, ['Resolved this month', 'Resolved (30d)']);
     $sla = $okMetric($super, 'SLA met');
+    $openTickets = $okMetric($super, 'Open tickets');
     $threats = $okMetric($hunt, ['Threats stopped (MTD)', 'Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
+    $huntLive = is_array($hunt) && ($hunt['state'] ?? '') === 'live';
+    $huntSold = is_array($hunt) && ! in_array($hunt['state'] ?? '', ['not_sold', 'hidden'], true);
 
-    $valueStrip = [
-        [
-            'label' => 'Threats stopped',
-            'value' => $threats,
-            'note' => $threats !== null ? ($okMetric($hunt, 'Threats stopped (MTD)') !== null ? 'this month' : 'remediated') : null,
-            'empty' => '—',
-        ],
-        [
-            'label' => 'Tickets resolved',
-            'value' => $resolved,
-            'note' => $resolved !== null ? 'this period' : null,
-            'empty' => '—',
-        ],
-        [
-            'label' => 'SLA met',
-            'value' => $sla,
-            'note' => null,
-            'empty' => '—',
-        ],
-    ];
+    /*
+     * Value strip: never lead with empty “Threats stopped” when MDR is not sold —
+     * that reads as zero protection. Support-only orgs get support metrics.
+     */
+    if ($huntLive && $threats !== null) {
+        $valueStrip = [
+            [
+                'label' => 'Threats stopped',
+                'value' => $threats,
+                'note' => $okMetric($hunt, 'Threats stopped (MTD)') !== null ? 'via MDR this month' : 'remediated (MDR)',
+                'empty' => '—',
+            ],
+            [
+                'label' => 'Tickets resolved',
+                'value' => $resolved,
+                'note' => $resolved !== null ? 'this period' : null,
+                'empty' => '—',
+            ],
+            [
+                'label' => 'SLA met',
+                'value' => $sla,
+                'note' => null,
+                'empty' => '—',
+            ],
+        ];
+    } elseif ($huntSold) {
+        // Sold but cold / loading — hold blank rather than invent MTD.
+        $valueStrip = [
+            [
+                'label' => 'Threats stopped',
+                'value' => $threats,
+                'note' => $threats !== null ? 'via MDR' : null,
+                'empty' => '—',
+            ],
+            [
+                'label' => 'Tickets resolved',
+                'value' => $resolved,
+                'note' => $resolved !== null ? 'this period' : null,
+                'empty' => '—',
+            ],
+            [
+                'label' => 'SLA met',
+                'value' => $sla,
+                'note' => null,
+                'empty' => '—',
+            ],
+        ];
+    } else {
+        $valueStrip = [
+            [
+                'label' => 'Tickets resolved',
+                'value' => $resolved,
+                'note' => $resolved !== null ? 'this period' : null,
+                'empty' => '—',
+            ],
+            [
+                'label' => 'Open tickets',
+                'value' => $openTickets,
+                'note' => null,
+                'empty' => '—',
+            ],
+            [
+                'label' => 'SLA met',
+                'value' => $sla,
+                'note' => null,
+                'empty' => '—',
+            ],
+        ];
+    }
     $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
 
@@ -129,7 +181,8 @@
                     };
                     $short = match ($col['state'] ?? '') {
                         'live' => $col['status_label'] ?? 'Live',
-                        'not_sold' => 'Not sold',
+                        // Prefer product label (“Add-on” / “Not on plan”) — never “Not sold”.
+                        'not_sold' => $col['status_label'] ?? 'Not on plan',
                         'setup_needed' => 'Setup needed',
                         'platform' => 'Platform off',
                         'cold' => 'Never loaded',

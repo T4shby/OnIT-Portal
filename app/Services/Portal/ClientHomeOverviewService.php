@@ -881,10 +881,13 @@ class ClientHomeOverviewService
         }
 
         if ($status === ClientProductService::STATUS_NOT_SOLD) {
+            $notSold = $this->notSoldPresentation($key);
+
             return $this->markState(
                 $column,
                 'not_sold',
-                'This is not part of your current plan. Ask your On IT account manager if you would like it added.',
+                $notSold['reason'],
+                $notSold['label'],
             );
         }
 
@@ -916,10 +919,41 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Client-facing “not on plan” copy — never imply zero protection without the add-on.
+     *
+     * @return array{label: string, reason: string}
+     */
+    private function notSoldPresentation(string $productKey): array
+    {
+        return match ($productKey) {
+            'huntress' => [
+                'label' => 'Add-on',
+                'reason' => '24/7 managed detection & response (Huntress) is an optional add-on — not on this plan. On IT still helps with security through support tickets and our technicians. This tile only shows automated Huntress metrics when that feed is included.',
+            ],
+            'dropsuite' => [
+                'label' => 'Add-on',
+                'reason' => 'Dedicated email & cloud backup (Dropsuite) is an optional add-on — not on this plan. On IT still helps with recovery questions on support tickets. Ask your account manager if you want this feed added.',
+            ],
+            'm365', 'm365_insights' => [
+                'label' => 'Not on plan',
+                'reason' => 'Microsoft 365 management is not on this plan. Ask your On IT account manager if you would like it added.',
+            ],
+            'superops' => [
+                'label' => 'Not on plan',
+                'reason' => 'Managed support is not on this plan. Ask your On IT account manager if you would like it added.',
+            ],
+            default => [
+                'label' => 'Not on plan',
+                'reason' => 'This service is not part of your current plan. Ask your On IT account manager if you would like it added.',
+            ],
+        };
+    }
+
+    /**
      * @param  array<string, mixed>  $column
      * @return array<string, mixed>
      */
-    private function markState(array $column, string $state, string $message): array
+    private function markState(array $column, string $state, string $message, ?string $statusLabel = null): array
     {
         $tone = match ($state) {
             'live' => 'ok',
@@ -929,8 +963,8 @@ class ClientHomeOverviewService
             default => 'neutral',
         };
 
-        $label = match ($state) {
-            'not_sold' => 'Not sold',
+        $label = $statusLabel ?? match ($state) {
+            'not_sold' => 'Not on plan',
             'setup_needed' => 'Setup needed',
             'platform' => 'Critical',
             'cold' => 'Issues',
@@ -1046,7 +1080,10 @@ class ClientHomeOverviewService
             'cold' => "We do not have the latest {$serviceTitle} figures yet. They will appear automatically when ready.",
             'setup_needed' => 'We are still finishing the connection for this service. Your On IT account manager can help if this stays open.',
             'platform', 'error' => 'We could not update this service just now. On IT is looking into it.',
-            'not_sold' => 'This is not part of your current plan. Ask your On IT account manager if you would like it added.',
+            // Prefer product-specific not-on-plan copy from notSoldPresentation().
+            'not_sold' => $trimmed !== ''
+                ? $trimmed
+                : 'This is not part of your current plan. Ask your On IT account manager if you would like it added.',
             default => $trimmed !== '' ? $trimmed : "Status for {$serviceTitle} is being checked.",
         };
     }
