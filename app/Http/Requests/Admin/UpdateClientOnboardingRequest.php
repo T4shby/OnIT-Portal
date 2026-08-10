@@ -29,8 +29,9 @@ class UpdateClientOnboardingRequest extends FormRequest
     {
         $submitted = $this->input('checkpoints', []);
 
+        // Empty "Save checklist" with no ticks posts no array → must not leave null (500 on updateChecklist).
         if (! is_array($submitted)) {
-            return;
+            $submitted = [];
         }
 
         $normalized = [];

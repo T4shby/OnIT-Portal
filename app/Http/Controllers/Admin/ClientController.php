@@ -284,13 +284,18 @@ class ClientController extends Controller
     {
         $this->authorize('update', $client);
 
-        $this->onboarding->updateChecklist($client, $request->validated('checkpoints'));
+        $checkpoints = $request->validated('checkpoints');
+        if (! is_array($checkpoints)) {
+            $checkpoints = [];
+        }
+
+        $this->onboarding->updateChecklist($client, $checkpoints);
         $client->refresh();
 
         $this->activityLog->log(
             'client.onboarding_updated',
             $client,
-            properties: $request->validated('checkpoints'),
+            properties: ['checkpoints' => $checkpoints],
             clientId: $client->id,
         );
 
