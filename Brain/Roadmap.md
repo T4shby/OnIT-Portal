@@ -23,11 +23,13 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Near-term backlog (next value)
 
-1. **Portfolio reporting polish** — export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
-2. **Pax8 deeper** — billed catalogue / usage beyond SSO launch tile (partner API).
-3. **Notification hooks** — email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
-4. **Client-facing branding** — per-tenant logo / colour when multiportal presentation needs it.
-5. **Performance budget** — queue round-robin fairness if partner count grows past current prewarm model.
+1. **Finish / accept client UI overhaul** — branch `UIOverhaul`: glance home + Reports; merge when signed off — [UIOverhaul.md](UIOverhaul.md).
+2. **Portfolio reporting polish** — export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
+3. **Pax8 deeper** — billed catalogue / usage beyond SSO launch tile (partner API).
+4. **Notification hooks** — email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
+5. **Client-facing branding** — per-tenant logo / colour when multiportal presentation needs it.
+6. **Performance budget** — queue round-robin fairness if partner count grows past current prewarm model.
+7. **UI pipeline metrics** — Secure Score, MFA coverage, MoM history, activity timeline (called out on new home) — [UIOverhaul.md](UIOverhaul.md).
 
 ## Later / optional
 

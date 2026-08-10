@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\ClientAdminDashboardController;
 use App\Http\Controllers\ClientBackupsController;
+use App\Http\Controllers\ClientReportsController;
 use App\Http\Controllers\HuntressSecurityController;
 use App\Http\Controllers\Admin\ClientDropsuiteBackupController;
 use App\Http\Controllers\Admin\ClientHuntressSecurityController;
@@ -39,6 +40,10 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [MicrosoftAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/reports', [ClientReportsController::class, 'index'])
+        ->middleware('can:view-organisation-wide')
+        ->name('reports.index');
 
     Route::prefix('support')->name('support.')->group(function () {
         Route::get('/', [SupportController::class, 'index'])->name('index');

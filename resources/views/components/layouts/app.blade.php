@@ -32,6 +32,10 @@
                             Dashboard
                         </a>
                         @can('view-organisation-wide')
+                            <a href="{{ route('reports.index') }}"
+                               class="portal-nav-link {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
+                                Reports
+                            </a>
                             <a href="{{ route('client-admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                                 Organisation
@@ -107,6 +111,11 @@
                         Dashboard
                     </a>
                     @can('view-organisation-wide')
+                        <a href="{{ route('reports.index') }}"
+                           @click="menuOpen = false"
+                           class="portal-nav-link touch-target {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
+                            Reports
+                        </a>
                         <a href="{{ route('client-admin.dashboard') }}"
                            @click="menuOpen = false"
                            class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
