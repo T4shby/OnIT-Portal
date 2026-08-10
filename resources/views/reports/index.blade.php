@@ -1,105 +1,254 @@
 @php
-    $cols = collect($overview['columns'] ?? [])->reject(fn ($c) => ($c['state'] ?? '') === 'hidden');
+    $cols = collect($overview['columns'] ?? [])->reject(fn ($c) => ($c['state'] ?? '') === 'hidden')->values();
     $activity = $overview['activity'] ?? [];
     $monthCompare = $overview['month_compare'] ?? [];
+    $period = $overview['period_label'] ?? now()->timezone('Europe/London')->format('F Y');
+
+    $super = $cols->firstWhere('key', 'superops');
+    $metricVal = function (?array $col, string $label) {
+        if (! is_array($col)) {
+            return null;
+        }
+        foreach ($col['metrics'] ?? [] as $m) {
+            if (($m['label'] ?? '') === $label && ($m['kind'] ?? '') === 'ok') {
+                return $m['value'];
+            }
+        }
+
+        return null;
+    };
+
+    $reportRows = [];
+    foreach ($cols as $col) {
+        $statusShort = match ($col['state'] ?? '') {
+            'live' => $col['status_label'] ?? 'Live',
+            'not_sold' => 'Not sold',
+            'setup_needed' => 'Setup needed',
+            'platform' => 'Platform off',
+            'cold' => 'Never loaded',
+            'loading' => 'Loading',
+            'error' => 'Error',
+            default => $col['status_label'] ?? '—',
+        };
+        $tone = $col['tone'] ?? 'neutral';
+        $pillBg = match ($tone) {
+            'ok' => 'rgba(34,197,94,.1)',
+            'warn' => 'rgba(250,204,21,.14)',
+            'bad' => 'rgba(239,68,68,.12)',
+            default => 'rgba(100,116,139,.15)',
+        };
+        $pillColor = match ($tone) {
+            'ok' => '#15803D',
+            'warn' => '#B45309',
+            'bad' => '#B91C1C',
+            default => '#475569',
+        };
+        $dot = match ($tone) {
+            'ok' => '#22C55E',
+            'warn' => '#FACC15',
+            'bad' => '#EF4444',
+            default => '#64748B',
+        };
+
+        // Three highlight numbers per row (mockup-style); prefer real; else "—"
+        $highlights = match ($col['key'] ?? '') {
+            'superops' => [
+                ['v' => $metricVal($col, 'Open tickets'), 'l' => 'open tickets'],
+                ['v' => null, 'l' => 'avg response', 'pipeline' => true],
+                ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
+            ],
+            'm365' => [
+                ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences assigned'],
+                ['v' => null, 'l' => 'Secure Score', 'pipeline' => true],
+                ['v' => null, 'l' => 'users on MFA', 'pipeline' => true],
+            ],
+            'huntress' => [
+                ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'devices covered'],
+                ['v' => $metricVal($col, 'Remediated (snapshot)') ?? $metricVal($col, 'Resolved incidents'), 'l' => 'incidents remediated'],
+                ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open incidents'],
+            ],
+            'dropsuite' => [
+                ['v' => $metricVal($col, 'Mailboxes protected'), 'l' => 'mailboxes protected'],
+                ['v' => $metricVal($col, 'Succeeded'), 'l' => 'succeeded (24h)'],
+                ['v' => null, 'l' => 'restore points kept', 'pipeline' => true],
+            ],
+            default => [],
+        };
+
+        $reportRows[] = [
+            'col' => $col,
+            'status_short' => $statusShort,
+            'pill_bg' => $pillBg,
+            'pill_color' => $pillColor,
+            'dot' => $dot,
+            'highlights' => $highlights,
+        ];
+    }
+
+    $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
+    $sla = $metricVal($super, 'SLA met');
+    $threats = $metricVal($cols->firstWhere('key', 'huntress'), 'Remediated (snapshot)')
+        ?? $metricVal($cols->firstWhere('key', 'huntress'), 'Resolved incidents');
 @endphp
-<x-app-layout title="Reports" content-class="max-w-[96rem]">
 
-    <section class="mb-8 sm:mb-10">
-        <div class="orange-rule"></div>
-        <div class="heading-stack mb-4">
-            <h1 class="section-heading-white">Monthly</h1>
-            <h1 class="section-heading-orange">service review</h1>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    .report-ui { font-family: 'Poppins', system-ui, sans-serif; }
+    .report-rail { background: #011926; color: #fff; }
+    .report-main { background: #F4F6F8; color: #011926; }
+    .report-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04); }
+    .report-muted { color: #666666; }
+    .report-orange { color: #FF7000; font-weight: 600; font-size: 12px; }
+    .report-orange:hover { color: #E06500; }
+</style>
+
+{{-- Full-bleed 1c: break out of portal max-width padding via negative margin --}}
+<x-app-layout title="Reports" content-class="max-w-none !px-0 !py-0">
+<div class="report-ui flex min-h-[70vh] flex-col lg:flex-row -mt-8 sm:-mt-12">
+
+    {{-- Left rail --}}
+    <aside class="report-rail flex w-full flex-col gap-7 px-7 py-8 lg:w-[300px] lg:flex-none lg:px-7 lg:py-8">
+        <div class="flex items-center gap-3">
+            <x-portal-logo size="md" />
+            <span class="text-sm font-semibold tracking-wide">On IT</span>
         </div>
-        <p class="portal-label mt-4">Prepared for</p>
-        <p class="portal-card-title mt-1">{{ $client->name }}</p>
-        <p class="portal-body-muted mt-3 max-w-2xl text-sm leading-relaxed">
-            Value overview for {{ $overview['period_label'] ?? now()->format('F Y') }}.
-            Live metrics come from sold products; anything marked
-            <span class="text-amber-200">Not set up</span> still needs a portal pipeline or Microsoft permission — we do not invent figures.
-        </p>
-    </section>
-
-    @if(($monthCompare['status'] ?? '') === 'pipeline')
-        <div class="mb-8 border border-amber-400/30 bg-amber-400/5 px-4 py-3">
-            <p class="font-condensed text-xs font-bold uppercase tracking-wide text-amber-200">History not set up</p>
-            <p class="portal-body-muted mt-1 text-sm leading-relaxed">{{ $monthCompare['message'] }}</p>
+        <div>
+            <div class="text-[11px] font-semibold uppercase tracking-widest text-white/65">Prepared for</div>
+            <div class="mt-1.5 text-lg font-bold leading-snug">{{ $client->name }}</div>
+            <div class="mt-1 text-xs text-white/65">Customer service review</div>
         </div>
-    @endif
-
-    {{-- Services rail + metrics rows --}}
-    <section class="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <aside class="lg:col-span-3 border border-onit-border bg-onit-surface p-5">
-            <p class="portal-label mb-4">Your services</p>
-            <ul class="space-y-3">
+        <div>
+            <div class="mb-3.5 text-[11px] font-semibold uppercase tracking-widest text-white/65">Your services</div>
+            <div class="flex flex-col gap-3">
                 @foreach($cols as $col)
-                    <li class="border-b border-white/5 pb-3 last:border-0">
-                        <p class="font-condensed text-sm font-bold uppercase text-white">{{ $col['plan_label'] ?? $col['title'] }}</p>
-                        <p class="mt-1 text-xs text-white/45">{{ $col['source'] }} · {{ $col['status_label'] }}</p>
-                    </li>
-                @endforeach
-            </ul>
-            <a href="{{ route('dashboard') }}" class="mt-6 inline-block text-sm text-onit hover:text-white font-condensed font-semibold uppercase tracking-wide">
-                Dashboard →
-            </a>
-        </aside>
-
-        <div class="lg:col-span-9 space-y-4">
-            @foreach($cols as $col)
-                <article class="border border-onit-border bg-onit-surface">
-                    <div class="flex flex-col gap-2 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p class="font-condensed text-xs font-bold uppercase tracking-wide text-onit">{{ $col['source'] }}</p>
-                            <h2 class="font-condensed text-xl font-bold uppercase text-white">{{ $col['title'] }}</h2>
-                        </div>
-                        <p class="font-condensed text-xs font-bold uppercase tracking-wide text-white/60">{{ $col['status_label'] }}</p>
+                    @php
+                        $check = match ($col['tone'] ?? '') {
+                            'ok' => '#22C55E',
+                            'warn' => '#FACC15',
+                            default => '#64748B',
+                        };
+                    @endphp
+                    <div class="flex items-center gap-2.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ $check }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                        <span class="text-[13px]">{{ $col['plan_label'] ?? $col['title'] }}</span>
                     </div>
-                    <div class="px-5 py-4">
-                        @if(! empty($col['message']) && ($col['state'] ?? '') !== 'live')
-                            <p class="mb-4 text-sm text-amber-100/90 leading-relaxed">{{ $col['message'] }}</p>
-                        @endif
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            @foreach(($col['metrics'] ?? []) as $metric)
-                                <div class="border border-white/5 bg-onit-ink/40 px-3 py-3">
-                                    <p class="font-condensed text-[0.65rem] font-bold uppercase tracking-wide text-white/45">{{ $metric['label'] }}</p>
-                                    <p @class([
-                                        'mt-1 font-condensed text-lg font-bold uppercase',
-                                        'text-amber-300' => ($metric['kind'] ?? '') === 'pipeline',
-                                        'text-white/40' => ($metric['kind'] ?? '') === 'empty',
-                                        'text-white' => ($metric['kind'] ?? 'ok') === 'ok',
-                                    ])>{{ $metric['value'] }}</p>
-                                    @if(! empty($metric['hint']))
-                                        <p class="mt-1 text-[0.7rem] leading-snug text-white/40">{{ $metric['hint'] }}</p>
+                @endforeach
+            </div>
+        </div>
+        <div class="mt-auto border-t border-[#1F2933] pt-5">
+            <div class="text-xs leading-relaxed text-white/65">Questions about your service or this report?</div>
+            <a href="{{ route('support.create') }}" class="mt-3 inline-block rounded bg-onit px-[18px] py-2.5 text-[13px] font-semibold text-white hover:bg-onit-hover">Talk to an Expert</a>
+            <a href="{{ route('dashboard') }}" class="mt-3 block text-xs text-white/55 hover:text-onit">← Back to dashboard</a>
+        </div>
+    </aside>
+
+    {{-- Main --}}
+    <div class="report-main min-w-0 flex-1 px-5 py-8 sm:px-8 lg:px-10">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <div class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-onit">Monthly service review</div>
+                <h1 class="m-0 text-[1.75rem] font-bold tracking-tight">{{ now()->timezone('Europe/London')->format('F Y') }}</h1>
+                <p class="mt-2 max-w-xl text-[12.5px] leading-relaxed report-muted">
+                    Live figures from sold products only. Items marked <span class="font-semibold text-amber-700">Not set up</span> need a future feed or Microsoft permission — numbers are never invented.
+                </p>
+            </div>
+            <div class="inline-flex shrink-0 overflow-hidden rounded border border-[#E5E7EB] bg-white" title="{{ $monthCompare['message'] ?? '' }}">
+                <span class="bg-[#011926] px-3.5 py-1.5 text-xs font-semibold text-white">This month</span>
+                <span class="cursor-not-allowed px-3.5 py-1.5 text-xs font-medium report-muted">Last month</span>
+            </div>
+        </div>
+
+        {{-- Headline stats --}}
+        <div class="report-card mt-6 grid grid-cols-1 divide-y divide-[#E5E7EB] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div class="px-7 py-5">
+                <div class="text-4xl font-bold leading-none">{{ $threats ?? '—' }}</div>
+                <div class="mt-1.5 text-[12.5px] report-muted">
+                    threats stopped
+                    @if($threats === null)
+                        <span class="block text-[11px] font-medium text-amber-700">Not set up (uses Huntress MTD later)</span>
+                    @else
+                        <span class="block text-[11px] text-amber-700">Snapshot stand-in · MoM not set up</span>
+                    @endif
+                </div>
+            </div>
+            <div class="px-7 py-5">
+                <div class="text-4xl font-bold leading-none">{{ $resolved ?? '—' }}</div>
+                <div class="mt-1.5 text-[12.5px] report-muted">
+                    tickets resolved
+                    @if($resolved === null)
+                        <span class="block text-[11px] font-medium text-amber-700">Not available yet</span>
+                    @else
+                        <span class="block text-[11px] text-amber-700">30d total · avg response not set up</span>
+                    @endif
+                </div>
+            </div>
+            <div class="px-7 py-5">
+                <div class="text-4xl font-bold leading-none">{{ $sla ?? '—' }}</div>
+                <div class="mt-1.5 text-[12.5px] report-muted">
+                    SLA met
+                    @if($sla === null)
+                        <span class="block text-[11px] font-medium text-amber-700">Not available yet</span>
+                    @else
+                        <span class="block text-[11px] text-amber-700">vs last month not set up</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Stacked source rows --}}
+        <div class="mt-5 flex flex-col gap-3">
+            @foreach($reportRows as $row)
+                @php $c = $row['col']; @endphp
+                <div class="report-card flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:gap-6 lg:px-7">
+                    <div class="flex w-full items-center gap-3 lg:w-[250px] lg:flex-none">
+                        <div class="min-w-0">
+                            <div class="text-[13.5px] font-semibold">{{ $c['title'] }}</div>
+                            <div class="text-[11px] report-muted">{{ $c['source'] }}</div>
+                        </div>
+                    </div>
+                    <span class="inline-flex w-fit items-center justify-center gap-1.5 rounded px-3 py-1 text-[11.5px] font-semibold lg:w-[150px] lg:flex-none"
+                          style="background:{{ $row['pill_bg'] }};color:{{ $row['pill_color'] }}">
+                        <span class="inline-block h-1.5 w-1.5 rounded-full" style="background:{{ $row['dot'] }}"></span>
+                        {{ $row['status_short'] }}
+                    </span>
+                    <div class="flex flex-1 flex-wrap gap-8 text-[12.5px]">
+                        @foreach($row['highlights'] as $h)
+                            <div>
+                                <div class="text-[17px] font-bold {{ !empty($h['pipeline']) || $h['v'] === null ? 'text-amber-700' : '' }}">
+                                    {{ !empty($h['pipeline']) || $h['v'] === null ? '—' : $h['v'] }}
+                                </div>
+                                <div class="text-[11.5px] report-muted">
+                                    {{ $h['l'] }}
+                                    @if(!empty($h['pipeline']) || $h['v'] === null)
+                                        <span class="text-amber-700"> · not set up</span>
                                     @endif
                                 </div>
-                            @endforeach
-                        </div>
-                        @if(! empty($col['href']) && ($col['state'] ?? '') !== 'not_sold')
-                            <a href="{{ $col['href'] }}" class="mt-4 inline-block text-sm text-onit hover:text-white font-condensed font-semibold uppercase tracking-wide">
-                                Details →
-                            </a>
-                        @endif
+                            </div>
+                        @endforeach
                     </div>
-                </article>
+                    @if(! empty($c['href']) && ($c['state'] ?? '') !== 'not_sold')
+                        <a href="{{ $c['href'] }}" class="report-orange shrink-0">Details →</a>
+                    @endif
+                </div>
+                @if(($c['state'] ?? '') !== 'live' && ! empty($c['message']))
+                    <p class="-mt-1 mb-1 px-2 text-[11.5px] text-amber-800">{{ $c['message'] }}</p>
+                @endif
             @endforeach
         </div>
-    </section>
 
-    <section class="mb-10">
-        <p class="portal-label">Questions about your service or this report?</p>
-        <div class="mt-4 flex flex-col sm:flex-row gap-3">
-            <a href="{{ route('support.create') }}" class="cta-btn w-full sm:w-auto justify-center">Talk to an expert</a>
-            <a href="{{ route('integrations.superops.launch') }}" class="cta-btn-ghost w-full sm:w-auto justify-center">Open SuperOps</a>
+        {{-- Activity --}}
+        <div class="report-card mt-5 px-7 py-5">
+            <div class="mb-3.5 flex flex-wrap items-baseline justify-between gap-2">
+                <div class="text-sm font-semibold">What we've done for you</div>
+                <span class="text-xs font-semibold text-amber-700">Full history not set up</span>
+            </div>
+            <div class="rounded border border-amber-300/50 bg-amber-50 px-4 py-4">
+                <p class="text-[12.5px] leading-relaxed text-amber-950/80">
+                    {{ $activity['message'] ?? 'Activity timeline requires a cross-product event pipeline.' }}
+                </p>
+            </div>
         </div>
-    </section>
-
-    <section>
-        <div class="border border-amber-400/30 bg-amber-400/5 px-5 py-5">
-            <p class="font-condensed text-xs font-bold uppercase tracking-wide text-amber-200">Activity narrative not set up</p>
-            <p class="portal-body-muted mt-2 text-sm leading-relaxed max-w-3xl">
-                {{ $activity['message'] ?? 'Activity list requires a future pipeline.' }}
-            </p>
-        </div>
-    </section>
-
+    </div>
+</div>
 </x-app-layout>

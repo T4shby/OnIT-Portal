@@ -116,8 +116,8 @@ class ClientHomeOverviewService
             return [
                 'title' => 'Your IT at a glance',
                 'status_line' => $attention === 1
-                    ? '1 service needs attention — setup or data load incomplete.'
-                    : "{$attention} services need attention — setup or data load incomplete.",
+                    ? 'Attention needed on 1 service.'
+                    : "Attention needed on {$attention} services.",
                 'status_tone' => 'warn',
             ];
         }
@@ -125,16 +125,14 @@ class ClientHomeOverviewService
         if ($live > 0) {
             return [
                 'title' => 'Your IT at a glance',
-                'status_line' => $orgWide
-                    ? 'Live products are reporting for '.$client->name.'.'
-                    : 'Your live services for '.$client->name.'.',
+                'status_line' => 'All systems protected.',
                 'status_tone' => 'ok',
             ];
         }
 
         return [
             'title' => 'Your IT at a glance',
-            'status_line' => 'No sold service feeds are live yet — contact your account manager to enable products.',
+            'status_line' => 'Services not live yet.',
             'status_tone' => 'neutral',
         ];
     }
@@ -188,22 +186,26 @@ class ClientHomeOverviewService
 
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
-            $this->metric('Resolved (30d)', $closed30, null),
+            $this->pipelineMetric(
+                'Awaiting your reply',
+                '“Waiting on client” ticket count is not broken out in the SuperOps snapshot yet.',
+            ),
+            $this->metric('Resolved this month', $closed30, null),
+            $this->pipelineMetric(
+                'Avg first response',
+                'First-response average vs 30m SLA is not computed in the portal yet.',
+            ),
             $this->metric('Devices managed', $summary->assetsTotal, null),
-            $this->metric('Online', $summary->assetsOnline, null),
+            $this->metric('Healthy', $summary->assetsOnline, null),
+            $this->pipelineMetric(
+                'Need updates',
+                'Patch/update posture is not in the SuperOps snapshot yet.',
+            ),
             $this->metric('Offline', $summary->assetsOffline, null),
             $this->metric(
                 'SLA met',
                 $summary->slaMetPercent !== null ? $summary->slaMetPercent.'%' : null,
                 $summary->slaSampleSize !== null ? 'sample '.$summary->slaSampleSize : null,
-            ),
-            $this->pipelineMetric(
-                'Avg first response',
-                'SuperOps stores ticket times; portal does not yet compute first-response averages for this tile. Pipeline required.',
-            ),
-            $this->pipelineMetric(
-                'vs last month',
-                'Month-over-month ticket deltas need a historical snapshot store — not set up yet.',
             ),
         ];
 
@@ -215,7 +217,7 @@ class ClientHomeOverviewService
         return array_merge($base, [
             'state' => 'live',
             'tone' => $tone,
-            'status_label' => ($summary->openTicketsTotal ?? 0) === 0 ? 'Clear' : 'Active tickets',
+            'status_label' => ($summary->openTicketsTotal ?? 0) === 0 ? 'On track' : 'Open tickets',
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -291,26 +293,30 @@ class ClientHomeOverviewService
         }
 
         $metrics = [
-            $this->metric('Licences assigned', $summary->totalSeatsAssigned ?? null, null),
-            $this->metric('Seats purchased (paid)', $summary->totalSeatsPurchased ?? null, null),
-            $this->metric('Licensed users', $summary->licensedUserCount ?? null, 'User mailboxes only'),
             $this->metric(
-                'Utilisation',
-                $summary->overallUtilizationPct !== null ? round($summary->overallUtilizationPct).'%' : null,
-                $topPlan ? 'Top: '.$topPlan : null,
+                'Licences assigned',
+                $summary->totalSeatsAssigned ?? null,
+                $summary->totalSeatsPurchased !== null ? 'of '.$summary->totalSeatsPurchased : null,
             ),
+            $this->metric('Plan', $topPlan, null),
             $this->pipelineMetric(
                 'Secure Score',
-                'Requires Graph Security / Secure Score integration and app consent per tenant — not set up yet.',
+                'Requires Graph Secure Score + app consent per tenant — not set up yet.',
             ),
             $this->pipelineMetric(
                 'MFA coverage',
-                'Requires Graph reports (authentication methods / registration) and permissions — not set up yet.',
+                'Requires Graph authentication methods / registration reports — not set up yet.',
             ),
             $this->pipelineMetric(
-                'Users without MFA',
+                'Without MFA',
                 'Blocked until MFA coverage feed exists.',
             ),
+            $this->metric(
+                'Utilisation',
+                $summary->overallUtilizationPct !== null ? round($summary->overallUtilizationPct).'%' : null,
+                null,
+            ),
+            $this->metric('Licensed users', $summary->licensedUserCount ?? null, 'User mailboxes only'),
         ];
 
         return array_merge($base, [
@@ -360,18 +366,26 @@ class ClientHomeOverviewService
         }
 
         $metrics = [
-            $this->metric('Agents', $summary->agentsTotal, null),
-            $this->metric('Unresponsive', $summary->agentsUnresponsive, null),
-            $this->metric('Open incidents', $summary->openIncidents, null),
-            $this->metric('Resolved incidents', $summary->resolvedIncidents, null),
-            $this->metric('EDR isolated', $summary->edrIsolatedAgents, null),
+            $this->metric(
+                'Agent coverage',
+                $summary->agentsTotal,
+                null,
+            ),
+            $this->metric('24/7 monitoring', $summary->agentsTotal !== null ? 'Active' : null, null),
             $this->pipelineMetric(
                 'Incidents this month',
-                'Monthly incident totals need a period query / history — not set up yet (open/resolved totals are current snapshot).',
+                'MTD incident total needs period query — open/resolved below are snapshot totals.',
+            ),
+            $this->metric('Open incidents', $summary->openIncidents, null),
+            $this->metric('Remediated (snapshot)', $summary->resolvedIncidents, null),
+            $this->metric('Unresponsive agents', $summary->agentsUnresponsive, null),
+            $this->pipelineMetric(
+                'Identity (ITDR) alerts',
+                'ITDR alert parsing is not in the Huntress metrics feed yet.',
             ),
             $this->pipelineMetric(
-                'Identity (ITDR) outcomes',
-                'ITDR narrative outcomes are not yet parsed into the portal feed.',
+                'Outcome',
+                'ITDR narrative outcomes not set up yet.',
             ),
         ];
 
@@ -429,19 +443,24 @@ class ClientHomeOverviewService
         $failed = $summary->failedLast24h ?? $summary->failedBackupsCount ?? null;
         $metrics = [
             $this->metric('Mailboxes protected', $summary->protectedMailboxes, null),
-            $this->metric('Succeeded (24h)', $summary->succeededLast24h, null),
-            $this->metric('With issues', $failed, null),
-            $this->metric('OneDrive', $summary->onedriveCount, null),
-            $this->metric('SharePoint', $summary->sharepointCount, null),
             $this->metric(
-                'Last backup',
+                'SharePoint & OneDrive',
+                (($summary->onedriveCount ?? 0) + ($summary->sharepointCount ?? 0)) > 0
+                    ? 'Included'
+                    : (($summary->onedriveCount === null && $summary->sharepointCount === null) ? null : 'Mapped'),
+                null,
+            ),
+            $this->metric(
+                'Last backup run',
                 $summary->lastBackupAt?->timezone('Europe/London')->format('d M H:i')
                     ?? ($summary->lastBackupStatus ?: null),
                 null,
             ),
+            $this->metric('Succeeded', $summary->succeededLast24h, 'last 24h'),
+            $this->metric('Retrying', $failed, $failed ? 'open issues' : null),
             $this->pipelineMetric(
                 'Restore points kept',
-                'Retention days are not in the current Dropsuite metrics payload — not set up yet.',
+                'Retention days are not in the Dropsuite metrics payload — not set up yet.',
             ),
         ];
 
@@ -450,7 +469,7 @@ class ClientHomeOverviewService
         return array_merge($base, [
             'state' => 'live',
             'tone' => $tone,
-            'status_label' => ((int) $failed) > 0 ? 'Issues' : 'Protected',
+            'status_label' => ((int) $failed) > 0 ? 'Retries in progress' : 'Protected',
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -566,7 +585,7 @@ class ClientHomeOverviewService
     }
 
     /**
-     * @return array{label: string, value: string, hint: ?string, kind: string}
+     * @return array{label: string, value: string, hint: ?string, kind: string, suffix: ?string}
      */
     private function metric(string $label, mixed $value, ?string $hint): array
     {
@@ -576,19 +595,21 @@ class ClientHomeOverviewService
                 'value' => '—',
                 'hint' => $hint ?? 'No value in latest snapshot',
                 'kind' => 'empty',
+                'suffix' => null,
             ];
         }
 
         return [
             'label' => $label,
             'value' => is_bool($value) ? ($value ? 'Yes' : 'No') : (string) $value,
-            'hint' => $hint,
+            'hint' => null,
             'kind' => 'ok',
+            'suffix' => $hint,
         ];
     }
 
     /**
-     * @return array{label: string, value: string, hint: ?string, kind: string}
+     * @return array{label: string, value: string, hint: ?string, kind: string, suffix: ?string}
      */
     private function pipelineMetric(string $label, string $reason): array
     {
@@ -597,6 +618,7 @@ class ClientHomeOverviewService
             'value' => 'Not set up',
             'hint' => $reason,
             'kind' => 'pipeline',
+            'suffix' => null,
         ];
     }
 
