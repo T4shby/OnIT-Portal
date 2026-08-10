@@ -44,6 +44,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
 | [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
+| [UIOverhaul.md](UIOverhaul.md) | **UI experiment branch `UIOverhaul` — mockup 1a/1c home + Reports (not production `main` until merge)** |
 | [UsecureIntegration.md](UsecureIntegration.md) | **usecure — design only for later** (not near-term; blocked on beta API keys) |
 
 ## Implementation Map
@@ -80,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Integration Health false “schedule lock stuck” fix on `main` + experiment docs — [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | usecure integration **design only**: sold-some clients, MSP tenant like Huntress, request beta GraphQL key from support, full modular build plan — [UsecureIntegration.md](UsecureIntegration.md) |
 | 2026-08-10 | Integration Health prewarm card: label SuperOps/other **jobs queued** (was misleading “critical N”) — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-10 | Priorities 1–5: Roadmap/PRD as shipped+backlog; sold coverage on admin dashboard; cold-optional prewarm; support SSO-first threads; IH/`cacheKey()` discipline — [Roadmap.md](Roadmap.md), [ProductRequirements.md](ProductRequirements.md), ADR-022/023 |
