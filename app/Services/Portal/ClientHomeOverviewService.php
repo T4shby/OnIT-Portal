@@ -217,64 +217,69 @@ class ClientHomeOverviewService
     }
 
     /**
-     * SuperOps live health with client-facing reason.
+     * SuperOps live health — client-facing, not presence/agent-online.
+     *
+     * Devices are ignored: many customers have on-site / offline-by-design kit
+     * (field engineers, plant, night shutdown), so “offline” is noise not health.
+     *
+     * Critical: SLA met &lt; 90% when a sample exists, or open tickets ≥ 25.
+     * Issues: SLA met &lt; 95% when a sample exists, or open tickets ≥ 10.
+     * Healthy: otherwise.
      *
      * @return array{tone: string, status_label: string, status_reason: string}
      */
     private function superOpsHealth(object $summary): array
     {
         $open = (int) ($summary->openTicketsTotal ?? 0);
-        $offline = (int) ($summary->assetsOffline ?? 0);
-        $total = (int) ($summary->assetsTotal ?? 0);
         $sla = $summary->slaMetPercent;
         $slaVal = is_numeric($sla) ? (float) $sla : null;
-
-        $offlineCritical = $offline >= 20
-            || ($total >= 5 && $offline / max($total, 1) >= 0.25);
-
-        if ($open >= 15) {
-            return $this->healthBand(
-                'critical',
-                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').' — this is more than we would normally expect.',
-            );
-        }
+        $slaLabel = $slaVal !== null
+            ? rtrim(rtrim(number_format($slaVal, 1), '0'), '.')
+            : null;
 
         if ($slaVal !== null && $slaVal < 90) {
             return $this->healthBand(
                 'critical',
-                'We answered only '.rtrim(rtrim(number_format($slaVal, 1), '0'), '.').'% of tickets within the agreed time this month.',
+                "Only {$slaLabel}% of tickets were answered within the agreed time this month — below our critical target.",
             );
         }
 
-        if ($offlineCritical) {
+        if ($open >= 25) {
             return $this->healthBand(
                 'critical',
-                $this->countPhrase($offline, 'computer is offline', 'computers are offline').' and not checking in.',
-            );
-        }
-
-        if ($open >= 1) {
-            return $this->healthBand(
-                'issues',
-                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').'.',
-            );
-        }
-
-        if ($offline > 0) {
-            return $this->healthBand(
-                'issues',
-                $this->countPhrase($offline, 'computer is offline', 'computers are offline').' and not checking in.',
+                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').' — this is higher than we would normally expect.',
             );
         }
 
         if ($slaVal !== null && $slaVal < 95) {
             return $this->healthBand(
                 'issues',
-                'Response times dipped to '.rtrim(rtrim(number_format($slaVal, 1), '0'), '.').'% of the agreed target this month.',
+                "{$slaLabel}% of tickets were answered within the agreed time this month — short of the 95% target.",
             );
         }
 
-        return $this->healthBand('healthy', 'Tickets and devices look in good shape.');
+        if ($open >= 10) {
+            return $this->healthBand(
+                'issues',
+                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').'.',
+            );
+        }
+
+        if ($slaVal !== null) {
+            return $this->healthBand(
+                'healthy',
+                "{$slaLabel}% of tickets met the agreed response time this month.",
+            );
+        }
+
+        if ($open === 0) {
+            return $this->healthBand('healthy', 'No open support tickets right now.');
+        }
+
+        return $this->healthBand(
+            'healthy',
+            $this->countPhrase($open, 'support ticket is open', 'support tickets are open').' — within a normal range.',
+        );
     }
 
     /**

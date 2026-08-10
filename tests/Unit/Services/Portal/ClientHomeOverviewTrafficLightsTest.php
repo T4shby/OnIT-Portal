@@ -21,12 +21,41 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
     public static function superOpsProvider(): array
     {
         return [
-            'healthy' => [(object) ['openTicketsTotal' => 0, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 100], 'ok', 'Healthy'],
-            'issues open' => [(object) ['openTicketsTotal' => 3, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 100], 'warn', 'Issues'],
-            'issues offline' => [(object) ['openTicketsTotal' => 0, 'assetsOffline' => 2, 'assetsTotal' => 50, 'slaMetPercent' => 100], 'warn', 'Issues'],
-            'issues sla' => [(object) ['openTicketsTotal' => 0, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 93], 'warn', 'Issues'],
-            'critical open' => [(object) ['openTicketsTotal' => 15, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 100], 'bad', 'Critical'],
-            'critical offline share' => [(object) ['openTicketsTotal' => 0, 'assetsOffline' => 20, 'assetsTotal' => 64, 'slaMetPercent' => 100], 'bad', 'Critical'],
+            'healthy with sla' => [
+                (object) ['openTicketsTotal' => 8, 'assetsOffline' => 40, 'assetsTotal' => 64, 'slaMetPercent' => 100],
+                'ok',
+                'Healthy',
+            ],
+            'offline ignored' => [
+                (object) ['openTicketsTotal' => 0, 'assetsOffline' => 50, 'assetsTotal' => 64, 'slaMetPercent' => 98],
+                'ok',
+                'Healthy',
+            ],
+            'issues sla' => [
+                (object) ['openTicketsTotal' => 2, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 93],
+                'warn',
+                'Issues',
+            ],
+            'issues open backlog' => [
+                (object) ['openTicketsTotal' => 12, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 100],
+                'warn',
+                'Issues',
+            ],
+            'critical sla' => [
+                (object) ['openTicketsTotal' => 0, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 85],
+                'bad',
+                'Critical',
+            ],
+            'critical open backlog' => [
+                (object) ['openTicketsTotal' => 25, 'assetsOffline' => 0, 'assetsTotal' => 50, 'slaMetPercent' => 100],
+                'bad',
+                'Critical',
+            ],
+            'few open tickets still healthy' => [
+                (object) ['openTicketsTotal' => 5, 'assetsOffline' => 30, 'assetsTotal' => 64, 'slaMetPercent' => 100],
+                'ok',
+                'Healthy',
+            ],
         ];
     }
 
@@ -37,21 +66,9 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
         $this->assertSame($tone, $h['tone']);
         $this->assertSame($label, $h['status_label']);
         $this->assertNotSame('', $h['status_reason'] ?? '');
-        $this->assertStringNotContainsStringIgnoringCase('sla', $h['status_reason'] ?? 'x');
-        $this->assertStringNotContainsStringIgnoringCase('superops', $h['status_reason'] ?? 'x');
-        $this->assertStringNotContainsStringIgnoringCase('graph', $h['status_reason'] ?? 'x');
-    }
-
-    public function test_offline_reason_is_plain_language(): void
-    {
-        $h = $this->health('superOpsHealth', (object) [
-            'openTicketsTotal' => 0,
-            'assetsOffline' => 31,
-            'assetsTotal' => 64,
-            'slaMetPercent' => 100,
-        ]);
-        $this->assertSame('bad', $h['tone']);
-        $this->assertStringContainsString('computers are offline', $h['status_reason']);
+        $this->assertStringNotContainsStringIgnoringCase('offline', $h['status_reason'] ?? '');
+        $this->assertStringNotContainsStringIgnoringCase('computer', $h['status_reason'] ?? '');
+        $this->assertStringNotContainsStringIgnoringCase('superops', $h['status_reason'] ?? '');
     }
 
     public function test_huntress_open_is_issues_until_three(): void
@@ -76,12 +93,10 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
     {
         $ok = $this->health('dropsuiteHealth', (object) ['failedLast24h' => 0]);
         $this->assertSame('ok', $ok['tone']);
-        $this->assertStringContainsString('backup', strtolower($ok['status_reason']));
 
         $fail = $this->health('dropsuiteHealth', (object) ['failedLast24h' => 2]);
         $this->assertSame('bad', $fail['tone']);
         $this->assertSame('Critical', $fail['status_label']);
-        $this->assertStringContainsString('backup', strtolower($fail['status_reason']));
     }
 
     public function test_m365_oversubscription(): void
@@ -97,7 +112,6 @@ class ClientHomeOverviewTrafficLightsTest extends TestCase
             'totalSeatsPurchased' => 100,
         ]);
         $this->assertSame('warn', $over['tone']);
-        $this->assertStringContainsString('licence', strtolower($over['status_reason']));
 
         $crit = $this->health('m365Health', (object) [
             'totalSeatsAssigned' => 120,

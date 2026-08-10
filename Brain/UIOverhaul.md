@@ -25,10 +25,12 @@ Pill label is **Healthy / Issues / Critical**. Each column also exposes **`statu
 
 | Service | Healthy | Issues | Critical |
 |---------|---------|--------|----------|
-| **Support & Devices** (SuperOps) | open tickets = 0, offline devices = 0, SLA ≥ 95% or no SLA sample | open ≥ 1, or any offline, or SLA &lt; 95% | open tickets ≥ 15, or SLA &lt; 90%, or offline ≥ 20, or offline ≥ 25% of fleet (fleet ≥ 5) |
+| **Support & Devices** (SuperOps) | SLA ≥ 95% (or no SLA sample) and open tickets &lt; 10 | SLA &lt; 95%, or open tickets ≥ 10 | SLA &lt; 90%, or open tickets ≥ 25 |
 | **Microsoft 365** | not over-assigned | seats assigned &gt; purchased | assigned &gt; 110% of purchased |
 | **Detection & Response** (Huntress) | open incidents = 0 and no unresponsive agents | any open incident, or any unresponsive agents | open incidents ≥ 3, or unresponsive ≥ 5 **and** ≥ 20% of agents |
 | **Backup** (Dropsuite) | no failed/retrying last 24h | — | any failed/retrying in last 24h feed |
+
+**SuperOps deliberately ignores device online/offline.** Many customers have kit that is offline by design (field engineers, plant, night power-off). Traffic lights here are about **SLA and ticket backlog**, not RMM presence. Device counts can still appear as informatics on the card.
 
 ### Product not live
 
@@ -72,4 +74,5 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 | 2026-08-10 | **Reports layout:** CSS Grid (broken Tailwind flex purging). Home: pipeline rows removed; quieter activity; Pax8 logo white/`8` orange on dark. |
 | 2026-08-10 | **Traffic lights:** explicit Healthy / Issues / Critical bands per SuperOps, M365, Huntress, Dropsuite; hero takes worst. |
 | 2026-08-10 | **Why this colour:** `status_reason` plain English for client admins on each service card + hero detail. |
+| 2026-08-10 | **SuperOps lights rework:** ignore offline devices; SLA + open-ticket backlog only. |
 | 2026-08-10 | **Reports width/mobile:** full content width (no 1280 cap); rail no secondary On IT logo; stack + larger tap targets on small screens. |
