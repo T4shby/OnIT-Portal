@@ -44,11 +44,33 @@
                             @foreach($bootstrap['warnings'] as $line)
                                 <li class="text-onit">{{ $line }}</li>
                             @endforeach
-                            <li class="text-white/70">
-                                Orange items are usually Azure lag (e.g. Client SSO group assign), not a failed Accept.
-                                Sign in → Edit client → <strong class="text-white/85">Retry Graph setup</strong> if needed.
-                                Do not re-Accept unless Graph Application permissions changed again.
-                            </li>
+                            @php
+                                $warnText = strtolower(implode(' ', $bootstrap['warnings'] ?? []));
+                                $isPermissionBlock = str_contains($warnText, 'application.readwrite')
+                                    || str_contains($warnText, 'permission')
+                                    || str_contains($warnText, 'cannot create enterprise');
+                                $hasSavedAppNote = collect($bootstrap['details'] ?? [])->contains(
+                                    fn ($d) => is_string($d) && str_contains($d, 'already on client record')
+                                );
+                            @endphp
+                            @if($isPermissionBlock && ! $hasSavedAppNote)
+                                <li class="text-white/70">
+                                    Orange here is a <strong class="text-white/85">real Graph permission / create failure</strong>, not Azure lag.
+                                    Confirm <strong class="text-white/85">Application.ReadWrite.All</strong> is granted on OnIT Portal for Portals, then
+                                    Accept again or <strong class="text-white/85">Retry Graph setup</strong> on Edit client.
+                                </li>
+                            @elseif($hasSavedAppNote)
+                                <li class="text-white/70">
+                                    This client was already partly set up — saved SuperOps app IDs are kept.
+                                    Prefer <strong class="text-white/85">Retry Graph setup</strong> over re-creating apps or wiping SCIM/SSO.
+                                </li>
+                            @else
+                                <li class="text-white/70">
+                                    Orange items can be Azure lag (e.g. group assign). Sign in → Edit client →
+                                    <strong class="text-white/85">Retry Graph setup</strong> if needed.
+                                    Do not re-Accept unless Graph Application permissions changed again.
+                                </li>
+                            @endif
                         @elseif(! empty($bootstrap['ok']))
                             <li>
                                 Consent and Graph setup look complete for this tenant.

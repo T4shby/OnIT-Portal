@@ -607,8 +607,43 @@ class MicrosoftGraphClient
     /**
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
      */
-    public function ensureNamedEnterpriseApplication(string $tenantId, string $displayName): array
-    {
+    /**
+     * Non-gallery app by display name, or resolve an already-saved Application (client) ID first.
+     *
+     * Partial onboarding: clients often already have SCIM/SSO app IDs; name search can miss and
+     * create then 403s even when the apps already exist — that must not look like “consent failed”.
+     *
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
+     */
+    public function ensureNamedEnterpriseApplication(
+        string $tenantId,
+        string $displayName,
+        ?string $knownAppClientId = null,
+    ): array {
+        $knownAppClientId = filled($knownAppClientId) ? strtolower(trim((string) $knownAppClientId)) : null;
+
+        if ($knownAppClientId !== null) {
+            try {
+                $resolved = $this->waitForApplicationByAppId($tenantId, $knownAppClientId);
+                $servicePrincipalId = $this->waitForServicePrincipalForAppId(
+                    $tenantId,
+                    $resolved['appId'],
+                );
+
+                return [
+                    'appId' => $resolved['appId'],
+                    'applicationObjectId' => $resolved['applicationObjectId'],
+                    'servicePrincipalId' => $servicePrincipalId,
+                ];
+            } catch (Throwable $e) {
+                Log::info('ensureNamedEnterpriseApplication: known appId not resolvable, fall back to name', [
+                    'tenant_id' => $tenantId,
+                    'known_app_id' => $knownAppClientId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $existing = $this->findApplicationByDisplayName($tenantId, $displayName);
 
         if ($existing !== null) {

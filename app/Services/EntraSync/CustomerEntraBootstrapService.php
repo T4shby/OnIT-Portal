@@ -143,7 +143,11 @@ class CustomerEntraBootstrapService
         try {
             $scim = $this->graph->retryAfterConsentPropagation(
                 $tenantId,
-                fn () => $this->graph->ensureNamedEnterpriseApplication($tenantId, $scimAppName),
+                fn () => $this->graph->ensureNamedEnterpriseApplication(
+                    $tenantId,
+                    $scimAppName,
+                    $client->entra_superops_app_id ?? ($fields['entra_superops_app_id'] ?? null),
+                ),
             );
             $fields['entra_superops_app_id'] = $scim['appId'];
             $details[] = "SCIM app «{$scimAppName}»: {$scim['appId']}";
@@ -191,13 +195,23 @@ class CustomerEntraBootstrapService
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
-            $warnings[] = 'SCIM app not ready: '.$e->getMessage();
+            $this->appendEnterpriseAppFailureWarning(
+                $warnings,
+                $details,
+                'SCIM',
+                $client->entra_superops_app_id ?? ($fields['entra_superops_app_id'] ?? null),
+                $e,
+            );
         }
 
         try {
             $sso = $this->graph->retryAfterConsentPropagation(
                 $tenantId,
-                fn () => $this->graph->ensureNamedEnterpriseApplication($tenantId, $ssoAppName),
+                fn () => $this->graph->ensureNamedEnterpriseApplication(
+                    $tenantId,
+                    $ssoAppName,
+                    $client->entra_superops_sso_app_id ?? ($fields['entra_superops_sso_app_id'] ?? null),
+                ),
             );
             $fields['entra_superops_sso_app_id'] = $sso['appId'];
             $details[] = "Client SSO app «{$ssoAppName}»: {$sso['appId']}";
@@ -249,7 +263,13 @@ class CustomerEntraBootstrapService
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
-            $warnings[] = 'Client SSO Entra app not ready: '.$e->getMessage();
+            $this->appendEnterpriseAppFailureWarning(
+                $warnings,
+                $details,
+                'Client SSO',
+                $client->entra_superops_sso_app_id ?? ($fields['entra_superops_sso_app_id'] ?? null),
+                $e,
+            );
         }
 
         $client = $this->persist($client, $fields);
@@ -300,6 +320,31 @@ class CustomerEntraBootstrapService
         }
 
         return $out;
+    }
+
+    /**
+     * Prefer keeping saved app IDs; only scare about Application.ReadWrite when nothing is linked yet.
+     *
+     * @param  list<string>  $warnings
+     * @param  list<string>  $details
+     */
+    private function appendEnterpriseAppFailureWarning(
+        array &$warnings,
+        array &$details,
+        string $label,
+        mixed $savedAppId,
+        Throwable $e,
+    ): void {
+        $msg = $e->getMessage();
+        $saved = filled($savedAppId) ? (string) $savedAppId : '';
+
+        if ($saved !== '') {
+            $details[] = "{$label} app ID already on client record: {$saved} (Graph could not re-ensure: {$msg}). Keep this ID — sign in → Edit client → **Retry Graph setup** after consent settles, without wiping SuperOps links.";
+
+            return;
+        }
+
+        $warnings[] = "{$label} app not ready: {$msg}";
     }
 
     /**
