@@ -184,23 +184,12 @@ class ClientHomeOverviewService
             ? ($summary->ticketsClosed['30'] ?? null)
             : null;
 
+        // Customer home shows live snapshot numbers only — no pipeline “Not set up” rows.
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
-            $this->pipelineMetric(
-                'Awaiting your reply',
-                '“Waiting on client” ticket count is not broken out in the SuperOps snapshot yet.',
-            ),
             $this->metric('Resolved this month', $closed30, null),
-            $this->pipelineMetric(
-                'Avg first response',
-                'First-response average vs 30m SLA is not computed in the portal yet.',
-            ),
             $this->metric('Devices managed', $summary->assetsTotal, null),
             $this->metric('Healthy', $summary->assetsOnline, null),
-            $this->pipelineMetric(
-                'Need updates',
-                'Patch/update posture is not in the SuperOps snapshot yet.',
-            ),
             $this->metric('Offline', $summary->assetsOffline, null),
             $this->metric(
                 'SLA met',
@@ -256,9 +245,7 @@ class ClientHomeOverviewService
                 'status_label' => 'Directory',
                 'message' => null,
                 'metrics' => [
-                    $this->pipelineMetric('Licence fleet', 'Organisation licence insight is for Client Admins.'),
-                    $this->pipelineMetric('Secure Score', 'Needs Microsoft Graph Secure Score permission + feed — not set up yet.'),
-                    $this->pipelineMetric('MFA coverage', 'Needs Graph authentication methods / registration reports — not set up yet.'),
+                    $this->metric('Directory', 'Open Microsoft 365', null),
                 ],
                 'as_of' => null,
             ]);
@@ -299,18 +286,6 @@ class ClientHomeOverviewService
                 $summary->totalSeatsPurchased !== null ? 'of '.$summary->totalSeatsPurchased : null,
             ),
             $this->metric('Plan', $topPlan, null),
-            $this->pipelineMetric(
-                'Secure Score',
-                'Requires Graph Secure Score + app consent per tenant — not set up yet.',
-            ),
-            $this->pipelineMetric(
-                'MFA coverage',
-                'Requires Graph authentication methods / registration reports — not set up yet.',
-            ),
-            $this->pipelineMetric(
-                'Without MFA',
-                'Blocked until MFA coverage feed exists.',
-            ),
             $this->metric(
                 'Utilisation',
                 $summary->overallUtilizationPct !== null ? round($summary->overallUtilizationPct).'%' : null,
@@ -366,27 +341,11 @@ class ClientHomeOverviewService
         }
 
         $metrics = [
-            $this->metric(
-                'Agent coverage',
-                $summary->agentsTotal,
-                null,
-            ),
+            $this->metric('Agent coverage', $summary->agentsTotal, null),
             $this->metric('24/7 monitoring', $summary->agentsTotal !== null ? 'Active' : null, null),
-            $this->pipelineMetric(
-                'Incidents this month',
-                'MTD incident total needs period query — open/resolved below are snapshot totals.',
-            ),
             $this->metric('Open incidents', $summary->openIncidents, null),
-            $this->metric('Remediated (snapshot)', $summary->resolvedIncidents, null),
+            $this->metric('Remediated', $summary->resolvedIncidents, 'snapshot'),
             $this->metric('Unresponsive agents', $summary->agentsUnresponsive, null),
-            $this->pipelineMetric(
-                'Identity (ITDR) alerts',
-                'ITDR alert parsing is not in the Huntress metrics feed yet.',
-            ),
-            $this->pipelineMetric(
-                'Outcome',
-                'ITDR narrative outcomes not set up yet.',
-            ),
         ];
 
         $open = (int) ($summary->openIncidents ?? 0);
@@ -458,10 +417,6 @@ class ClientHomeOverviewService
             ),
             $this->metric('Succeeded', $summary->succeededLast24h, 'last 24h'),
             $this->metric('Retrying', $failed, $failed ? 'open issues' : null),
-            $this->pipelineMetric(
-                'Restore points kept',
-                'Retention days are not in the Dropsuite metrics payload — not set up yet.',
-            ),
         ];
 
         $tone = ((int) $failed) > 0 ? 'warn' : 'ok';
@@ -629,7 +584,7 @@ class ClientHomeOverviewService
     {
         return [
             'status' => 'pipeline',
-            'message' => 'Activity timeline (“What we’ve done for you”) is not set up yet. Needs a cross-product event pipeline (Huntress remediations, SuperOps ticket events, backup outcomes). Come back after that job exists — do not treat blank as “nothing happened”.',
+            'message' => 'Activity history not available yet.',
             'items' => [],
         ];
     }

@@ -6,93 +6,54 @@
     $period = $overview['period_label'] ?? '';
     $clientName = $user->client?->name ?? 'Your organisation';
 
-    $toneDot = function (string $tone): string {
-        return match ($tone) {
-            'ok' => '#22C55E',
-            'warn' => '#FACC15',
-            'bad' => '#EF4444',
-            default => '#64748B',
-        };
+    $okMetric = function (?array $col, string|array $labels) {
+        if (! is_array($col)) {
+            return null;
+        }
+        $labels = (array) $labels;
+        foreach ($col['metrics'] ?? [] as $m) {
+            if (($m['kind'] ?? '') !== 'ok') {
+                continue;
+            }
+            if (in_array($m['label'] ?? '', $labels, true)) {
+                return $m['value'];
+            }
+        }
+
+        return null;
     };
 
-    $valueStats = [
-        [
-            'label' => 'Threats stopped',
-            'value' => null,
-            'sub' => null,
-            'delta' => null,
-            'pipeline' => 'Needs Huntress period aggregation (incidents blocked this month). Not set up yet.',
-        ],
-        [
-            'label' => 'Tickets resolved',
-            'value' => data_get($cols->firstWhere('key', 'superops'), 'metrics'),
-            'pipeline' => null,
-        ],
-        [
-            'label' => 'SLA met',
-            'value' => null,
-            'pipeline' => null,
-        ],
-    ];
-
-    // Pull real SuperOps numbers for value strip where available
-    $super = $cols->firstWhere('key', 'superops') ?? null;
-    $hunt = $cols->firstWhere('key', 'huntress') ?? null;
-    $resolved = null;
-    $sla = null;
-    $threats = null;
-    if (is_array($super)) {
-        foreach (($super['metrics'] ?? []) as $m) {
-            if (($m['label'] ?? '') === 'Resolved (30d)' && ($m['kind'] ?? '') === 'ok') {
-                $resolved = $m['value'];
-            }
-            if (($m['label'] ?? '') === 'Resolved this month' && ($m['kind'] ?? '') === 'ok') {
-                $resolved = $m['value'];
-            }
-            if (($m['label'] ?? '') === 'SLA met' && ($m['kind'] ?? '') === 'ok') {
-                $sla = $m['value'];
-            }
-        }
-    }
-    if (is_array($hunt)) {
-        foreach (($hunt['metrics'] ?? []) as $m) {
-            if (($m['label'] ?? '') === 'Resolved incidents' && ($m['kind'] ?? '') === 'ok') {
-                $threats = $m['value']; // best available stand-in; still not MTD
-            }
-        }
-    }
+    $super = $cols->firstWhere('key', 'superops');
+    $hunt = $cols->firstWhere('key', 'huntress');
+    $resolved = $okMetric($super, ['Resolved this month', 'Resolved (30d)']);
+    $sla = $okMetric($super, 'SLA met');
+    $threats = $okMetric($hunt, ['Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
 
     $valueStrip = [
         [
             'label' => 'Threats stopped',
             'value' => $threats,
-            'note' => $threats !== null ? 'resolved incidents (snapshot)' : null,
-            'pipeline' => $threats === null
-                ? 'Month-to-date “threats stopped” needs Huntress period stats — not set up yet.'
-                : 'Snapshot total, not MTD “vs last month”. MoM comparison not set up yet.',
+            'note' => $threats !== null ? 'remediated' : null,
+            'empty' => '—',
         ],
         [
             'label' => 'Tickets resolved',
             'value' => $resolved,
-            'note' => $resolved !== null ? 'last 30 days' : null,
-            'pipeline' => $resolved === null
-                ? 'Needs SuperOps closed-ticket totals — product may be setup/cold.'
-                : 'Avg first response and “vs last month” still not set up.',
+            'note' => $resolved !== null ? 'this period' : null,
+            'empty' => '—',
         ],
         [
             'label' => 'SLA met',
             'value' => $sla,
-            'note' => $sla !== null ? null : null,
-            'pipeline' => $sla === null
-                ? 'SLA % not in snapshot, or SuperOps not live. MoM compare not set up yet.'
-                : '“Same as last month” compare not set up yet.',
+            'note' => null,
+            'empty' => '—',
         ],
     ];
 @endphp
 
-{{-- Match mockup 1a: full-bleed dark glance (Poppins, traffic lights, value stats, 4 columns) --}}
+{{-- Mockup 1a: live numbers only; no pipeline walls under every metric --}}
+<x-app-layout title="Dashboard" content-class="max-w-[90rem]">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
     .glance { font-family: 'Poppins', system-ui, sans-serif; color: #fff; }
     .glance-label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #FF7000; }
@@ -101,41 +62,35 @@
     .glance-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #0a2537; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; font-weight: 500; }
     .glance-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
     .glance-svc { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; }
-    .glance-metric { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+    .glance-metric { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; }
     .glance-metric-label { color: rgba(255,255,255,.65); }
     .glance-metric-value { font-weight: 600; text-align: right; }
     .glance-divider { height: 1px; background: #1F2933; }
-    .glance-link { font-size: 12px; font-weight: 600; color: #FF7000; }
+    .glance-link { font-size: 12px; font-weight: 600; color: #FF7000; text-decoration: none; }
     .glance-link:hover { color: #ff8a33; }
     .glance-toggle { display: inline-flex; background: #0a2537; border: 1px solid #1F2933; border-radius: 4px; overflow: hidden; }
     .glance-toggle span { padding: 8px 16px; font-size: 12px; }
-    .glance-pipeline { font-size: 11px; color: #FACC15; font-weight: 500; }
 </style>
+<div class="glance" style="padding-bottom:1rem">
 
-<x-app-layout title="Dashboard" content-class="max-w-[90rem]">
-<div class="glance -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-10 pb-4">
-
-    {{-- Hero --}}
-    <div class="border-b border-[#1F2933] pb-8 pt-2">
-        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div class="min-w-0">
-                <div class="glance-label mb-3">Your IT at a glance</div>
-                <h1 class="m-0 text-[1.75rem] font-bold leading-tight tracking-tight sm:text-4xl">
+    <div style="border-bottom:1px solid #1F2933;padding-bottom:2rem">
+        <div style="display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:space-between;align-items:flex-start">
+            <div style="min-width:0;flex:1 1 16rem">
+                <div class="glance-label" style="margin-bottom:12px">Your IT at a glance</div>
+                <h1 style="margin:0;font-size:clamp(1.5rem,3.5vw,2.25rem);font-weight:700;line-height:1.15;letter-spacing:-0.02em">
                     {{ $hero['status_line'] ?? 'All systems protected.' }}
                 </h1>
-                <p class="mt-2.5 text-sm glance-muted">
-                    {{ $period }}
-                    · {{ $clientName }}
+                <p style="margin:10px 0 0;font-size:14px" class="glance-muted">
+                    {{ $period }} · {{ $clientName }}
                 </p>
             </div>
-            <div class="glance-toggle shrink-0 self-start" title="Last-month mode needs history snapshots">
-                <span class="bg-onit font-semibold text-white">This month</span>
-                <span class="font-medium glance-muted cursor-not-allowed" title="{{ $monthCompare['message'] ?? 'History not set up' }}">Last month</span>
+            <div class="glance-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
+                <span style="background:#FF7000;font-weight:600;color:#fff">This month</span>
+                <span class="glance-muted" style="font-weight:500;cursor:not-allowed">Last month</span>
             </div>
         </div>
 
-        {{-- Traffic lights --}}
-        <div class="mt-7 flex flex-wrap gap-3">
+        <div style="margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:10px">
             @foreach($cols as $col)
                 @php
                     $dot = match ($col['tone'] ?? 'neutral') {
@@ -159,38 +114,33 @@
                 <div class="glance-pill">
                     <span class="glance-dot" style="background:{{ $dot }}"></span>
                     <span>{{ $col['title'] }}</span>
-                    <span class="text-[11px] glance-muted">{{ $short }}</span>
+                    <span style="font-size:11px" class="glance-muted">{{ $short }}</span>
                 </div>
             @endforeach
         </div>
 
-        {{-- Value stats --}}
-        <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem">
             @foreach($valueStrip as $stat)
-                <div class="glance-card px-6 py-5">
-                    <div class="text-[11px] font-semibold uppercase tracking-widest glance-muted">{{ $stat['label'] }}</div>
-                    <div class="mt-2 flex flex-wrap items-baseline gap-2.5">
+                <div class="glance-card" style="padding:1.25rem 1.5rem">
+                    <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase" class="glance-muted">{{ $stat['label'] }}</div>
+                    <div style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px">
                         @if($stat['value'] !== null)
-                            <span class="text-[2.125rem] font-bold leading-none">{{ $stat['value'] }}</span>
+                            <span style="font-size:2.125rem;font-weight:700;line-height:1">{{ $stat['value'] }}</span>
                             @if(! empty($stat['note']))
-                                <span class="text-xs glance-muted">{{ $stat['note'] }}</span>
+                                <span style="font-size:12px" class="glance-muted">{{ $stat['note'] }}</span>
                             @endif
                         @else
-                            <span class="text-[1.35rem] font-bold leading-none text-amber-300">Not set up</span>
+                            <span style="font-size:2.125rem;font-weight:700;line-height:1;color:rgba(255,255,255,.35)">{{ $stat['empty'] }}</span>
                         @endif
                     </div>
-                    @if(! empty($stat['pipeline']))
-                        <p class="mt-2 text-[11px] leading-snug text-amber-200/90">{{ $stat['pipeline'] }}</p>
-                    @endif
                 </div>
             @endforeach
         </div>
     </div>
 
-    {{-- Services strip --}}
-    <div class="flex flex-col gap-3 border-b border-[#1F2933] bg-[#01131d] py-4 sm:flex-row sm:items-center sm:gap-5 -mx-4 sm:-mx-6 lg:-mx-10 px-4 sm:px-6 lg:px-10">
-        <div class="text-[11px] font-semibold uppercase tracking-widest glance-muted shrink-0">Your services · managed plan</div>
-        <div class="flex flex-wrap gap-2.5">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #1F2933;background:#01131d;margin:0 -1rem;padding:14px 1rem">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;flex:none" class="glance-muted">Your services · managed plan</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
             @foreach($cols as $col)
                 @php
                     $d = match ($col['tone'] ?? 'neutral') {
@@ -208,36 +158,27 @@
         </div>
     </div>
 
-    {{-- Four columns --}}
-    <div class="grid grid-cols-1 gap-4 py-7 md:grid-cols-2 xl:grid-cols-4">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;padding:1.75rem 0">
         @foreach($cols as $col)
             @include('dashboard.partials._glance-column', ['col' => $col])
         @endforeach
     </div>
 
-    {{-- Activity --}}
-    <div class="pb-6">
-        <div class="glance-card px-6 py-6 sm:px-7">
-            <div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <div class="text-sm font-semibold">What we've done for you</div>
-                <span class="glance-pipeline">Full history not set up</span>
+    <div style="padding-bottom:1.5rem">
+        <div class="glance-card" style="padding:1.35rem 1.5rem">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px">
+                <div style="font-size:14px;font-weight:600">What we've done for you</div>
             </div>
-            <div class="border border-amber-400/25 bg-amber-400/5 px-4 py-4 rounded">
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-200">Activity feed not set up yet</p>
-                <p class="mt-2 text-[12.5px] leading-relaxed glance-muted">
-                    {{ $activity['message'] ?? 'Cross-product event pipeline required.' }}
-                </p>
-                <p class="mt-3 text-[12px] leading-relaxed text-amber-100/80">
-                    Mocked rows from the design (Huntress remediations, ticket resolves, backup retries) will appear here once the pipeline lands — they will not be faked as live data.
-                </p>
-            </div>
+            <p style="margin:0;font-size:13px;line-height:1.5" class="glance-muted">
+                {{ $activity['message'] ?? 'Activity history not available yet.' }}
+            </p>
         </div>
     </div>
 
     @if(isset($portalLinks) && $portalLinks->isNotEmpty())
-        <div class="pb-8">
-            <div class="glance-label mb-3">Your portals</div>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div style="padding-bottom:2rem">
+            <div class="glance-label" style="margin-bottom:12px">Your portals</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
                 @foreach($portalLinks as $link)
                     <x-service-card :link="$link" />
                 @endforeach

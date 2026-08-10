@@ -13,14 +13,17 @@ $logo = match (true) {
 @endphp
 
 @if($logo)
-    <img
-        src="{{ asset("images/logos/{$logo}.svg") }}"
-        alt="{{ $link->name }}"
-        class="h-7 w-auto sm:h-8"
-        width="140"
-        height="28"
-        loading="lazy"
-    />
+    <span class="flex flex-col items-start gap-2">
+        <img
+            src="{{ asset("images/logos/{$logo}.svg") }}"
+            alt="{{ $link->name }}"
+            class="h-7 w-auto sm:h-8"
+            width="140"
+            height="28"
+            loading="lazy"
+        />
+        <span class="portal-card-title text-sm font-semibold">{{ $link->name }}</span>
+    </span>
 @else
     <span class="portal-card-title text-lg">{{ $link->name }}</span>
 @endif

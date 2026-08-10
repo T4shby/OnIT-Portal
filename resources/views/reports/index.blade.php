@@ -1,10 +1,7 @@
 @php
     $cols = collect($overview['columns'] ?? [])->reject(fn ($c) => ($c['state'] ?? '') === 'hidden')->values();
-    $activity = $overview['activity'] ?? [];
     $monthCompare = $overview['month_compare'] ?? [];
-    $period = $overview['period_label'] ?? now()->timezone('Europe/London')->format('F Y');
 
-    $super = $cols->firstWhere('key', 'superops');
     $metricVal = function (?array $col, string $label) {
         if (! is_array($col)) {
             return null;
@@ -18,237 +15,266 @@
         return null;
     };
 
-    $reportRows = [];
-    foreach ($cols as $col) {
-        $statusShort = match ($col['state'] ?? '') {
-            'live' => $col['status_label'] ?? 'Live',
-            'not_sold' => 'Not sold',
-            'setup_needed' => 'Setup needed',
-            'platform' => 'Platform off',
-            'cold' => 'Never loaded',
-            'loading' => 'Loading',
-            'error' => 'Error',
-            default => $col['status_label'] ?? '—',
-        };
-        $tone = $col['tone'] ?? 'neutral';
-        $pillBg = match ($tone) {
-            'ok' => 'rgba(34,197,94,.1)',
-            'warn' => 'rgba(250,204,21,.14)',
-            'bad' => 'rgba(239,68,68,.12)',
-            default => 'rgba(100,116,139,.15)',
-        };
-        $pillColor = match ($tone) {
-            'ok' => '#15803D',
-            'warn' => '#B45309',
-            'bad' => '#B91C1C',
-            default => '#475569',
-        };
-        $dot = match ($tone) {
-            'ok' => '#22C55E',
-            'warn' => '#FACC15',
-            'bad' => '#EF4444',
-            default => '#64748B',
-        };
-
-        // Three highlight numbers per row (mockup-style); prefer real; else "—"
-        $highlights = match ($col['key'] ?? '') {
-            'superops' => [
-                ['v' => $metricVal($col, 'Open tickets'), 'l' => 'open tickets'],
-                ['v' => null, 'l' => 'avg response', 'pipeline' => true],
-                ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
-            ],
-            'm365' => [
-                ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences assigned'],
-                ['v' => null, 'l' => 'Secure Score', 'pipeline' => true],
-                ['v' => null, 'l' => 'users on MFA', 'pipeline' => true],
-            ],
-            'huntress' => [
-                ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'devices covered'],
-                ['v' => $metricVal($col, 'Remediated (snapshot)') ?? $metricVal($col, 'Resolved incidents'), 'l' => 'incidents remediated'],
-                ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open incidents'],
-            ],
-            'dropsuite' => [
-                ['v' => $metricVal($col, 'Mailboxes protected'), 'l' => 'mailboxes protected'],
-                ['v' => $metricVal($col, 'Succeeded'), 'l' => 'succeeded (24h)'],
-                ['v' => null, 'l' => 'restore points kept', 'pipeline' => true],
-            ],
-            default => [],
-        };
-
-        $reportRows[] = [
-            'col' => $col,
-            'status_short' => $statusShort,
-            'pill_bg' => $pillBg,
-            'pill_color' => $pillColor,
-            'dot' => $dot,
-            'highlights' => $highlights,
-        ];
-    }
-
+    $super = $cols->firstWhere('key', 'superops');
+    $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
     $sla = $metricVal($super, 'SLA met');
-    $threats = $metricVal($cols->firstWhere('key', 'huntress'), 'Remediated (snapshot)')
-        ?? $metricVal($cols->firstWhere('key', 'huntress'), 'Resolved incidents');
+    // Prefer real remediations for the headline number; do not invent MTD threats.
+    $threats = $metricVal($hunt, 'Remediated (snapshot)')
+        ?? $metricVal($hunt, 'Resolved incidents');
+    $threatsLabel = $threats !== null ? 'remediated (snapshot)' : 'threats stopped';
+    $monthTitle = now()->timezone('Europe/London')->format('F Y');
 @endphp
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+{{--
+  1c layout — CSS Grid with all sizing inline where it matters.
+  Do NOT use Tailwind flex utilities here: purged prod CSS left flex-row + w-full
+  rail, which shoved the light main panel off the right edge of the viewport.
+--}}
+<x-app-layout title="Reports" content-class="max-w-none">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .rp { font-family: 'Poppins', system-ui, sans-serif; color: #011926; box-sizing: border-box; }
+        .rp *, .rp *::before, .rp *::after { box-sizing: border-box; }
+        .rp-shell {
+            display: grid;
+            grid-template-columns: 1fr;
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            min-height: 70vh;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,.25);
+            background: #F4F6F8;
+        }
+        @media (min-width: 900px) {
+            .rp-shell {
+                grid-template-columns: 280px minmax(0, 1fr);
+            }
+        }
+        .rp-rail {
+            background: #011926;
+            color: #fff;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+        .rp-main {
+            background: #F4F6F8;
+            color: #011926;
+            padding: 28px 22px 36px;
+            min-width: 0;
+        }
+        @media (min-width: 900px) {
+            .rp-main { padding: 36px 40px 40px; }
+        }
+        .rp-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+        }
+        .rp-muted { color: #666; }
+        .rp-stats {
+            display: grid;
+            grid-template-columns: 1fr;
+            margin-top: 20px;
+        }
+        @media (min-width: 640px) {
+            .rp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .rp-stats > div { border-right: 1px solid #E5E7EB; }
+            .rp-stats > div:last-child { border-right: 0; }
+        }
+        .rp-stats > div { padding: 18px 20px; }
+        .rp-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            padding: 18px 20px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        @media (min-width: 800px) {
+            .rp-row {
+                grid-template-columns: minmax(140px, 1.1fr) auto minmax(0, 2fr) auto;
+                gap: 16px 20px;
+            }
+        }
+        .rp-hi {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .rp-note { font-size: 11px; color: #B45309; line-height: 1.4; margin-top: 6px; }
+        .rp-link { font-size: 12px; font-weight: 600; color: #FF7000; text-decoration: none; white-space: nowrap; }
+        .rp-link:hover { color: #E06500; }
+    </style>
 
-<style>
-    .report-ui { font-family: 'Poppins', system-ui, sans-serif; }
-    .report-rail { background: #011926; color: #fff; }
-    .report-main { background: #F4F6F8; color: #011926; }
-    .report-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04); }
-    .report-muted { color: #666666; }
-    .report-orange { color: #FF7000; font-weight: 600; font-size: 12px; }
-    .report-orange:hover { color: #E06500; }
-</style>
-
-{{-- Full-bleed 1c: break out of portal max-width padding via negative margin --}}
-<x-app-layout title="Reports" content-class="max-w-none !px-0 !py-0">
-<div class="report-ui flex min-h-[70vh] flex-col lg:flex-row -mt-8 sm:-mt-12">
-
-    {{-- Left rail --}}
-    <aside class="report-rail flex w-full flex-col gap-7 px-7 py-8 lg:w-[300px] lg:flex-none lg:px-7 lg:py-8">
-        <div class="flex items-center gap-3">
-            <x-portal-logo size="md" />
-            <span class="text-sm font-semibold tracking-wide">On IT</span>
-        </div>
-        <div>
-            <div class="text-[11px] font-semibold uppercase tracking-widest text-white/65">Prepared for</div>
-            <div class="mt-1.5 text-lg font-bold leading-snug">{{ $client->name }}</div>
-            <div class="mt-1 text-xs text-white/65">Customer service review</div>
-        </div>
-        <div>
-            <div class="mb-3.5 text-[11px] font-semibold uppercase tracking-widest text-white/65">Your services</div>
-            <div class="flex flex-col gap-3">
-                @foreach($cols as $col)
-                    @php
-                        $check = match ($col['tone'] ?? '') {
-                            'ok' => '#22C55E',
-                            'warn' => '#FACC15',
-                            default => '#64748B',
-                        };
-                    @endphp
-                    <div class="flex items-center gap-2.5">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ $check }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-                        <span class="text-[13px]">{{ $col['plan_label'] ?? $col['title'] }}</span>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        <div class="mt-auto border-t border-[#1F2933] pt-5">
-            <div class="text-xs leading-relaxed text-white/65">Questions about your service or this report?</div>
-            <a href="{{ route('support.create') }}" class="mt-3 inline-block rounded bg-onit px-[18px] py-2.5 text-[13px] font-semibold text-white hover:bg-onit-hover">Talk to an Expert</a>
-            <a href="{{ route('dashboard') }}" class="mt-3 block text-xs text-white/55 hover:text-onit">← Back to dashboard</a>
-        </div>
-    </aside>
-
-    {{-- Main --}}
-    <div class="report-main min-w-0 flex-1 px-5 py-8 sm:px-8 lg:px-10">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <div class="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-onit">Monthly service review</div>
-                <h1 class="m-0 text-[1.75rem] font-bold tracking-tight">{{ now()->timezone('Europe/London')->format('F Y') }}</h1>
-                <p class="mt-2 max-w-xl text-[12.5px] leading-relaxed report-muted">
-                    Live figures from sold products only. Items marked <span class="font-semibold text-amber-700">Not set up</span> need a future feed or Microsoft permission — numbers are never invented.
-                </p>
-            </div>
-            <div class="inline-flex shrink-0 overflow-hidden rounded border border-[#E5E7EB] bg-white" title="{{ $monthCompare['message'] ?? '' }}">
-                <span class="bg-[#011926] px-3.5 py-1.5 text-xs font-semibold text-white">This month</span>
-                <span class="cursor-not-allowed px-3.5 py-1.5 text-xs font-medium report-muted">Last month</span>
-            </div>
-        </div>
-
-        {{-- Headline stats --}}
-        <div class="report-card mt-6 grid grid-cols-1 divide-y divide-[#E5E7EB] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            <div class="px-7 py-5">
-                <div class="text-4xl font-bold leading-none">{{ $threats ?? '—' }}</div>
-                <div class="mt-1.5 text-[12.5px] report-muted">
-                    threats stopped
-                    @if($threats === null)
-                        <span class="block text-[11px] font-medium text-amber-700">Not set up (uses Huntress MTD later)</span>
-                    @else
-                        <span class="block text-[11px] text-amber-700">Snapshot stand-in · MoM not set up</span>
-                    @endif
+    <div class="rp" style="margin-top:-1rem">
+        <div class="rp-shell">
+            <aside class="rp-rail">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <x-portal-logo size="md" />
+                    <span style="font-size:14px;font-weight:600">On IT</span>
                 </div>
-            </div>
-            <div class="px-7 py-5">
-                <div class="text-4xl font-bold leading-none">{{ $resolved ?? '—' }}</div>
-                <div class="mt-1.5 text-[12.5px] report-muted">
-                    tickets resolved
-                    @if($resolved === null)
-                        <span class="block text-[11px] font-medium text-amber-700">Not available yet</span>
-                    @else
-                        <span class="block text-[11px] text-amber-700">30d total · avg response not set up</span>
-                    @endif
-                </div>
-            </div>
-            <div class="px-7 py-5">
-                <div class="text-4xl font-bold leading-none">{{ $sla ?? '—' }}</div>
-                <div class="mt-1.5 text-[12.5px] report-muted">
-                    SLA met
-                    @if($sla === null)
-                        <span class="block text-[11px] font-medium text-amber-700">Not available yet</span>
-                    @else
-                        <span class="block text-[11px] text-amber-700">vs last month not set up</span>
-                    @endif
-                </div>
-            </div>
-        </div>
 
-        {{-- Stacked source rows --}}
-        <div class="mt-5 flex flex-col gap-3">
-            @foreach($reportRows as $row)
-                @php $c = $row['col']; @endphp
-                <div class="report-card flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:gap-6 lg:px-7">
-                    <div class="flex w-full items-center gap-3 lg:w-[250px] lg:flex-none">
-                        <div class="min-w-0">
-                            <div class="text-[13.5px] font-semibold">{{ $c['title'] }}</div>
-                            <div class="text-[11px] report-muted">{{ $c['source'] }}</div>
-                        </div>
-                    </div>
-                    <span class="inline-flex w-fit items-center justify-center gap-1.5 rounded px-3 py-1 text-[11.5px] font-semibold lg:w-[150px] lg:flex-none"
-                          style="background:{{ $row['pill_bg'] }};color:{{ $row['pill_color'] }}">
-                        <span class="inline-block h-1.5 w-1.5 rounded-full" style="background:{{ $row['dot'] }}"></span>
-                        {{ $row['status_short'] }}
-                    </span>
-                    <div class="flex flex-1 flex-wrap gap-8 text-[12.5px]">
-                        @foreach($row['highlights'] as $h)
-                            <div>
-                                <div class="text-[17px] font-bold {{ !empty($h['pipeline']) || $h['v'] === null ? 'text-amber-700' : '' }}">
-                                    {{ !empty($h['pipeline']) || $h['v'] === null ? '—' : $h['v'] }}
-                                </div>
-                                <div class="text-[11.5px] report-muted">
-                                    {{ $h['l'] }}
-                                    @if(!empty($h['pipeline']) || $h['v'] === null)
-                                        <span class="text-amber-700"> · not set up</span>
-                                    @endif
-                                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65)">Prepared for</div>
+                    <div style="font-size:18px;font-weight:700;margin-top:6px;line-height:1.3;word-break:break-word">{{ $client->name }}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:4px">Customer service review</div>
+                </div>
+
+                <div>
+                    <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:14px">Your services</div>
+                    <div style="display:flex;flex-direction:column;gap:12px">
+                        @foreach($cols as $col)
+                            @php
+                                $check = match ($col['tone'] ?? '') {
+                                    'ok' => '#22C55E',
+                                    'warn' => '#FACC15',
+                                    default => '#64748B',
+                                };
+                            @endphp
+                            <div style="display:flex;align-items:flex-start;gap:10px">
+                                <svg width="16" height="16" style="flex:none;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="{{ $check }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                                <span style="font-size:13px;line-height:1.35">{{ $col['plan_label'] ?? $col['title'] }}</span>
                             </div>
                         @endforeach
                     </div>
-                    @if(! empty($c['href']) && ($c['state'] ?? '') !== 'not_sold')
-                        <a href="{{ $c['href'] }}" class="report-orange shrink-0">Details →</a>
-                    @endif
                 </div>
-                @if(($c['state'] ?? '') !== 'live' && ! empty($c['message']))
-                    <p class="-mt-1 mb-1 px-2 text-[11.5px] text-amber-800">{{ $c['message'] }}</p>
-                @endif
-            @endforeach
-        </div>
 
-        {{-- Activity --}}
-        <div class="report-card mt-5 px-7 py-5">
-            <div class="mb-3.5 flex flex-wrap items-baseline justify-between gap-2">
-                <div class="text-sm font-semibold">What we've done for you</div>
-                <span class="text-xs font-semibold text-amber-700">Full history not set up</span>
-            </div>
-            <div class="rounded border border-amber-300/50 bg-amber-50 px-4 py-4">
-                <p class="text-[12.5px] leading-relaxed text-amber-950/80">
-                    {{ $activity['message'] ?? 'Activity timeline requires a cross-product event pipeline.' }}
-                </p>
+                <div style="border-top:1px solid #1F2933;padding-top:20px;margin-top:auto">
+                    <div style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.6">Questions about your service or this report?</div>
+                    <a href="{{ route('support.create') }}" style="display:inline-block;margin-top:12px;padding:10px 18px;background:#FF7000;color:#fff;font-size:13px;font-weight:600;border-radius:4px;text-decoration:none">Talk to an Expert</a>
+                    <a href="{{ route('dashboard') }}" style="display:block;margin-top:14px;font-size:12px;color:rgba(255,255,255,.55);text-decoration:none">← Dashboard</a>
+                </div>
+            </aside>
+
+            <div class="rp-main">
+                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px">
+                    <div style="min-width:0;flex:1 1 220px">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#FF7000;margin-bottom:10px">Monthly service review</div>
+                        <h1 style="margin:0;font-size:clamp(1.5rem,3vw,1.85rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
+                    </div>
+                    <div style="display:inline-flex;border:1px solid #E5E7EB;border-radius:4px;overflow:hidden;background:#fff" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
+                        <span style="padding:8px 14px;font-size:12px;font-weight:600;background:#011926;color:#fff">This month</span>
+                        <span style="padding:8px 14px;font-size:12px;font-weight:500;color:#999;cursor:not-allowed">Last month</span>
+                    </div>
+                </div>
+
+                <div class="rp-card rp-stats">
+                    <div>
+                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $threats === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
+                            {{ $threats ?? '—' }}
+                        </div>
+                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $threatsLabel }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $resolved === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
+                            {{ $resolved ?? '—' }}
+                        </div>
+                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">tickets resolved</div>
+                    </div>
+                    <div>
+                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $sla === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
+                            {{ $sla ?? '—' }}
+                        </div>
+                        <div class="rp-muted" style="font-size:12.5px;margin-top:6px">SLA met</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:18px">
+                    @foreach($cols as $col)
+                        @php
+                            $tone = $col['tone'] ?? 'neutral';
+                            $statusShort = match ($col['state'] ?? '') {
+                                'live' => $col['status_label'] ?? 'Live',
+                                'not_sold' => 'Not sold',
+                                'setup_needed' => 'Setup needed',
+                                'platform' => 'Platform off',
+                                'cold' => 'Never loaded',
+                                'loading' => 'Loading',
+                                'error' => 'Error',
+                                default => $col['status_label'] ?? '—',
+                            };
+                            $pillBg = match ($tone) {
+                                'ok' => 'rgba(34,197,94,.1)',
+                                'warn' => 'rgba(250,204,21,.14)',
+                                'bad' => 'rgba(239,68,68,.12)',
+                                default => 'rgba(100,116,139,.15)',
+                            };
+                            $pillColor = match ($tone) {
+                                'ok' => '#15803D',
+                                'warn' => '#B45309',
+                                'bad' => '#B91C1C',
+                                default => '#475569',
+                            };
+                            $dot = match ($tone) {
+                                'ok' => '#22C55E',
+                                'warn' => '#FACC15',
+                                'bad' => '#EF4444',
+                                default => '#64748B',
+                            };
+                            $highlights = match ($col['key'] ?? '') {
+                                'superops' => [
+                                    ['v' => $metricVal($col, 'Open tickets'), 'l' => 'open tickets'],
+                                    ['v' => $metricVal($col, 'Resolved this month') ?? $metricVal($col, 'Resolved (30d)'), 'l' => 'resolved'],
+                                    ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
+                                ],
+                                'm365' => [
+                                    ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences assigned'],
+                                    ['v' => $metricVal($col, 'Utilisation'), 'l' => 'utilisation'],
+                                    ['v' => $metricVal($col, 'Licensed users'), 'l' => 'licensed users'],
+                                ],
+                                'huntress' => [
+                                    ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'devices covered'],
+                                    ['v' => $metricVal($col, 'Remediated (snapshot)'), 'l' => 'remediated'],
+                                    ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open'],
+                                ],
+                                'dropsuite' => [
+                                    ['v' => $metricVal($col, 'Mailboxes protected'), 'l' => 'mailboxes'],
+                                    ['v' => $metricVal($col, 'Succeeded'), 'l' => 'succeeded 24h'],
+                                    ['v' => $metricVal($col, 'Retrying'), 'l' => 'retrying'],
+                                ],
+                                default => [],
+                            };
+                        @endphp
+                        <div class="rp-card rp-row">
+                            <div style="min-width:0">
+                                <div style="font-size:13.5px;font-weight:600">{{ $col['title'] }}</div>
+                                <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $col['source'] }}</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:4px;font-size:11.5px;font-weight:600;background:{{ $pillBg }};color:{{ $pillColor }};width:fit-content">
+                                <span style="width:7px;height:7px;border-radius:50%;background:{{ $dot }};flex:none"></span>
+                                {{ $statusShort }}
+                            </span>
+                            <div class="rp-hi">
+                                @foreach($highlights as $h)
+                                    @php $missing = $h['v'] === null; @endphp
+                                    <div style="min-width:0">
+                                        <div style="font-size:17px;font-weight:700;line-height:1.1;{{ $missing ? 'color:#B45309' : '' }}">
+                                            {{ $missing ? '—' : $h['v'] }}
+                                        </div>
+                                        <div class="rp-muted" style="font-size:11.5px;margin-top:2px">{{ $h['l'] }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @if(! empty($col['href']) && ($col['state'] ?? '') !== 'not_sold')
+                                <a class="rp-link" href="{{ $col['href'] }}">Details →</a>
+                            @endif
+                        </div>
+                        @if(($col['state'] ?? '') !== 'live' && ! empty($col['message']))
+                            <p class="rp-note" style="margin:-2px 0 12px 4px">{{ $col['message'] }}</p>
+                        @endif
+                    @endforeach
+                </div>
+
+                <div class="rp-card" style="margin-top:12px;padding:18px 20px">
+                    <div style="font-size:14px;font-weight:600;margin-bottom:6px">What we've done for you</div>
+                    <p class="rp-muted" style="margin:0;font-size:13px;line-height:1.5">Activity history not available yet.</p>
+                </div>
             </div>
         </div>
     </div>
-</div>
 </x-app-layout>

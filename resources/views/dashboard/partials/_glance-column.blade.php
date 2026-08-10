@@ -15,22 +15,26 @@
         'dropsuite' => '<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><path d="M3 12a9 3 0 0 0 18 0"></path>',
         default => '<circle cx="12" cy="12" r="9"></circle>',
     };
+    // Live / empty only — pipeline metrics stripped at the service layer, belt-and-braces here.
+    $metrics = collect($col['metrics'] ?? [])
+        ->reject(fn ($m) => ($m['kind'] ?? '') === 'pipeline')
+        ->values();
 @endphp
-<div class="glance-card flex flex-col gap-4 p-6">
-    <div class="flex items-start justify-between gap-2.5">
-        <div class="flex items-center gap-2.5 min-w-0">
+<div class="glance-card" style="display:flex;flex-direction:column;gap:1rem;padding:1.35rem 1.4rem;height:100%">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icon !!}</svg>
-            <div class="min-w-0">
-                <div class="text-sm font-semibold leading-tight">{{ $col['title'] }}</div>
-                <div class="mt-0.5 text-[10.5px] glance-muted">{{ $col['source'] }}</div>
+            <div style="min-width:0">
+                <div style="font-size:14px;font-weight:600;line-height:1.25">{{ $col['title'] }}</div>
+                <div style="margin-top:2px;font-size:10.5px" class="glance-muted">{{ $col['source'] }}</div>
             </div>
         </div>
-        <span class="glance-dot mt-1" style="background:{{ $dot }}" title="{{ $col['status_label'] ?? '' }}"></span>
+        <span class="glance-dot" style="background:{{ $dot }};margin-top:6px" title="{{ $col['status_label'] ?? '' }}"></span>
     </div>
 
     @if(($col['message'] ?? null) && $state !== 'live')
-        <div class="rounded border border-amber-400/25 bg-amber-400/5 px-3 py-2.5">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-200">
+        <div style="border-radius:4px;border:1px solid rgba(250,204,21,.25);background:rgba(250,204,21,.06);padding:8px 10px">
+            <p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#FDE68A">
                 @if($state === 'not_sold') Not sold
                 @elseif($state === 'setup_needed') Setup needed
                 @elseif($state === 'platform') Platform off
@@ -40,57 +44,47 @@
                 @else Attention
                 @endif
             </p>
-            <p class="mt-1 text-[12px] leading-snug glance-muted">{{ $col['message'] }}</p>
+            <p style="margin:4px 0 0;font-size:11.5px;line-height:1.35" class="glance-muted">{{ \Illuminate\Support\Str::limit($col['message'], 120) }}</p>
         </div>
     @endif
 
-    @if(($col['metrics'] ?? []) !== [])
-        <div class="flex flex-col gap-2.5">
-            @foreach($col['metrics'] as $i => $metric)
+    @if($metrics->isNotEmpty())
+        <div style="display:flex;flex-direction:column;gap:10px">
+            @foreach($metrics as $metric)
                 @php
                     $kind = $metric['kind'] ?? 'ok';
-                    // Visual group separators similar to mockup (~ after tickets / after license blocks)
                     $sepBefore = in_array($metric['label'] ?? '', [
                         'Devices managed',
-                        'Secure Score',
-                        'MFA coverage',
-                        'Incidents this month',
-                        'Identity (ITDR) alerts',
+                        'Utilisation',
+                        'Open incidents',
                         'Last backup run',
-                        'Restore points kept',
                     ], true);
                 @endphp
                 @if($sepBefore)
-                    <div class="glance-divider my-0.5"></div>
+                    <div class="glance-divider"></div>
                 @endif
                 <div class="glance-metric">
                     <span class="glance-metric-label">{{ $metric['label'] }}</span>
-                    <span @class([
-                        'glance-metric-value',
-                        'text-amber-300' => $kind === 'pipeline',
-                        'text-white/40' => $kind === 'empty',
-                        'text-[#FACC15]' => $kind === 'ok' && str_contains(strtolower($metric['value'] ?? ''), 'issue'),
-                    ])>
-                        {{ $metric['value'] }}
-                        @if(! empty($metric['suffix']))
-                            <span class="font-normal glance-muted">{{ $metric['suffix'] }}</span>
+                    <span class="glance-metric-value" style="{{ $kind === 'empty' ? 'color:rgba(255,255,255,.35)' : 'color:#fff' }}">
+                        @if($kind === 'empty')
+                            —
+                        @else
+                            {{ $metric['value'] }}
+                            @if(! empty($metric['suffix']))
+                                <span style="font-weight:400" class="glance-muted">{{ $metric['suffix'] }}</span>
+                            @endif
                         @endif
                     </span>
                 </div>
-                @if($kind === 'pipeline' && ! empty($metric['hint']))
-                    <p class="text-[10.5px] leading-snug text-amber-200/80 -mt-1">{{ $metric['hint'] }}</p>
-                @elseif($kind === 'empty' && ! empty($metric['hint']))
-                    <p class="text-[10.5px] leading-snug text-white/35 -mt-1">{{ $metric['hint'] }}</p>
-                @endif
             @endforeach
         </div>
     @endif
 
     @if(! empty($col['as_of']))
-        <p class="text-[10px] text-white/35">As of {{ $col['as_of']->timezone('Europe/London')->format('d M Y H:i') }} UK</p>
+        <p style="margin:0;font-size:10px;color:rgba(255,255,255,.35)">As of {{ $col['as_of']->timezone('Europe/London')->format('d M Y H:i') }} UK</p>
     @endif
 
     @if(! empty($col['href']) && $state !== 'not_sold' && $state !== 'hidden')
-        <a href="{{ $col['href'] }}" class="glance-link mt-auto">{{ $col['href_label'] ?? 'Details →' }}</a>
+        <a href="{{ $col['href'] }}" class="glance-link" style="margin-top:auto">{{ $col['href_label'] ?? 'Details →' }}</a>
     @endif
 </div>
