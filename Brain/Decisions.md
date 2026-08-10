@@ -305,3 +305,33 @@ Client Admins need organisation-wide SuperOps visibility without exposing MSP cr
 
 Consequences:
 Migration `2026_07_15_120000_migrate_client_user_to_client_requester`. New routes `/client-admin`, async M365 refresh. Documented in [ClientAdminDashboard.md](ClientAdminDashboard.md). ADR-007 role list superseded for client-facing roles.
+
+---
+
+## ADR-022
+
+Date: 2026-08-10
+
+Decision:
+**Support in portal = list + create + subject/description snapshot only.** Full ticket conversation (comments, attachments, workflows) is **SuperOps via SSO launch**, not a second embedded PSA UI.
+
+Reason:
+Maintaining comment parity is expensive and always behind SuperOps; technicians and requesters already use SuperOps as the system of record for discussion. Portal value is visibility + raise request without leaving the app for the first step.
+
+Consequences:
+`/support` and ticket show emphasize Open SuperOps. Do not prioritise portal thread/composer work. Documented in [SuperOpsIntegration.md](SuperOpsIntegration.md), [ProductRequirements.md](ProductRequirements.md).
+
+---
+
+## ADR-023
+
+Date: 2026-08-10
+
+Decision:
+Account Manager / Super Admin product coverage uses **in-app reporting** on Staff Admin dashboard + Integration Health — not outbound email digests as the primary KPI surface.
+
+Reason:
+Sold→live/cold state is already computed live; email is stale, unauthenticated, and duplicates IH. Ops target is **cold sold cells = 0**, visible in one place operators already open.
+
+Consequences:
+`IntegrationHealthService::productCoverage()` + admin dashboard matrix. Email digests only if a future backlog item explicitly requests push alerts (see [Roadmap.md](Roadmap.md)).

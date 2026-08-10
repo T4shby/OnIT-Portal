@@ -6,5 +6,11 @@
     @if(! empty($ticket['description']))
       <div class="portal-body-muted mt-6 whitespace-pre-wrap text-sm leading-relaxed">{{ $ticket['description'] }}</div>
     @endif
+    <div class="mt-8 pt-6 border-t border-white/10">
+      <p class="text-sm portal-body-muted leading-relaxed mb-4">
+        Comments and attachments are not shown in the portal. Open SuperOps for the full thread and updates.
+      </p>
+      <a href="{{ route('integrations.superops.launch') }}" class="cta-btn text-sm">Open SuperOps →</a>
+    </div>
   </x-card>
 </x-app-layout>

@@ -1,89 +1,100 @@
 # On IT Portal — Product Requirements
 
-## MVP Scope
+Living requirements as of **2026-08-10**. MVP shipped; this file tracks **current product truth** plus remaining stories.
 
-### In Scope
+## Product intent
 
-| Feature | Description |
-|---|---|
-| Microsoft Entra ID login | Multi-tenant OIDC/OAuth2 |
-| SuperOps integration | Embedded `/support` + SSO launch |
-| Client dashboard | Service cards, notices, recommendations, opportunities |
-| External links | Pax8, M365, KB, Billing (launch-only) |
-| Admin CRUD | Clients, users, links, content, settings, activity logs |
-| Multi-tenant isolation | Strict `client_id` scoping |
-| RBAC | super_admin, account_manager, client_requester, client_billing_admin, client_admin |
+MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisation and personal service health snapshots (SuperOps / M365 / Huntress / Dropsuite), support list + SuperOps SSO for full PSAs, technician ops (onboarding, Integration Health, coverage KPI).
 
-### Out of Scope
+## Roles
 
-- Pax8 API integration
-- Full bi-directional SuperOps sync
-- Self-registration
-- Microsoft Graph profile enrichment
-- Email notifications
+| Role | Scope |
+|------|--------|
+| `super_admin` | All clients; settings; timing; full admin |
+| `account_manager` | Assigned clients; Integration Health + sold coverage for those clients |
+| `client_admin` | Own org: **Organisation** overview, all people/systems for that customer |
+| `client_requester` / `client_billing_admin` | Own org: **My Systems** personal tiles; tickets they own; no Organisation nav |
 
-## User Stories
+## In scope (shipped)
 
-### Client Requester
+| Area | Requirement |
+|------|-------------|
+| Auth | Multi-tenant Entra; pre-provisioned users; capability gates |
+| SuperOps support | List + create tickets in portal; **open SuperOps for conversation** (not embed full thread UI) |
+| SuperOps metrics | Organisation (CA) / personal requester views from cached GraphQL metrics |
+| M365 | Directory page + licence insights tiles; async refresh |
+| Huntress | Sold org security posture + cases (visibility rules) |
+| Dropsuite | Org backup health summary + CA full inventory page |
+| Entitlements | Sold ↔ map IDs; not-sold upsell for CA; hide for requesters |
+| Integration Health | Per-feed health using each service’s public `cacheKey()` |
+| Prewarm | Critical always; cold optional queues under deep queue; warm optional may skip |
+| Staff reporting | Sold product coverage live/setup/cold/failed on admin dashboard |
+| Onboarding | Technician-driven Entra / SCIM / Client SSO (see onboarding Brain docs) |
 
-- Log in with Microsoft work account
-- View dashboard with organisation content
-- Use embedded support without second login
-- Launch Pax8/M365 and other external services
-- No cross-tenant data visibility
+## Out of scope (current)
 
-### Super Admin
+- Full bi-directional SuperOps ticket sync (portal as system of record for comments)
+- Customer self-registration without pre-provision
+- Per-client free SKU encyclopaedias
+- Global SuperOps SSO multitenant admin-consent product model
 
-- Manage all clients, users, content, global links, settings
-- Map clients to SuperOps accounts
-- View all activity logs
+## User stories
 
-### Account Manager
+### Client Admin
 
-- Manage content and links for assigned clients only
-- View users and logs for assigned clients
+- See sold systems for my organisation (health tiles, layout scales with tile count).
+- See not-sold products with contact AM message when applicable.
+- Open SuperOps for ticket conversation depth.
+- Open Online backups list (Dropsuite) when entitled/mapped.
 
-## Functional Requirements
+### Requester / Billing
 
-### Authentication (FR-AUTH)
+- See **My Systems** only (personal live products).
+- Create and list my tickets; open SuperOps for discussion.
+- No cross-organisation or colleague org-wide data.
 
-- FR-AUTH-01: Multi-tenant Entra via `organizations` endpoint
-- FR-AUTH-02: Pre-provisioned users only
-- FR-AUTH-03: Update `entra_object_id`, name, `last_login_at`, encrypted tokens on login
-- FR-AUTH-04: Deny inactive users
-- FR-AUTH-05: Case-insensitive email match
-- FR-AUTH-06: Sync SuperOps requester ID on login when API configured
+### Account Manager / Super Admin
 
-### SuperOps (FR-SOPS)
+- Integration Health: fix cold, stuck, mapping.
+- Admin dashboard: portfolio **sold → live** coverage % and cold count.
+- Onboard customers end-to-end without handing Azure tasks to the customer.
 
-- FR-SOPS-01: List/create/view tickets scoped to requester
-- FR-SOPS-02: SSO launch to full SuperOps portal
-- FR-SOPS-03: Client `superops_account_id` for ticket creation
+## Functional requirements (selected)
 
-### Dashboard (FR-DASH)
+### Auth (FR-AUTH)
 
-- FR-DASH-01: Welcome with user and client name
-- FR-DASH-02: Service cards via `resolved_url`
-- FR-DASH-03: Latest 5 active notices
-- FR-DASH-04–06: Recommendations, opportunities, responsive layout
+Unchanged intent: multi-tenant Entra, pre-provision, inactive deny, SuperOps user link when API present.
 
-### Portal Links (FR-LINK)
+### SuperOps tickets (FR-SOPS)
 
-- FR-LINK-01: CRUD with name, type, URL, icon, order
-- FR-LINK-02: Global or client-specific
-- FR-LINK-03: `required_role` and `open_in_new_tab`
-- FR-LINK-04: Types: `external`, `superops_embedded`, `superops_sso`
+- FR-SOPS-01: List/create tickets scoped by requester + client SuperOps account.
+- FR-SOPS-02: SSO launch to full SuperOps portal (requester vs technician paths).
+- FR-SOPS-03: Show opening description on ticket detail; **no requirement** to render comments/attachments in portal — CTA to SuperOps (ADR-022).
 
-### Administration (FR-ADMIN)
+### Organisation / systems (FR-ORG)
 
-- FR-ADMIN-01: `/admin` for super_admin and account_manager
-- FR-ADMIN-02: User CRUD with role and client assignment
-- FR-ADMIN-03: Activity logs read-only, paginated
-- FR-ADMIN-04: Settings key/value
+- FR-ORG-01: Client Admin Overview = org-wide products; gates `view-organisation-wide`.
+- FR-ORG-02: Requester My Systems = personal visibility; gate `view-my-systems`.
+- FR-ORG-03: Feeds modular via `DashboardFeed` + `ClientProductService` entitlements.
+- FR-ORG-04: Sold products should obtain a first cache snapshot (cold → 0) via prewarm/workers.
 
-## Non-Functional Requirements
+### Technician ops (FR-OPS)
 
-- NFR-01: 50 orgs / 50 concurrent users
-- NFR-02: Database sessions in production
-- NFR-03: Dashboard under 2s on standard connection
-- NFR-04–07: Validation, CSRF, secrets in `.env`, Plesk deployable
+- FR-OPS-01: Integration Health cells must read **only** the current feed `cacheKey()` (no legacy key fallbacks).
+- FR-OPS-02: Prewarm queues cold optional feeds even when queue depth skips warm optional.
+- FR-OPS-03: Admin dashboard exposes productCoverage sold/live/setup/cold/failed.
+
+### Admin CMS (FR-ADMIN)
+
+Clients, users, links, content, settings, activity logs — as today.
+
+## Non-functional
+
+- NFR-01: Strict tenant isolation (`client_id` + policies).
+- NFR-02: Dashboard loads from cache; never block HTTP on full partner API fan-out.
+- NFR-03: Production DB sessions; deploy via Plesk mirror pipeline.
+- NFR-04: No secrets in repo; partner tokens in `.env`.
+
+## Backlog stories
+
+See [Roadmap.md](Roadmap.md) Near-term backlog.

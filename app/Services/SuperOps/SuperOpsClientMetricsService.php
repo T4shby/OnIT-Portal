@@ -819,7 +819,7 @@ class SuperOpsClientMetricsService
         return ['7' => null, '14' => null, '30' => null, 'all' => null];
     }
 
-    private function cacheKey(int $clientId): string
+    public function cacheKey(int $clientId): string
     {
         return "client:{$clientId}:superops-dashboard:v2";
     }

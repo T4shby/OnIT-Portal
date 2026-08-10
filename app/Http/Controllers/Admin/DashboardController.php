@@ -45,8 +45,13 @@ class DashboardController extends Controller
             'stuck' => $overview['stuck_count'] ?? 0,
             'due' => $overview['due_count'] ?? 0,
             'aging' => $overview['aging_count'] ?? 0,
+            'cold' => $overview['cold_count'] ?? 0,
         ];
 
-        return view('admin.dashboard', compact('stats', 'recentActivity', 'healthSummary'));
+        $productCoverage = $this->integrationHealth->productCoverage(
+            empty($clientIds) ? null : $clientIds,
+        );
+
+        return view('admin.dashboard', compact('stats', 'recentActivity', 'healthSummary', 'productCoverage'));
     }
 }

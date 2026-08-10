@@ -90,11 +90,14 @@
             @elseif(! empty($prewarm['ok']))
                 <p class="mt-3 text-2xl font-condensed font-bold text-emerald-400">OK</p>
                 <p class="mt-3 text-sm font-light leading-relaxed text-white/55">
-                    {{ $prewarm['age_minutes'] ?? 0 }}m ago
-                    · critical {{ $prewarm['superops_queued'] ?? 0 }}
-                    · optional {{ $prewarm['optional_queued'] ?? 0 }}
+                    Last run {{ $prewarm['age_minutes'] ?? 0 }}m ago — jobs queued that run:
+                    SuperOps {{ $prewarm['superops_queued'] ?? 0 }},
+                    other feeds {{ $prewarm['optional_queued'] ?? 0 }}
+                    @if(($prewarm['cold_optional_queued'] ?? 0) > 0)
+                        ({{ $prewarm['cold_optional_queued'] }} first load)
+                    @endif
                     @if(! empty($prewarm['queue_deep']))
-                        · optional skipped (queue deep)
+                        · warm other feeds skipped (queue busy)
                     @endif
                 </p>
             @else

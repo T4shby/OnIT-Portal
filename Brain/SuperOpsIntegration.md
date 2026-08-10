@@ -2,23 +2,24 @@
 
 ## Overview
 
-SuperOps is a **first-class integration**: embedded support in the portal plus SSO launch to the full requester portal. One Microsoft login covers the portal; support tickets load without a second sign-in.
+SuperOps is a **first-class integration**: portal support **list + create**, plus **SSO launch** for full requester/technician conversation (comments, attachments, workflow). One Microsoft login covers the portal; ticket conversation depth intentionally stays in SuperOps (ADR-022).
 
 ## Architecture
 
 ```
 Microsoft Entra ID → On IT Portal session
-                     ├── /support (GraphQL API — embedded tickets)
-                     └── /integrations/superops/launch (SSO to full portal)
+                     ├── /support (GraphQL API — list / create / subject + opening description)
+                     └── /integrations/superops/launch (SSO to full portal for threads)
 ```
 
-### Pillar 1 — Embedded support
+### Pillar 1 — Support list & create (not full PSA UI)
 
-- Route: `GET /support`, `POST /support`, etc.
+- Route: `GET /support`, `POST /support`, `GET /support/{id}`, create form.
 - `SuperOpsApiClient` → `https://api.superops.ai/msp` (or EU endpoint)
 - Headers: `Authorization: Bearer <SUPEROPS_API_TOKEN>`, `CustomerSubDomain: <SUPEROPS_SUBDOMAIN>`, `Content-Type: application/json`
 - Server-side `SUPEROPS_API_TOKEN` — never exposed to browser
 - Tickets filtered by requester email / `users.superops_user_id`
+- UI copy: threads and attachments open in SuperOps — every support page surfaces **Open SuperOps**
 - Client Admin organisation metrics: [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape)
 
 ### Pillar 2 — SSO launch

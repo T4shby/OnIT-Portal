@@ -44,7 +44,13 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 
 **Priorities:**  
 - `critical` — SuperOps (always prewarm even when queue deep)  
-- `optional` — Huntress, Dropsuite, M365 (skipped when ≥40 jobs pending)
+- `optional` — Huntress, Dropsuite, M365  
+  - **Cold optional** (no snapshot yet for sold/mapped feed): **still queue** when jobs ≥40  
+  - **Warm optional** (already has cache, only requeue for age): **skipped** when jobs ≥40  
+
+Ops KPI: **sold feed cold cells → 0**. Staff **Admin → Dashboard** shows **Sold product coverage** (`IntegrationHealthService::productCoverage()`): live %, setup, cold, failed — not email reports (ADR-023).
+
+**Cache keys:** Integration Health and prewarm cold-detection call each metrics service’s public `cacheKey($clientId)` (SuperOps, Huntress, Dropsuite, M365 insights). **Never** hardcode or fallback to older `…:vN` keys — version skew causes false “Never loaded” (2026-08-10 Dropsuite v3 incident).
 
 **Credentials:** one MSP partner API set per vendor in `.env` for all customers; per-client mapping IDs only.
 
@@ -125,7 +131,7 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 
 | Panel | What it shows |
 |-------|----------------|
-| Prewarm heartbeat | Last `portal:prewarm-client-dashboards` time, SuperOps/other jobs queued that run, queue-deep skip |
+| Prewarm heartbeat | Last run age + **jobs queued that run** as SuperOps / other feeds (not severity “critical”); first-load count when cold optional queued; queue-busy skips warm other only |
 | Queue workers | pending / reserved / high / default / failed + worker-lag notice if jobs sit ≥90s with nothing reserved |
 | Why isn’t it resetting? | Auto notices (orphaned flags cleared, due SuperOps, aging, stuck, last failure text) |
 | Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
@@ -523,6 +529,8 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-10 | Prewarm card UI: “SuperOps N, other feeds M” (not “critical N”) — counts are last-run queue totals |
+| 2026-08-10 | Roadmap/PRD rewrite shipped; Admin sold coverage KPI; support SSO-first threads; prewarm cold-optional under queue deep; IH **only** service `cacheKey()` |
 | 2026-08-10 | Integration Health read Dropsuite **v2** cache while feed wrote **v3** → false “Never loaded” for live snapshots (YorPower / On IT) |
 | 2026-08-07 | M365: licensed users label excludes shared; free/trial SKUs via heuristics (10k pool + name fragments); Dropsuite tile = 24h success/issues + full backups page |
 | 2026-08-07 | Dropsuite org mailbox list: **10 per page** (Prev/Next) on every surface using the tile partial |

@@ -1,29 +1,56 @@
 # On IT Portal — Roadmap
 
-## Phase 1 — MVP (current)
+Status as of **2026-08-10**. Shipped work is live product; backlog is ordered by real ops value.
 
-- Entra ID multi-tenant auth
-- SuperOps embedded support + SSO launch
-- Dashboard, content CMS, admin area
-- Portal link types, activity logging
-- Plesk deployment
+## Shipped (do not re-plan as open work)
 
-## Phase 2 — Enhanced Profiles
+| Area | What exists |
+|------|-------------|
+| Auth | Multi-tenant Entra OIDC; pre-provision + optional Entra group sync |
+| Roles | `super_admin`, `account_manager`, `client_admin`, `client_requester`, `client_billing_admin` |
+| Organisation vs My Systems | Client Admin: org-wide System health; requesters/billing: personal **My Systems** only |
+| SuperOps | Dashboard metrics, ticket list/create API, SSO launch; **threads/comments live in SuperOps** (not portal-embedded conversation) |
+| Huntress | Org security tile + cases; staff board; Integration Health column |
+| Dropsuite | Org backup summary (24h success / open issues); full Online backups inventory for Client Admin; IH column |
+| M365 | Async directory + licence insights; free/trial SKUs excluded from paid util |
+| Product entitlements | Sold vs mapped; tiles / prewarm / IH honour entitlements |
+| Technician Integration Health | Live pipeline, cold (Never loaded), stuck/due/aging; **reads current feed `cacheKey()` only** |
+| Staff Admin dashboard | Clients / users / notices stats + **Sold product coverage** KPI matrix |
+| Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
+| Deploy | GitHub main → Plesk mirror → live; see [Deployment.md](Deployment.md) |
 
-- Microsoft Graph enrichment
-- **Entra group ↔ portal user sync** ✅ — `portal:sync-entra-users` (Sync 2)
-- **SuperOps Entra SCIM** — per client in SuperOps Integrations (Sync 1) — see [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
-- Email notifications
-- Redis cache/sessions
-- Admin reporting
+Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **cold optional** feeds when the jobs table is deep (≥40); warm optional refresh is skipped under pressure.
 
-## Phase 3 — Extended Integrations
+## Near-term backlog (next value)
 
-- Pax8 API
-- Deeper SuperOps (comments, attachments)
-- Client user self-management
-- Per-client branding
+1. **Portfolio reporting polish** — export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
+2. **Pax8 deeper** — billed catalogue / usage beyond SSO launch tile (partner API).
+3. **Notification hooks** — email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
+4. **Client-facing branding** — per-tenant logo / colour when multiportal presentation needs it.
+5. **Performance budget** — queue round-robin fairness if partner count grows past current prewarm model.
 
-## Phase 4–5
+## Later / optional
 
-Customer success dashboards, security posture, marketplace, PWA, public API.
+- PWA / mobile polish
+- Public API for AM tools
+- Marketplace-style third-party tiles
+- Self-service user invites (only if product deliberately leaves pre-provision model)
+
+## Explicitly deferred / not planned
+
+| Idea | Why not now |
+|------|-------------|
+| Full ticket thread + comments UI in portal | Replies stay in SuperOps; portal is list/create + SSO (ADR-022) |
+| Global SuperOps Multitenant SSO experiment | Retired; **Client SSO per customer** only |
+| Email-blast “AM reports” as primary surface | Prefer in-app coverage matrix + IH (ADR-023) |
+| Hardcoding every free M365 SKU string | Heuristics + paid seat util labels only |
+
+## Doc map
+
+| Want to… | Read |
+|----------|------|
+| How CA / feeds / IH work | [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| Auth | [Authentication.md](Authentication.md) |
+| Support + SuperOps | [SuperOpsIntegration.md](SuperOpsIntegration.md) |
+| Requirements / stories | [ProductRequirements.md](ProductRequirements.md) |
+| ADRs | [Decisions.md](Decisions.md) |

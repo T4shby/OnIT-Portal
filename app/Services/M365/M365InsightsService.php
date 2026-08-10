@@ -341,7 +341,7 @@ class M365InsightsService
         }
     }
 
-    private function cacheKey(int $clientId): string
+    public function cacheKey(int $clientId): string
     {
         return "client:{$clientId}:m365-insights:v3";
     }

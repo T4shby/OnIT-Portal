@@ -108,6 +108,103 @@ class IntegrationHealthService
     }
 
     /**
+     * Portfolio KPI: entitlement / live coverage across sold service feeds (not licence vendors).
+     *
+     * Live = feed has a snapshot age (not cold/disabled). Setup = entitled but setup-needed cells.
+     * Cold = sold + mapped pathway but never loaded. KPI target: cold_cells → 0.
+     *
+     * @param  list<int>|null  $accessibleClientIds
+     * @return array{
+     *   clients: int,
+     *   sold_feed_cells: int,
+     *   live_feed_cells: int,
+     *   setup_feed_cells: int,
+     *   cold_feed_cells: int,
+     *   failed_feed_cells: int,
+     *   live_pct: float|null,
+     *   cold_pct: float|null,
+     *   rows: list<array{client_id: int, client_name: string, sold: int, live: int, setup: int, cold: int, failed: int}>
+     * }
+     */
+    public function productCoverage(?array $accessibleClientIds = null): array
+    {
+        $overview = $this->overview($accessibleClientIds);
+        $rows = [];
+        $sold = 0;
+        $live = 0;
+        $setup = 0;
+        $cold = 0;
+        $failed = 0;
+
+        foreach ($overview['clients'] as $clientRow) {
+            $rowSold = 0;
+            $rowLive = 0;
+            $rowSetup = 0;
+            $rowCold = 0;
+            $rowFailed = 0;
+
+            foreach ($clientRow['integrations'] ?? [] as $cell) {
+                $status = (string) ($cell['status'] ?? '');
+                $detail = strtolower((string) ($cell['detail'] ?? $cell['what_it_is_doing'] ?? ''));
+
+                if ($status === 'disabled') {
+                    if (str_contains($detail, 'not sold')) {
+                        continue;
+                    }
+                    // Entitled but unmapped / platform off / disabled API → setup attention.
+                    $rowSetup++;
+                    $setup++;
+                    $rowSold++;
+                    $sold++;
+
+                    continue;
+                }
+
+                $rowSold++;
+                $sold++;
+
+                if ($status === 'cold') {
+                    $rowCold++;
+                    $cold++;
+                } elseif (in_array($status, ['failed', 'stuck'], true)) {
+                    $rowFailed++;
+                    $failed++;
+                } else {
+                    // ok, due, aging, running, queued — treat as live path for coverage %
+                    $rowLive++;
+                    $live++;
+                }
+            }
+
+            if ($rowSold === 0) {
+                continue;
+            }
+
+            $rows[] = [
+                'client_id' => (int) ($clientRow['client_id'] ?? 0),
+                'client_name' => (string) ($clientRow['client_name'] ?? 'Client'),
+                'sold' => $rowSold,
+                'live' => $rowLive,
+                'setup' => $rowSetup,
+                'cold' => $rowCold,
+                'failed' => $rowFailed,
+            ];
+        }
+
+        return [
+            'clients' => count($rows),
+            'sold_feed_cells' => $sold,
+            'live_feed_cells' => $live,
+            'setup_feed_cells' => $setup,
+            'cold_feed_cells' => $cold,
+            'failed_feed_cells' => $failed,
+            'live_pct' => $sold > 0 ? round(($live / $sold) * 100, 1) : null,
+            'cold_pct' => $sold > 0 ? round(($cold / $sold) * 100, 1) : null,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
      * @return array{
      *     pending: int,
      *     failed: int,
@@ -238,6 +335,7 @@ class IntegrationHealthService
                 'age_minutes' => $prewarmAgeMinutes,
                 'superops_queued' => is_array($prewarm) ? (int) ($prewarm['superops_queued'] ?? 0) : null,
                 'optional_queued' => is_array($prewarm) ? (int) ($prewarm['optional_queued'] ?? 0) : null,
+                'cold_optional_queued' => is_array($prewarm) ? (int) ($prewarm['cold_optional_queued'] ?? 0) : null,
                 'clients' => is_array($prewarm) ? (int) ($prewarm['clients'] ?? 0) : null,
                 'queue_deep' => is_array($prewarm) ? (bool) ($prewarm['queue_deep'] ?? false) : null,
                 'pending_before' => is_array($prewarm) ? (int) ($prewarm['pending_before'] ?? 0) : null,
@@ -437,7 +535,7 @@ class IntegrationHealthService
             return $this->disabled('superops', 'SuperOps dashboard', 'Setup needed');
         }
 
-        $payload = Cache::get("client:{$client->id}:superops-dashboard:v2");
+        $payload = Cache::get(app(\App\Services\SuperOps\SuperOpsClientMetricsService::class)->cacheKey($client->id));
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
@@ -509,9 +607,7 @@ class IntegrationHealthService
             return $this->disabled('m365_insights', 'M365 licences', 'Setup needed');
         }
 
-        $payload = Cache::get("client:{$client->id}:m365-insights:v3")
-            ?? Cache::get("client:{$client->id}:m365-insights:v2")
-            ?? Cache::get("client:{$client->id}:m365-insights:v1");
+        $payload = Cache::get(app(\App\Services\M365\M365InsightsService::class)->cacheKey($client->id));
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
@@ -583,7 +679,7 @@ class IntegrationHealthService
             return $this->disabled('huntress', 'Huntress security', 'Setup needed');
         }
 
-        $payload = Cache::get("client:{$client->id}:huntress-security:v1");
+        $payload = Cache::get(app(\App\Services\Huntress\HuntressClientMetricsService::class)->cacheKey($client->id));
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
@@ -627,10 +723,7 @@ class IntegrationHealthService
             return $this->disabled('dropsuite', 'Dropsuite backups', 'Setup needed');
         }
 
-        $metrics = app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class);
-        $payload = Cache::get($metrics->cacheKey($client->id))
-            ?? Cache::get("client:{$client->id}:dropsuite-backup:v2")
-            ?? Cache::get("client:{$client->id}:dropsuite-backup:v1");
+        $payload = Cache::get(app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class)->cacheKey($client->id));
         $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
             ? Carbon::parse($payload['last_refreshed_at'])
             : null;
