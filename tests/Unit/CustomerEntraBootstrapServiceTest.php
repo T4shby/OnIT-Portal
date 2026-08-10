@@ -104,6 +104,76 @@ class CustomerEntraBootstrapServiceTest extends TestCase
         $this->assertTrue($client->onboarding_checklist['entra_group_created']);
         $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted']);
         $this->assertTrue($client->onboarding_checklist['superops_scim_app']);
+        $this->assertTrue(
+            collect($result['warnings'])->contains(
+                fn (string $w): bool => str_contains($w, 'Still required: paste SuperOps SCIM'),
+            ),
+            'New tenant bootstrap should still prompt for SCIM token apply when checklist is incomplete.',
+        );
+    }
+
+    public function test_bootstrap_omits_scim_prompt_when_already_complete(): void
+    {
+        $tenantId = 'd6017e9f-4aba-43f1-94c1-56d3b9051f6f';
+        $client = Client::factory()->create([
+            'name' => 'Already Done Co',
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => '493a4f92-717a-435e-ae4a-466532745c32',
+            'entra_license_tier' => 'p1',
+            'entra_superops_app_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_superops_sso_app_id' => '22222222-2222-2222-2222-222222222222',
+            'entra_synced_at' => now(),
+            'onboarding_checklist' => [
+                'entra_admin_consent_granted' => true,
+                'entra_group_created' => true,
+                'superops_scim_app' => true,
+                'superops_scim_configured' => true,
+                'superops_client_sso_configured' => true,
+            ],
+        ]);
+
+        $graph = Mockery::mock(MicrosoftGraphClient::class);
+        $graph->shouldReceive('isConfigured')->andReturn(true);
+        $graph->shouldReceive('clearAccessTokenCache')->with($tenantId);
+        $graph->shouldReceive('waitUntilAppOnlyGraphReady')
+            ->once()
+            ->andReturn(['ready' => true, 'attempts' => 1, 'last_error' => null]);
+        $graph->shouldReceive('retryAfterConsentPropagation')
+            ->times(4)
+            ->andReturnUsing(function (string $tid, callable $op) {
+                return $op();
+            });
+        $graph->shouldReceive('detectEntraDirectoryLicenseTier')->once()->andReturn('p1');
+        $graph->shouldReceive('ensurePortalSecurityGroup')
+            ->once()
+            ->andReturn($client->entra_group_id);
+        $graph->shouldReceive('ensureNamedEnterpriseApplication')
+            ->twice()
+            ->andReturn(
+                [
+                    'appId' => $client->entra_superops_app_id,
+                    'applicationObjectId' => 'scim-obj',
+                    'servicePrincipalId' => 'scim-sp',
+                ],
+                [
+                    'appId' => $client->entra_superops_sso_app_id,
+                    'applicationObjectId' => 'sso-obj',
+                    'servicePrincipalId' => 'sso-sp',
+                ],
+            );
+        $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn('role');
+        $graph->shouldReceive('waitForServicePrincipalForAppId')->twice()->andReturn('scim-sp', 'sso-sp');
+        $graph->shouldReceive('resolveAssignableAppRoleId')->twice()->andReturn('role');
+        $graph->shouldReceive('assignGroupToEnterpriseApp')->twice();
+
+        $this->app->instance(MicrosoftGraphClient::class, $graph);
+
+        $result = app(CustomerEntraBootstrapService::class)->bootstrap($client, $tenantId);
+
+        $this->assertTrue($result['ok']);
+        $combined = implode("\n", $result['warnings']);
+        $this->assertStringNotContainsString('Still required: paste SuperOps SCIM', $combined);
+        $this->assertStringNotContainsString('Client SSO SAML (step 08)', $combined);
     }
 
     public function test_group_failure_still_saves_p1_and_creates_apps(): void

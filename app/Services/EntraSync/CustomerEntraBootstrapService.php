@@ -11,8 +11,9 @@ use Throwable;
  * After Portal Graph Accept in a customer tenant: save tenant / licence / group and
  * create or link SuperOps SCIM + Client SSO enterprise apps (Entra-side).
  *
- * SuperOps UI steps still required: SCIM tokens (Tenant URL + Secret) and Client SSO
- * Entity ID / Consumer URL / Login URL exchange.
+ * SuperOps UI steps still required only when not already complete: SCIM tokens
+ * (Tenant URL + Secret) and Client SSO wire — remaining prompts are driven from
+ * checklist state, not a hard-coded every-time warning.
  *
  * Always waits/retries Graph after Accept — Azure often returns IdentityNotFound /
  * "insufficient privileges" for a short time even when consent succeeded.
@@ -251,12 +252,14 @@ class CustomerEntraBootstrapService
             $warnings[] = 'Client SSO Entra app not ready: '.$e->getMessage();
         }
 
-        $warnings[] = 'Still required: paste SuperOps SCIM Tenant URL + Secret on Edit Client → **Apply SCIM credentials + start** (or Azure Provisioning). Then Client SSO SAML (step 08).';
-
         $client = $this->persist($client, $fields);
         $this->onboarding->updateChecklist($client, $checklist);
         $this->onboarding->syncAutoCheckpointsFromClient($client);
-        $client = $client->fresh();
+        $client = $client->fresh() ?? $client;
+
+        foreach ($this->remainingWorkWarnings($client) as $remaining) {
+            $warnings[] = $remaining;
+        }
 
         $hasGroup = filled($client->entra_group_id);
         $hasApps = filled($client->entra_superops_app_id) || filled($client->entra_superops_sso_app_id);
@@ -276,6 +279,27 @@ class CustomerEntraBootstrapService
             'details' => $details,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * Only prompt for SCIM paste / Client SSO when the checklist still needs them.
+     *
+     * @return list<string>
+     */
+    private function remainingWorkWarnings(Client $client): array
+    {
+        $checklist = is_array($client->onboarding_checklist) ? $client->onboarding_checklist : [];
+        $out = [];
+
+        if (! $this->onboarding->isScimProvisioningComplete($client, $checklist)) {
+            $out[] = 'Still required: paste SuperOps SCIM Tenant URL + Secret → **Apply SCIM credentials + start** (or finish Azure Provisioning + name mappings).';
+        }
+
+        if (! (bool) ($checklist['superops_client_sso_configured'] ?? false)) {
+            $out[] = 'Still required: Client SSO SAML (step 08) — wire SuperOps ↔ Entra if not done.';
+        }
+
+        return $out;
     }
 
     /**

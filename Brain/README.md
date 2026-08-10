@@ -81,6 +81,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | Bootstrap remaining-work warnings honour SCIM/SSO checklist; `portal:graph-reconsent-urls`; guide Re-consent CTA — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-10 | Secure Score + MFA Graph Application perms (`SecurityEvents` / `AuditLog` / `Reports.Read`) + re-consent ops §0.3a — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |
 | 2026-08-10 | Customer dashboard gap close (activity, waiting-on-you, Huntress MTD, Secure Score/MFA soft-fail, nightly MoM snapshots) — [UIOverhaul.md](UIOverhaul.md), [DatabaseSchema.md](DatabaseSchema.md) |
 | 2026-08-10 | Organisation overview visual revolve: dense grid + glance card language — [ClientAdminDashboard.md](ClientAdminDashboard.md) |

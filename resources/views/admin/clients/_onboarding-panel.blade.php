@@ -39,18 +39,20 @@
                         </button>
                     </form>
                     <p class="portal-body-muted text-xs leading-relaxed">
-                        Tenant ID is saved. Use this if group or SuperOps app IDs are still empty
+                        Tenant ID is saved. Use this only if group or SuperOps app IDs are still empty
                         (Azure lag after Accept — not a second Microsoft login).
                     </p>
-                    <details class="text-xs text-white/50">
-                        <summary class="cursor-pointer text-white/60 hover:text-white/80">Re-consent (permissions changed only)</summary>
-                        <a
-                            href="{{ $adminConsentUrl }}"
-                            target="_blank"
-                            rel="noopener"
-                            class="cta-btn-ghost mt-2 inline-flex w-full items-center justify-center px-4 py-2 text-xs"
-                        >Accept Graph again in customer tenant</a>
-                    </details>
+                    <a
+                        href="{{ $adminConsentUrl }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="cta-btn-ghost inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
+                    >Re-consent Graph permissions</a>
+                    <p class="portal-body-muted text-xs leading-relaxed">
+                        Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong>.
+                        Use after On IT adds Application permissions (Secure Score / MFA, etc.).
+                        Does <strong class="text-white/80">not</strong> require redoing SCIM or Client SSO.
+                    </p>
                 @endif
             </div>
         @endif
