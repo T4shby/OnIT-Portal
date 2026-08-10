@@ -128,6 +128,8 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/dropsuite/refresh', [ClientDropsuiteBackupController::class, 'refresh'])
                 ->middleware('throttle:6,1')
                 ->name('clients.dropsuite.refresh');
+            Route::get('graph-reconsent', [ClientController::class, 'graphReconsent'])
+                ->name('clients.graph-reconsent');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->middleware('throttle:entra-sync')

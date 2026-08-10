@@ -47,6 +47,36 @@ class ClientController extends Controller
         return view('admin.clients.index', compact('clients'));
     }
 
+    /**
+     * Staff batch: admin-consent Accept links for every client tenant with Graph linked.
+     * Microsoft still requires a human Accept per tenant under GDAP — this only lists the URLs.
+     */
+    public function graphReconsent(Request $request): View
+    {
+        $this->authorize('viewAny', Client::class);
+
+        $clientIds = $request->user()->accessibleClientIds();
+
+        $clients = Client::query()
+            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereNotNull('entra_tenant_id')
+            ->where('entra_tenant_id', '!=', '')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $rows = $clients->map(function (Client $client) {
+            return [
+                'client' => $client,
+                'url' => $this->onboarding->adminConsentUrl($client),
+            ];
+        })->filter(fn (array $row) => filled($row['url']));
+
+        return view('admin.clients.graph-reconsent', [
+            'rows' => $rows,
+        ]);
+    }
+
     public function create(): View
     {
         $this->authorize('create', Client::class);

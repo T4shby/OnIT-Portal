@@ -170,11 +170,11 @@ You do **not** need to delete clients, wipe SCIM, or redo SuperOps Client SSO.
 1. Complete Step 0.2–0.3 in the **On IT** tenant (new rows + Grant admin consent for On IT).
 2. **Batch re-consent every linked tenant** (private/GDAP into each customer — one Accept per tenant):
 
-   ```bash
-   php artisan portal:graph-reconsent-urls --markdown --active
-   ```
+   - **Staff UI (preferred):** Admin → Clients → **Graph re-consent** — Accept links for every active tenant.
+   - Per client Edit → **Re-consent Graph permissions**.
+   - Optional server list: `php artisan portal:graph-reconsent-urls --markdown --active`
 
-   Or per client: Edit Client → **Re-consent Graph permissions** (not **Retry Graph setup** — Retry only rebuilds group/apps).
+   Do **not** use **Retry Graph setup** unless app IDs are missing.
 
 3. After Accept, wait a few minutes for Graph; force M365 insights refresh (prewarm / visit Organisation). Secure Score and MFA appear only when consent includes the three security report permissions.
 4. Licence util and SuperOps keep working without re-consent; only posture metrics stay hidden.
@@ -414,6 +414,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-08-10 | Staff **Graph re-consent** page under Clients (Accept links; no artisan required) |
 | 2026-08-10 | Graph **Application (14):** add `SecurityEvents.Read.All`, `AuditLog.Read.All`, `Reports.Read.All` for Secure Score + MFA on client home; existing customers **re-consent only** (§0.3a); `portal:graph-reconsent-urls` batch list |
 | 2026-08-10 | Bootstrap flash no longer hard-codes SCIM/SSO “Still required” when checklist already done |
 | 2026-08-06 | Step 08 + all 12: automation-first guide; Wire SuperOps wording in brain runbooks |
