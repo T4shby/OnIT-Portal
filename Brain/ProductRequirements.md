@@ -37,6 +37,7 @@ MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisat
 - Customer self-registration without pre-provision
 - Per-client free SKU encyclopaedias
 - Global SuperOps SSO multitenant admin-consent product model
+- **usecure in production** until beta API keys + pilot map exist — plan: [UsecureIntegration.md](UsecureIntegration.md)
 
 ## User stories
 
@@ -97,4 +98,4 @@ Clients, users, links, content, settings, activity logs — as today.
 
 ## Backlog stories
 
-See [Roadmap.md](Roadmap.md) Near-term backlog.
+See [Roadmap.md](Roadmap.md) Near-term backlog. usecure is **later / optional** only ([UsecureIntegration.md](UsecureIntegration.md)) — not a current delivery priority.

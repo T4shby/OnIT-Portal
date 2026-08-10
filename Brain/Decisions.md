@@ -335,3 +335,18 @@ Sold→live/cold state is already computed live; email is stale, unauthenticated
 
 Consequences:
 `IntegrationHealthService::productCoverage()` + admin dashboard matrix. Email digests only if a future backlog item explicitly requests push alerts (see [Roadmap.md](Roadmap.md)).
+
+---
+
+## ADR-024
+
+Date: 2026-08-10
+
+Decision:
+Plan **usecure** as a modular optional dashboard feed (**not** a separate product stack): MSP partner credentials + per-client company map + `product_entitlements.usecure`, Integration Health column, optional prewarm — identical commercial model to Huntress (sold to some clients; all companies under On IT partner tenant). **Do not implement until beta GraphQL API key + URL are issued by usecure Support.** Do not require Gradient as a middleman for portal reads.
+
+Reason:
+usecure is another resold security product; customers who do not buy must not see reports. API is beta and keys are support-issued, so design-only avoids abandoned half-wired flags in production.
+
+Consequences:
+Full build plan in [UsecureIntegration.md](UsecureIntegration.md). Roadmap: **Later / optional** until keys exist and work is deliberately scheduled (not default next step).

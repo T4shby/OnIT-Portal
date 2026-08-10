@@ -40,6 +40,8 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 8. Integration Health: add to `FEED_COLUMNS` + `JOB_CLASS_HINT` + `clientRow()` builder (same adaptive `evaluate()` path as SuperOps)  
 9. Unit tests + Brain section  
 
+**Future vendor park (not scheduled):** [usecure](UsecureIntegration.md) — design only; same checklist when deliberately built. Not next step.
+
 **Integration Health is the technician refresh dashboard** (`/admin/integration-health`): Huntress and Dropsuite are full columns next to SuperOps / M365 / Entra — same live poll, orphan clear, stuck/due/aging statuses, and adaptive prewarm.
 
 **Priorities:**  

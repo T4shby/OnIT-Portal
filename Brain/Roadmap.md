@@ -31,6 +31,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Later / optional
 
+- **usecure human-risk feed** — full design parked for later; **not** near-term work. Unblocks when On IT has beta GraphQL API keys from usecure Support (ops request in own time). Build plan: [UsecureIntegration.md](UsecureIntegration.md).
 - PWA / mobile polish
 - Public API for AM tools
 - Marketplace-style third-party tiles
@@ -50,6 +51,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 | Want to… | Read |
 |----------|------|
 | How CA / feeds / IH work | [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| usecure (planned) | [UsecureIntegration.md](UsecureIntegration.md) |
 | Auth | [Authentication.md](Authentication.md) |
 | Support + SuperOps | [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | Requirements / stories | [ProductRequirements.md](ProductRequirements.md) |
