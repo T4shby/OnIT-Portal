@@ -42,4 +42,5 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 | 2026-08-10 | Initial glance scaffold (wrong visual language). |
 | 2026-08-10 | **Rewrite** to match zip 1a/1c; explicit gaps kept. |
 | 2026-08-10 | **Polish:** reports layout inline-safe; glance compact “not set up”; quieter activity. |
-| 2026-08-10 | **Reports fix:** CSS Grid (broken Tailwind flex purging). Home: pipeline rows removed; quieter activity; Pax8 logo white/`8` orange on dark. |
+| 2026-08-10 | **Reports layout:** CSS Grid (broken Tailwind flex purging). Home: pipeline rows removed; quieter activity; Pax8 logo white/`8` orange on dark. |
+| 2026-08-10 | **Reports width/mobile:** full content width (no 1280 cap); rail no secondary On IT logo; stack + larger tap targets on small screens. |

@@ -19,109 +19,234 @@
     $hunt = $cols->firstWhere('key', 'huntress');
     $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
     $sla = $metricVal($super, 'SLA met');
-    // Prefer real remediations for the headline number; do not invent MTD threats.
-    $threats = $metricVal($hunt, 'Remediated (snapshot)')
+    $threats = $metricVal($hunt, 'Remediated')
+        ?? $metricVal($hunt, 'Remediated (snapshot)')
         ?? $metricVal($hunt, 'Resolved incidents');
-    $threatsLabel = $threats !== null ? 'remediated (snapshot)' : 'threats stopped';
+    $threatsLabel = $threats !== null ? 'remediated' : 'threats stopped';
     $monthTitle = now()->timezone('Europe/London')->format('F Y');
 @endphp
 
 {{--
-  1c layout — CSS Grid with all sizing inline where it matters.
-  Do NOT use Tailwind flex utilities here: purged prod CSS left flex-row + w-full
-  rail, which shoved the light main panel off the right edge of the viewport.
+  1c report — full-width shell (not a narrow card), CSS Grid only.
+  No Tailwind layout utilities: production CSS purge broke flex rail/main earlier.
+  Brand is already in the portal header — rail starts at “Prepared for”.
 --}}
 <x-app-layout title="Reports" content-class="max-w-none">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .rp { font-family: 'Poppins', system-ui, sans-serif; color: #011926; box-sizing: border-box; }
         .rp *, .rp *::before, .rp *::after { box-sizing: border-box; }
+
+        /* Cancel parent main padding so the report uses the full content width */
+        .rp {
+            margin: -2rem -1rem 0;
+            width: auto;
+        }
+        @media (min-width: 640px) {
+            .rp { margin-left: -1.5rem; margin-right: -1.5rem; margin-top: -3rem; }
+        }
+        @media (min-width: 1024px) {
+            .rp { margin-left: -2rem; margin-right: -2rem; }
+        }
+
         .rp-shell {
             display: grid;
             grid-template-columns: 1fr;
             width: 100%;
-            max-width: 1280px;
-            margin: 0 auto;
+            max-width: none;
             min-height: 70vh;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,.25);
             background: #F4F6F8;
+            overflow: hidden;
         }
         @media (min-width: 900px) {
             .rp-shell {
-                grid-template-columns: 280px minmax(0, 1fr);
+                grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+                border-radius: 8px;
+                box-shadow: 0 4px 24px rgba(0,0,0,.25);
             }
         }
+
         .rp-rail {
             background: #011926;
             color: #fff;
-            padding: 28px 24px;
+            padding: 22px 20px 24px;
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 22px;
         }
+        @media (min-width: 900px) {
+            .rp-rail { padding: 32px 28px; gap: 28px; min-height: 70vh; }
+        }
+
         .rp-main {
             background: #F4F6F8;
             color: #011926;
-            padding: 28px 22px 36px;
+            padding: 22px 16px 32px;
             min-width: 0;
+        }
+        @media (min-width: 640px) {
+            .rp-main { padding: 28px 24px 36px; }
         }
         @media (min-width: 900px) {
             .rp-main { padding: 36px 40px 40px; }
         }
+        @media (min-width: 1280px) {
+            .rp-main { padding: 40px 48px 48px; }
+        }
+
         .rp-card {
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
         }
         .rp-muted { color: #666; }
+
+        .rp-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px 16px;
+        }
+
         .rp-stats {
             display: grid;
             grid-template-columns: 1fr;
-            margin-top: 20px;
+            margin-top: 18px;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 520px) {
             .rp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .rp-stats > div { border-right: 1px solid #E5E7EB; }
             .rp-stats > div:last-child { border-right: 0; }
         }
-        .rp-stats > div { padding: 18px 20px; }
+        .rp-stats > div {
+            padding: 16px 18px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        @media (min-width: 520px) {
+            .rp-stats > div { border-bottom: 0; }
+        }
+        .rp-stats-v {
+            font-size: clamp(1.75rem, 4vw, 2.125rem);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* Service rows: stack on phone, horizontal from tablet up */
         .rp-row {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 14px;
-            padding: 18px 20px;
+            gap: 12px;
+            padding: 16px;
             margin-bottom: 10px;
+            align-items: start;
+        }
+        .rp-row-top {
+            display: flex;
+            flex-wrap: wrap;
             align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
-        @media (min-width: 800px) {
+        @media (min-width: 900px) {
             .rp-row {
-                grid-template-columns: minmax(140px, 1.1fr) auto minmax(0, 2fr) auto;
+                grid-template-columns: minmax(150px, 1.15fr) minmax(0, 2.2fr) auto;
                 gap: 16px 20px;
+                padding: 18px 22px;
+                align-items: center;
             }
+            .rp-row-top { display: contents; }
+            .rp-row-top > :first-child { grid-column: 1; }
+            .rp-row-status { grid-column: 1; margin-top: 6px; }
         }
+        @media (min-width: 1100px) {
+            .rp-row {
+                grid-template-columns: minmax(160px, 1fr) auto minmax(0, 2fr) auto;
+            }
+            .rp-row-status { grid-column: auto; margin-top: 0; }
+        }
+
         .rp-hi {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
+            gap: 10px 12px;
+            min-width: 0;
         }
+        @media (max-width: 379px) {
+            .rp-hi { grid-template-columns: 1fr; }
+        }
+
         .rp-note { font-size: 11px; color: #B45309; line-height: 1.4; margin-top: 6px; }
-        .rp-link { font-size: 12px; font-weight: 600; color: #FF7000; text-decoration: none; white-space: nowrap; }
+        .rp-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #FF7000;
+            text-decoration: none;
+            white-space: nowrap;
+        }
         .rp-link:hover { color: #E06500; }
+        @media (min-width: 900px) {
+            .rp-link { min-height: 0; font-size: 12px; }
+        }
+
+        .rp-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            margin-top: 12px;
+            padding: 10px 18px;
+            background: #FF7000;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 4px;
+            text-decoration: none;
+            width: 100%;
+            text-align: center;
+        }
+        @media (min-width: 900px) {
+            .rp-cta { width: auto; }
+        }
+        .rp-back {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: rgba(255,255,255,.55);
+            text-decoration: none;
+        }
+        @media (min-width: 900px) {
+            .rp-back { min-height: 0; margin-top: 14px; font-size: 12px; }
+        }
+
+        .rp-toggle {
+            display: inline-flex;
+            border: 1px solid #E5E7EB;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
+            flex: none;
+        }
+        .rp-toggle span {
+            padding: 10px 14px;
+            font-size: 12px;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+        }
     </style>
 
-    <div class="rp" style="margin-top:-1rem">
+    <div class="rp">
         <div class="rp-shell">
             <aside class="rp-rail">
-                <div style="display:flex;align-items:center;gap:12px">
-                    <x-portal-logo size="md" />
-                    <span style="font-size:14px;font-weight:600">On IT</span>
-                </div>
-
                 <div>
                     <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65)">Prepared for</div>
-                    <div style="font-size:18px;font-weight:700;margin-top:6px;line-height:1.3;word-break:break-word">{{ $client->name }}</div>
+                    <div style="font-size:clamp(1.125rem,3vw,1.25rem);font-weight:700;margin-top:6px;line-height:1.3;word-break:break-word">{{ $client->name }}</div>
                     <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:4px">Customer service review</div>
                 </div>
 
@@ -146,45 +271,39 @@
 
                 <div style="border-top:1px solid #1F2933;padding-top:20px;margin-top:auto">
                     <div style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.6">Questions about your service or this report?</div>
-                    <a href="{{ route('support.create') }}" style="display:inline-block;margin-top:12px;padding:10px 18px;background:#FF7000;color:#fff;font-size:13px;font-weight:600;border-radius:4px;text-decoration:none">Talk to an Expert</a>
-                    <a href="{{ route('dashboard') }}" style="display:block;margin-top:14px;font-size:12px;color:rgba(255,255,255,.55);text-decoration:none">← Dashboard</a>
+                    <a href="{{ route('support.create') }}" class="rp-cta">Talk to an Expert</a>
+                    <a href="{{ route('dashboard') }}" class="rp-back">← Dashboard</a>
                 </div>
             </aside>
 
             <div class="rp-main">
-                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px">
-                    <div style="min-width:0;flex:1 1 220px">
+                <div class="rp-head">
+                    <div style="min-width:0;flex:1 1 14rem">
                         <div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#FF7000;margin-bottom:10px">Monthly service review</div>
-                        <h1 style="margin:0;font-size:clamp(1.5rem,3vw,1.85rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
+                        <h1 style="margin:0;font-size:clamp(1.45rem,4vw,1.9rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
                     </div>
-                    <div style="display:inline-flex;border:1px solid #E5E7EB;border-radius:4px;overflow:hidden;background:#fff" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
-                        <span style="padding:8px 14px;font-size:12px;font-weight:600;background:#011926;color:#fff">This month</span>
-                        <span style="padding:8px 14px;font-size:12px;font-weight:500;color:#999;cursor:not-allowed">Last month</span>
+                    <div class="rp-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
+                        <span style="font-weight:600;background:#011926;color:#fff">This month</span>
+                        <span style="font-weight:500;color:#999;cursor:not-allowed">Last month</span>
                     </div>
                 </div>
 
                 <div class="rp-card rp-stats">
                     <div>
-                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $threats === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
-                            {{ $threats ?? '—' }}
-                        </div>
+                        <div class="rp-stats-v" style="{{ $threats === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $threats ?? '—' }}</div>
                         <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $threatsLabel }}</div>
                     </div>
                     <div>
-                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $resolved === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
-                            {{ $resolved ?? '—' }}
-                        </div>
+                        <div class="rp-stats-v" style="{{ $resolved === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $resolved ?? '—' }}</div>
                         <div class="rp-muted" style="font-size:12.5px;margin-top:6px">tickets resolved</div>
                     </div>
                     <div>
-                        <div style="font-size:34px;font-weight:700;line-height:1;{{ $sla === null ? 'color:#B45309;font-size:1.35rem' : '' }}">
-                            {{ $sla ?? '—' }}
-                        </div>
+                        <div class="rp-stats-v" style="{{ $sla === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $sla ?? '—' }}</div>
                         <div class="rp-muted" style="font-size:12.5px;margin-top:6px">SLA met</div>
                     </div>
                 </div>
 
-                <div style="margin-top:18px">
+                <div style="margin-top:16px">
                     @foreach($cols as $col)
                         @php
                             $tone = $col['tone'] ?? 'neutral';
@@ -223,40 +342,42 @@
                                     ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
                                 ],
                                 'm365' => [
-                                    ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences assigned'],
+                                    ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences'],
                                     ['v' => $metricVal($col, 'Utilisation'), 'l' => 'utilisation'],
-                                    ['v' => $metricVal($col, 'Licensed users'), 'l' => 'licensed users'],
+                                    ['v' => $metricVal($col, 'Licensed users'), 'l' => 'users'],
                                 ],
                                 'huntress' => [
-                                    ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'devices covered'],
-                                    ['v' => $metricVal($col, 'Remediated (snapshot)'), 'l' => 'remediated'],
+                                    ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'covered'],
+                                    ['v' => $metricVal($col, 'Remediated') ?? $metricVal($col, 'Remediated (snapshot)'), 'l' => 'remediated'],
                                     ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open'],
                                 ],
                                 'dropsuite' => [
                                     ['v' => $metricVal($col, 'Mailboxes protected'), 'l' => 'mailboxes'],
-                                    ['v' => $metricVal($col, 'Succeeded'), 'l' => 'succeeded 24h'],
+                                    ['v' => $metricVal($col, 'Succeeded'), 'l' => 'ok 24h'],
                                     ['v' => $metricVal($col, 'Retrying'), 'l' => 'retrying'],
                                 ],
                                 default => [],
                             };
                         @endphp
                         <div class="rp-card rp-row">
-                            <div style="min-width:0">
-                                <div style="font-size:13.5px;font-weight:600">{{ $col['title'] }}</div>
-                                <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $col['source'] }}</div>
+                            <div class="rp-row-top">
+                                <div style="min-width:0">
+                                    <div style="font-size:14px;font-weight:600">{{ $col['title'] }}</div>
+                                    <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $col['source'] }}</div>
+                                </div>
+                                <span class="rp-row-status" style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:4px;font-size:11.5px;font-weight:600;background:{{ $pillBg }};color:{{ $pillColor }};width:fit-content">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:{{ $dot }};flex:none"></span>
+                                    {{ $statusShort }}
+                                </span>
                             </div>
-                            <span style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:4px;font-size:11.5px;font-weight:600;background:{{ $pillBg }};color:{{ $pillColor }};width:fit-content">
-                                <span style="width:7px;height:7px;border-radius:50%;background:{{ $dot }};flex:none"></span>
-                                {{ $statusShort }}
-                            </span>
                             <div class="rp-hi">
                                 @foreach($highlights as $h)
                                     @php $missing = $h['v'] === null; @endphp
                                     <div style="min-width:0">
-                                        <div style="font-size:17px;font-weight:700;line-height:1.1;{{ $missing ? 'color:#B45309' : '' }}">
+                                        <div style="font-size:clamp(15px,3.5vw,17px);font-weight:700;line-height:1.1;{{ $missing ? 'color:rgba(0,0,0,.28)' : '' }}">
                                             {{ $missing ? '—' : $h['v'] }}
                                         </div>
-                                        <div class="rp-muted" style="font-size:11.5px;margin-top:2px">{{ $h['l'] }}</div>
+                                        <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $h['l'] }}</div>
                                     </div>
                                 @endforeach
                             </div>
@@ -270,7 +391,7 @@
                     @endforeach
                 </div>
 
-                <div class="rp-card" style="margin-top:12px;padding:18px 20px">
+                <div class="rp-card" style="margin-top:12px;padding:16px 18px">
                     <div style="font-size:14px;font-weight:600;margin-bottom:6px">What we've done for you</div>
                     <p class="rp-muted" style="margin:0;font-size:13px;line-height:1.5">Activity history not available yet.</p>
                 </div>
