@@ -9,9 +9,13 @@ use Carbon\Carbon;
 /**
  * Client home + Reports presentation layer over dashboard feeds.
  *
- * States: live | loading | not_sold | setup_needed | platform | cold | pipeline
- * "pipeline" = product sold and API may be live, but this *metric* needs more work
- * (history store, extra Graph scopes, activity audit job, etc.). Never hide gaps.
+ * Column traffic lights (live services):
+ *   tone ok/green   → Healthy
+ *   tone warn/yellow → Issues
+ *   tone bad/red    → Critical
+ *
+ * Product not ready: setup/cold/loading → Issues (warn); platform/error → Critical (bad).
+ * Per-feed bands are documented in Brain/UIOverhaul.md and on the private health* methods.
  */
 class ClientHomeOverviewService
 {
@@ -89,35 +93,65 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Hero takes the worst traffic light across sold live services (and product setup failures).
+     *
      * @param  list<array<string, mixed>>  $columns
      * @return array{title: string, status_line: string, status_tone: string}
      */
     private function heroFromColumns(Client $client, array $columns, bool $orgWide): array
     {
-        $attention = 0;
         $live = 0;
-        $setup = 0;
-        $notSold = 0;
+        $critical = 0;
+        $issues = 0;
+        $setupAttention = 0;
 
         foreach ($columns as $col) {
             $s = (string) ($col['state'] ?? '');
-            if (in_array($s, ['setup_needed', 'platform', 'cold', 'error'], true)) {
-                $attention++;
-            } elseif ($s === 'live') {
+            $tone = (string) ($col['tone'] ?? 'neutral');
+
+            if ($s === 'not_sold' || $s === 'hidden') {
+                continue;
+            }
+
+            if (in_array($s, ['setup_needed', 'platform', 'cold', 'error', 'loading'], true)) {
+                $setupAttention++;
+                if ($tone === 'bad' || in_array($s, ['platform', 'error'], true)) {
+                    $critical++;
+                } else {
+                    $issues++;
+                }
+
+                continue;
+            }
+
+            if ($s === 'live') {
                 $live++;
-            } elseif ($s === 'not_sold') {
-                $notSold++;
-            } elseif ($s === 'loading') {
-                $attention++;
+                if ($tone === 'bad') {
+                    $critical++;
+                } elseif ($tone === 'warn') {
+                    $issues++;
+                }
             }
         }
 
-        if ($attention > 0) {
+        if ($critical > 0) {
             return [
                 'title' => 'Your IT at a glance',
-                'status_line' => $attention === 1
-                    ? 'Attention needed on 1 service.'
-                    : "Attention needed on {$attention} services.",
+                'status_line' => $critical === 1
+                    ? '1 service needs critical attention.'
+                    : "{$critical} services need critical attention.",
+                'status_tone' => 'bad',
+            ];
+        }
+
+        if ($issues > 0 || $setupAttention > 0) {
+            $n = max($issues, $setupAttention);
+
+            return [
+                'title' => 'Your IT at a glance',
+                'status_line' => $n === 1
+                    ? '1 service has issues to review.'
+                    : "{$n} services have issues to review.",
                 'status_tone' => 'warn',
             ];
         }
@@ -135,6 +169,123 @@ class ClientHomeOverviewService
             'status_line' => 'Services not live yet.',
             'status_tone' => 'neutral',
         ];
+    }
+
+    /**
+     * Traffic-light band for live service health.
+     *
+     * @return array{tone: string, status_label: string}
+     */
+    private function healthBand(string $band): array
+    {
+        return match ($band) {
+            'critical' => ['tone' => 'bad', 'status_label' => 'Critical'],
+            'issues' => ['tone' => 'warn', 'status_label' => 'Issues'],
+            default => ['tone' => 'ok', 'status_label' => 'Healthy'],
+        };
+    }
+
+    /**
+     * SuperOps live health.
+     * Critical: open tickets ≥ 15, or SLA &lt; 90% (when sample exists), or offline ≥ 25% of fleet (min 5) or offline ≥ 20.
+     * Issues: open tickets ≥ 1, or any offline, or SLA &lt; 95%.
+     * Healthy: otherwise.
+     *
+     * @return array{tone: string, status_label: string}
+     */
+    private function superOpsHealth(object $summary): array
+    {
+        $open = (int) ($summary->openTicketsTotal ?? 0);
+        $offline = (int) ($summary->assetsOffline ?? 0);
+        $total = (int) ($summary->assetsTotal ?? 0);
+        $sla = $summary->slaMetPercent;
+        $slaVal = is_numeric($sla) ? (float) $sla : null;
+
+        $offlineCritical = $offline >= 20
+            || ($total >= 5 && $offline / max($total, 1) >= 0.25);
+
+        if ($open >= 15 || ($slaVal !== null && $slaVal < 90) || $offlineCritical) {
+            return $this->healthBand('critical');
+        }
+
+        if ($open >= 1 || $offline > 0 || ($slaVal !== null && $slaVal < 95)) {
+            return $this->healthBand('issues');
+        }
+
+        return $this->healthBand('healthy');
+    }
+
+    /**
+     * M365 live health (licence snapshot).
+     * Critical: assigned seats materially over purchased (&gt;110% of purchased when purchased &gt; 0).
+     * Issues: any over-assignment (assigned &gt; purchased).
+     * Healthy: otherwise.
+     *
+     * @return array{tone: string, status_label: string}
+     */
+    private function m365Health(object $summary): array
+    {
+        $assigned = $summary->totalSeatsAssigned;
+        $purchased = $summary->totalSeatsPurchased;
+
+        if (is_numeric($assigned) && is_numeric($purchased) && (int) $purchased > 0) {
+            $a = (int) $assigned;
+            $p = (int) $purchased;
+            if ($a > (int) round($p * 1.10)) {
+                return $this->healthBand('critical');
+            }
+            if ($a > $p) {
+                return $this->healthBand('issues');
+            }
+        }
+
+        return $this->healthBand('healthy');
+    }
+
+    /**
+     * Huntress live health.
+     * Critical: open incidents ≥ 3, or unresponsive agents ≥ 20% of agents (min 5 unresponsive).
+     * Issues: any open incident, or any unresponsive agents.
+     * Healthy: otherwise.
+     *
+     * @return array{tone: string, status_label: string}
+     */
+    private function huntressHealth(object $summary): array
+    {
+        $open = (int) ($summary->openIncidents ?? 0);
+        $agents = (int) ($summary->agentsTotal ?? 0);
+        $unresp = $summary->agentsUnresponsive;
+        $un = is_numeric($unresp) ? (int) $unresp : 0;
+
+        $unrespCritical = $un >= 5 && $agents > 0 && ($un / $agents) >= 0.20;
+
+        if ($open >= 3 || $unrespCritical) {
+            return $this->healthBand('critical');
+        }
+
+        if ($open >= 1 || $un > 0) {
+            return $this->healthBand('issues');
+        }
+
+        return $this->healthBand('healthy');
+    }
+
+    /**
+     * Dropsuite live health.
+     * Critical: any failed/retrying backup in the last 24h feed.
+     * Healthy: otherwise (no "issues" band without partial signals).
+     *
+     * @return array{tone: string, status_label: string}
+     */
+    private function dropsuiteHealth(object $summary): array
+    {
+        $failed = (int) ($summary->failedLast24h ?? $summary->failedBackupsCount ?? 0);
+
+        if ($failed > 0) {
+            return $this->healthBand('critical');
+        }
+
+        return $this->healthBand('healthy');
     }
 
     /**
@@ -184,7 +335,6 @@ class ClientHomeOverviewService
             ? ($summary->ticketsClosed['30'] ?? null)
             : null;
 
-        // Customer home shows live snapshot numbers only — no pipeline “Not set up” rows.
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
             $this->metric('Resolved this month', $closed30, null),
@@ -198,15 +348,12 @@ class ClientHomeOverviewService
             ),
         ];
 
-        $tone = 'ok';
-        if (($summary->openTicketsTotal ?? 0) > 10 || ($summary->assetsOffline ?? 0) > 0) {
-            $tone = 'warn';
-        }
+        $health = $this->superOpsHealth($summary);
 
         return array_merge($base, [
             'state' => 'live',
-            'tone' => $tone,
-            'status_label' => ($summary->openTicketsTotal ?? 0) === 0 ? 'On track' : 'Open tickets',
+            'tone' => $health['tone'],
+            'status_label' => $health['status_label'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -241,8 +388,8 @@ class ClientHomeOverviewService
 
             return array_merge($base, [
                 'state' => 'live',
-                'tone' => 'neutral',
-                'status_label' => 'Directory',
+                'tone' => 'ok',
+                'status_label' => 'Healthy',
                 'message' => null,
                 'metrics' => [
                     $this->metric('Directory', 'Open Microsoft 365', null),
@@ -294,10 +441,12 @@ class ClientHomeOverviewService
             $this->metric('Licensed users', $summary->licensedUserCount ?? null, 'User mailboxes only'),
         ];
 
+        $health = $this->m365Health($summary);
+
         return array_merge($base, [
             'state' => 'live',
-            'tone' => 'ok',
-            'status_label' => 'Licences',
+            'tone' => $health['tone'],
+            'status_label' => $health['status_label'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -348,13 +497,12 @@ class ClientHomeOverviewService
             $this->metric('Unresponsive agents', $summary->agentsUnresponsive, null),
         ];
 
-        $open = (int) ($summary->openIncidents ?? 0);
-        $tone = $open > 0 ? 'warn' : 'ok';
+        $health = $this->huntressHealth($summary);
 
         return array_merge($base, [
             'state' => 'live',
-            'tone' => $tone,
-            'status_label' => $open > 0 ? 'Incidents open' : 'Protected',
+            'tone' => $health['tone'],
+            'status_label' => $health['status_label'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -419,12 +567,12 @@ class ClientHomeOverviewService
             $this->metric('Retrying', $failed, $failed ? 'open issues' : null),
         ];
 
-        $tone = ((int) $failed) > 0 ? 'warn' : 'ok';
+        $health = $this->dropsuiteHealth($summary);
 
         return array_merge($base, [
             'state' => 'live',
-            'tone' => $tone,
-            'status_label' => ((int) $failed) > 0 ? 'Retries in progress' : 'Protected',
+            'tone' => $health['tone'],
+            'status_label' => $health['status_label'],
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
@@ -514,20 +662,21 @@ class ClientHomeOverviewService
     {
         $tone = match ($state) {
             'live' => 'ok',
-            'loading' => 'neutral',
+            'loading', 'setup_needed', 'cold', 'pipeline' => 'warn',
             'not_sold' => 'muted',
-            'setup_needed', 'platform', 'cold', 'error', 'pipeline' => 'warn',
+            'platform', 'error' => 'bad',
             default => 'neutral',
         };
 
         $label = match ($state) {
             'not_sold' => 'Not sold',
             'setup_needed' => 'Setup needed',
-            'platform' => 'Platform off',
-            'cold' => 'Never loaded',
+            'platform' => 'Critical',
+            'cold' => 'Issues',
             'loading' => 'Loading',
+            'error' => 'Critical',
             'hidden' => 'Hidden',
-            default => 'Attention',
+            default => 'Issues',
         };
 
         return array_merge($column, [
