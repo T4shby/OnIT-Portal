@@ -8,7 +8,7 @@
 | System | Primary email changes |
 |--------|------------------------|
 | **Portal Entra sync** | Same person → **one** row; `users.email` **updated** to Graph `mail` (else UPN). Role **preserved**. |
-| **SuperOps requesters** | After the same Sync now: (1) bind `portal.superops_user_id` when matched; (2) SuperOps `updateClientUser` email = M365 primary. Match: SuperOps id → primary → **Graph aliases** (`proxyAddresses` / `otherMails`) → unique local-part. Unmatched listed on Sync flash (`N unmatched`). |
+| **SuperOps requesters** | After the same Sync (background job): (1) bind `portal.superops_user_id` when matched; (2) SuperOps `updateClientUser` email = M365 primary. Match: SuperOps id → primary → **Graph aliases** (`proxyAddresses` / `otherMails`) → unique local-part. Unmatched count is in `EntraSyncResult` / activity + `entra_sync.last_result.{client}` (integration health), not a post-redirect flash — **Sync now** only confirms “started in background”. |
 | **Login** | Match by object id first; refresh email when free and primary differs. |
 | **Duplicates from the old bug** | Next sync **merges** portal shadows; SuperOps email pass then points the live requester at `.com`. |
 | **SCIM still matters** | Names via `extensionAttribute1`, create/deprovision. Email renames can **lag or stick** in SCIM — API align is the enforcement after portal knows the truth. |
@@ -28,8 +28,9 @@ Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pa
    - Confirm a sample user: Entra object id unchanged; **Primary SMTP** = new domain.
 
 3. **Portal**  
-   - Admin → Clients → **Edit** client → **Sync now** (or wait for hourly `portal:sync-entra-users`).  
-   - Sync must succeed for portal **and** SuperOps email align (result may include `SuperOps requester emails aligned to M365 N`).  
+   - Admin → Clients → **Edit** client → **Sync now** (or wait for adaptive `portal:sync-entra-users`).  
+   - Job runs in the **background** (avoids nginx 504). Wait 1–2 minutes, then check **Last synced** and SuperOps requesters.  
+   - Summary string (including SuperOps email align counts) is stored on `entra_sync.last_result.{id}` for Integration Health / ops — **not** shown as an on-page flash after Sync now.  
    - Prefer one dry-run first if using Artisan:  
      `php artisan portal:sync-entra-users --client={id} --dry-run --inline`  
      then without `--dry-run`.
@@ -60,6 +61,10 @@ Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pa
 | Piece | Path |
 |-------|------|
 | Upsert / email claim / merge | `EntraGroupSyncService` (`resolvePortalUserForGraphIdentity`, `claimPrimaryEmailForUser`) |
+| Graph user + aliases | `MicrosoftGraphClient::listTenantMemberUsers` → `emailAliases` / `normalizeGraphEmailAliases` |
+| SuperOps email align + bind | `SuperOpsUserSyncService::alignRequesterPrimaryEmails` |
+| Env gate | `config('services.entra_sync.superops_email_align')` ← `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN` |
+| Async job + last result cache | `SyncEntraClientJob` → `entra_sync.last_result.{clientId}` |
 | Deactivate by object id | `usersRemovedFromScope` |
 | Login object id + email refresh | `MicrosoftAuthController` |
 | Sync 2 overview | [AccessAndSync.md](AccessAndSync.md), [EntraGroupSync.md](EntraGroupSync.md) |
@@ -68,6 +73,7 @@ Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pa
 
 | Date | Note |
 |------|------|
+| 2026-08-11 | Docs: Sync now is **async** (no post-redirect summary flash); code map for align bind/aliases |
 | 2026-08-11 | SuperOps: **eager superops_user_id bind**, Graph **alias** match, unmatched counts on Sync summary |
 | 2026-08-11 | SuperOps **email align** via `updateClientUser` after Entra Sync (M365 primary) |
 | 2026-08-11 | Initial runbook + object-id-first portal identity |

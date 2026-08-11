@@ -49,7 +49,8 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 | **SuperOps SCIM enterprise app (Entra ID Free)** | When `entra_superops_app_id` is set, sync **assigns/removes** licensed active users **and shared mailboxes** via Graph (`AppRoleAssignment.ReadWrite.All`) |
 | **SuperOps Client SSO app (Entra ID Free)** | After checklist 08, when `entra_superops_sso_app_id` is set, sync assigns/removes **active licensed users** for requester login |
 | **SuperOps requester display names** | Sync writes full last name to `extensionAttribute1` (e.g. `Smith (User Mailbox)`) — SCIM **Direct** on `name.familyName` |
-| **SuperOps requesters** | Provisioned by SCIM from app assignment (direct users or group members) — portal does not call the SuperOps API |
+| **SuperOps requesters (create/deprovision)** | SCIM from app assignment (direct users or group members) |
+| **SuperOps requester primary email (domain change)** | After portal user upsert, **SuperOps API** `updateClientUser` aligns email to Graph primary; binds `users.superops_user_id` when matched — [DomainEmailChange.md](DomainEmailChange.md). Optional: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=false` to pause |
 
 Create the security group **empty** in Entra. Paste its Object ID as `entra_group_id`. Each sync run keeps group membership aligned with licensed users + shared mailboxes so SCIM provisions the right requesters.
 
@@ -198,6 +199,8 @@ Add or set on the server (then `php artisan config:clear`):
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
 ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1
+# Default true — set false only to pause SuperOps email API writes after domain change
+# ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=false
 
 MICROSOFT_CLIENT_ID=your-portal-app-client-id
 MICROSOFT_CLIENT_SECRET=your-portal-app-secret
@@ -205,7 +208,7 @@ MICROSOFT_CLIENT_SECRET=your-portal-app-secret
 
 Set `ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=0` to stop writing SuperOps SCIM names to `extensionAttribute1` (requesters fall back to plain M365 names).
 
-SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md) for requester naming.
+SuperOps **creates** requesters via **SCIM**. Portal also calls SuperOps GraphQL to **align requester primary email** on domain change (`ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN`, default true). See [SuperOpsEntraSync.md](SuperOpsEntraSync.md) for naming and [DomainEmailChange.md](DomainEmailChange.md) for email cutovers.
 
 ---
 
@@ -215,7 +218,7 @@ SuperOps requesters use **SCIM** — no separate portal env vars for SCIM. See [
 
 **Clients → Edit client → Dry run sync** → check counts → **Sync now**
 
-While sync runs, **Sync now** and **Dry run** return immediately and continue **in the background** (avoids nginx 504). Refresh the page in 1–2 minutes for **Last synced** / dry-run result.
+While sync runs, **Sync now** and **Dry run** return immediately and continue **in the background** (avoids nginx 504). Refresh the page in 1–2 minutes for **Last synced**. Full counts / SuperOps email-align summary land in `entra_sync.last_result.{client}` and activity log — not a long on-page flash.
 
 If a sync is stuck after a timeout: `php artisan portal:release-entra-sync-lock {client-id}`
 
@@ -311,6 +314,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run --inline
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | SuperOps API email align after Sync; object-id upsert; async result (not flash); `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN` |
 | 2026-07-14 | Added separate per-customer Client SSO Application ID and Entra Free direct requester-login assignment |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand + loading UI; banner text clarifies provision **requested** vs completed |
 | 2026-06-25 | Full SuperOps SCIM name in `extensionAttribute1`; Direct `name.familyName` mapping; `entra_superops_app_id`; shared mailboxes on app assign |

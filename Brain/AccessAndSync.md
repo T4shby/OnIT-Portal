@@ -82,7 +82,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Requester still shows plain name (e.g. `Phil Cooper`)? | Check Entra user **extensionAttribute1**, then **Provisioning logs** for **Update**. Run **Sync now** (one provision-on-demand per user) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
 | Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
-| User **primary email / domain** changes (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**. **SuperOps:** after each portal Entra Sync, SuperOps API **aligns requester email** to that M365 primary (same `userId` / local-part match). SCIM alone is not enough. [DomainEmailChange.md](DomainEmailChange.md) |
+| User **primary email / domain** changes (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**. **SuperOps:** after each Entra Sync job, API aligns requester email (match SuperOps id → primary → Graph aliases → unique local-part) and binds `superops_user_id`. SCIM alone is not enough. [DomainEmailChange.md](DomainEmailChange.md) |
 
 ---
 
@@ -129,6 +129,8 @@ Login matches **`entra_object_id` first** (stable), then email. On success it ma
 | Auto-maintain SCIM group via `GroupMember.ReadWrite.All` | ✅ |
 | `portal:sync-entra-users` | ✅ Tenant-wide |
 | SuperOps requester provisioning | ✅ SuperOps SCIM (Sync 1) |
+| SuperOps requester **primary email** align after Entra Sync | ✅ API (`ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN`) — [DomainEmailChange.md](DomainEmailChange.md) |
+| Portal identity by Entra object id + primary email update | ✅ |
 
 ---
 
@@ -137,6 +139,7 @@ Login matches **`entra_object_id` first** (stable), then email. On success it ma
 | Doc | Topic |
 |---|---|
 | [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) | **Complete re-do — permissions, group, SCIM, SAML, deploy** |
+| [DomainEmailChange.md](DomainEmailChange.md) | Domain / primary email cutover |
 | [SuperOpsEntraSync.md](SuperOpsEntraSync.md) | Sync 1 — SCIM per client |
 | [EntraGroupSync.md](EntraGroupSync.md) | Sync 2 — portal tenant sync |
 | [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) | In-app wizard |
@@ -147,6 +150,7 @@ Login matches **`entra_object_id` first** (stable), then email. On success it ma
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | SuperOps email align + Graph aliases + object-id portal upsert on domain change |
 | 2026-07-14 | MSP ownership explicit: every customer-tenant setup/consent action is completed by On IT through GDAP |
 | 2026-07-14 | Entra ID Free: Sync now auto-assigns all active licensed users to customer SuperOps Requester SSO SP after Accept |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand; sync UI spinner; docs aligned on name.familyName mapping |

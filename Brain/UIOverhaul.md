@@ -1,6 +1,6 @@
 # Client portal UI overhaul (`UIOverhaul` branch)
 
-**Status (2026-08-10):** In progress on branch **`UIOverhaul`**.  
+**Status (2026-08-11):** Live on production **via deploy of branch `UIOverhaul`** (not yet merged to `main`). Accept/sign-off still opens merge.  
 **Canonical mockup:** `Customer dashboard UI mockups.zip` → `Client Dashboard Mockups.dc.html`
 
 | Mockup ID | Portal page | Notes |

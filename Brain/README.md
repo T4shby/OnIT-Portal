@@ -45,7 +45,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
 | [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
-| [UIOverhaul.md](UIOverhaul.md) | **UI experiment branch `UIOverhaul` — mockup 1a/1c home + Reports (not production until merge)** |
+| [UIOverhaul.md](UIOverhaul.md) | **UI overhaul (`UIOverhaul` branch)** — glance + Reports live on prod via that branch; merge to main when signed off |
 | [UsecureIntegration.md](UsecureIntegration.md) | **usecure — design only for later** (not near-term; blocked on beta API keys) |
 
 ## Implementation Map
@@ -54,6 +54,7 @@ Read these documents before changing application code. **Update Brain for every 
 |---|---|
 | Entra login | `app/Http/Controllers/Auth/MicrosoftAuthController.php` |
 | Entra group sync | `app/Services/EntraSync/EntraGroupSyncService.php`, `portal:sync-entra-users` |
+| Domain / SuperOps email align | `SuperOpsUserSyncService::alignRequesterPrimaryEmails`, [DomainEmailChange.md](DomainEmailChange.md) |
 | Entra ID Free SuperOps app assign | `entra_superops_app_id` (Application client ID) + `Application.Read.All` + `AppRoleAssignment.ReadWrite.All` |
 | SuperOps requester display names | `EntraSyncDisplayName::formatSuperOpsFamilyName()` → `extensionAttribute1`; SCIM **name.familyName** Direct — [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
 | Client onboarding wizard | `ClientOnboardingService`, `OnboardingManual` (automated / remaining / recovery), `admin/clients` forms + wire/Apply SCIM |
@@ -82,6 +83,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | Docs pass: domain cutover (async Sync result, SuperOps align paths), UIOverhaul live-on-branch status, Roadmap — [DomainEmailChange.md](DomainEmailChange.md), [UIOverhaul.md](UIOverhaul.md), [Roadmap.md](Roadmap.md) |
 | 2026-08-11 | Glance/Reports: **Last month** locked + visible hint when MoM history not ready — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-11 | Integration Health: idle “due” window no longer reads as outage; prewarm card clarifies last-run queue counts; adaptive minutes in notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-11 | SuperOps identity: alias match + superops_user_id bind + unmatched Sync reporting — [DomainEmailChange.md](DomainEmailChange.md) |
