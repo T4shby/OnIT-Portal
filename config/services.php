@@ -121,6 +121,8 @@ return [
         // Hybrid/AD-synced users cannot receive Graph writes to extensionAttribute1.
         // When Graph fails, portal updates SuperOps requester first/last names via API.
         'superops_name_api_fallback' => filter_var(env('ENTRA_SYNC_SUPEROPS_NAME_API_FALLBACK', true), FILTER_VALIDATE_BOOLEAN),
+        // Align SuperOps requester primary emails to M365/portal after Entra sync (domain renames etc.)
+        'superops_email_align' => filter_var(env('ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN', true), FILTER_VALIDATE_BOOLEAN),
         'superops_provision_on_demand' => env('ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND', true),
         // Seconds to wait after writing extensionAttribute1 before SCIM provision-on-demand (Entra replication).
         'superops_provision_delay_after_names_seconds' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS', 3),

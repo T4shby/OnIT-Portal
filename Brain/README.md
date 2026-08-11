@@ -82,6 +82,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | M365 SOT: Entra Sync **aligns SuperOps requester emails** to portal/Graph primary + object-id portal upsert — [DomainEmailChange.md](DomainEmailChange.md) |
 | 2026-08-11 | Portal Entra identity: **object-id-first** upsert + primary email update + duplicate merge; domain cutover runbook — [DomainEmailChange.md](DomainEmailChange.md), [EntraGroupSync.md](EntraGroupSync.md) |
 | 2026-08-10 | Staff: **What the client sees at home** on Edit Client + Clients/admin copy so product-mix dashboards are not “forgotten” — [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-10 | Glance/Reports: no empty “Threats stopped” when MDR not sold; Huntress/Dropsuite labelled **Add-on** with support-still-helps copy — [UIOverhaul.md](UIOverhaul.md) |

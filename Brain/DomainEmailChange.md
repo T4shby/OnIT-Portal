@@ -8,11 +8,14 @@
 | System | Primary email changes |
 |--------|------------------------|
 | **Portal Entra sync** | Same person → **one** row; `users.email` **updated** to Graph `mail` (else UPN). Role **preserved**. |
+| **SuperOps requesters** | After the same Sync now, portal calls SuperOps `updateClientUser` to set requester **email = M365 primary** (match by `superops_user_id`, previous email, or unique local-part). Does **not** invent new requesters (SCIM still creates those). |
 | **Login** | Match by object id first; refresh email when free and primary differs. |
-| **Duplicates from the old bug** | Next sync **merges**: keeps object-id keeper (prefers elevated client role), retires shadow rows (`retired+…@portal.invalid`, inactive, object id cleared). |
-| **SuperOps** | Portal does **not** rename SuperOps requesters via API. SCIM may **Update** or **Create** depending on SuperOps matching. Always check Provisioning logs. |
+| **Duplicates from the old bug** | Next sync **merges** portal shadows; SuperOps email pass then points the live requester at `.com`. |
+| **SCIM still matters** | Names via `extensionAttribute1`, create/deprovision. Email renames can **lag or stick** in SCIM — API align is the enforcement after portal knows the truth. |
 
 **Never invent a second portal user** when Graph only reports a new primary for an existing object id.
+
+Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pause SuperOps email API writes.
 
 ## Ops checklist (every domain cutover)
 
@@ -26,23 +29,21 @@
 
 3. **Portal**  
    - Admin → Clients → **Edit** client → **Sync now** (or wait for hourly `portal:sync-entra-users`).  
+   - Sync must succeed for portal **and** SuperOps email align (result may include `SuperOps requester emails aligned to M365 N`).  
    - Prefer one dry-run first if using Artisan:  
      `php artisan portal:sync-entra-users --client={id} --dry-run --inline`  
      then without `--dry-run`.
 
 4. **Verify portal**  
-   - Admin → Users for that client: count should **not** roughly double.  
-   - Sample: same people on **new** domain; no active `old.domain` rows for those people.  
-   - `client_admin` still admin on the kept row.  
-   - Any `retired+…@portal.invalid` rows = merged shadows (inactive) — leave or hard-delete later offline.
+   - Admin → Users / M365 directory: **new** domain, not doubled.  
 
 5. **Verify SuperOps**  
-   - Requesters show **new** addresses (or understand vendor lag).  
-   - Entra enterprise app → **Provisioning logs**: prefer **Update**, investigate mass **Create**.  
-   - Spot-check tickets still attach to the right requester.
+   - Requesters → same people with **new** primary email (not leftover only-old domain).  
+   - Spot-check tickets still on the same SuperOps userId after email change.  
+   - If some stay on old domain: check they share unique local-part with portal, SuperOps API token works, and no second SuperOps row already holds the new email.
 
 6. **Spot-login**  
-   - One client admin signs in with work account (new primary). Portal session should open the **same** account / role.
+   - One client admin signs in with work account (new primary).
 
 ## If something is wrong
 
@@ -67,4 +68,5 @@
 
 | Date | Note |
 |------|------|
+| 2026-08-11 | SuperOps **email align** via `updateClientUser` after Entra Sync (M365 primary) |
 | 2026-08-11 | Initial runbook + object-id-first portal identity |

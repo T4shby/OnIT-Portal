@@ -17,6 +17,7 @@ class EntraSyncResult
         public readonly int $requesterSsoUsersRemoved = 0,
         public readonly int $superOpsNameHintsUpdated = 0,
         public readonly int $superOpsApiNamesUpdated = 0,
+        public readonly int $superOpsEmailsUpdated = 0,
         public readonly int $superOpsUsersProvisioned = 0,
         public readonly array $errors = [],
     ) {}
@@ -34,6 +35,7 @@ class EntraSyncResult
             + $this->requesterSsoUsersAssigned + $this->requesterSsoUsersRemoved
             + $this->superOpsNameHintsUpdated
             + $this->superOpsApiNamesUpdated
+            + $this->superOpsEmailsUpdated
             + $this->superOpsUsersProvisioned;
     }
 
@@ -82,6 +84,13 @@ class EntraSyncResult
             $parts .= sprintf(
                 '; SuperOps API names fixed %d (hybrid Graph fallback)',
                 $this->superOpsApiNamesUpdated,
+            );
+        }
+
+        if ($this->superOpsEmailsUpdated > 0) {
+            $parts .= sprintf(
+                '; SuperOps requester emails aligned to M365 %d',
+                $this->superOpsEmailsUpdated,
             );
         }
 

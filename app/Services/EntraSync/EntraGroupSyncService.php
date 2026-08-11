@@ -88,6 +88,7 @@ class EntraGroupSyncService
         $requesterSsoUsersRemoved = 0;
         $superOpsNameHintsUpdated = 0;
         $superOpsApiNamesUpdated = 0;
+        $superOpsEmailsUpdated = 0;
         /** @var array<string, array{firstName: string, lastName: string}> */
         $superOpsApiNameQueue = [];
         $errors = [];
@@ -305,6 +306,15 @@ class EntraGroupSyncService
             }
         }
 
+        // M365 is source of truth: after portal emails match Graph, push SuperOps requesters to the same primary.
+        if (! $dryRun && (bool) config('services.entra_sync.superops_email_align', true) && filled($client->superops_account_id)) {
+            try {
+                $superOpsEmailsUpdated = $this->superOpsUsers->alignRequesterPrimaryEmails($client, []);
+            } catch (Throwable $e) {
+                $errors[] = 'SuperOps requester email align failed: '.$e->getMessage();
+            }
+        }
+
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
             $scimProvisionUserIds = array_values(array_unique(array_merge(
                 $scimProvisionUserIds,
@@ -346,6 +356,7 @@ class EntraGroupSyncService
             requesterSsoUsersRemoved: $requesterSsoUsersRemoved,
             superOpsNameHintsUpdated: $superOpsNameHintsUpdated,
             superOpsApiNamesUpdated: $superOpsApiNamesUpdated,
+            superOpsEmailsUpdated: $superOpsEmailsUpdated,
             superOpsUsersProvisioned: $superOpsUsersProvisioned,
             errors: $errors,
         );

@@ -82,7 +82,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Requester still shows plain name (e.g. `Phil Cooper`)? | Check Entra user **extensionAttribute1**, then **Provisioning logs** for **Update**. Run **Sync now** (one provision-on-demand per user) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
 | Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
-| User **primary email / domain changes** (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**, no duplicate. [DomainEmailChange.md](DomainEmailChange.md). SuperOps: verify SCIM Update vs Create |
+| User **primary email / domain** changes (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**. **SuperOps:** after each portal Entra Sync, SuperOps API **aligns requester email** to that M365 primary (same `userId` / local-part match). SCIM alone is not enough. [DomainEmailChange.md](DomainEmailChange.md) |
 
 ---
 
