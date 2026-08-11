@@ -306,17 +306,20 @@
                         <div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#FF7000;margin-bottom:10px">Monthly service review</div>
                         <h1 style="margin:0;font-size:clamp(1.45rem,4vw,1.9rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
                     </div>
-                    <div class="rp-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
+                    <div class="rp-toggle">
                         <span style="font-weight:600;background:#011926;color:#fff">This month</span>
                         @if($monthReady)
-                            <span style="font-weight:500;color:#555">
+                            <span style="font-weight:500;color:#555" title="{{ $monthCompare['message'] ?? '' }}">
                                 Last month
                                 @if(! empty($monthCompare['as_of']))
                                     · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
                                 @endif
                             </span>
                         @else
-                            <span style="font-weight:500;color:#999;cursor:not-allowed">Last month</span>
+                            <span
+                                style="font-weight:500;color:#999;cursor:help"
+                                title="{{ $monthCompare['message'] ?? 'Your portal hasn\'t been set up for a full month yet.' }}"
+                            >Last month</span>
                         @endif
                     </div>
                 </div>

@@ -142,7 +142,7 @@
                     </p>
                 @endif
             </div>
-            <div class="glance-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
+            <div class="glance-toggle">
                 <span style="background:#FF7000;font-weight:600;color:#fff">This month</span>
                 @if($monthReady)
                     <span class="glance-muted" style="font-weight:500" title="{{ $monthCompare['message'] ?? '' }}">
@@ -152,7 +152,11 @@
                         @endif
                     </span>
                 @else
-                    <span class="glance-muted" style="font-weight:500;cursor:not-allowed">Last month</span>
+                    <span
+                        class="glance-muted"
+                        style="font-weight:500;cursor:help"
+                        title="{{ $monthCompare['message'] ?? 'Your portal hasn\'t been set up for a full month yet.' }}"
+                    >Last month</span>
                 @endif
             </div>
         </div>

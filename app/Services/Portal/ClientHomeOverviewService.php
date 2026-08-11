@@ -1239,7 +1239,7 @@ class ClientHomeOverviewService
         return [
             'available' => false,
             'status' => 'pipeline',
-            'message' => 'Last-month compare appears after the first full month of nightly snapshots.',
+            'message' => 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.',
         ];
     }
 }
