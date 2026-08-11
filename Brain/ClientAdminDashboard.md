@@ -160,19 +160,25 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 
 | Panel | What it shows |
 |-------|----------------|
-| Prewarm heartbeat | Last run age + **jobs queued that run** as SuperOps / other feeds (not severity “critical”); first-load count when cold optional queued; queue-busy skips warm other only |
+| Prewarm heartbeat | Last run age + **counts from that run only** (SuperOps / other feeds queued then). **Not** current queue depth — workers can be idle while this card still shows the last wave’s numbers |
 | Queue workers | pending / reserved / high / default / failed + worker-lag notice if jobs sit ≥90s with nothing reserved |
 | Why isn’t it resetting? | Auto notices (orphaned flags cleared, due SuperOps, aging, stuck, last failure text) |
 | Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
 | failed_jobs | Last failures with first error line |
-| Status **due** | Feed past **adaptive requeue** age but under soft window — waiting prewarm/workers (not silent OK) |
+| Status **due** | Feed past **adaptive requeue** age but under soft window — waiting next prewarm (idle hours this is expected) |
 | Status **cold** / **Never loaded** | No successful cache for a sold/mapped feed — warning headline + notice (not OK just because SuperOps is green) |
 
 Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
 
+**Idle looks “stuck” (not a failure):** With no customer sessions, cadence is **~60m**. Around requeue (~54m) every sold feed shows **Waiting to refresh** and the Action list can list many dues while **Workers = Idle** and **queue empty**. That means the last wave finished; the **next** prewarm (still on interval) will re-queue. Do **not** treat that as workers broken. Staff Entra **Sync now** is separate — it only updates portal users / SuperOps emails, not Product SuperOps/M365/Huntress caches.
+
+Notices and “Needs attention” use the **live** interval (not hardcoded 2.5m). When prewarm is still on time, due notice wording is normal-waiting, not “not started / broken”.
+
 **Severity order (headline):** scheduler dead → **truly stuck schedule locks** (expired mutexes, or long withoutOverlapping **while tick is late** — *not* healthy Laravel withoutOverlapping TTL while cron is fine) → prewarm late / worker lag → cold sold feeds → jobs pending (info) → OK.
 
 **False alarm fixed (2026-08-10):** Integration Health used lock *remaining TTL* as “held for”. Laravel `withoutOverlapping` often sets expiry ~24h ahead, so any active schedule mutex looked “stuck >5m” and drove a critical headline even while prewarm/tick were OK. Detection now only flags **expired** schedule locks, or long TTL **with a late minute tick**.
+
+**False alarm fixed (2026-08-11):** Prewarm card “jobs queued” + “Waiting for ~2.5m prewarm” while idle 60m + empty workers looked like a full outage. Copy fixed; pipeline can still headline OK during the due window.
 
 
 **Soft-client banner caveat:** SuperOps Organisation page soft wording still uses `SUPEROPS_DASHBOARD_*` config minutes for client-facing “as of …” thresholds; technicians should trust Integration Health for true adaptive requeue.

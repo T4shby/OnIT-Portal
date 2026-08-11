@@ -476,10 +476,22 @@ class IntegrationHealthService
         }
 
         if ($dueCount > 0) {
-            $requeue = $pipeline['superops_requeue_after_minutes']
+            $requeue = (float) ($pipeline['superops_requeue_after_minutes']
                 ?? ($pipeline['freshness']['requeue_minutes'] ?? null)
-                ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5);
-            $notices[] = "{$dueCount} data feed(s) due for refresh (past ~{$requeue}m requeue) but not started yet — SuperOps, M365, Huntress, Dropsuite.";
+                ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5));
+            $interval = (float) ($pipeline['prewarm']['interval_minutes']
+                ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5));
+            $prewarmAge = $pipeline['prewarm']['age_minutes'] ?? '?';
+            $requeueLabel = rtrim(rtrim(number_format($requeue, 1), '0'), '.');
+            $intervalLabel = rtrim(rtrim(number_format($interval, 1), '0'), '.');
+            if ($pipeline['prewarm']['ok'] ?? false) {
+                // Idle cadence intentionally leaves a short “due” window before the next prewarm.
+                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age — normal until next prewarm "
+                    ."(~every {$intervalLabel}m; last ran {$prewarmAge}m ago). Workers stay idle with an empty queue until then.";
+            } else {
+                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age and prewarm is late "
+                    ."(last ran {$prewarmAge}m ago; expect ~{$intervalLabel}m) — SuperOps, M365, Huntress, Dropsuite will age until prewarm runs.";
+            }
         }
 
         foreach ($rows as $row) {
@@ -1038,10 +1050,11 @@ class IntegrationHealthService
         }
 
         if ($status === 'due' || ($status === 'aging' && $dueForRequeue && ! $flagQueued && $job === null)) {
+            $intervalLabel = rtrim(rtrim(number_format((float) $requeueAfterMinutes / 0.9, 1), '0'), '.');
             if ($key === 'entra_sync') {
-                $lines[] = "{$label}: age {$ageRounded}m · waits on ~2.5m portal:sync-entra-users (separate from prewarm)";
+                $lines[] = "{$label}: age {$ageRounded}m · waits on adaptive portal:sync-entra-users (~{$intervalLabel}m cadence, separate from product prewarm)";
             } else {
-                $lines[] = "{$label}: age {$ageRounded}m · not queued · waiting for ~2.5m prewarm to start a job";
+                $lines[] = "{$label}: age {$ageRounded}m · not queued yet · next prewarm (~{$intervalLabel}m cadence) will start a job";
             }
             if ($status === 'aging') {
                 $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m — clients may see soft note";
