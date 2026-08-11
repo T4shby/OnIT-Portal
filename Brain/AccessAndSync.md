@@ -82,6 +82,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Requester still shows plain name (e.g. `Phil Cooper`)? | Check Entra user **extensionAttribute1**, then **Provisioning logs** for **Update**. Run **Sync now** (one provision-on-demand per user) — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
 | Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
+| User **primary email / domain changes** (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**, no duplicate. [DomainEmailChange.md](DomainEmailChange.md). SuperOps: verify SCIM Update vs Create |
 
 ---
 
@@ -105,6 +106,10 @@ User → app.onit.ltd → Microsoft OAuth
 Shared mailboxes sync to the portal for directory/SuperOps records but **cannot** sign in (`portal_login_enabled=false`).
 
 On login, `SuperOpsUserSyncService` may **link** `superops_user_id` by email if API token is set. It does not create requesters — SCIM does.
+
+Login matches **`entra_object_id` first** (stable), then email. On success it may refresh `users.email` to the current Microsoft primary when free.
+
+**Primary / domain email change:** portal rows are keyed by object id on sync — see [DomainEmailChange.md](DomainEmailChange.md).
 
 ---
 

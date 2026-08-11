@@ -39,9 +39,10 @@ The portal code uses `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` for Graph
 
 | Action | Behaviour |
 |---|---|
-| **Licensed** M365 user in tenant | Create or update portal user (`client_requester`, `portal_login_enabled=true`, plain M365 name). **Role is set only on create** — sync never downgrades `client_admin` or `client_billing_admin`. |
-| **Shared mailbox** in tenant | Create or update portal user (`portal_login_enabled=false`, plain M365 name) — `(Shared Mailbox)` suffix goes to `extensionAttribute1` for SuperOps only |
-| User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync |
+| **Licensed** M365 user in tenant | Create or **update by Entra object id** (else bind by email). Updates `email` when primary changes. Role only on create — never downgrades `client_admin` / billing. Plain M365 name. |
+| **Shared mailbox** in tenant | Same upsert; `portal_login_enabled=false` — `(Shared Mailbox)` suffix goes to `extensionAttribute1` for SuperOps only |
+| User **primary email / domain** changes | **Update** `users.email` in place (object id constant). Retires same-client Entra-sync **duplicate** rows from older email-only matching. [DomainEmailChange.md](DomainEmailChange.md) |
+| User **no longer licensed** (not a shared mailbox) | Deactivate portal user (`is_active=false`) if provisioned by sync — keyed by **object id** not email |
 | User **disabled** in Entra | Portal user set inactive |
 | **Manual** portal users | Not managed by sync (`provisioned_by = manual`) — skipped |
 | **SuperOps SCIM group** | When `entra_group_id` is set, sync **adds/removes** licensed users + shared mailboxes in that security group via Graph (`GroupMember.ReadWrite.All`) |
@@ -278,6 +279,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run --inline
 | `Microsoft Graph credentials are not configured` | `MICROSOFT_CLIENT_ID` / `SECRET` missing in `.env` |
 | Buttons missing on client edit | Branch not deployed; run `migrate`; save tenant + group + sync enabled |
 | Email belongs to another client | Duplicate email across clients; resolve manually |
+| Domain rename doubled users (old) | Pre–object-id matching bug; run **Sync now** to merge — [DomainEmailChange.md](DomainEmailChange.md) |
 | User not in portal after sync | Unlicensed (and not shared mailbox), no valid mail/UPN, or sync not enabled |
 | Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID (Object ID instead of client ID) | Add `Application.Read.All` in On IT tenant; re-consent customer; paste Application (client) ID |
 | `Permission being assigned was not found` | No app role or blank **Value** on SuperOps app | App registrations → SuperOps → App roles → User role with Value `User` → Sync now |

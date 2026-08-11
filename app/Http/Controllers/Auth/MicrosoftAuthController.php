@@ -101,14 +101,23 @@ class MicrosoftAuthController extends Controller
         }
 
         $email = strtolower($microsoftUser->getEmail() ?? '');
+        $objectId = $microsoftUser->getId();
 
         Log::info('Microsoft OAuth callback succeeded', [
             'email' => $email,
-            'object_id' => $microsoftUser->getId(),
+            'object_id' => $objectId,
         ]);
 
-        $user = User::where('entra_object_id', $microsoftUser->getId())->first()
-            ?? User::whereRaw('LOWER(email) = ?', [$email])->first();
+        // Entra object id is stable across primary-email / domain changes. Prefer that row.
+        $user = User::query()
+            ->where('entra_object_id', $objectId)
+            ->orderByDesc('is_active')
+            ->orderByDesc('entra_synced_at')
+            ->orderByDesc('id')
+            ->first()
+            ?? ($email !== ''
+                ? User::query()->whereRaw('LOWER(email) = ?', [$email])->first()
+                : null);
 
         if (! $user) {
             Log::warning('Microsoft OAuth user not provisioned in portal', ['email' => $email]);
@@ -134,8 +143,8 @@ class MicrosoftAuthController extends Controller
                 ->with('error', 'Your organisation is not active on the portal. Please contact your administrator.');
         }
 
-        $user->update([
-            'entra_object_id' => $microsoftUser->getId(),
+        $loginAttributes = [
+            'entra_object_id' => $objectId,
             'name' => $microsoftUser->getName() ?? $user->name,
             'last_login_at' => now(),
             'microsoft_tokens' => array_filter([
@@ -143,7 +152,20 @@ class MicrosoftAuthController extends Controller
                 'refresh_token' => $microsoftUser->refreshToken,
                 'expires_in' => $microsoftUser->expiresIn,
             ]),
-        ]);
+        ];
+
+        // Keep portal email aligned with Microsoft primary when free (sync also renames by object id).
+        if ($email !== '' && strtolower((string) $user->email) !== $email) {
+            $emailTaken = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->where('id', '!=', $user->id)
+                ->exists();
+            if (! $emailTaken) {
+                $loginAttributes['email'] = $email;
+            }
+        }
+
+        $user->update($loginAttributes);
 
         $user = $user->fresh();
         $this->superOpsSync->syncUser($user);

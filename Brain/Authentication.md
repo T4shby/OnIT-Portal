@@ -45,9 +45,9 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 4. Microsoft redirects to /auth/microsoft/callback with authorization code
 5. Application exchanges code for tokens via Socialite
 6. Application extracts: object ID, email, display name
-7. Application looks up user by entra_object_id, then by email
+7. Application looks up user by entra_object_id (prefer active, recent), then by email
 8. If user found AND is_active:
-   a. Update entra_object_id, name, last_login_at, encrypted microsoft_tokens
+   a. Update entra_object_id, name, last_login_at, encrypted microsoft_tokens; refresh **email** to Microsoft primary when free
    b. SuperOpsUserSyncService links requester by email (if API configured)
    c. SuperOpsSsoService establishes SSO session flag
    d. Create Laravel session (database-backed, remember-me cookie via `remember_token`)
@@ -61,10 +61,13 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 
 **No self-registration.** Users must be created by an administrator before they can log in.
 
-On first login:
-- Email from Entra ID is matched against `users.email`
-- `entra_object_id` is stored for subsequent logins
-- If email not found, access is denied
+Users are provisioned by **Entra sync** (preferred) or manually. Access is not self-serve.
+
+On login:
+- Prefer match on `entra_object_id` (stable across primary-email changes — [DomainEmailChange.md](DomainEmailChange.md))
+- Else match email from Entra against `users.email`
+- Refresh primary email on the matched row when unique
+- If neither matches, access is denied
 
 Bootstrap super admin:
 - Created via `UserSeeder` with a known email

@@ -173,13 +173,12 @@ class EntraGroupSyncService
                 }
             }
 
-            $existing = User::query()
-                ->whereRaw('LOWER(email) = ?', [$email])
-                ->first();
+            $objectId = (string) $graphUser['id'];
+            $existing = $this->resolvePortalUserForGraphIdentity($client, $objectId, $email);
 
-            if ($existing && $existing->client_id !== $client->id) {
+            if ($existing && $existing->client_id !== null && (int) $existing->client_id !== (int) $client->id) {
                 $skipped++;
-                $errors[] = "Email {$email} already belongs to another client (user #{$existing->id}).";
+                $errors[] = "Entra object {$objectId} / email {$email} already belongs to another client (user #{$existing->id}).";
 
                 continue;
             }
@@ -210,7 +209,7 @@ class EntraGroupSyncService
 
             $attributes = [
                 'name' => $name,
-                'entra_object_id' => $graphUser['id'],
+                'entra_object_id' => $objectId,
                 'entra_identity_type' => $identityType,
                 'is_active' => $shouldBeActive,
                 'portal_login_enabled' => $portalLoginEnabled,
@@ -219,9 +218,28 @@ class EntraGroupSyncService
             ];
 
             if ($existing) {
+                $emailClaimed = $this->claimPrimaryEmailForUser($existing, $client, $email, $objectId, $errors);
+                if (! $emailClaimed) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $attributes['email'] = $email;
                 $existing->update($attributes);
                 $updated++;
             } else {
+                $emailOwner = User::query()
+                    ->whereRaw('LOWER(email) = ?', [$email])
+                    ->first();
+
+                if ($emailOwner !== null) {
+                    $skipped++;
+                    $errors[] = "Email {$email} already belongs to user #{$emailOwner->id} and could not be claimed for a new portal row.";
+
+                    continue;
+                }
+
                 User::create(array_merge($attributes, [
                     'client_id' => $client->id,
                     'email' => $email,
@@ -741,6 +759,134 @@ class EntraGroupSyncService
     }
 
     /**
+     * Prefer Entra object id (stable across primary-email / domain changes). Fall back to email for first bind.
+     */
+    private function resolvePortalUserForGraphIdentity(Client $client, string $objectId, string $email): ?User
+    {
+        $byObjectId = User::query()
+            ->where('entra_object_id', $objectId)
+            ->orderByRaw('CASE WHEN client_id = ? THEN 0 ELSE 1 END', [$client->id])
+            ->orderBy('id')
+            ->first();
+
+        if ($byObjectId !== null) {
+            return $byObjectId;
+        }
+
+        return User::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
+    }
+
+    /**
+     * Move keeper onto the Graph primary email. Retires same-client Entra-sync shadows that hold the address
+     * or share the same object id (domain renames that previously doubled rows).
+     *
+     * @param  list<string>  $errors
+     */
+    private function claimPrimaryEmailForUser(
+        User $keeper,
+        Client $client,
+        string $newEmail,
+        string $objectId,
+        array &$errors,
+    ): bool {
+        $newEmail = strtolower($newEmail);
+
+        // Same-object-id duplicates from pre-fix domain renames.
+        $shadows = User::query()
+            ->where('entra_object_id', $objectId)
+            ->where('id', '!=', $keeper->id)
+            ->get();
+
+        foreach ($shadows as $shadow) {
+            if ((int) $shadow->client_id !== (int) $client->id) {
+                $errors[] = "Entra object {$objectId} is also on user #{$shadow->id} (other client) — resolve manually.";
+
+                return false;
+            }
+            if ($shadow->provisioned_by === UserProvisionSource::Manual) {
+                $errors[] = "Manual user #{$shadow->id} shares Entra object {$objectId} with #{$keeper->id} — resolve manually.";
+
+                return false;
+            }
+            $this->retireShadowEntraUser($shadow, $keeper);
+        }
+
+        if (strtolower((string) $keeper->email) === $newEmail) {
+            return true;
+        }
+
+        $emailOwner = User::query()
+            ->whereRaw('LOWER(email) = ?', [$newEmail])
+            ->where('id', '!=', $keeper->id)
+            ->first();
+
+        if ($emailOwner === null) {
+            return true;
+        }
+
+        if ((int) $emailOwner->client_id !== (int) $client->id) {
+            $errors[] = "Email {$newEmail} already belongs to another client (user #{$emailOwner->id}).";
+
+            return false;
+        }
+
+        if ($emailOwner->provisioned_by === UserProvisionSource::Manual) {
+            $errors[] = "Email {$newEmail} belongs to manual user #{$emailOwner->id} — resolve manually.";
+
+            return false;
+        }
+
+        if (in_array($emailOwner->role, [UserRole::SuperAdmin, UserRole::AccountManager], true)) {
+            $errors[] = "Email {$newEmail} belongs to staff user #{$emailOwner->id}.";
+
+            return false;
+        }
+
+        $this->retireShadowEntraUser($emailOwner, $keeper);
+
+        return true;
+    }
+
+    /**
+     * Free unique email + object id for the keeper; prefer elevated client role from either row.
+     */
+    private function retireShadowEntraUser(User $shadow, User $keeper): void
+    {
+        if ($this->clientRolePriority($shadow->role) > $this->clientRolePriority($keeper->role)) {
+            $keeper->role = $shadow->role;
+            $keeper->save();
+        }
+
+        if (blank($keeper->superops_user_id) && filled($shadow->superops_user_id)) {
+            $keeper->superops_user_id = $shadow->superops_user_id;
+            $keeper->save();
+        }
+
+        $retiredEmail = sprintf('retired+%d.%s@portal.invalid', $shadow->id, str_replace('.', '', uniqid('', true)));
+
+        $shadow->update([
+            'email' => $retiredEmail,
+            'entra_object_id' => null,
+            'is_active' => false,
+            'portal_login_enabled' => false,
+            'entra_synced_at' => now(),
+        ]);
+    }
+
+    private function clientRolePriority(UserRole $role): int
+    {
+        return match ($role) {
+            UserRole::ClientAdmin => 40,
+            UserRole::ClientBillingAdmin => 30,
+            UserRole::ClientUser => 20,
+            UserRole::ClientRequester => 10,
+            default => 0,
+        };
+    }
+
+    /**
      * @return array{0: bool, 1: bool} [is_active, portal_login_enabled]
      */
     private function resolveAccountFlags(EntraIdentityType $identityType, bool $accountEnabled): array
@@ -753,6 +899,9 @@ class EntraGroupSyncService
     }
 
     /**
+     * Deactivate Entra-synced users no longer in tenant scope.
+     * Object id is authoritative — email change alone must not deactivate.
+     *
      * @param  list<string>  $activeObjectIds
      * @param  list<string>  $activeEmails
      * @return Collection<int, User>
@@ -765,8 +914,11 @@ class EntraGroupSyncService
             ->where('is_active', true)
             ->get()
             ->filter(function (User $user) use ($activeObjectIds, $activeEmails) {
-                return ! in_array($user->entra_object_id, $activeObjectIds, true)
-                    && ! in_array(strtolower($user->email), $activeEmails, true);
+                if (filled($user->entra_object_id)) {
+                    return ! in_array($user->entra_object_id, $activeObjectIds, true);
+                }
+
+                return ! in_array(strtolower($user->email), $activeEmails, true);
             });
     }
 

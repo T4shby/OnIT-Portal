@@ -722,6 +722,147 @@ class EntraGroupSyncServiceTest extends TestCase
         );
     }
 
+    public function test_sync_updates_primary_email_for_same_entra_object_id(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $objectId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'jane@mxvi.net',
+            'name' => 'Jane Smith',
+            'role' => UserRole::ClientAdmin,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => $objectId,
+            'is_active' => true,
+            'portal_login_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            $objectId => [
+                'mail' => 'jane@mxvi.com',
+                'userPrincipalName' => 'jane@mxvi.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->created);
+        $this->assertGreaterThanOrEqual(1, $result->updated);
+        $this->assertSame(1, User::query()->where('client_id', $client->id)->where('is_active', true)->count());
+        $user->refresh();
+        $this->assertSame('jane@mxvi.com', $user->email);
+        $this->assertSame(UserRole::ClientAdmin, $user->role);
+        $this->assertSame($objectId, $user->entra_object_id);
+        $this->assertDatabaseMissing('users', ['email' => 'jane@mxvi.net']);
+    }
+
+    public function test_sync_merges_domain_rename_duplicate_rows(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $objectId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $keeper = User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'jane@mxvi.net',
+            'name' => 'Jane Smith',
+            'role' => UserRole::ClientAdmin,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => $objectId,
+            'is_active' => true,
+            'portal_login_enabled' => true,
+        ]);
+
+        $duplicate = User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'jane@mxvi.com',
+            'name' => 'Jane Smith',
+            'role' => UserRole::ClientRequester,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => $objectId,
+            'is_active' => true,
+            'portal_login_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            $objectId => [
+                'mail' => 'jane@mxvi.com',
+                'userPrincipalName' => 'jane@mxvi.com',
+                'displayName' => 'Jane Smith',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->created);
+        $keeper->refresh();
+        $duplicate->refresh();
+        $this->assertSame('jane@mxvi.com', $keeper->email);
+        $this->assertSame(UserRole::ClientAdmin, $keeper->role);
+        $this->assertTrue($keeper->is_active);
+        $this->assertFalse($duplicate->is_active);
+        $this->assertNull($duplicate->entra_object_id);
+        $this->assertStringStartsWith('retired+', $duplicate->email);
+        $this->assertSame(1, User::query()->where('client_id', $client->id)->where('is_active', true)->count());
+    }
+
+    public function test_sync_does_not_deactivate_when_only_email_changed(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $objectId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'old@example.net',
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => $objectId,
+            'is_active' => true,
+            'portal_login_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [
+            $objectId => [
+                'mail' => 'new@example.com',
+                'userPrincipalName' => 'new@example.com',
+                'displayName' => 'Person',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->deactivated);
+        $this->assertDatabaseHas('users', [
+            'email' => 'new@example.com',
+            'entra_object_id' => $objectId,
+            'is_active' => true,
+        ]);
+    }
+
     /**
      * @param  array<string, array<string, mixed>>  $usersById
      * @param  list<string>  $initialGroupMembers
