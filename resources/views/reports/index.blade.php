@@ -309,7 +309,12 @@
                     <div class="rp-toggle" title="{{ $monthCompare['message'] ?? 'History not set up' }}">
                         <span style="font-weight:600;background:#011926;color:#fff">This month</span>
                         @if($monthReady)
-                            <span style="font-weight:500;color:#555">Last month@if(! empty($monthCompare['as_of'])) · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}@endif</span>
+                            <span style="font-weight:500;color:#555">
+                                Last month
+                                @if(! empty($monthCompare['as_of']))
+                                    · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
+                                @endif
+                            </span>
                         @else
                             <span style="font-weight:500;color:#999;cursor:not-allowed">Last month</span>
                         @endif

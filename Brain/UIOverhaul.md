@@ -110,6 +110,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-08-11 | **Reports 500:** Blade rejected nested `month@if` (open tag not compiled); last-month optional date uses separate `@if` lines. |
 | 2026-08-10 | **Staff composition panel:** Edit Client shows support-led vs MDR home from sold products; Clients list + Admin coverage copy. |
 | 2026-08-10 | **Not-sold reframed:** Huntress/Dropsuite “Add-on” + support-still-helps copy; value strip omits empty Threats stopped when MDR not sold. |
 | 2026-08-10 | **Customer gap close:** waiting-on-client; Huntress threats/responses MTD; activity feed; nightly metric snapshots + last-month deltas; Graph Secure Score/MFA (soft-fail). Still open: avg first response, patch posture, restore retention days. |
