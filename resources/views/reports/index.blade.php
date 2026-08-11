@@ -263,6 +263,48 @@
             display: inline-flex;
             align-items: center;
         }
+        .rp-period {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            max-width: 18rem;
+            flex: 0 1 auto;
+        }
+        .rp-period-hint {
+            margin: 0;
+            max-width: 16.5rem;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #FDBA74;
+            background: #FFF7ED;
+            color: #9A3412;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.45;
+            text-align: left;
+        }
+        .rp-period-locked {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            min-height: 40px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #9CA3AF;
+            background: #F3F4F6;
+            border-left: 1px solid #E5E7EB;
+            user-select: none;
+        }
+        .rp-period-locked svg { flex: none; opacity: .8; }
+        @media (max-width: 640px) {
+            .rp-period { align-items: stretch; max-width: none; width: 100%; }
+            .rp-period-hint { max-width: none; }
+            .rp-toggle { width: 100%; }
+            .rp-toggle > span:first-child { flex: 1; justify-content: center; }
+            .rp-period-locked { flex: 1; justify-content: center; }
+        }
     </style>
 
     <div class="rp">
@@ -306,21 +348,33 @@
                         <div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#FF7000;margin-bottom:10px">Monthly service review</div>
                         <h1 style="margin:0;font-size:clamp(1.45rem,4vw,1.9rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
                     </div>
-                    <div class="rp-toggle">
-                        <span style="font-weight:600;background:#011926;color:#fff">This month</span>
-                        @if($monthReady)
-                            <span style="font-weight:500;color:#555" title="{{ $monthCompare['message'] ?? '' }}">
-                                Last month
-                                @if(! empty($monthCompare['as_of']))
-                                    · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
-                                @endif
-                            </span>
-                        @else
-                            <span
-                                style="font-weight:500;color:#999;cursor:help"
-                                title="{{ $monthCompare['message'] ?? 'Your portal hasn\'t been set up for a full month yet.' }}"
-                            >Last month</span>
-                        @endif
+                    @php
+                        $monthWaitMsg = $monthCompare['message']
+                            ?? 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.';
+                    @endphp
+                    <div class="rp-period" role="group" aria-label="Report period">
+                        <div class="rp-toggle">
+                            <span style="font-weight:600;background:#011926;color:#fff">This month</span>
+                            @if($monthReady)
+                                <span style="font-weight:500;color:#555">
+                                    Last month
+                                    @if(! empty($monthCompare['as_of']))
+                                        · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
+                                    @endif
+                                </span>
+                            @else
+                                <span class="rp-period-locked" aria-disabled="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    Last month
+                                </span>
+                            @endif
+                        </div>
+                        @unless($monthReady)
+                            <p class="rp-period-hint" role="note">{{ $monthWaitMsg }}</p>
+                        @endunless
                     </div>
                 </div>
 

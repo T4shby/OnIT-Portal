@@ -56,7 +56,7 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** — never empty “—” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
-| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **Last month** stays muted; hover: “Your portal hasn’t been set up for a full month yet…” (not SuperOps-historical) |
+| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until prior-month row exists: **Last month** shows locked (padlock) + **always-visible** orange/amber hint under the toggle — not browser `title` tooltip |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | — | **Not shipped** — SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
 | **Device patch / need updates** | — | **Not shipped** — SuperOps asset payload has no patch posture fields yet |
@@ -110,7 +110,8 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
-| 2026-08-11 | **Last month hover:** client-facing tooltip when history not ready (not “nightly snapshots” jargon). |
+| 2026-08-11 | **Last month locked UX:** padlock segment + always-visible hint under toggle (glance + Reports); no finicky hover tooltip. |
+| 2026-08-11 | **Last month hover (superseded):** client-facing title tooltip — replaced by always-visible hint. |
 | 2026-08-11 | **Reports 500:** Blade rejected nested `month@if` (open tag not compiled); last-month optional date uses separate `@if` lines. |
 | 2026-08-10 | **Staff composition panel:** Edit Client shows support-led vs MDR home from sold products; Clients list + Admin coverage copy. |
 | 2026-08-10 | **Not-sold reframed:** Huntress/Dropsuite “Add-on” + support-still-helps copy; value strip omits empty Threats stopped when MDR not sold. |

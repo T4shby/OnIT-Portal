@@ -82,7 +82,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-11 | Glance/Reports: friendly **Last month** hover when MoM history not ready yet — [UIOverhaul.md](UIOverhaul.md) |
+| 2026-08-11 | Glance/Reports: **Last month** locked + visible hint when MoM history not ready — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-11 | Integration Health: idle “due” window no longer reads as outage; prewarm card clarifies last-run queue counts; adaptive minutes in notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-11 | SuperOps identity: alias match + superops_user_id bind + unmatched Sync reporting — [DomainEmailChange.md](DomainEmailChange.md) |
 | 2026-08-11 | M365 SOT: Entra Sync **aligns SuperOps requester emails** to portal/Graph primary + object-id portal upsert — [DomainEmailChange.md](DomainEmailChange.md) |

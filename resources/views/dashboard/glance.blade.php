@@ -121,10 +121,61 @@
     .glance-divider { height: 1px; background: #1F2933; }
     .glance-link { font-size: 12px; font-weight: 600; color: #FF7000; text-decoration: none; }
     .glance-link:hover { color: #ff8a33; }
-    .glance-toggle { display: inline-flex; background: #0a2537; border: 1px solid #1F2933; border-radius: 4px; overflow: hidden; }
-    .glance-toggle span { padding: 8px 16px; font-size: 12px; }
+    .glance-toggle {
+        display: inline-flex;
+        background: #0a2537;
+        border: 1px solid #1F2933;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .glance-toggle span { padding: 10px 18px; font-size: 12px; line-height: 1.2; }
+    .glance-period {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        max-width: 18rem;
+        flex: 0 1 auto;
+    }
+    .glance-period-hint {
+        margin: 0;
+        max-width: 16.5rem;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,112,0,.35);
+        background: rgba(255,112,0,.1);
+        color: rgba(255,255,255,.88);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+        text-align: left;
+    }
+    .glance-period-locked {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255,255,255,.42);
+        background: rgba(0,0,0,.18);
+        border-left: 1px solid #1F2933;
+        user-select: none;
+    }
+    .glance-period-locked svg { flex: none; opacity: .75; }
+    @media (max-width: 640px) {
+        .glance-period { align-items: stretch; max-width: none; width: 100%; }
+        .glance-period-hint { max-width: none; }
+        .glance-toggle { width: 100%; }
+        .glance-toggle > span:first-child { flex: 1; text-align: center; justify-content: center; }
+        .glance-period-locked { flex: 1; justify-content: center; }
+    }
 </style>
 <div class="glance" style="padding-bottom:1rem">
+@php
+    $monthWaitMsg = $monthCompare['message']
+        ?? 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.';
+@endphp
 
     <div style="border-bottom:1px solid #1F2933;padding-bottom:2rem">
         <div style="display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:space-between;align-items:flex-start">
@@ -142,22 +193,29 @@
                     </p>
                 @endif
             </div>
-            <div class="glance-toggle">
-                <span style="background:#FF7000;font-weight:600;color:#fff">This month</span>
-                @if($monthReady)
-                    <span class="glance-muted" style="font-weight:500" title="{{ $monthCompare['message'] ?? '' }}">
-                        Last month
-                        @if(! empty($monthCompare['as_of']))
-                            <span style="opacity:.75">({{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }})</span>
-                        @endif
-                    </span>
-                @else
-                    <span
-                        class="glance-muted"
-                        style="font-weight:500;cursor:help"
-                        title="{{ $monthCompare['message'] ?? 'Your portal hasn\'t been set up for a full month yet.' }}"
-                    >Last month</span>
-                @endif
+            <div class="glance-period" role="group" aria-label="Report period">
+                <div class="glance-toggle">
+                    <span style="background:#FF7000;font-weight:600;color:#fff;display:inline-flex;align-items:center">This month</span>
+                    @if($monthReady)
+                        <span class="glance-muted" style="font-weight:500;display:inline-flex;align-items:center">
+                            Last month
+                            @if(! empty($monthCompare['as_of']))
+                                <span style="opacity:.75;margin-left:.35em">({{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }})</span>
+                            @endif
+                        </span>
+                    @else
+                        <span class="glance-period-locked" aria-disabled="true">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            Last month
+                        </span>
+                    @endif
+                </div>
+                @unless($monthReady)
+                    <p class="glance-period-hint" role="note">{{ $monthWaitMsg }}</p>
+                @endunless
             </div>
         </div>
 
