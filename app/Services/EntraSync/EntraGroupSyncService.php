@@ -89,8 +89,12 @@ class EntraGroupSyncService
         $superOpsNameHintsUpdated = 0;
         $superOpsApiNamesUpdated = 0;
         $superOpsEmailsUpdated = 0;
+        $superOpsIdsBound = 0;
+        $superOpsEmailsUnmatched = 0;
         /** @var array<string, array{firstName: string, lastName: string}> */
         $superOpsApiNameQueue = [];
+        /** @var array<string, list<string>> entra object id => aliases */
+        $graphAliasesByObjectId = [];
         $errors = [];
         $activeObjectIds = [];
         $activeEmails = [];
@@ -109,10 +113,19 @@ class EntraGroupSyncService
                 continue;
             }
 
+            $objectId = (string) $graphUser['id'];
+            $graphAliasesByObjectId[$objectId] = array_values(array_unique(array_filter(
+                array_map(
+                    static fn ($a): string => strtolower(trim((string) $a)),
+                    is_array($graphUser['emailAliases'] ?? null) ? $graphUser['emailAliases'] : [],
+                ),
+                static fn (string $a): bool => $a !== '' && filter_var($a, FILTER_VALIDATE_EMAIL),
+            )));
+
             $identityType = $graphUser['identityType'];
-            $activeObjectIds[] = $graphUser['id'];
+            $activeObjectIds[] = $objectId;
             $activeEmails[] = $email;
-            $desiredGroupMemberIds[] = $graphUser['id'];
+            $desiredGroupMemberIds[] = $objectId;
 
             if ($this->shouldAssignToSuperOpsApp($identityType, $graphUser['accountEnabled'])) {
                 $desiredSuperOpsAppUserIds[] = $graphUser['id'];
@@ -306,10 +319,44 @@ class EntraGroupSyncService
             }
         }
 
-        // M365 is source of truth: after portal emails match Graph, push SuperOps requesters to the same primary.
+        // M365 is source of truth: bind SuperOps userIds + push primary emails (aliases help renames).
         if (! $dryRun && (bool) config('services.entra_sync.superops_email_align', true) && filled($client->superops_account_id)) {
             try {
-                $superOpsEmailsUpdated = $this->superOpsUsers->alignRequesterPrimaryEmails($client, []);
+                $renames = User::query()
+                    ->where('client_id', $client->id)
+                    ->where('is_active', true)
+                    ->where('provisioned_by', UserProvisionSource::EntraSync)
+                    ->whereNotNull('email')
+                    ->get()
+                    ->map(function (User $u) use ($graphAliasesByObjectId): array {
+                        $oid = (string) ($u->entra_object_id ?? '');
+                        $aliases = $graphAliasesByObjectId[$oid] ?? [];
+
+                        return [
+                            'to' => strtolower((string) $u->email),
+                            'from' => null,
+                            'aliases' => $aliases,
+                            'superops_user_id' => filled($u->superops_user_id) ? (string) $u->superops_user_id : null,
+                            'portal_user_id' => (int) $u->id,
+                            'label' => trim($u->name.' <'.$u->email.'>'),
+                        ];
+                    })
+                    ->filter(static fn (array $r): bool => $r['to'] !== '')
+                    ->values()
+                    ->all();
+
+                $align = $this->superOpsUsers->alignRequesterPrimaryEmails($client, $renames);
+                $superOpsEmailsUpdated = (int) ($align['updated'] ?? 0);
+                $superOpsIdsBound = (int) ($align['bound'] ?? 0);
+                $unmatchedList = is_array($align['unmatched'] ?? null) ? $align['unmatched'] : [];
+                $superOpsEmailsUnmatched = count($unmatchedList);
+
+                if ($unmatchedList !== []) {
+                    $preview = array_slice($unmatchedList, 0, 5);
+                    $errors[] = 'SuperOps unmatched (manual link or SCIM create needed): '
+                        .implode('; ', $preview)
+                        .(count($unmatchedList) > 5 ? ' (+'.(count($unmatchedList) - 5).' more)' : '');
+                }
             } catch (Throwable $e) {
                 $errors[] = 'SuperOps requester email align failed: '.$e->getMessage();
             }
@@ -357,6 +404,8 @@ class EntraGroupSyncService
             superOpsNameHintsUpdated: $superOpsNameHintsUpdated,
             superOpsApiNamesUpdated: $superOpsApiNamesUpdated,
             superOpsEmailsUpdated: $superOpsEmailsUpdated,
+            superOpsIdsBound: $superOpsIdsBound,
+            superOpsEmailsUnmatched: $superOpsEmailsUnmatched,
             superOpsUsersProvisioned: $superOpsUsersProvisioned,
             errors: $errors,
         );

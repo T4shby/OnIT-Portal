@@ -8,7 +8,7 @@
 | System | Primary email changes |
 |--------|------------------------|
 | **Portal Entra sync** | Same person → **one** row; `users.email` **updated** to Graph `mail` (else UPN). Role **preserved**. |
-| **SuperOps requesters** | After the same Sync now, portal calls SuperOps `updateClientUser` to set requester **email = M365 primary** (match by `superops_user_id`, previous email, or unique local-part). Does **not** invent new requesters (SCIM still creates those). |
+| **SuperOps requesters** | After the same Sync now: (1) bind `portal.superops_user_id` when matched; (2) SuperOps `updateClientUser` email = M365 primary. Match: SuperOps id → primary → **Graph aliases** (`proxyAddresses` / `otherMails`) → unique local-part. Unmatched listed on Sync flash (`N unmatched`). |
 | **Login** | Match by object id first; refresh email when free and primary differs. |
 | **Duplicates from the old bug** | Next sync **merges** portal shadows; SuperOps email pass then points the live requester at `.com`. |
 | **SCIM still matters** | Names via `extensionAttribute1`, create/deprovision. Email renames can **lag or stick** in SCIM — API align is the enforcement after portal knows the truth. |
@@ -68,5 +68,6 @@ Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pa
 
 | Date | Note |
 |------|------|
+| 2026-08-11 | SuperOps: **eager superops_user_id bind**, Graph **alias** match, unmatched counts on Sync summary |
 | 2026-08-11 | SuperOps **email align** via `updateClientUser` after Entra Sync (M365 primary) |
 | 2026-08-11 | Initial runbook + object-id-first portal identity |

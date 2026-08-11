@@ -18,6 +18,8 @@ class EntraSyncResult
         public readonly int $superOpsNameHintsUpdated = 0,
         public readonly int $superOpsApiNamesUpdated = 0,
         public readonly int $superOpsEmailsUpdated = 0,
+        public readonly int $superOpsIdsBound = 0,
+        public readonly int $superOpsEmailsUnmatched = 0,
         public readonly int $superOpsUsersProvisioned = 0,
         public readonly array $errors = [],
     ) {}
@@ -36,6 +38,7 @@ class EntraSyncResult
             + $this->superOpsNameHintsUpdated
             + $this->superOpsApiNamesUpdated
             + $this->superOpsEmailsUpdated
+            + $this->superOpsIdsBound
             + $this->superOpsUsersProvisioned;
     }
 
@@ -87,11 +90,15 @@ class EntraSyncResult
             );
         }
 
-        if ($this->superOpsEmailsUpdated > 0) {
+        if ($this->superOpsEmailsUpdated > 0 || $this->superOpsIdsBound > 0 || $this->superOpsEmailsUnmatched > 0) {
             $parts .= sprintf(
-                '; SuperOps requester emails aligned to M365 %d',
+                '; SuperOps email align: %d updated, %d SuperOps ids bound',
                 $this->superOpsEmailsUpdated,
+                $this->superOpsIdsBound,
             );
+            if ($this->superOpsEmailsUnmatched > 0) {
+                $parts .= sprintf(', %d unmatched', $this->superOpsEmailsUnmatched);
+            }
         }
 
         if ($this->superOpsUsersProvisioned > 0) {

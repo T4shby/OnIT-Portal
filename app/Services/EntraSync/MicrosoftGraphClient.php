@@ -172,7 +172,7 @@ class MicrosoftGraphClient
         $url = 'https://graph.microsoft.com/v1.0/users';
         $query = [
             '$filter' => "userType eq 'Member'",
-            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled,assignedLicenses,onPremisesExtensionAttributes',
+            '$select' => 'id,mail,userPrincipalName,displayName,givenName,surname,accountEnabled,assignedLicenses,onPremisesExtensionAttributes,proxyAddresses,otherMails',
             '$top' => 999,
         ];
 
@@ -210,6 +210,7 @@ class MicrosoftGraphClient
                         is_array($user['assignedLicenses'] ?? null) ? $user['assignedLicenses'] : [],
                     ))),
                     'superOpsNameHint' => filled($currentHint) ? (string) $currentHint : null,
+                    'emailAliases' => $this->normalizeGraphEmailAliases($user),
                 ];
             }
 
@@ -217,6 +218,46 @@ class MicrosoftGraphClient
         }
 
         return $users;
+    }
+
+    /**
+     * Primary + aliases for SuperOps email matching after domain/local renames.
+     *
+     * @param  array<string, mixed>  $user Graph user payload
+     * @return list<string> lower-cased emails (unique)
+     */
+    public function normalizeGraphEmailAliases(array $user): array
+    {
+        $found = [];
+
+        foreach (['mail', 'userPrincipalName'] as $key) {
+            $value = $user[$key] ?? null;
+            if (is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                $found[strtolower($value)] = true;
+            }
+        }
+
+        foreach ($user['otherMails'] ?? [] as $other) {
+            if (is_string($other) && filter_var($other, FILTER_VALIDATE_EMAIL)) {
+                $found[strtolower($other)] = true;
+            }
+        }
+
+        foreach ($user['proxyAddresses'] ?? [] as $proxy) {
+            if (! is_string($proxy) || $proxy === '') {
+                continue;
+            }
+            $lower = strtolower($proxy);
+            // SMTP:user@domain / smtp:user@domain
+            if (str_starts_with($lower, 'smtp:')) {
+                $email = substr($lower, 5);
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $found[$email] = true;
+                }
+            }
+        }
+
+        return array_keys($found);
     }
 
     /**

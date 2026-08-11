@@ -157,23 +157,26 @@ class SuperOpsUserSyncService
     }
 
     /**
-     * Push M365-primary emails onto SuperOps requesters so SuperOps matches portal/Entra.
-     * Finds the SuperOps user by: superops_user_id, previous SuperOps/portal email, or unique local-part.
+     * Push M365-primary emails onto SuperOps requesters + bind portal.superops_user_id whenever matched.
+     * Match: SuperOps userId → primary/aliases (Graph proxyAddresses) → unique local-part.
      * Does not create requesters (SCIM does that).
      *
      * @param  list<array{
      *   to: string,
      *   from?: ?string,
+     *   aliases?: list<string>,
      *   superops_user_id?: ?string,
-     *   portal_user_id?: ?int
-     * }>  $renames  empty → align all active Entra-synced portal users on this client
-     * @return int number of successful SuperOps email updates
+     *   portal_user_id?: ?int,
+     *   label?: ?string
+     * }>  $renames  empty → active Entra-synced portal users for this client
+     * @return array{updated: int, bound: int, unmatched: list<string>}
      */
-    public function alignRequesterPrimaryEmails(Client $client, array $renames = []): int
+    public function alignRequesterPrimaryEmails(Client $client, array $renames = []): array
     {
+        $empty = ['updated' => 0, 'bound' => 0, 'unmatched' => []];
         $accountId = trim((string) $client->superops_account_id);
         if ($accountId === '' || ! $this->api->isConfigured()) {
-            return 0;
+            return $empty;
         }
 
         if ($renames === []) {
@@ -186,8 +189,10 @@ class SuperOpsUserSyncService
                 ->map(static fn (User $u): array => [
                     'to' => strtolower((string) $u->email),
                     'from' => null,
+                    'aliases' => [],
                     'superops_user_id' => filled($u->superops_user_id) ? (string) $u->superops_user_id : null,
                     'portal_user_id' => (int) $u->id,
+                    'label' => trim($u->name.' <'.$u->email.'>'),
                 ])
                 ->filter(static fn (array $r): bool => $r['to'] !== '')
                 ->values()
@@ -195,12 +200,19 @@ class SuperOpsUserSyncService
         }
 
         if ($renames === []) {
-            return 0;
+            return $empty;
         }
 
         $requesters = $this->listClientRequesterEmails($accountId);
         if ($requesters === []) {
-            return 0;
+            return [
+                'updated' => 0,
+                'bound' => 0,
+                'unmatched' => array_values(array_filter(array_map(
+                    static fn (array $r): string => (string) ($r['label'] ?? $r['to'] ?? ''),
+                    $renames,
+                ))),
+            ];
         }
 
         $byUserId = [];
@@ -218,6 +230,8 @@ class SuperOpsUserSyncService
         }
 
         $updated = 0;
+        $bound = 0;
+        $unmatched = [];
         $claimedTargets = [];
 
         foreach ($renames as $rename) {
@@ -226,45 +240,48 @@ class SuperOpsUserSyncService
                 continue;
             }
 
+            $label = trim((string) ($rename['label'] ?? $to));
             $from = isset($rename['from']) ? strtolower(trim((string) $rename['from'])) : null;
+            $aliases = [];
+            foreach ($rename['aliases'] ?? [] as $alias) {
+                $alias = strtolower(trim((string) $alias));
+                if ($alias !== '' && filter_var($alias, FILTER_VALIDATE_EMAIL)) {
+                    $aliases[$alias] = true;
+                }
+            }
+            if ($from !== null && $from !== '') {
+                $aliases[$from] = true;
+            }
+            $aliases = array_keys($aliases);
+
             $linkedId = filled($rename['superops_user_id'] ?? null)
                 ? (string) $rename['superops_user_id']
                 : null;
 
-            $userId = null;
-
-            if ($linkedId !== null && isset($byUserId[$linkedId])) {
-                $userId = $linkedId;
-            } elseif ($from !== null && $from !== '' && isset($byEmail[$from])) {
-                $userId = $byEmail[$from];
-            } elseif (isset($byEmail[$to])) {
-                // Already correct in SuperOps.
-                $userId = $byEmail[$to];
-                if ($byUserId[$userId] === $to) {
-                    $this->maybeBindPortalSuperOpsId($rename, $userId);
-
-                    continue;
-                }
-            } else {
-                $local = (string) str($to)->before('@');
-                $candidates = $byLocal[$local] ?? [];
-                if (count($candidates) === 1) {
-                    $userId = $candidates[0];
-                }
-            }
+            $userId = $this->resolveSuperOpsUserIdForRename(
+                $byUserId,
+                $byEmail,
+                $byLocal,
+                $to,
+                $aliases,
+                $linkedId,
+            );
 
             if ($userId === null || $userId === '') {
+                $unmatched[] = $label;
+
                 continue;
+            }
+
+            if ($this->maybeBindPortalSuperOpsId($rename, $userId)) {
+                $bound++;
             }
 
             $current = $byUserId[$userId] ?? null;
             if ($current === $to) {
-                $this->maybeBindPortalSuperOpsId($rename, $userId);
-
                 continue;
             }
 
-            // Another SuperOps row already owns the target email — do not steal.
             if (isset($byEmail[$to]) && $byEmail[$to] !== $userId) {
                 Log::warning('SuperOps email align skipped: target email already on another requester', [
                     'client_id' => $client->id,
@@ -272,6 +289,7 @@ class SuperOpsUserSyncService
                     'from_user_id' => $userId,
                     'holder_user_id' => $byEmail[$to],
                 ]);
+                $unmatched[] = $label.' (new email already on another SuperOps requester)';
 
                 continue;
             }
@@ -302,16 +320,14 @@ class SuperOpsUserSyncService
                 }
                 $byEmail[$to] = $userId;
                 $byUserId[$userId] = $to;
-
-                $this->maybeBindPortalSuperOpsId($rename, $userId);
             } catch (\Throwable $e) {
                 Log::warning('SuperOps requester email align failed', [
                     'client_id' => $client->id,
                     'user_id' => $userId,
                     'to' => $to,
-                    'from' => $from,
                     'error' => $e->getMessage(),
                 ]);
+                $unmatched[] = $label.' (API error)';
             }
         }
 
@@ -319,20 +335,70 @@ class SuperOpsUserSyncService
             Cache::forget('superops.requester_count.'.$client->id);
         }
 
-        return $updated;
+        return [
+            'updated' => $updated,
+            'bound' => $bound,
+            'unmatched' => $unmatched,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $byUserId
+     * @param  array<string, string>  $byEmail
+     * @param  array<string, list<string>>  $byLocal
+     * @param  list<string>  $aliases
+     */
+    private function resolveSuperOpsUserIdForRename(
+        array $byUserId,
+        array $byEmail,
+        array $byLocal,
+        string $to,
+        array $aliases,
+        ?string $linkedId,
+    ): ?string {
+        if ($linkedId !== null && isset($byUserId[$linkedId])) {
+            return $linkedId;
+        }
+
+        if (isset($byEmail[$to])) {
+            return $byEmail[$to];
+        }
+
+        foreach ($aliases as $alias) {
+            if (isset($byEmail[$alias])) {
+                return $byEmail[$alias];
+            }
+        }
+
+        $localCandidates = [];
+        foreach (array_merge([$to], $aliases) as $email) {
+            $local = (string) str($email)->before('@');
+            if ($local === '') {
+                continue;
+            }
+            foreach ($byLocal[$local] ?? [] as $uid) {
+                $localCandidates[$uid] = true;
+            }
+        }
+
+        if (count($localCandidates) === 1) {
+            return array_key_first($localCandidates);
+        }
+
+        return null;
     }
 
     /**
      * @param  array{portal_user_id?: ?int}  $rename
      */
-    private function maybeBindPortalSuperOpsId(array $rename, string $superOpsUserId): void
+    private function maybeBindPortalSuperOpsId(array $rename, string $superOpsUserId): bool
     {
         $portalUserId = isset($rename['portal_user_id']) ? (int) $rename['portal_user_id'] : 0;
         if ($portalUserId <= 0) {
-            return;
+            return false;
         }
 
-        User::query()
+        $affected = User::query()
             ->whereKey($portalUserId)
             ->where(function ($q) use ($superOpsUserId) {
                 $q->whereNull('superops_user_id')
@@ -342,6 +408,8 @@ class SuperOpsUserSyncService
                 'superops_user_id' => $superOpsUserId,
                 'superops_synced_at' => now(),
             ]);
+
+        return $affected > 0;
     }
 
     /**
