@@ -574,6 +574,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |
 | 2026-08-13 | Integration Health **SuperOps SCIM** column — Entra export health (Sync 1) beside Devices & tickets; failed counts in KPI + notices |
 | 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |
 | 2026-08-10 | Prewarm card UI: “SuperOps N, other feeds M” (not “critical N”) — counts are last-run queue totals |
