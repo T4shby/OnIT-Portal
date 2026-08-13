@@ -314,7 +314,7 @@ If repair says credentials are missing, use **Admin → Clients → Edit → App
 
 | Date | Change |
 |------|--------|
-| 2026-08-13 | **Retry SCIM export** on Edit Client + auto-retry after partial Apply SCIM; job create prefers `scim` template and discards bad cache ids |
+| 2026-08-13 | **Retry SCIM export** on Edit Client (no secret re-paste) + auto-retry after partial Apply SCIM — `portal:repair-superops-scim` |
 | 2026-08-07 | Checklist step 07 Done only with name mappings + Sync queued; SuperOps bulk vs Entra scope Do not ignore warning |
 | 2026-08-04 | Scrub real customer names from examples (use `{Company}` / `Smith` placeholders); SuperOps names update after background Sync + SCIM (minutes) |
 | 2026-07-17 | SCIM provision-on-demand kept; only changed name hints + newly assigned users; runs via queue job so hourly sync no longer hangs |

@@ -2566,7 +2566,13 @@ class MicrosoftGraphClient
 
     private function isUsableScimJobId(string $jobId): bool
     {
-        return str_starts_with(strtolower(trim($jobId)), 'scim.');
+        $jobId = strtolower(trim($jobId));
+
+        // Healthy jobs look like scim.{hash}.{uuid} — two-segment ids are phantom Graph responses.
+        return (bool) preg_match(
+            '/^scim\.[0-9a-f]{8,}\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $jobId,
+        );
     }
 
     /**
