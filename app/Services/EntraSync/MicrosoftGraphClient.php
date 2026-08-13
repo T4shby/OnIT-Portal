@@ -1709,6 +1709,197 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Read Entra SCIM provisioning health for a customer's SuperOps enterprise app.
+     *
+     * @return array{
+     *     ok: bool,
+     *     servicePrincipalId: string,
+     *     jobId: string,
+     *     jobCount: int,
+     *     jobState: string,
+     *     hasProvisioningJob: bool,
+     *     hasScimSecrets: bool,
+     *     needsApplyScim: bool,
+     *     needsRepair: bool,
+     *     scimBaseAddress: string,
+     *     details: list<string>,
+     *     warnings: list<string>,
+     *     error: string|null
+     * }
+     */
+    public function getSuperOpsScimProvisioningHealth(string $tenantId, string $entraSuperopsAppId): array
+    {
+        $tenantId = strtolower(trim($tenantId));
+        $entraSuperopsAppId = trim($entraSuperopsAppId);
+        $details = [];
+        $warnings = [];
+
+        if ($tenantId === '' || $entraSuperopsAppId === '') {
+            return $this->scimHealthResult(
+                ok: false,
+                servicePrincipalId: '',
+                jobId: '',
+                jobCount: 0,
+                jobState: '',
+                hasProvisioningJob: false,
+                hasScimSecrets: false,
+                needsApplyScim: true,
+                needsRepair: false,
+                scimBaseAddress: '',
+                details: $details,
+                warnings: $warnings,
+                error: 'Entra tenant ID and SuperOps SCIM Application (client) ID are required.',
+            );
+        }
+
+        try {
+            $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $entraSuperopsAppId);
+        } catch (Throwable $e) {
+            return $this->scimHealthResult(
+                ok: false,
+                servicePrincipalId: '',
+                jobId: '',
+                jobCount: 0,
+                jobState: '',
+                hasProvisioningJob: false,
+                hasScimSecrets: false,
+                needsApplyScim: false,
+                needsRepair: false,
+                scimBaseAddress: '',
+                details: $details,
+                warnings: $warnings,
+                error: $e->getMessage(),
+            );
+        }
+
+        $jobs = $this->fetchScimSynchronizationJobs($tenantId, $servicePrincipalId);
+        $jobCount = count($jobs);
+        $jobId = $this->pickSynchronizationJobId($jobs);
+        $jobState = $this->extractSynchronizationJobState($jobs, $jobId);
+
+        $secrets = $this->readScimSynchronizationSecrets($tenantId, $servicePrincipalId);
+        $scimBaseAddress = trim((string) ($secrets['BaseAddress'] ?? ''));
+        $hasScimSecrets = $scimBaseAddress !== '';
+        $hasProvisioningJob = $jobId !== '';
+
+        if ($jobCount === 0) {
+            $warnings[] = 'No SCIM provisioning job in Entra — Sync 1 (SuperOps export) is stopped even if portal Sync 2 still assigns users to the app.';
+        } elseif ($jobCount > 1) {
+            $warnings[] = 'Multiple SCIM provisioning jobs found — portal reuses one; avoid creating extra jobs in the Entra UI.';
+        }
+
+        if (! $hasScimSecrets) {
+            $warnings[] = 'SuperOps SCIM Tenant URL is not stored in Entra — Apply SCIM with Tenant URL + Secret Token from SuperOps step 05.';
+        }
+
+        $needsApplyScim = ! $hasScimSecrets;
+        $needsRepair = ! $hasProvisioningJob
+            || in_array($jobState, ['quarantine', 'notstarted'], true);
+        $ok = $hasProvisioningJob && $hasScimSecrets && ! $needsRepair;
+
+        if ($hasProvisioningJob) {
+            $details[] = 'Provisioning job: '.$jobId.($jobState !== '' ? ' ('.$jobState.')' : '');
+        }
+
+        if ($hasScimSecrets) {
+            $details[] = 'SCIM BaseAddress configured in Entra';
+        }
+
+        return $this->scimHealthResult(
+            ok: $ok,
+            servicePrincipalId: $servicePrincipalId,
+            jobId: $jobId,
+            jobCount: $jobCount,
+            jobState: $jobState,
+            hasProvisioningJob: $hasProvisioningJob,
+            hasScimSecrets: $hasScimSecrets,
+            needsApplyScim: $needsApplyScim,
+            needsRepair: $needsRepair,
+            scimBaseAddress: $scimBaseAddress,
+            details: $details,
+            warnings: $warnings,
+            error: null,
+        );
+    }
+
+    /**
+     * Recreate/start the Entra SCIM provisioning job when credentials already exist in Entra.
+     * Does not require re-pasting the SuperOps secret unless BaseAddress is missing.
+     *
+     * @return array{
+     *     jobId: string,
+     *     servicePrincipalId: string,
+     *     started: bool,
+     *     nameMappingsConfigured: bool,
+     *     details: list<string>,
+     *     warnings: list<string>
+     * }
+     */
+    public function repairSuperOpsScimProvisioning(string $tenantId, string $entraSuperopsAppId): array
+    {
+        if (function_exists('set_time_limit')) {
+            set_time_limit(180);
+        }
+
+        $tenantId = strtolower(trim($tenantId));
+        $entraSuperopsAppId = trim($entraSuperopsAppId);
+        $details = [];
+        $warnings = [];
+
+        $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $entraSuperopsAppId);
+        $details[] = 'Service principal resolved';
+
+        $secrets = $this->readScimSynchronizationSecrets($tenantId, $servicePrincipalId);
+        if (trim((string) ($secrets['BaseAddress'] ?? '')) === '') {
+            throw new RuntimeException(
+                'SuperOps SCIM Tenant URL is not stored in Entra. '
+                .'Use Admin → Clients → Edit → Apply SCIM with Tenant URL + Secret Token from SuperOps step 05.'
+            );
+        }
+
+        $details[] = 'Existing SCIM BaseAddress found in Entra';
+
+        $jobId = $this->ensureScimSynchronizationJob($tenantId, $servicePrincipalId);
+        $details[] = 'Provisioning job: '.$jobId;
+
+        $nameMappingsConfigured = false;
+        try {
+            $waited = $this->waitUntilScimSchemaReady($tenantId, $servicePrincipalId, $jobId);
+            if ($waited['probes'] > 1) {
+                $details[] = 'Waited for SCIM schema ('.$waited['probes'].' probes)';
+            }
+            $jobId = $waited['jobId'];
+
+            $mappingResult = $this->ensureSuperOpsScimNameAttributeMappings($tenantId, $servicePrincipalId, $jobId);
+            $nameMappingsConfigured = $mappingResult['configured'];
+            $details = array_merge($details, $mappingResult['details']);
+        } catch (Throwable $e) {
+            Log::warning('SCIM repair: name mappings not applied', [
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+            $warnings[] = 'Name attribute mapping not auto-applied: '.$e->getMessage()
+                .' — re-run repair after schema is ready, or set name.familyName Direct ← extensionAttribute1 in Entra.';
+        }
+
+        $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
+        $details[] = $started
+            ? 'Start provisioning requested'
+            : 'Job exists — Start provisioning may already be running (check Entra Provisioning logs)';
+
+        $this->clearSuperOpsScimProvisioningContextCache($tenantId, $servicePrincipalId);
+
+        return [
+            'jobId' => $jobId,
+            'servicePrincipalId' => $servicePrincipalId,
+            'started' => $started,
+            'nameMappingsConfigured' => $nameMappingsConfigured,
+            'details' => $details,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
      * Ensure a SCIM provisioning job exists, write SuperOps Tenant URL + secret into Entra,
      * set SuperOps name mappings (familyName ← extensionAttribute1), then start the job.
      * Secret is never stored in our database.
@@ -2350,6 +2541,133 @@ class MicrosoftGraphClient
 
         // Non-gallery SCIM apps commonly use this built-in template id when the list is empty.
         return 'customappsso';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function readScimSynchronizationSecrets(string $tenantId, string $servicePrincipalId): array
+    {
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/secrets",
+        );
+
+        if ($response->failed()) {
+            return [];
+        }
+
+        $values = $response->json('value') ?? [];
+        if (! is_array($values)) {
+            return [];
+        }
+
+        $secrets = [];
+        foreach ($values as $item) {
+            if (! is_array($item) || ! isset($item['key'])) {
+                continue;
+            }
+            $secrets[(string) $item['key']] = trim((string) ($item['value'] ?? ''));
+        }
+
+        return $secrets;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchScimSynchronizationJobs(string $tenantId, string $servicePrincipalId): array
+    {
+        foreach (['v1.0', 'beta'] as $version) {
+            $jobsResponse = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/{$version}/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
+            );
+
+            if ($jobsResponse->failed()) {
+                continue;
+            }
+
+            $jobs = $jobsResponse->json('value') ?? [];
+
+            if (is_array($jobs) && $jobs !== []) {
+                return $jobs;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $jobs
+     */
+    private function extractSynchronizationJobState(array $jobs, string $jobId): string
+    {
+        foreach ($jobs as $job) {
+            if ((string) ($job['id'] ?? '') !== $jobId) {
+                continue;
+            }
+
+            return strtolower((string) (
+                $job['status']['code']
+                ?? $job['status']['state']
+                ?? $job['schedule']['state']
+                ?? ''
+            ));
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  list<string>  $details
+     * @param  list<string>  $warnings
+     * @return array{
+     *     ok: bool,
+     *     servicePrincipalId: string,
+     *     jobId: string,
+     *     jobCount: int,
+     *     jobState: string,
+     *     hasProvisioningJob: bool,
+     *     hasScimSecrets: bool,
+     *     needsApplyScim: bool,
+     *     needsRepair: bool,
+     *     scimBaseAddress: string,
+     *     details: list<string>,
+     *     warnings: list<string>,
+     *     error: string|null
+     * }
+     */
+    private function scimHealthResult(
+        bool $ok,
+        string $servicePrincipalId,
+        string $jobId,
+        int $jobCount,
+        string $jobState,
+        bool $hasProvisioningJob,
+        bool $hasScimSecrets,
+        bool $needsApplyScim,
+        bool $needsRepair,
+        string $scimBaseAddress,
+        array $details,
+        array $warnings,
+        ?string $error,
+    ): array {
+        return [
+            'ok' => $ok,
+            'servicePrincipalId' => $servicePrincipalId,
+            'jobId' => $jobId,
+            'jobCount' => $jobCount,
+            'jobState' => $jobState,
+            'hasProvisioningJob' => $hasProvisioningJob,
+            'hasScimSecrets' => $hasScimSecrets,
+            'needsApplyScim' => $needsApplyScim,
+            'needsRepair' => $needsRepair,
+            'scimBaseAddress' => $scimBaseAddress,
+            'details' => $details,
+            'warnings' => $warnings,
+            'error' => $error,
+        ];
     }
 
     private function putScimSynchronizationSecrets(

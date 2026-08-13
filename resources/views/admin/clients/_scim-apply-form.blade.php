@@ -10,10 +10,41 @@
     $scimLastResult = $ready
         ? \Illuminate\Support\Facades\Cache::get(\App\Jobs\ApplySuperOpsScimJob::LAST_RESULT_KEY_PREFIX.$client->id)
         : null;
+    $scimHealth = ($scimProvisioningHealth ?? null) ?? ($ready
+        ? \Illuminate\Support\Facades\Cache::get('scim.health.'.$client->id)
+        : null);
 @endphp
 
 @if($ready)
     <div @class(['mt-6 border-t border-white/10 pt-6' => ! $inStep])>
+        @if(is_array($scimHealth) && (($scimHealth['needsRepair'] ?? false) || ($scimHealth['needsApplyScim'] ?? false)))
+            <div class="mb-4 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-100">
+                <p class="portal-label mb-1 text-red-200/90">SuperOps SCIM export stopped (Sync 1)</p>
+                @if($scimHealth['error'] ?? null)
+                    <p>{{ $scimHealth['error'] }}</p>
+                @elseif($scimHealth['needsApplyScim'] ?? false)
+                    <p>
+                        Entra has no SuperOps SCIM Tenant URL stored. Portal Sync 2 can still update M365 and the portal,
+                        but new requesters will not reach SuperOps until you <strong class="text-white/90">Apply SCIM</strong>
+                        below with Tenant URL + Secret Token from SuperOps step 05.
+                    </p>
+                @else
+                    <p>
+                        Microsoft Graph reports <strong class="text-white/90">no active SCIM provisioning job</strong> on this app.
+                        Portal group/app assignment can look fine while SuperOps export is off.
+                        Run <strong class="text-white/90">php artisan portal:repair-superops-scim --client={{ $client->id }} --provision-missing --sync</strong>
+                        on the server, or re-Apply SCIM if repair says credentials are missing.
+                    </p>
+                @endif
+                @if(! empty($scimHealth['warnings']) && is_array($scimHealth['warnings']))
+                    <ul class="mt-2 list-disc space-y-1 pl-5 text-red-100/90">
+                        @foreach($scimHealth['warnings'] as $warning)
+                            <li>{{ $warning }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        @endif
         <div class="mb-4 border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm leading-relaxed text-white/80">
             <p class="portal-label mb-2 text-emerald-300/90">Already automatic</p>
             <p>

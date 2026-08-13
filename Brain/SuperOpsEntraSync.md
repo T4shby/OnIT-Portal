@@ -282,12 +282,39 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 | “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 
+### SCIM job missing — portal Sync looks fine but SuperOps has gaps
+
+**Symptom:** User is in M365, portal **Users**, and (on P1) the SCIM security group, but **not** in SuperOps requesters. Portal **Sync now** succeeds; last result may show many **SuperOps unmatched**. Graph `GET …/synchronization/jobs` returns **`value: []`**.
+
+**Why this is not “SCIM changed in the portal”:** Sync **2** (portal Entra sync) and Sync **1** (Entra → SuperOps SCIM export) are separate. Portal can keep assigning users to the enterprise app and updating the portal DB while the **Entra provisioning job** is off, deleted, or never started. Nothing in portal code disables SCIM — common causes are provisioning toggled **Off** in Entra, a failed connection test, token rotation without re-Apply, or an incomplete first setup.
+
+**Repair (preferred — server SSH):**
+
+```bash
+php artisan portal:repair-superops-scim --client={id} --check
+php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
+```
+
+- **`--check`** — reports job count, BaseAddress in Entra, warnings only.
+- **Repair without re-paste** — works when Entra still has the SuperOps **Tenant URL** (BaseAddress); recreates the job, reapplies name mappings, starts provisioning.
+- **`--provision-missing`** — provision-on-demand for portal users whose email is not in SuperOps yet (e.g. Emma after job was dead).
+- **`--sync`** — queues portal Entra sync after repair.
+
+If repair says credentials are missing, use **Admin → Clients → Edit → Apply SCIM** with SuperOps step **05** Tenant URL + Secret Token.
+
+**Staff UI:** Edit Client SCIM panel shows a red banner when Graph reports no provisioning job or missing BaseAddress (cached ~5 minutes).
+
+**After repair:** Entra → Enterprise apps → SuperOps - {Company} → **Provisioning logs** — expect **Create** for missing users within 1–2 minutes. Then **Sync now** again to bind `superops_user_id`.
+
+**Same email twice in SuperOps UI:** Often one requester on **two Sites** (e.g. Main + Engineers), not two SCIM rows. Confirm with SuperOps API / portal align (one `userId` per email). Remove wrong **site** membership in SuperOps if incorrect — not a portal dedupe issue.
+
 ---
 
 ## Change log
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | SCIM job health + `portal:repair-superops-scim`; Edit Client red banner; Sync 2 provisions users missing from SuperOps when job exists |
 | 2026-08-07 | Checklist step 07 Done only with name mappings + Sync queued; SuperOps bulk vs Entra scope Do not ignore warning |
 | 2026-08-04 | Scrub real customer names from examples (use `{Company}` / `Smith` placeholders); SuperOps names update after background Sync + SCIM (minutes) |
 | 2026-07-17 | SCIM provision-on-demand kept; only changed name hints + newly assigned users; runs via queue job so hourly sync no longer hangs |

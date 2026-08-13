@@ -15,6 +15,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
+use App\Services\EntraSync\MicrosoftGraphClient;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
@@ -102,7 +103,29 @@ class ClientController extends Controller
             'fieldHelps' => $this->onboarding->fieldHelps($client),
             // What this customer’s /dashboard + Reports look like from sold products (no live numbers).
             'clientHomeComposition' => $this->homeOverview->staffHomeComposition($client),
+            'scimProvisioningHealth' => $this->scimProvisioningHealth($client),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function scimProvisioningHealth(Client $client): ?array
+    {
+        if (! $client->exists
+            || blank($client->entra_tenant_id)
+            || blank($client->entra_superops_app_id)) {
+            return null;
+        }
+
+        $cacheKey = 'scim.health.'.$client->id;
+
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($client): array {
+            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
+                (string) $client->entra_tenant_id,
+                (string) $client->entra_superops_app_id,
+            );
+        });
     }
 
     public function store(StoreClientRequest $request): RedirectResponse

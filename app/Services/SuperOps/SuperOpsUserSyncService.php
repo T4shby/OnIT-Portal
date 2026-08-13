@@ -13,6 +13,22 @@ class SuperOpsUserSyncService
     public function __construct(private SuperOpsApiClient $api) {}
 
     /**
+     * @return list<string> Lowercase requester emails for this SuperOps client account.
+     */
+    public function listRequesterEmails(Client $client): array
+    {
+        $accountId = trim((string) $client->superops_account_id);
+        if ($accountId === '' || ! $this->api->isConfigured()) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(
+            static fn (array $row): string => $row['email'],
+            $this->listClientRequesterEmails($accountId),
+        )));
+    }
+
+    /**
      * Approximate SuperOps requester count for this SuperOps client (cached briefly).
      * Used by onboarding to flag when SuperOps bulk already exists outside Entra scope.
      */

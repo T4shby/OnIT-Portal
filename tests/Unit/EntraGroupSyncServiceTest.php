@@ -618,6 +618,15 @@ class EntraGroupSyncServiceTest extends TestCase
             'entra_sync_enabled' => true,
         ]);
 
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'jane@acme.com',
+            'entra_object_id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            'superops_user_id' => '5271997225196683264',
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'is_active' => true,
+        ]);
+
         $janeHint = EntraSyncDisplayName::formatSuperOpsFamilyName(
             null,
             null,
@@ -648,6 +657,62 @@ class EntraGroupSyncServiceTest extends TestCase
         $this->assertSame(0, $result->superOpsNameHintsUpdated);
         $this->assertSame(0, $result->superOpsUsersProvisioned);
         $this->assertSame(0, $result->superOpsAppUsersAssigned);
+    }
+
+    public function test_sync_triggers_scim_provision_for_users_missing_superops_link(): void
+    {
+        config([
+            'services.entra_sync.superops_provision_delay_after_names_seconds' => 0,
+            'services.entra_sync.superops_provision_interval_us' => 0,
+        ]);
+
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $servicePrincipalId = '33333333-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_superops_app_id' => $servicePrincipalId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'jane@acme.com',
+            'entra_object_id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            'superops_user_id' => null,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'is_active' => true,
+        ]);
+
+        $janeHint = EntraSyncDisplayName::formatSuperOpsFamilyName(
+            null,
+            null,
+            'Jane Smith',
+            EntraIdentityType::User,
+            'jane@acme.com',
+        );
+
+        $this->fakeTenantSyncGraph(
+            $tenantId,
+            [
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                    'mail' => 'jane@acme.com',
+                    'userPrincipalName' => 'jane@acme.com',
+                    'displayName' => 'Jane Smith',
+                    'accountEnabled' => true,
+                    'licensed' => true,
+                    'mailboxPurpose' => 'user',
+                    'superOpsNameHint' => $janeHint,
+                ],
+            ],
+            servicePrincipalId: $servicePrincipalId,
+            initialAppAssignedUsers: ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'],
+        );
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->superOpsNameHintsUpdated);
+        $this->assertSame(1, $result->superOpsUsersProvisioned);
     }
 
     public function test_revert_entra_display_names_strips_mistaken_suffixes(): void

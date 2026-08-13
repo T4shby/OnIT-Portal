@@ -363,9 +363,20 @@ class EntraGroupSyncService
         }
 
         if (! $dryRun && $this->shouldTriggerSuperOpsScimProvision($client)) {
+            $missingSuperOpsObjectIds = User::query()
+                ->where('client_id', $client->id)
+                ->where('is_active', true)
+                ->where('provisioned_by', UserProvisionSource::EntraSync)
+                ->whereNotNull('entra_object_id')
+                ->whereNull('superops_user_id')
+                ->pluck('entra_object_id')
+                ->map(static fn ($id): string => (string) $id)
+                ->all();
+
             $scimProvisionUserIds = array_values(array_unique(array_merge(
                 $scimProvisionUserIds,
                 $newlyAssignedScimUserIds,
+                $missingSuperOpsObjectIds,
             )));
 
             if ($scimProvisionUserIds !== []) {
