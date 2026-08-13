@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\Client;
+use App\Services\EntraSync\MicrosoftGraphClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,7 @@ class IntegrationHealthService
      */
     public const FEED_COLUMNS = [
         'superops' => 'Devices & tickets',
+        'superops_scim' => 'SuperOps SCIM',
         'm365_directory' => 'M365 people',
         'm365_insights' => 'M365 licences',
         'entra_sync' => 'Entra sync',
@@ -496,8 +498,11 @@ class IntegrationHealthService
 
         foreach ($rows as $row) {
             foreach ($row['integrations'] as $cell) {
-                if (($cell['status'] ?? '') === 'failed' && filled($cell['error'] ?? null)) {
-                    $notices[] = "{$row['client_name']}: {$cell['friendly_label']} failed — {$cell['error']}";
+                if (($cell['status'] ?? '') === 'failed') {
+                    $msg = filled($cell['error'] ?? null)
+                        ? $cell['error']
+                        : ($cell['blockers'][0] ?? $cell['what_it_is_doing'] ?? 'Check configuration');
+                    $notices[] = "{$row['client_name']}: {$cell['friendly_label']} — {$msg}";
                 }
                 if (($cell['status'] ?? '') === 'cold') {
                     $notices[] = "{$row['client_name']}: {$cell['label']} never loaded — no successful cache yet.";
@@ -517,14 +522,25 @@ class IntegrationHealthService
      */
     public function clientRow(Client $client, int &$clearedOrphans = 0): array
     {
+        $products = app(\App\Services\Portal\ClientProductService::class);
+
         $integrations = [
             $this->superOps($client, $clearedOrphans),
+        ];
+
+        if ($products->isEntitled($client, 'superops')
+            && $client->entra_sync_enabled
+            && filled($client->entra_tenant_id)) {
+            $integrations[] = $this->superOpsScimExport($client);
+        }
+
+        $integrations = array_merge($integrations, [
             $this->m365Directory($client, $clearedOrphans),
             $this->m365Insights($client, $clearedOrphans),
             $this->entraSync($client, $clearedOrphans),
             $this->huntress($client, $clearedOrphans),
             $this->dropsuite($client, $clearedOrphans),
-        ];
+        ]);
 
         $active = collect($integrations)->first(
             fn (array $row): bool => in_array($row['status'] ?? '', ['running', 'queued', 'stuck'], true),
@@ -537,6 +553,7 @@ class IntegrationHealthService
         $agingCount = collect($integrations)->where('status', 'aging')->count();
         $dueCount = collect($integrations)->where('status', 'due')->count();
         $coldCount = collect($integrations)->where('status', 'cold')->count();
+        $failedCount = collect($integrations)->where('status', 'failed')->count();
 
         $worstAgeMinutes = collect($integrations)
             ->pluck('age_minutes')
@@ -559,6 +576,7 @@ class IntegrationHealthService
             'aging_count' => $agingCount,
             'due_count' => $dueCount,
             'cold_count' => $coldCount,
+            'failed_count' => $failedCount,
             'blockers' => $blockers,
             'integrations' => $integrations,
         ];
@@ -599,6 +617,131 @@ class IntegrationHealthService
             clientWindowMinutes: $clientWindow,
             clearedOrphans: $clearedOrphans,
         );
+    }
+
+    /**
+     * Entra → SuperOps SCIM export (Sync 1). Separate from SuperOps GraphQL dashboard refresh.
+     *
+     * @return array<string, mixed>
+     */
+    private function superOpsScimExport(Client $client): array
+    {
+        $key = 'superops_scim';
+        $label = 'SuperOps SCIM export';
+
+        if (! filled($client->entra_superops_app_id)) {
+            return $this->scimHealthCell(
+                key: $key,
+                label: $label,
+                status: 'failed',
+                statusLabel: 'Setup needed',
+                whatItIsDoing: 'Bootstrap incomplete — no SuperOps SCIM Application (client) ID saved.',
+                whatNext: 'Connect Microsoft on Edit Client, then Apply SCIM (step 07).',
+                blockers: ['SuperOps SCIM: Connect / bootstrap first, then Apply SCIM with Tenant URL + Secret.'],
+                error: 'SuperOps SCIM Application ID not saved',
+            );
+        }
+
+        $health = Cache::remember('scim.health.'.$client->id, now()->addMinutes(5), function () use ($client): array {
+            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
+                (string) $client->entra_tenant_id,
+                (string) $client->entra_superops_app_id,
+            );
+        });
+
+        if (filled($health['error'] ?? null)) {
+            return $this->scimHealthCell(
+                key: $key,
+                label: $label,
+                status: 'failed',
+                statusLabel: 'Check failed',
+                whatItIsDoing: (string) $health['error'],
+                whatNext: 'Fix Graph consent / tenant link, then refresh Integration Health.',
+                blockers: ['SuperOps SCIM: '.(string) $health['error']],
+                error: (string) $health['error'],
+            );
+        }
+
+        if ($health['needsApplyScim'] ?? false) {
+            return $this->scimHealthCell(
+                key: $key,
+                label: $label,
+                status: 'failed',
+                statusLabel: 'Setup needed',
+                whatItIsDoing: 'SuperOps Tenant URL not stored in Entra — requesters will not export.',
+                whatNext: 'Edit Client → Apply SCIM with Tenant URL + Secret Token (SuperOps step 05).',
+                blockers: ['SuperOps SCIM: Apply SCIM credentials — Sync 2 alone does not create SuperOps requesters.'],
+                error: 'Apply SCIM not completed',
+            );
+        }
+
+        if ($health['needsRepair'] ?? false) {
+            $hint = ($health['warnings'][0] ?? null) ?: 'No active provisioning job in Entra.';
+
+            return $this->scimHealthCell(
+                key: $key,
+                label: $label,
+                status: 'failed',
+                statusLabel: 'Export stopped',
+                whatItIsDoing: $hint,
+                whatNext: 'Customer Entra → SuperOps app → Provisioning → Start, or php artisan portal:repair-superops-scim --client='.$client->id,
+                blockers: ['SuperOps SCIM export stopped — '.$hint],
+                error: 'SCIM provisioning job missing or not running',
+            );
+        }
+
+        $jobState = filled($health['jobState'] ?? '') ? ' ('.$health['jobState'].')' : '';
+
+        return $this->scimHealthCell(
+            key: $key,
+            label: $label,
+            status: 'ok',
+            statusLabel: 'Export active',
+            whatItIsDoing: 'Entra provisioning job running'.$jobState.'. Checked within ~5m.',
+            whatNext: 'New M365 users in SCIM scope become SuperOps requesters via Entra export.',
+            blockers: [],
+            error: null,
+        );
+    }
+
+    /**
+     * @param  list<string>  $blockers
+     * @return array<string, mixed>
+     */
+    private function scimHealthCell(
+        string $key,
+        string $label,
+        string $status,
+        string $statusLabel,
+        string $whatItIsDoing,
+        string $whatNext,
+        array $blockers,
+        ?string $error,
+    ): array {
+        return [
+            'key' => $key,
+            'label' => $label,
+            'friendly_label' => $this->friendlyLabel($key, $label),
+            'status' => $status,
+            'status_label' => $statusLabel,
+            'what_it_is_doing' => $whatItIsDoing,
+            'what_next' => $whatNext,
+            'last_success_at' => $status === 'ok' ? now() : null,
+            'age_minutes' => null,
+            'sla_minutes' => null,
+            'requeue_after_minutes' => null,
+            'due_for_requeue' => false,
+            'flag_queued' => false,
+            'job_in_db' => false,
+            'job_reserved' => false,
+            'job_age_seconds' => null,
+            'started_at' => null,
+            'last_finished_at' => null,
+            'duration_ms' => null,
+            'detail' => $whatItIsDoing,
+            'error' => $error,
+            'blockers' => $blockers,
+        ];
     }
 
     /**
@@ -924,6 +1067,7 @@ class IntegrationHealthService
     {
         return match ($key) {
             'superops' => 'Devices & tickets',
+            'superops_scim' => 'SuperOps SCIM export',
             'm365_directory' => 'M365 people list',
             'm365_insights' => 'M365 licences',
             'entra_sync' => 'Entra user sync',

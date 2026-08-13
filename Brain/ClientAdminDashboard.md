@@ -44,6 +44,8 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 
 **Integration Health is the technician refresh dashboard** (`/admin/integration-health`): Huntress and Dropsuite are full columns next to SuperOps / M365 / Entra — same live poll, orphan clear, stuck/due/aging statuses, and adaptive prewarm.
 
+**SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) — cached Graph health ~5m — separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices. Repair: Edit Client → Apply SCIM, or `portal:repair-superops-scim --client={id}` — [SuperOpsEntraSync.md](SuperOpsEntraSync.md).
+
 **Priorities:**  
 - `critical` — SuperOps (always prewarm even when queue deep)  
 - `optional` — Huntress, Dropsuite, M365  
@@ -567,6 +569,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | Integration Health **SuperOps SCIM** column — Entra export health (Sync 1) beside Devices & tickets; failed counts in KPI + notices |
 | 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |
 | 2026-08-10 | Prewarm card UI: “SuperOps N, other feeds M” (not “critical N”) — counts are last-run queue totals |
 | 2026-08-10 | Roadmap/PRD rewrite shipped; Admin sold coverage KPI; support SSO-first threads; prewarm cold-optional under queue deep; IH **only** service `cacheKey()` |
