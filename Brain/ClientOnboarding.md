@@ -346,7 +346,7 @@ Tested by: __________  Date: __________
 | Date | Change |
 |---|---|
 | 2026-08-13 | M365/Entra automation in portal only; SuperOps console for SCIM tokens + SSO paste |
-| 2026-08-13 | **Retry Graph setup** auto-resets broken SCIM Entra app — no Azure UI delete |
+| 2026-08-13 | **Retry Graph setup** auto-resets broken SCIM Entra app — no Azure UI delete; SCIM apps via template instantiate |
 | 2026-08-13 | Checklist step 07 **Failed** when live SCIM export unhealthy; step auto-expands on failure |
 | 2026-08-07 | Step 07 Apply SCIM not green without name mappings + Sync queue; SuperOps bulk vs Entra scope warning |
 | 2026-08-06 | All 12 live checklist guides use automated + remaining + recovery layout |

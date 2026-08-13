@@ -95,11 +95,13 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 
 #### 2b. Customer Entra — create app and SCIM
 
-**Preferred (portal):** After Connect Microsoft saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 / **Push SuperOps SCIM to Entra** → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal **queues** `ApplySuperOpsScimJob` on **`high`** (encrypted payload) so the browser is not held open for Graph waits. Worker uses Graph (`Synchronization.ReadWrite.All`) to write secrets, set name mappings, start the job, and queue portal Sync. Secret is **not** stored after the job finishes.
+**Preferred (portal):** After Connect Microsoft / **Retry Graph setup** saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal **queues** `ApplySuperOpsScimJob` on **`high`** (encrypted payload). Worker uses Graph (`Synchronization.ReadWrite.All`) to write secrets, set name mappings, start the job, and queue portal Sync. Secret is **not** stored after the job finishes.
+
+**How the SCIM Entra app is created (critical):** Connect / Retry Graph creates `SuperOps - {Company}` via Entra **non-gallery application template instantiate** — **not** bare `POST /applications`. Bare create yields **0 SCIM templates** and Sync 1 never works. See [troubleshooting — zero templates](#scim-job-missing--portal-sync-looks-fine-but-superops-has-gaps).
 
 **504 Gateway Time-out (fixed):** an older inline path kept the HTTP request open for Graph schema / AlreadyExists polling (~60–180s) → nginx 504 on `…/apply-scim`. Now the POST returns immediately; refresh step 07 until Done / last result banner.
 
-**Apply form:** while status shows “running”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST and historically produced *The scim tenant url / secret token field is required* even after a correct paste.
+**Apply form:** while status shows “running”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST. After a successful Apply, paste fields stay empty on purpose (secret not stored); green banner confirms credentials in Entra.
 
 **Fallback (Azure UI):**
 
@@ -284,29 +286,59 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 
 ### SCIM job missing — portal Sync looks fine but SuperOps has gaps
 
-**Symptom:** User is in M365, portal **Users**, and (on P1) the SCIM security group, but **not** in SuperOps requesters. Portal **Sync now** succeeds; last result may show many **SuperOps unmatched**. Graph `GET …/synchronization/jobs` returns **`value: []`**.
+**Symptom:** User is in M365, portal **Users**, and (on P1) the SCIM security group, but **not** in SuperOps requesters. Portal **Sync now** succeeds; last result may show many **SuperOps unmatched**. Graph `GET …/synchronization/jobs` returns **`value: []`**. Integration Health **SuperOps SCIM** = Export stopped / Setup needed. Checklist step **07** shows **Failed** (not Done).
 
-**Why this is not “SCIM changed in the portal”:** Sync **2** (portal Entra sync) and Sync **1** (Entra → SuperOps SCIM export) are separate. Portal can keep assigning users to the enterprise app and updating the portal DB while the **Entra provisioning job** is off, deleted, or never started. Nothing in portal code disables SCIM — common causes are provisioning toggled **Off** in Entra, a failed connection test, token rotation without re-Apply, or an incomplete first setup.
+**Why this is not “SCIM changed in the portal”:** Sync **2** (portal Entra sync) and Sync **1** (Entra → SuperOps SCIM export) are separate. Portal can keep assigning users to the enterprise app and updating the portal DB while the **Entra provisioning job** is off, deleted, or never started.
 
-**Repair (preferred — server SSH):**
+#### Root cause that broke some clients (Aug 2026) — never regress
+
+| Bad path | Good path |
+|----------|-----------|
+| Create SuperOps SCIM Entra app with Graph **`POST /applications`** | Create via **`applicationTemplates/{non-gallery}/instantiate`** (`8adf8e6e-67b2-4cf2-a259-e3dc5476c621`) |
+| Graph returns **0 synchronization templates** | Graph returns templates (typically **4**) including `scim` |
+| Apply SCIM may save BaseAddress but cannot create a real job (`scim.{hash}.{uuid}`) | Apply creates job `scim.{tenantHash}.{appId}` and can start export |
+| **Retry SCIM export** / re-paste alone **cannot** fix 0 templates | **Retry Graph setup** deletes + recreates via template instantiate, then **Apply SCIM** |
+
+Healthy clients (e.g. already-working tenants) already had template-capable apps. Broken ones looked “half done”: credentials in Entra, portal Sync green, step 07 wrongly **Done** from stale checklist flags — while Sync 1 was dead.
+
+**Code rules (do not regress):**
+
+1. `MicrosoftGraphClient::createNonGalleryApplication(..., forScimProvisioning: true)` → **template instantiate only** for SuperOps SCIM shells.
+2. `CustomerEntraBootstrapService` Connect / **Retry Graph setup**: if `superOpsScimEnterpriseAppNeedsRecreate()` (0 templates, phantom 2-segment job ids, or unresolvable SP) → `recreateNamedEnterpriseApplication()` (delete by id + display name, wait until gone, create fresh via template). **Never** `ensureNamed` reuse of a half-deleted app.
+3. Checklist step **07** `complete` only when live Graph health is OK (or not yet started); credentials + stopped export → **`failed`** badge.
+4. Secret never stored in portal DB — technician must **Apply SCIM** after any app recreate.
+5. Usable job ids only: `scim.{hex}.{uuid}` (3 segments). Reject phantom `scim.{tenantId}` / `customappssoOutDelta.*`.
+
+**Technician recovery (portal only — no Azure UI):**
+
+1. Edit Client → **Retry Graph setup** (or ops SSH bootstrap — same service).
+2. Confirm warning: SCIM app was reset; left column **SuperOps Application (client) ID** is a **new** GUID.
+3. SuperOps → Generate Tokens (or reuse if still valid) → step **07** → **Apply SCIM**.
+4. Wait ~1–2 min → Integration Health **SuperOps SCIM** = Export active / OK → optional **Sync now**.
+
+**Repair when templates already exist (credentials in Entra, job stopped):**
 
 ```bash
 php artisan portal:repair-superops-scim --client={id} --check
 php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 ```
 
-- **`--check`** — reports job count, BaseAddress in Entra, warnings only.
-- **Repair without re-paste** — works when Entra still has the SuperOps **Tenant URL** (BaseAddress); recreates the job, reapplies name mappings, starts provisioning.
-- **`--provision-missing`** — provision-on-demand for portal users whose email is not in SuperOps yet (e.g. Emma after job was dead).
-- **`--sync`** — queues portal Entra sync after repair.
+- **`--check`** — job count, BaseAddress, warnings only.
+- **Repair without re-paste** — only when Entra still has BaseAddress **and** templates exist.
+- If `--check` / Apply says **zero SCIM provisioning templates** → do **not** spam Retry SCIM export; use **Retry Graph setup** then Apply.
 
-If repair says credentials are missing, use **Admin → Clients → Edit → Apply SCIM** with SuperOps step **05** Tenant URL + Secret Token.
+**Staff UI:**
 
-**Staff UI:** Edit Client SCIM panel shows a red alert when Graph reports no provisioning job or missing BaseAddress (cached ~5 minutes). Checklist step **07** shows a red **Failed** badge (not **Done**) when credentials exist but export is not active — auto-opens that step. One **Retry SCIM export** button (no duplicate).
+| Surface | Behaviour |
+|---------|-----------|
+| Checklist step **07** | **Failed** (red) when live export unhealthy; auto-opens; summary line |
+| SCIM panel | Red alert + single **Retry SCIM export**; green “Credentials saved in Entra” when BaseAddress exists (paste form collapsed) |
+| Integration Health | **SuperOps SCIM** column — failed/setup in KPI + Needs attention |
+| Apply / Repair jobs | Longer timeouts; clear checklist Done only when health OK |
 
-**After repair:** Entra → Enterprise apps → SuperOps - {Company} → **Provisioning logs** — expect **Create** for missing users within 1–2 minutes. Then **Sync now** again to bind `superops_user_id`.
+**After healthy Apply:** Entra Provisioning logs show **Create**/**Update**; **Sync now** binds `superops_user_id`.
 
-**Same email twice in SuperOps UI:** Often one requester on **two Sites** (e.g. Main + Engineers), not two SCIM rows. Confirm with SuperOps API / portal align (one `userId` per email). Remove wrong **site** membership in SuperOps if incorrect — not a portal dedupe issue.
+**Same email twice in SuperOps UI:** Often one requester on **two Sites**, not two SCIM rows. Fix site membership in SuperOps — not portal dedupe.
 
 ---
 
@@ -314,6 +346,7 @@ If repair says credentials are missing, use **Admin → Clients → Edit → App
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | **Incident:** POST `/applications` SCIM shells → 0 templates; fix = template instantiate + Retry Graph auto-recreate; YorPower/MXVI recovered |
 | 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SCIM Entra app (0 templates); technician only re-Applies SCIM tokens |
 | 2026-08-13 | SuperOps SCIM Entra apps created via non-gallery **template instantiate** (not POST /applications) so Graph exposes SCIM templates |
 | 2026-08-13 | Checklist step **07** **Failed** badge when live export unhealthy (not stale Done); Apply/Repair sync checklist to Graph health |

@@ -37,8 +37,10 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 2. Edit Client checklist → orange **Connect Microsoft tenant** at the **top of the guide** (Accept Portal Graph). Steps 03/04 point at that single button (no second Connect in the step body).
 3. Sign in with On IT **GDAP** so you land in the **customer** tenant (do **not** open On IT then switch).
 4. **Accept** permissions. Portal **waits/retries Graph**, then writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
-5. If group or app IDs still empty: **Retry Graph setup** at the top of the guide (not a second Accept). Re-consent only if platform permissions changed.
+5. If group or app IDs still empty **or** SCIM export is Failed / Integration Health SuperOps SCIM red: **Retry Graph setup** at the top of the guide (not a second Accept). That recreates a broken SCIM Entra shell automatically when Graph reports 0 provisioning templates. Then **Apply SCIM** again with SuperOps tokens. Re-consent only if platform permissions changed.
 6. **Platform permission adds** (On IT tenant Step 0 — e.g. Secure Score / MFA): after Grant consent in On IT, **re-Accept once per customer**. Do **not** delete the client or redo SuperOps SCIM/SSO from scratch — [CustomerEntraSyncRunbook.md §0.3a](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
+
+**Do not** open Azure to delete/recreate SuperOps SCIM apps for “0 templates” — portal **Retry Graph setup** owns that. Do **not** spam **Retry SCIM export** when health says templates are missing.
 
 Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 
@@ -106,6 +108,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | Retry Graph setup recreates broken SCIM apps (0 templates); Apply SCIM only remaining SuperOps paste; no Azure UI |
 | 2026-08-07 | Step 07 Done only when name mappings + Sync queued; SuperOps bulk outside Entra → Do not ignore warning |
 | 2026-08-06 | Guide UX: all 12 steps use automation-first (Already automatic / remaining / recovery only on failure) |
 | 2026-08-06 | Guide UX: automation-first (**Already done automatically** + short remaining work; Azure/SuperOps recovery only under failure) — steps 03–08 + SSO form |

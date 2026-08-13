@@ -83,7 +83,7 @@ Requires **GroupMember.ReadWrite.All** (application) with admin consent in the c
 | Remove user from group? | SCIM deprovisions SuperOps requester; portal user unchanged unless licence removed |
 | Disable M365 account / remove licence? | Portal sync deactivates portal user on next run |
 | User **primary email / domain** changes (old becomes alias)? | **Portal:** same Entra object id → **email updated on one row**. **SuperOps:** after each Entra Sync job, API aligns requester email (match SuperOps id → primary → Graph aliases → unique local-part) and binds `superops_user_id`. SCIM alone is not enough. [DomainEmailChange.md](DomainEmailChange.md) |
-| In portal + M365 but **missing from SuperOps**; Sync succeeds | Entra **SCIM provisioning job** may be off/missing while Sync 2 still runs — `portal:repair-superops-scim --client={id}` — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
+| In portal + M365 but **missing from SuperOps**; Sync succeeds | Entra **SCIM Sync 1** stopped or app has **0 templates** — Integration Health SuperOps SCIM / step 07 Failed. **0 templates** → Retry Graph setup then Apply SCIM. Else `portal:repair-superops-scim --client={id}` — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 
 ---
 
@@ -152,6 +152,7 @@ Login matches **`entra_object_id` first** (stable), then email. On success it ma
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | 0-templates SCIM create bug: template instantiate + Retry Graph recreate; never Azure UI delete for Sync 1 |
 | 2026-08-13 | SCIM job missing troubleshooting + repair command; Sync 2 provision-on-demand for users without `superops_user_id` |
 | 2026-08-11 | SuperOps email align + Graph aliases + object-id portal upsert on domain change |
 | 2026-07-14 | MSP ownership explicit: every customer-tenant setup/consent action is completed by On IT through GDAP |

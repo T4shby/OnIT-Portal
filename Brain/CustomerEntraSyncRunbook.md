@@ -381,14 +381,14 @@ php artisan portal:sync-entra-users --client={id}
 | No `SuperOps group` line in sync output | `Entra group ID` empty | Paste group Object ID → Save client |
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
-| Requesters not in SuperOps | App not in scope; **provisioning off**; missing SuperOps Application (client) ID on Free | Step 5b — turn provisioning **ON**; set client ID; Sync now |
+| Requesters not in SuperOps; Integration Health SuperOps SCIM red; step 07 **Failed** | Sync 1 job missing/stopped, **or** Entra SCIM app has **0 provisioning templates** (created via bare `POST /applications`) | `--check` first. If **0 templates** → Edit Client **Retry Graph setup** (auto recreate via template instantiate) → **Apply SCIM**. If templates OK + BaseAddress → **Retry SCIM export** / `portal:repair-superops-scim`. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#scim-job-missing--portal-sync-looks-fine-but-superops-has-gaps) |
+| Apply SCIM / Retry SCIM: “zero SCIM provisioning templates” | Wrong Entra app create path | **Retry Graph setup** then Apply — do not delete client; do not Azure UI recreate |
 | Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
 | Requester plain name (no suffix) | `name.familyName` not Direct from `extensionAttribute1` | Direct map **name.familyName** ← extensionAttribute1 (default `[surname]`); Sync now |
 | `extensionAttribute1` set (e.g. `Smith (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
 | Connect bootstrap: tenant/group OK but SCIM/SSO apps fail with Graph **404** `Request_ResourceNotFound` on app/roles | SP object id from create/instantiate not yet (or never) GET-able; stale SP id reused | Code waits/re-resolves SP by **appId**, retries role resolve, falls back to Application appRoles. Deploy latest → **Retry Graph setup**. If still fails: Entra → Enterprise app → Users and groups → assign portal group. |
 | Connect right after Accept: 401 IdentityNotFound / 403 insufficient privileges | Consent SP / scopes not live yet | Bootstrap waits + retries; if still incomplete use **Retry Graph setup**. Not a failed login. |
-
-| Could not resolve SuperOps enterprise app | Missing `Application.Read.All` or wrong GUID pasted | Add **Application.Read.All** in On IT tenant (step 0), re-consent customer (step 4), `cache:clear`. Use Application (client) ID — not App registration Object ID |
+| Could not resolve SuperOps enterprise app | Missing `Application.Read.All`, wrong GUID, or half-deleted SCIM app after bad reset | Prefer **Retry Graph setup** (recreate). Else Application.Read.All + re-consent. Use Application (client) ID — not Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
@@ -414,6 +414,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | SCIM 0-templates incident: Retry Graph recreate + Apply; troubleshooting rows for Failed step 07 / IH SuperOps SCIM |
 | 2026-08-10 | Staff **Graph re-consent** page under Clients (Accept links; no artisan required) |
 | 2026-08-10 | Graph **Application (14):** add `SecurityEvents.Read.All`, `AuditLog.Read.All`, `Reports.Read.All` for Secure Score + MFA on client home; existing customers **re-consent only** (§0.3a); `portal:graph-reconsent-urls` batch list |
 | 2026-08-10 | Bootstrap flash no longer hard-codes SCIM/SSO “Still required” when checklist already done |

@@ -44,7 +44,12 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 
 **Integration Health is the technician refresh dashboard** (`/admin/integration-health`): Huntress and Dropsuite are full columns next to SuperOps / M365 / Entra — same live poll, orphan clear, stuck/due/aging statuses, and adaptive prewarm.
 
-**SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) — cached Graph health ~5m — separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices. Repair: Edit Client → Apply SCIM, or `portal:repair-superops-scim --client={id}` — [SuperOpsEntraSync.md](SuperOpsEntraSync.md).
+**SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) — cached Graph health ~5m — separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices.
+
+**Repair:**
+- Credentials missing → Edit Client → **Apply SCIM**
+- Job stopped but templates OK → **Retry SCIM export** or `portal:repair-superops-scim --client={id}`
+- **0 SCIM templates** / “could not resolve enterprise app” → **Retry Graph setup** (recreates SCIM-capable app) then **Apply SCIM** — not Azure UI, not delete client — [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
 
 **Priorities:**  
 - `critical` — SuperOps (always prewarm even when queue deep)  
