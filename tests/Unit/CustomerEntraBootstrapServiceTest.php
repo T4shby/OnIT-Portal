@@ -292,12 +292,9 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->once()
             ->with($tenantId, $brokenAppId)
             ->andReturn(true);
-        $graph->shouldReceive('deleteEnterpriseApplicationByAppId')
+        $graph->shouldReceive('recreateNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, $brokenAppId);
-        $graph->shouldReceive('ensureNamedEnterpriseApplication')
-            ->once()
-            ->with($tenantId, 'SuperOps - YorPower', null)
+            ->with($tenantId, 'SuperOps - YorPower', $brokenAppId)
             ->andReturn([
                 'appId' => $newAppId,
                 'applicationObjectId' => 'scim-obj-new',

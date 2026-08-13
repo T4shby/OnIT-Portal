@@ -1709,7 +1709,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * True when the Entra SCIM app exists but Graph cannot provision (0 templates or phantom jobs).
+     * True when the Entra SCIM app is missing, half-deleted, or Graph cannot provision it.
      */
     public function superOpsScimEnterpriseAppNeedsRecreate(string $tenantId, string $appId): bool
     {
@@ -1723,7 +1723,8 @@ class MicrosoftGraphClient
         try {
             $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
         } catch (Throwable) {
-            return false;
+            // Orphaned Application (client) ID or deleted enterprise SP — must recreate.
+            return true;
         }
 
         if ($this->countScimSynchronizationTemplates($tenantId, $servicePrincipalId) === 0) {
@@ -1741,6 +1742,66 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Delete any existing SuperOps SCIM shell (by id and/or display name), wait for Graph,
+     * then create a brand-new non-gallery app — never reuse a half-deleted registration.
+     *
+     * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
+     */
+    public function recreateNamedEnterpriseApplication(
+        string $tenantId,
+        string $displayName,
+        ?string $knownAppClientId = null,
+    ): array {
+        $tenantId = strtolower(trim($tenantId));
+        $idsToDelete = [];
+
+        if (filled($knownAppClientId)) {
+            $idsToDelete[] = strtolower(trim((string) $knownAppClientId));
+        }
+
+        try {
+            $byName = $this->findApplicationByDisplayName($tenantId, $displayName);
+            if ($byName !== null && filled($byName['appId'] ?? null)) {
+                $idsToDelete[] = strtolower((string) $byName['appId']);
+            }
+        } catch (Throwable $e) {
+            Log::warning('SCIM recreate: name lookup before delete failed', [
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        foreach (array_values(array_unique($idsToDelete)) as $appId) {
+            try {
+                $this->deleteEnterpriseApplicationByAppId($tenantId, $appId);
+            } catch (Throwable $e) {
+                Log::warning('SCIM recreate: delete failed', [
+                    'tenant_id' => $tenantId,
+                    'app_id' => $appId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        for ($attempt = 1; $attempt <= 12; $attempt++) {
+            $stillThere = null;
+            try {
+                $stillThere = $this->findApplicationByDisplayName($tenantId, $displayName);
+            } catch (Throwable) {
+                break;
+            }
+
+            if ($stillThere === null) {
+                break;
+            }
+
+            usleep(1_000_000);
+        }
+
+        return $this->createNonGalleryApplication($tenantId, $displayName);
+    }
+
+    /**
      * Remove enterprise app + app registration so bootstrap can create a fresh SCIM shell.
      */
     public function deleteEnterpriseApplicationByAppId(string $tenantId, string $appId): void
@@ -1748,10 +1809,17 @@ class MicrosoftGraphClient
         $tenantId = strtolower(trim($tenantId));
         $appId = trim($appId);
 
-        $resolved = $this->waitForApplicationByAppId($tenantId, $appId);
+        try {
+            $resolved = $this->waitForApplicationByAppId($tenantId, $appId, null, 4);
+        } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), '404') || str_contains(strtolower($e->getMessage()), 'not found')) {
+                return;
+            }
+            throw $e;
+        }
 
         try {
-            $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId);
+            $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId, maxAttempts: 4);
             Cache::forget('scim.job_id.'.$servicePrincipalId);
             $deleteSp = $this->graphDelete(
                 $tenantId,
@@ -1764,7 +1832,7 @@ class MicrosoftGraphClient
                 );
             }
         } catch (Throwable $e) {
-            if (! str_contains($e->getMessage(), '404')) {
+            if (! str_contains($e->getMessage(), '404') && ! str_contains(strtolower($e->getMessage()), 'not found')) {
                 Log::warning('SCIM app SP delete skipped or failed', [
                     'tenant_id' => $tenantId,
                     'app_id' => $appId,

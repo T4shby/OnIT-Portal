@@ -143,35 +143,48 @@ class CustomerEntraBootstrapService
 
         try {
             $knownScimAppId = $client->entra_superops_app_id ?? ($fields['entra_superops_app_id'] ?? null);
+            $forceScimRecreate = false;
             if (filled($knownScimAppId)) {
                 try {
-                    if ($this->graph->superOpsScimEnterpriseAppNeedsRecreate($tenantId, (string) $knownScimAppId)) {
-                        $this->graph->deleteEnterpriseApplicationByAppId($tenantId, (string) $knownScimAppId);
-                        $fields['entra_superops_app_id'] = null;
-                        $this->persist($client, ['entra_superops_app_id' => null]);
-                        $this->onboarding->resetScimAfterEntraAppRecreate($client);
-                        Cache::forget('scim.health.'.$client->id);
-                        $details[] = 'Removed broken SuperOps SCIM Entra app and will create a fresh one.';
-                        $warnings[] = 'SuperOps SCIM Entra app was reset automatically. Paste SuperOps Tenant URL + Secret → **Apply SCIM**.';
-                        $knownScimAppId = null;
-                    }
+                    $forceScimRecreate = $this->graph->superOpsScimEnterpriseAppNeedsRecreate(
+                        $tenantId,
+                        (string) $knownScimAppId,
+                    );
                 } catch (Throwable $e) {
-                    Log::warning('Entra bootstrap SCIM auto-reset failed', [
+                    Log::warning('Entra bootstrap SCIM health check failed — forcing recreate', [
                         'client_id' => $client->id,
                         'error' => $e->getMessage(),
                     ]);
-                    $warnings[] = 'Could not auto-reset broken SCIM app: '.$e->getMessage();
+                    $forceScimRecreate = true;
                 }
             }
 
-            $scim = $this->graph->retryAfterConsentPropagation(
-                $tenantId,
-                fn () => $this->graph->ensureNamedEnterpriseApplication(
+            if ($forceScimRecreate) {
+                $this->persist($client, ['entra_superops_app_id' => null]);
+                $fields['entra_superops_app_id'] = null;
+                $this->onboarding->resetScimAfterEntraAppRecreate($client);
+                Cache::forget('scim.health.'.$client->id);
+                $details[] = 'Removed broken SuperOps SCIM Entra app and will create a fresh one.';
+                $warnings[] = 'SuperOps SCIM Entra app was reset automatically. Paste SuperOps Tenant URL + Secret → **Apply SCIM**.';
+
+                $scim = $this->graph->retryAfterConsentPropagation(
                     $tenantId,
-                    $scimAppName,
-                    filled($knownScimAppId) ? (string) $knownScimAppId : null,
-                ),
-            );
+                    fn () => $this->graph->recreateNamedEnterpriseApplication(
+                        $tenantId,
+                        $scimAppName,
+                        filled($knownScimAppId) ? (string) $knownScimAppId : null,
+                    ),
+                );
+            } else {
+                $scim = $this->graph->retryAfterConsentPropagation(
+                    $tenantId,
+                    fn () => $this->graph->ensureNamedEnterpriseApplication(
+                        $tenantId,
+                        $scimAppName,
+                        filled($knownScimAppId) ? (string) $knownScimAppId : null,
+                    ),
+                );
+            }
             $fields['entra_superops_app_id'] = $scim['appId'];
             $details[] = "SCIM app «{$scimAppName}»: {$scim['appId']}";
             $checklist['superops_scim_app'] = true;
