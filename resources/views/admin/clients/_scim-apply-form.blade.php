@@ -13,6 +13,16 @@
     $scimHealth = ($scimProvisioningHealth ?? null) ?? ($ready
         ? \Illuminate\Support\Facades\Cache::get('scim.health.'.$client->id)
         : null);
+    $scimRepairInFlight = $ready && \Illuminate\Support\Facades\Cache::has(
+        \App\Jobs\RepairSuperOpsScimExportJob::IN_FLIGHT_KEY_PREFIX.$client->id
+    );
+    $scimRepairLastResult = $ready
+        ? \Illuminate\Support\Facades\Cache::get(\App\Jobs\RepairSuperOpsScimExportJob::LAST_RESULT_KEY_PREFIX.$client->id)
+        : null;
+    $canRetryScimExport = $ready
+        && is_array($scimHealth)
+        && ! ($scimHealth['needsApplyScim'] ?? false)
+        && (($scimHealth['needsRepair'] ?? false) || ! ($scimHealth['ok'] ?? false));
 @endphp
 
 @if($ready)
@@ -30,11 +40,17 @@
                     </p>
                 @else
                     <p>
-                        Microsoft Graph reports <strong class="text-white/90">no active SCIM provisioning job</strong> on this app.
-                        Portal group/app assignment can look fine while SuperOps export is off.
-                        Run <strong class="text-white/90">php artisan portal:repair-superops-scim --client={{ $client->id }} --provision-missing --sync</strong>
-                        on the server, or re-Apply SCIM if repair says credentials are missing.
+                        Apply SCIM saved credentials but Entra export did not fully start (common Graph lag on first run).
+                        Click <strong class="text-white/90">Retry SCIM export</strong> below — no secret re-paste, no Azure UI.
                     </p>
+                @endif
+                @if($canRetryScimExport)
+                    <form method="POST" action="{{ route('admin.clients.retry-scim-export', $client) }}" class="mt-3">
+                        @csrf
+                        <button type="submit" class="cta-btn text-sm px-5 py-2.5" @disabled($scimRepairInFlight || $scimInFlight)>
+                            @if($scimRepairInFlight) Retry running… @else Retry SCIM export @endif
+                        </button>
+                    </form>
                 @endif
                 @if(! empty($scimHealth['warnings']) && is_array($scimHealth['warnings']))
                     <ul class="mt-2 list-disc space-y-1 pl-5 text-red-100/90">
@@ -79,6 +95,37 @@
                     <p class="mt-2">{{ implode(' ', $scimLastResult['blockers']) }}</p>
                 @endif
             </div>
+        @endif
+
+        @if($scimRepairInFlight)
+            <div class="mb-4 border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+                Retry SCIM export is running in the background. Refresh in about a minute — check Integration Health → SuperOps SCIM.
+            </div>
+        @elseif(is_array($scimRepairLastResult))
+            <div @class([
+                'mb-4 border px-4 py-3 text-sm leading-relaxed',
+                'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' => ($scimRepairLastResult['success'] ?? false),
+                'border-amber-500/40 bg-amber-500/10 text-amber-100' => ! ($scimRepairLastResult['success'] ?? false),
+            ])>
+                <p class="portal-label mb-1">Last Retry SCIM export result</p>
+                <p>{{ $scimRepairLastResult['message'] ?? 'Finished' }}</p>
+                @if(! empty($scimRepairLastResult['blockers']) && is_array($scimRepairLastResult['blockers']))
+                    <p class="mt-2">{{ implode(' ', $scimRepairLastResult['blockers']) }}</p>
+                @endif
+            </div>
+        @endif
+
+        @if($canRetryScimExport && ! ($scimHealth['needsApplyScim'] ?? false))
+            <form method="POST" action="{{ route('admin.clients.retry-scim-export', $client) }}" class="mb-4">
+                @csrf
+                <button type="submit" class="cta-btn-ghost text-sm px-6 py-3" @disabled($scimRepairInFlight || $scimInFlight)>
+                    @if($scimRepairInFlight) Retry SCIM export running… @else Retry SCIM export (credentials already in Entra) @endif
+                </button>
+                <p class="portal-body-muted mt-2 text-xs leading-relaxed">
+                    Recreates the Entra <strong class="text-white/80">scim.*</strong> job, sets name mappings, starts export, pushes missing SuperOps requesters, queues Sync.
+                    Use this when Apply SCIM stopped halfway — not when tokens were never pasted.
+                </p>
+            </form>
         @endif
 
         {{-- Do NOT disable the inputs on submit: disabled controls are omitted from the POST. --}}

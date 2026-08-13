@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\Client;
-use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\MicrosoftGraphClient;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -168,6 +167,11 @@ class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncry
             'warnings' => $result['warnings'] ?? [],
             'duration_ms' => (int) round((microtime(true) - $started) * 1000),
         ]);
+
+        if (! $stepComplete) {
+            RepairSuperOpsScimExportJob::markQueued($client->id);
+            RepairSuperOpsScimExportJob::dispatch($client->id);
+        }
     }
 
     public function failed(?\Throwable $exception): void

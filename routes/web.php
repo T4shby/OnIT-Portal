@@ -141,6 +141,9 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/apply-scim', [ClientController::class, 'applyScim'])
                 ->middleware('throttle:10,1')
                 ->name('clients.apply-scim');
+            Route::post('clients/{client}/retry-scim-export', [ClientController::class, 'retryScimExport'])
+                ->middleware('throttle:10,1')
+                ->name('clients.retry-scim-export');
             Route::post('clients/{client}/apply-client-sso', [ClientController::class, 'applyClientSso'])
                 ->middleware('throttle:10,1')
                 ->name('clients.apply-client-sso');

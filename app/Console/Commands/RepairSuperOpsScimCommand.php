@@ -2,12 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\UserProvisionSource;
-use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
-use App\Models\User;
 use App\Services\EntraSync\MicrosoftGraphClient;
-use App\Services\SuperOps\SuperOpsUserSyncService;
+use App\Services\EntraSync\SuperOpsScimRepairService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,7 +20,7 @@ class RepairSuperOpsScimCommand extends Command
 
     public function handle(
         MicrosoftGraphClient $graph,
-        SuperOpsUserSyncService $superOpsUsers,
+        SuperOpsScimRepairService $repair,
     ): int {
         if (! config('services.entra_sync.enabled')) {
             $this->error('Entra sync is disabled. Set ENTRA_SYNC_ENABLED=true in .env');
@@ -98,44 +95,38 @@ class RepairSuperOpsScimCommand extends Command
                 continue;
             }
 
-            if (! $health['needsRepair'] && ! $provisionMissing) {
+            if ($health['ok'] && ! $provisionMissing) {
                 $this->line('  Nothing to repair (use --provision-missing to push users missing from SuperOps).');
 
                 continue;
             }
 
-            if ($health['needsRepair']) {
-                try {
-                    $result = $graph->repairSuperOpsScimProvisioning(
-                        (string) $client->entra_tenant_id,
-                        (string) $client->entra_superops_app_id,
-                    );
+            if ($health['needsRepair'] || $provisionMissing || ! $health['ok']) {
+                $result = $repair->retryExport(
+                    $client,
+                    provisionMissing: $provisionMissing,
+                    queueSync: $queueSync,
+                );
 
-                    foreach ($result['details'] as $detail) {
-                        $this->line('  '.$detail);
-                    }
-
-                    foreach ($result['warnings'] as $warning) {
-                        $this->warn('  '.$warning);
-                    }
-
-                    $this->info('  SCIM job repaired: '.$result['jobId']);
-                    Cache::forget('scim.health.'.$client->id);
-                } catch (\Throwable $e) {
-                    $hadFailure = true;
-                    $this->error('  Repair failed: '.$e->getMessage());
-
-                    continue;
+                foreach ($result['repair']['details'] ?? [] as $detail) {
+                    $this->line('  '.$detail);
                 }
-            }
 
-            if ($provisionMissing) {
-                $hadFailure = $this->provisionMissingUsers($client, $graph, $superOpsUsers) || $hadFailure;
-            }
+                foreach ($result['blockers'] as $blocker) {
+                    $this->warn('  '.$blocker);
+                }
 
-            if ($queueSync) {
-                SyncEntraClientJob::dispatchMarked($client->id, false);
-                $this->info('  Queued portal Entra sync.');
+                $this->line('  '.$result['message']);
+
+                if ($result['provisioned'] > 0) {
+                    $this->info("  Provision-on-demand: {$result['provisioned']} user(s)");
+                }
+
+                Cache::forget('scim.health.'.$client->id);
+
+                if (! $result['ok']) {
+                    $hadFailure = true;
+                }
             }
         }
 
@@ -150,73 +141,5 @@ class RepairSuperOpsScimCommand extends Command
         $this->info('SuperOps SCIM repair finished.');
 
         return self::SUCCESS;
-    }
-
-    private function provisionMissingUsers(
-        Client $client,
-        MicrosoftGraphClient $graph,
-        SuperOpsUserSyncService $superOpsUsers,
-    ): bool {
-        if (! config('services.entra_sync.superops_provision_on_demand')) {
-            $this->warn('  --provision-missing skipped: ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND is false.');
-
-            return false;
-        }
-
-        $requesterEmails = $superOpsUsers->listRequesterEmails($client);
-        $requesterEmailSet = array_fill_keys($requesterEmails, true);
-
-        $missingUsers = User::query()
-            ->where('client_id', $client->id)
-            ->where('is_active', true)
-            ->where('provisioned_by', UserProvisionSource::EntraSync)
-            ->whereNotNull('entra_object_id')
-            ->whereNotNull('email')
-            ->get()
-            ->filter(static function (User $user) use ($requesterEmailSet): bool {
-                $email = strtolower(trim((string) $user->email));
-
-                return $email !== '' && ! isset($requesterEmailSet[$email]);
-            });
-
-        if ($missingUsers->isEmpty()) {
-            $this->line('  No portal users missing from SuperOps requester list.');
-
-            return false;
-        }
-
-        $objectIds = $missingUsers
-            ->pluck('entra_object_id')
-            ->map(static fn ($id): string => (string) $id)
-            ->values()
-            ->all();
-
-        $this->info('  Provision-on-demand for '.$missingUsers->count().' user(s) missing from SuperOps…');
-
-        try {
-            $servicePrincipalId = $graph->resolveEnterpriseServicePrincipalId(
-                (string) $client->entra_tenant_id,
-                (string) $client->entra_superops_app_id,
-            );
-            $context = $graph->resolveSuperOpsScimProvisioningContext(
-                (string) $client->entra_tenant_id,
-                $servicePrincipalId,
-            );
-            $provisioned = $graph->provisionUsersOnDemand(
-                (string) $client->entra_tenant_id,
-                $servicePrincipalId,
-                $context['jobId'],
-                $context['userRuleId'],
-                $objectIds,
-            );
-
-            $this->info("  Provision-on-demand accepted for {$provisioned} user(s). Check Entra Provisioning logs in 1–2 minutes.");
-
-            return false;
-        } catch (\Throwable $e) {
-            $this->error('  Provision-on-demand failed: '.$e->getMessage());
-
-            return true;
-        }
     }
 }

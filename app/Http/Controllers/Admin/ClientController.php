@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Jobs\ApplySuperOpsScimJob;
+use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
 use App\Services\ActivityLogService;
@@ -400,6 +401,28 @@ class ClientController extends Controller
                 'Apply SCIM is running in the background (usually under 2 minutes). '
                 .'You can leave this page — refresh step 07 until Done, or check the banner under Apply SCIM. '
                 .'This avoids the previous 504 Gateway Time-out when Graph is slow.'
+            );
+    }
+
+    public function retryScimExport(Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_app_id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'Connect Microsoft first so Tenant ID and SuperOps SCIM Application (client) ID are saved.');
+        }
+
+        RepairSuperOpsScimExportJob::markQueued($client->id);
+        RepairSuperOpsScimExportJob::dispatch($client->id);
+
+        $this->activityLog->log('client.scim_export_retry_queued', $client, clientId: $client->id);
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with(
+                'success',
+                'Retry SCIM export is running in the background (recreates Entra job, mappings, start, missing users, Sync). '
+                .'Refresh in about a minute — Integration Health SuperOps SCIM should show Export active.'
             );
     }
 

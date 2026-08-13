@@ -1859,6 +1859,8 @@ class MicrosoftGraphClient
 
         $details[] = 'Existing SCIM BaseAddress found in Entra';
 
+        $this->discardStaleScimJobCache($tenantId, $servicePrincipalId);
+
         $jobId = $this->ensureScimSynchronizationJob($tenantId, $servicePrincipalId);
         $details[] = 'Provisioning job: '.$jobId;
 
@@ -1936,6 +1938,8 @@ class MicrosoftGraphClient
 
         $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $entraSuperopsAppId);
         $details[] = 'Service principal resolved';
+
+        $this->discardStaleScimJobCache($tenantId, $servicePrincipalId);
 
         $jobId = $this->ensureScimSynchronizationJob($tenantId, $servicePrincipalId);
         $details[] = 'Provisioning job: '.$jobId;
@@ -2329,7 +2333,8 @@ class MicrosoftGraphClient
 
     private function ensureScimSynchronizationJob(string $tenantId, string $servicePrincipalId): string
     {
-        // List can lag after Create — probe, then create, then recover "already exists" without a second job.
+        $this->discardStaleScimJobCache($tenantId, $servicePrincipalId);
+
         for ($listAttempt = 1; $listAttempt <= 6; $listAttempt++) {
             $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
             if ($existingId !== '') {
@@ -2340,8 +2345,28 @@ class MicrosoftGraphClient
             }
         }
 
-        $templateId = $this->pickScimSynchronizationTemplateId($tenantId, $servicePrincipalId);
+        $this->waitForScimSynchronizationTemplates($tenantId, $servicePrincipalId);
 
+        $lastError = 'Could not create SCIM provisioning job.';
+        foreach ($this->scimSynchronizationTemplateCandidates($tenantId, $servicePrincipalId) as $templateId) {
+            try {
+                $jobId = $this->attemptCreateScimSynchronizationJob($tenantId, $servicePrincipalId, $templateId);
+                if ($jobId !== '') {
+                    return $jobId;
+                }
+            } catch (RuntimeException $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        throw new RuntimeException($lastError);
+    }
+
+    private function attemptCreateScimSynchronizationJob(
+        string $tenantId,
+        string $servicePrincipalId,
+        string $templateId,
+    ): string {
         $create = $this->graphPost(
             $tenantId,
             "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/jobs",
@@ -2356,9 +2381,11 @@ class MicrosoftGraphClient
 
         if ($create->successful() && filled($create->json('id'))) {
             $id = (string) $create->json('id');
-            Cache::put('scim.job_id.'.$servicePrincipalId, $id, now()->addDays(7));
+            if ($this->isUsableScimJobId($id)) {
+                Cache::put('scim.job_id.'.$servicePrincipalId, $id, now()->addDays(7));
 
-            return $id;
+                return $id;
+            }
         }
 
         $body = $create->body();
@@ -2366,14 +2393,14 @@ class MicrosoftGraphClient
         if ($fromBody !== '') {
             Log::info('SCIM job id recovered from create response body', [
                 'tenant_id' => $tenantId,
+                'template_id' => $templateId,
                 'job_id' => $fromBody,
             ]);
+            Cache::put('scim.job_id.'.$servicePrincipalId, $fromBody, now()->addDays(7));
 
             return $fromBody;
         }
 
-        // First Apply (or concurrent Apply) already created the job — list can lag empty for tens of seconds.
-        // Re-Apply must reuse that job; never open a second Provisioning job in the Azure UI.
         if (
             $create->status() === 400
             && (
@@ -2381,45 +2408,165 @@ class MicrosoftGraphClient
                 || str_contains($body, 'already exists')
             )
         ) {
-            // Poll longer in background worker (~2.5 min). Prefer reusing job; never create a second.
-            for ($attempt = 1; $attempt <= 50; $attempt++) {
-                usleep(3_000_000);
-                $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
-                if ($existingId !== '') {
-                    Log::info('SCIM job id appeared after AlreadyExists lag', [
-                        'tenant_id' => $tenantId,
-                        'job_id' => $existingId,
-                        'attempt' => $attempt,
-                    ]);
-                    Cache::put('scim.job_id.'.$servicePrincipalId, $existingId, now()->addDays(7));
-
-                    return $existingId;
-                }
-
-                // Fall back to last known job id for this SP if list is still empty.
-                $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
-                if (is_string($cached) && $cached !== '' && $attempt >= 10) {
-                    Log::info('SCIM job id recovered from portal cache after AlreadyExists lag', [
-                        'tenant_id' => $tenantId,
-                        'job_id' => $cached,
-                        'attempt' => $attempt,
-                    ]);
-
-                    return $cached;
-                }
+            $existingId = $this->pollForListedScimJobId($tenantId, $servicePrincipalId);
+            if ($existingId !== '') {
+                return $existingId;
             }
 
             throw new RuntimeException(
                 'A SCIM provisioning job already exists in Entra, but Microsoft Graph still did not return its id after ~2.5 min. '
-                .'Nothing is running in the portal after this error — re-check customer Entra → Enterprise applications → SuperOps - {Company} → Provisioning (On/Off). '
-                .'Then re-run Apply SCIM once more. Do not create a second job in the Azure UI. The old job is reused; there is no hours-long portal install to “clear”.'
+                .'Use Retry SCIM export on Edit Client once more. Do not create a second job in the Azure UI.'
             );
         }
 
-        throw new RuntimeException(
-            'Microsoft Graph create SCIM provisioning job failed: '.$create->status().' '
-            .$this->shortGraphErrorBody($body)
+        if ($create->failed()) {
+            throw new RuntimeException(
+                'Microsoft Graph create SCIM job (template '.$templateId.') failed: '.$create->status().' '
+                .$this->shortGraphErrorBody($body)
+            );
+        }
+
+        return '';
+    }
+
+    private function pollForListedScimJobId(string $tenantId, string $servicePrincipalId): string
+    {
+        for ($attempt = 1; $attempt <= 50; $attempt++) {
+            usleep(3_000_000);
+            $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
+            if ($existingId !== '') {
+                Log::info('SCIM job id appeared after AlreadyExists lag', [
+                    'tenant_id' => $tenantId,
+                    'job_id' => $existingId,
+                    'attempt' => $attempt,
+                ]);
+                Cache::put('scim.job_id.'.$servicePrincipalId, $existingId, now()->addDays(7));
+
+                return $existingId;
+            }
+
+            $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
+            if (is_string($cached) && $this->isUsableScimJobId($cached) && $attempt >= 10) {
+                Log::info('SCIM job id recovered from portal cache after AlreadyExists lag', [
+                    'tenant_id' => $tenantId,
+                    'job_id' => $cached,
+                    'attempt' => $attempt,
+                ]);
+
+                return $cached;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function scimSynchronizationTemplateCandidates(string $tenantId, string $servicePrincipalId): array
+    {
+        $candidates = ['scim'];
+
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/templates",
         );
+
+        if ($response->successful()) {
+            $templates = $response->json('value') ?? [];
+            $scored = [];
+
+            foreach (is_array($templates) ? $templates : [] as $template) {
+                $id = (string) ($template['id'] ?? '');
+                if ($id === '') {
+                    continue;
+                }
+
+                $score = 0;
+                $idLower = strtolower($id);
+                if ($idLower === 'scim') {
+                    $score += 100;
+                }
+                if (str_contains($idLower, 'scim')) {
+                    $score += 50;
+                }
+                if (str_contains($idLower, 'outdelta') || str_contains($idLower, 'out')) {
+                    $score += 10;
+                }
+                if (str_contains($idLower, 'custom')) {
+                    $score += 5;
+                }
+
+                $scored[] = ['id' => $id, 'score' => $score];
+            }
+
+            usort($scored, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
+            foreach ($scored as $row) {
+                $candidates[] = $row['id'];
+            }
+        }
+
+        $candidates[] = 'customappsso';
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function waitForScimSynchronizationTemplates(
+        string $tenantId,
+        string $servicePrincipalId,
+        int $maxAttempts = 24,
+    ): void {
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $response = $this->graphGet(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/templates",
+            );
+
+            if ($response->successful()) {
+                $templates = $response->json('value') ?? [];
+                if (is_array($templates) && $templates !== []) {
+                    if ($attempt > 1) {
+                        Log::info('SCIM synchronization templates appeared after wait', [
+                            'tenant_id' => $tenantId,
+                            'attempt' => $attempt,
+                            'count' => count($templates),
+                        ]);
+                    }
+
+                    return;
+                }
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep(5_000_000);
+            }
+        }
+    }
+
+    private function discardStaleScimJobCache(string $tenantId, string $servicePrincipalId): void
+    {
+        $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
+        if (! is_string($cached) || $cached === '') {
+            return;
+        }
+
+        if ($this->listScimSynchronizationJobId($tenantId, $servicePrincipalId) !== '') {
+            return;
+        }
+
+        if (! $this->isUsableScimJobId($cached)) {
+            Cache::forget('scim.job_id.'.$servicePrincipalId);
+            Log::info('Discarded stale SCIM job cache entry', [
+                'tenant_id' => $tenantId,
+                'service_principal_id' => $servicePrincipalId,
+                'cached_job_id' => $cached,
+            ]);
+        }
+    }
+
+    private function isUsableScimJobId(string $jobId): bool
+    {
+        return str_starts_with(strtolower(trim($jobId)), 'scim.');
     }
 
     /**
@@ -2452,7 +2599,7 @@ class MicrosoftGraphClient
 
             $jobs = $jobsResponse->json('value') ?? [];
             $id = $this->pickSynchronizationJobId(is_array($jobs) ? $jobs : []);
-            if ($id !== '') {
+            if ($id !== '' && $this->isUsableScimJobId($id)) {
                 Cache::put('scim.job_id.'.$servicePrincipalId, $id, now()->addDays(7));
 
                 return $id;
@@ -2460,7 +2607,7 @@ class MicrosoftGraphClient
         }
 
         $cached = Cache::get('scim.job_id.'.$servicePrincipalId);
-        if (is_string($cached) && $cached !== '') {
+        if (is_string($cached) && $this->isUsableScimJobId($cached)) {
             return $cached;
         }
 
@@ -2476,15 +2623,7 @@ class MicrosoftGraphClient
             return '';
         }
 
-        if (preg_match('/"id"\s*:\s*"((?:scim\.)?[^"]{8,})"/i', $body, $m)) {
-            $id = trim($m[1]);
-            // Avoid grabbing unrelated "id" fields that are plain tokens.
-            if (str_contains(strtolower($id), 'scim') || preg_match('/^[0-9a-f-]{36}$/i', $id) || str_contains($id, '.')) {
-                return $id;
-            }
-        }
-
-        if (preg_match('/job[\"\'\s:]+([a-z0-9._-]{12,})/i', $body, $m)) {
+        if (preg_match('/"id"\s*:\s*"(scim\.[^"]+)"/i', $body, $m)) {
             return trim($m[1]);
         }
 
