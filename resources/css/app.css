@@ -477,6 +477,12 @@
         border-left-color: #ff7000;
     }
 
+    .onboarding-guide__item.is-failed,
+    .onboarding-guide__item.is-failed.is-open,
+    .onboarding-guide__item.is-failed:hover:not(.is-blocked) {
+        border-left-color: rgb(239 68 68 / 0.75);
+    }
+
     .onboarding-guide__item.is-done {
         border-left-color: rgb(255 112 0 / 0.35);
     }
@@ -516,6 +522,10 @@
 
     .onboarding-status--blocked {
         @apply border border-white/[0.06] bg-white/[0.03] text-white/35;
+    }
+
+    .onboarding-status--failed {
+        @apply border border-red-500/50 bg-red-500/15 text-red-300;
     }
 
     .onboarding-guide__chevron {

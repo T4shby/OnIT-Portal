@@ -38,6 +38,9 @@
                     Entra side is ready. Finish SuperOps Step 3 (paste Login URL + cert → Save) if you have not already.
                 @endif
                 You only need the form below if you are wiring a <strong class="text-white/90">new</strong> SuperOps Client SSO config or re-running after a failure.
+                @if($ssoStepDone && $ssoWired)
+                    Entity ID / Consumer URL inputs stay empty on purpose — those values live in Entra and SuperOps now.
+                @endif
             </p>
         @else
             <p class="portal-label mb-2">Still needs you (about 2 minutes)</p>

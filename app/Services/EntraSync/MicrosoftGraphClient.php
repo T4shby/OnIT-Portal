@@ -1709,6 +1709,83 @@ class MicrosoftGraphClient
     }
 
     /**
+     * True when the Entra SCIM app exists but Graph cannot provision (0 templates or phantom jobs).
+     */
+    public function superOpsScimEnterpriseAppNeedsRecreate(string $tenantId, string $appId): bool
+    {
+        $tenantId = strtolower(trim($tenantId));
+        $appId = trim($appId);
+
+        if ($tenantId === '' || $appId === '') {
+            return false;
+        }
+
+        try {
+            $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
+        } catch (Throwable) {
+            return false;
+        }
+
+        if ($this->countScimSynchronizationTemplates($tenantId, $servicePrincipalId) === 0) {
+            return true;
+        }
+
+        foreach ($this->fetchScimSynchronizationJobs($tenantId, $servicePrincipalId) as $job) {
+            $id = (string) ($job['id'] ?? '');
+            if ($id !== '' && ! $this->isUsableScimJobId($id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Remove enterprise app + app registration so bootstrap can create a fresh SCIM shell.
+     */
+    public function deleteEnterpriseApplicationByAppId(string $tenantId, string $appId): void
+    {
+        $tenantId = strtolower(trim($tenantId));
+        $appId = trim($appId);
+
+        $resolved = $this->waitForApplicationByAppId($tenantId, $appId);
+
+        try {
+            $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId);
+            Cache::forget('scim.job_id.'.$servicePrincipalId);
+            $deleteSp = $this->graphDelete(
+                $tenantId,
+                "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}",
+            );
+            if ($deleteSp->failed() && $deleteSp->status() !== 404) {
+                throw new RuntimeException(
+                    'Could not delete SuperOps enterprise application: '.$deleteSp->status().' '
+                    .$this->shortGraphErrorBody($deleteSp->body())
+                );
+            }
+        } catch (Throwable $e) {
+            if (! str_contains($e->getMessage(), '404')) {
+                Log::warning('SCIM app SP delete skipped or failed', [
+                    'tenant_id' => $tenantId,
+                    'app_id' => $appId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $deleteApp = $this->graphDelete(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/applications/{$resolved['applicationObjectId']}",
+        );
+        if ($deleteApp->failed() && $deleteApp->status() !== 404) {
+            throw new RuntimeException(
+                'Could not delete SuperOps app registration: '.$deleteApp->status().' '
+                .$this->shortGraphErrorBody($deleteApp->body())
+            );
+        }
+    }
+
+    /**
      * Read Entra SCIM provisioning health for a customer's SuperOps enterprise app.
      *
      * @return array{
@@ -2347,6 +2424,14 @@ class MicrosoftGraphClient
 
         $this->waitForScimSynchronizationTemplates($tenantId, $servicePrincipalId);
 
+        if ($this->countScimSynchronizationTemplates($tenantId, $servicePrincipalId) === 0) {
+            throw new RuntimeException(
+                'Microsoft Graph returned zero SCIM provisioning templates for this Entra app. '
+                .'Use **Retry Graph setup** on Edit Client — the portal deletes and recreates the SCIM app automatically, '
+                .'then **Apply SCIM** with SuperOps Tenant URL + Secret Token.'
+            );
+        }
+
         $lastError = 'Could not create SCIM provisioning job.';
         foreach ($this->scimSynchronizationTemplateCandidates($tenantId, $servicePrincipalId) as $templateId) {
             try {
@@ -2431,7 +2516,7 @@ class MicrosoftGraphClient
 
     private function pollForListedScimJobId(string $tenantId, string $servicePrincipalId): string
     {
-        for ($attempt = 1; $attempt <= 50; $attempt++) {
+        for ($attempt = 1; $attempt <= 20; $attempt++) {
             usleep(3_000_000);
             $existingId = $this->listScimSynchronizationJobId($tenantId, $servicePrincipalId);
             if ($existingId !== '') {
@@ -2514,7 +2599,7 @@ class MicrosoftGraphClient
     private function waitForScimSynchronizationTemplates(
         string $tenantId,
         string $servicePrincipalId,
-        int $maxAttempts = 24,
+        int $maxAttempts = 12,
     ): void {
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $response = $this->graphGet(
@@ -2538,9 +2623,25 @@ class MicrosoftGraphClient
             }
 
             if ($attempt < $maxAttempts) {
-                usleep(5_000_000);
+                usleep(3_000_000);
             }
         }
+    }
+
+    private function countScimSynchronizationTemplates(string $tenantId, string $servicePrincipalId): int
+    {
+        $response = $this->graphGet(
+            $tenantId,
+            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/templates",
+        );
+
+        if (! $response->successful()) {
+            return 0;
+        }
+
+        $templates = $response->json('value') ?? [];
+
+        return is_array($templates) ? count($templates) : 0;
     }
 
     private function discardStaleScimJobCache(string $tenantId, string $servicePrincipalId): void
@@ -3565,6 +3666,17 @@ class MicrosoftGraphClient
 
         if ($this->shouldRefreshTokenOnResponse($response)) {
             $response = $this->request($tenantId, refreshToken: true)->patch($url, $data);
+        }
+
+        return $response;
+    }
+
+    private function graphDelete(string $tenantId, string $url): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request($tenantId)->delete($url);
+
+        if ($this->shouldRefreshTokenOnResponse($response)) {
+            $response = $this->request($tenantId, refreshToken: true)->delete($url);
         }
 
         return $response;

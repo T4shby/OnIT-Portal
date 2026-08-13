@@ -28,14 +28,21 @@ Use this when onboarding a **new client organisation** or a **new user**. It lis
 
 ## Who performs each step (MSP — ~100 clients)
 
-Every step is performed by **On IT MSP technicians on the customer’s behalf**. The label shows **where** you work, not a different company. The customer does not receive setup links, sign in, or complete checklist tasks.
+Every step is performed by **On IT MSP technicians on the customer’s behalf**. The customer does not receive setup links, sign in, or complete checklist tasks.
 
-| Label in app | Where | Examples |
-|--------------|-------|----------|
-| **On IT technician (portal / SuperOps)** | app.onit.ltd admin, SuperOps MSP console, Pax8 partner | Client record, Account ID, sync buttons |
-| **On IT technician (customer Entra / GDAP)** | **Private browser** → portal.azure.com signed **directly** into the **customer** tenant via GDAP (never On IT first then switch). Entra left **Manage** → Groups / Enterprise applications | Security group, SCIM app, Portal Graph Accept (04), SuperOps Client SSO app (08) |
+### Where you work (automation split)
 
-If On IT does not have the required delegated / GDAP role, stop and escalate internally until access is corrected. Do **not** hand setup actions or Accept URLs to the customer.
+| System | Normal path | Manual only when… |
+|--------|-------------|-------------------|
+| **Microsoft Entra / M365** | **This portal only** — Connect Microsoft, **Retry Graph setup**, Apply SCIM (Graph writes Entra), Wire Client SSO (Graph writes Entra), Sync now | **Only if something failed** recovery in the checklist (rare); never delete/recreate SCIM apps in Azure UI — **Retry Graph setup** auto-resets broken SCIM shells |
+| **SuperOps** | MSP console | Generate SCIM tokens (step 05), copy Entity ID + ACS **from** SuperOps, paste Login URL + cert **into** SuperOps Step 3 — portal cannot do these (no SuperOps API) |
+
+**GDAP** is still required once for **Connect Microsoft → Accept** (step 04). After that, M365 changes run through Graph from the portal — not portal.azure.com click paths for SCIM provisioning, app create, group assign, or SAML wire.
+
+| Label in app | Meaning |
+|--------------|---------|
+| **On IT technician (portal / SuperOps)** | app.onit.ltd + SuperOps MSP console |
+| **On IT technician (customer Entra / GDAP)** | Accept + anything the portal pushes via Graph on your behalf (not “go configure Entra by hand”) |
 
 Same playbook for every client: **Admin → Clients → Add → Edit** → work the checklist → next client.
 
@@ -80,7 +87,7 @@ Deployment resets existing step 08 completions because they represented the reti
 
 **Before step 01:** **Admin → Clients → Add Client** → **Create client**.
 
-**Steps 03–04 (preferred):** one orange **Connect Microsoft tenant** at the top of the setup guide — private browser / GDAP → Accept once. After Accept the portal **waits and retries Graph**, then bootstraps (progress saved after each stage): `entra_tenant_id`, Free/P1, portal group, SuperOps SCIM + Client SSO Entra apps. **Reload Edit Client** after Connect — do not Save from a form that still shows Free when Graph already wrote P1. If group create returns HTTP 403: add **Group.ReadWrite.All** on OnIT Portal for Portals (On IT tenant), Grant consent, re-consent in customer, **Retry Graph setup** — app IDs can still be created without the group; paste group Object ID if needed. Requires **Group.ReadWrite.All** + **Application.ReadWrite.All** (see [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0).
+**Steps 03–04 (preferred):** one orange **Connect Microsoft tenant** at the top of the setup guide — private browser / GDAP → Accept once. After Accept the portal **waits and retries Graph**, then bootstraps (progress saved after each stage): `entra_tenant_id`, Free/P1, portal group, SuperOps SCIM + Client SSO Entra apps. **Retry Graph setup** (same button, no second Accept) also re-runs bootstrap — if the SCIM app is broken (Graph reports zero provisioning templates), the portal **deletes and recreates** that Entra app automatically; you only **Apply SCIM** again with SuperOps tokens. **Reload Edit Client** after Connect — do not Save from a form that still shows Free when Graph already wrote P1.
 
 ### Auto vs manual checklist steps
 
@@ -92,7 +99,7 @@ Deployment resets existing step 08 completions because they represented the reti
 | 04 Portal Accept | Consent + bootstrap, or Sync has run successfully | — |
 | 05 SCIM tokens | — | SuperOps Generate Tokens |
 | 06 SCIM app | `entra_superops_app_id` filled | Tick if app exists but ID not saved |
-| 07 SCIM provisioning | — | Tokens + mappings + Start provisioning |
+| 07 SCIM provisioning | Live Graph export active (cached ~5m) after Apply or Retry | Shows **Failed** (red badge) when credentials are in Entra but export is stopped — use **Retry SCIM export** |
 | 08 Client SSO | Entra shell/app ID from Connect; wire success may mark when wired | SuperOps Entity ID + ACS paste (no SuperOps API); Step 3 Login URL + cert save |
 | 09 Enable sync | Prerequisites saved + Entra sync enabled | — |
 | 10 Run sync | `entra_synced_at` set after Sync now | Tick after Sync now if Last synced lagging |
@@ -338,6 +345,9 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | M365/Entra automation in portal only; SuperOps console for SCIM tokens + SSO paste |
+| 2026-08-13 | **Retry Graph setup** auto-resets broken SCIM Entra app — no Azure UI delete |
+| 2026-08-13 | Checklist step 07 **Failed** when live SCIM export unhealthy; step auto-expands on failure |
 | 2026-08-07 | Step 07 Apply SCIM not green without name mappings + Sync queue; SuperOps bulk vs Entra scope warning |
 | 2026-08-06 | All 12 live checklist guides use automated + remaining + recovery layout |
 | 2026-08-06 | Checklist automation-first guide UX (automated + remaining + recovery); step 08 SuperOps Microsoft login (Client SSO) |

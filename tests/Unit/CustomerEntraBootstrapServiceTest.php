@@ -14,6 +14,12 @@ class CustomerEntraBootstrapServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     public function test_bootstrap_saves_tenant_licence_group_and_app_ids(): void
     {
         $client = Client::factory()->create([
@@ -52,7 +58,7 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->andReturn($groupId);
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, 'SuperOps - We Are Find')
+            ->with($tenantId, 'SuperOps - We Are Find', null)
             ->andReturn([
                 'appId' => $scimAppId,
                 'applicationObjectId' => $scimObjectId,
@@ -60,7 +66,7 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ]);
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, 'SuperOps Requester SSO - We Are Find')
+            ->with($tenantId, 'SuperOps Requester SSO - We Are Find', null)
             ->andReturn([
                 'appId' => $ssoAppId,
                 'applicationObjectId' => $ssoObjectId,
@@ -89,6 +95,9 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->with($tenantId, $ssoSpId, $ssoAppId)
             ->andReturn($roleId);
         $graph->shouldReceive('assignGroupToEnterpriseApp')->twice();
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')
+            ->zeroOrMoreTimes()
+            ->andReturn(['ok' => false, 'needsApplyScim' => true]);
 
         $this->app->instance(MicrosoftGraphClient::class, $graph);
 
@@ -147,6 +156,13 @@ class CustomerEntraBootstrapServiceTest extends TestCase
         $graph->shouldReceive('ensurePortalSecurityGroup')
             ->once()
             ->andReturn($client->entra_group_id);
+        $graph->shouldReceive('superOpsScimEnterpriseAppNeedsRecreate')
+            ->once()
+            ->with($tenantId, $client->entra_superops_app_id)
+            ->andReturn(false);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')
+            ->zeroOrMoreTimes()
+            ->andReturn(['ok' => true, 'needsApplyScim' => false]);
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->twice()
             ->andReturn(
@@ -206,7 +222,7 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->andThrow(new \RuntimeException('Microsoft Graph cannot create security groups (HTTP 403)'));
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, 'SuperOps - YorPower')
+            ->with($tenantId, 'SuperOps - YorPower', null)
             ->andReturn([
                 'appId' => $scimAppId,
                 'applicationObjectId' => 'scim-obj',
@@ -214,7 +230,7 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ]);
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, 'SuperOps Requester SSO - YorPower')
+            ->with($tenantId, 'SuperOps Requester SSO - YorPower', null)
             ->andReturn([
                 'appId' => $ssoAppId,
                 'applicationObjectId' => 'sso-obj',
@@ -222,6 +238,9 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ]);
         $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn('role');
         $graph->shouldNotReceive('assignGroupToEnterpriseApp');
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')
+            ->zeroOrMoreTimes()
+            ->andReturn(['ok' => false, 'needsApplyScim' => true]);
 
         $this->app->instance(MicrosoftGraphClient::class, $graph);
 
@@ -237,5 +256,77 @@ class CustomerEntraBootstrapServiceTest extends TestCase
         $this->assertTrue($client->onboarding_checklist['entra_admin_consent_granted'] ?? false);
         $this->assertTrue($client->onboarding_checklist['superops_scim_app'] ?? false);
         $this->assertStringContainsString('group still missing', strtolower($result['summary']));
+    }
+
+    public function test_bootstrap_auto_resets_broken_scim_app_and_creates_fresh_one(): void
+    {
+        $tenantId = '102598ee-d66c-4f69-a05d-80981b689d23';
+        $brokenAppId = 'aaaaaaaa-1111-1111-1111-111111111111';
+        $newAppId = 'cccccccc-3333-3333-3333-333333333333';
+
+        $client = Client::factory()->create([
+            'name' => 'YorPower',
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => '493a4f92-717a-435e-ae4a-466532745c32',
+            'entra_license_tier' => 'p1',
+            'entra_superops_app_id' => $brokenAppId,
+            'entra_superops_sso_app_id' => 'bbbbbbbb-2222-2222-2222-222222222222',
+            'onboarding_checklist' => [
+                'superops_scim_configured' => true,
+                'superops_scim_provisioning' => true,
+            ],
+        ]);
+
+        $graph = Mockery::mock(MicrosoftGraphClient::class);
+        $graph->shouldReceive('isConfigured')->andReturn(true);
+        $graph->shouldReceive('clearAccessTokenCache')->with($tenantId);
+        $graph->shouldReceive('waitUntilAppOnlyGraphReady')
+            ->once()
+            ->andReturn(['ready' => true, 'attempts' => 1, 'last_error' => null]);
+        $graph->shouldReceive('retryAfterConsentPropagation')
+            ->times(4)
+            ->andReturnUsing(fn (string $tid, callable $op) => $op());
+        $graph->shouldReceive('detectEntraDirectoryLicenseTier')->once()->andReturn('p1');
+        $graph->shouldReceive('ensurePortalSecurityGroup')->once()->andReturn($client->entra_group_id);
+        $graph->shouldReceive('superOpsScimEnterpriseAppNeedsRecreate')
+            ->once()
+            ->with($tenantId, $brokenAppId)
+            ->andReturn(true);
+        $graph->shouldReceive('deleteEnterpriseApplicationByAppId')
+            ->once()
+            ->with($tenantId, $brokenAppId);
+        $graph->shouldReceive('ensureNamedEnterpriseApplication')
+            ->once()
+            ->with($tenantId, 'SuperOps - YorPower', null)
+            ->andReturn([
+                'appId' => $newAppId,
+                'applicationObjectId' => 'scim-obj-new',
+                'servicePrincipalId' => 'scim-sp-new',
+            ]);
+        $graph->shouldReceive('ensureNamedEnterpriseApplication')
+            ->once()
+            ->with($tenantId, 'SuperOps Requester SSO - YorPower', $client->entra_superops_sso_app_id)
+            ->andReturn([
+                'appId' => $client->entra_superops_sso_app_id,
+                'applicationObjectId' => 'sso-obj',
+                'servicePrincipalId' => 'sso-sp',
+            ]);
+        $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn('role');
+        $graph->shouldReceive('waitForServicePrincipalForAppId')->twice()->andReturn('scim-sp-new', 'sso-sp');
+        $graph->shouldReceive('resolveAssignableAppRoleId')->twice()->andReturn('role');
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')
+            ->zeroOrMoreTimes()
+            ->andReturn(['ok' => false, 'needsApplyScim' => true]);
+        $graph->shouldReceive('assignGroupToEnterpriseApp')->twice();
+
+        $this->app->instance(MicrosoftGraphClient::class, $graph);
+
+        $result = app(CustomerEntraBootstrapService::class)->bootstrap($client, $tenantId);
+
+        $this->assertTrue($result['ok']);
+        $client->refresh();
+        $this->assertSame($newAppId, $client->entra_superops_app_id);
+        $this->assertFalse($client->onboarding_checklist['superops_scim_configured'] ?? true);
+        $this->assertStringContainsString('reset automatically', strtolower(implode(' ', $result['warnings'])));
     }
 }

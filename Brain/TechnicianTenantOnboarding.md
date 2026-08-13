@@ -6,6 +6,8 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 **MSP ownership:** On IT technicians perform every setup and acceptance action on the customer’s behalf using delegated / GDAP access. The customer does not receive setup links, sign in, or complete checklist tasks.
 
+**Split:** **M365/Entra = portal** (Connect, Retry Graph setup, Apply SCIM, Wire SSO, Sync). **SuperOps = MSP console** (SCIM tokens, Client SSO Entity ID/ACS in, Login URL + cert out). Do not open Azure to create/delete SCIM apps or provisioning — **Retry Graph setup** handles broken SCIM Entra shells automatically.
+
 ## Start here
 
 1. Sign in to https://app.onit.ltd as an On IT technician.

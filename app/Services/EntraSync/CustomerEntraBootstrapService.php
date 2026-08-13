@@ -4,6 +4,7 @@ namespace App\Services\EntraSync;
 
 use App\Models\Client;
 use App\Services\ClientOnboardingService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -141,12 +142,34 @@ class CustomerEntraBootstrapService
         }
 
         try {
+            $knownScimAppId = $client->entra_superops_app_id ?? ($fields['entra_superops_app_id'] ?? null);
+            if (filled($knownScimAppId)) {
+                try {
+                    if ($this->graph->superOpsScimEnterpriseAppNeedsRecreate($tenantId, (string) $knownScimAppId)) {
+                        $this->graph->deleteEnterpriseApplicationByAppId($tenantId, (string) $knownScimAppId);
+                        $fields['entra_superops_app_id'] = null;
+                        $this->persist($client, ['entra_superops_app_id' => null]);
+                        $this->onboarding->resetScimAfterEntraAppRecreate($client);
+                        Cache::forget('scim.health.'.$client->id);
+                        $details[] = 'Removed broken SuperOps SCIM Entra app and will create a fresh one.';
+                        $warnings[] = 'SuperOps SCIM Entra app was reset automatically. Paste SuperOps Tenant URL + Secret → **Apply SCIM**.';
+                        $knownScimAppId = null;
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('Entra bootstrap SCIM auto-reset failed', [
+                        'client_id' => $client->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $warnings[] = 'Could not auto-reset broken SCIM app: '.$e->getMessage();
+                }
+            }
+
             $scim = $this->graph->retryAfterConsentPropagation(
                 $tenantId,
                 fn () => $this->graph->ensureNamedEnterpriseApplication(
                     $tenantId,
                     $scimAppName,
-                    $client->entra_superops_app_id ?? ($fields['entra_superops_app_id'] ?? null),
+                    filled($knownScimAppId) ? (string) $knownScimAppId : null,
                 ),
             );
             $fields['entra_superops_app_id'] = $scim['appId'];

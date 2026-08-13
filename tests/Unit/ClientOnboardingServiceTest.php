@@ -80,6 +80,60 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertFalse($step['complete']);
     }
 
+    public function test_scim_step_shows_failed_when_live_export_unhealthy(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_superops_app_id' => '33333333-3333-3333-3333-333333333333',
+            'onboarding_checklist' => [
+                'superops_scim_name_mappings' => true,
+                'superops_scim_sync_queued' => true,
+                'superops_scim_configured' => true,
+            ],
+        ]);
+
+        $graph = Mockery::mock(\App\Services\EntraSync\MicrosoftGraphClient::class);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')->andReturn([
+            'ok' => false,
+            'needsApplyScim' => false,
+            'needsRepair' => true,
+            'error' => 'Entra SCIM export is not active.',
+        ]);
+        $this->app->instance(\App\Services\EntraSync\MicrosoftGraphClient::class, $graph);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_scim_provisioning');
+
+        $this->assertFalse($step['complete']);
+        $this->assertTrue($step['failed']);
+        $this->assertStringContainsString('not active', $step['failure_summary']);
+    }
+
+    public function test_scim_step_complete_when_live_export_healthy(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_superops_app_id' => '33333333-3333-3333-3333-333333333333',
+            'onboarding_checklist' => [
+                'superops_scim_name_mappings' => true,
+                'superops_scim_sync_queued' => true,
+            ],
+        ]);
+
+        $graph = Mockery::mock(\App\Services\EntraSync\MicrosoftGraphClient::class);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')->andReturn([
+            'ok' => true,
+            'needsApplyScim' => false,
+        ]);
+        $this->app->instance(\App\Services\EntraSync\MicrosoftGraphClient::class, $graph);
+
+        $step = collect(app(ClientOnboardingService::class)->steps($client))
+            ->firstWhere('key', 'superops_scim_provisioning');
+
+        $this->assertTrue($step['complete']);
+        $this->assertFalse($step['failed'] ?? false);
+    }
+
     public function test_scim_step_07_complete_when_mappings_and_sync_recorded(): void
     {
         $client = Client::factory()->create([

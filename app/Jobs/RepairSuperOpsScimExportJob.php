@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Client;
 use App\Services\ActivityLogService;
+use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\SuperOpsScimRepairService;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -25,7 +26,7 @@ class RepairSuperOpsScimExportJob implements ShouldQueue, ShouldBeUnique, Should
 
     public int $tries = 1;
 
-    public int $timeout = 300;
+    public int $timeout = 600;
 
     public int $uniqueFor = 300;
 
@@ -46,7 +47,7 @@ class RepairSuperOpsScimExportJob implements ShouldQueue, ShouldBeUnique, Should
         Cache::forget('scim.health.'.$clientId);
     }
 
-    public function handle(SuperOpsScimRepairService $repair, ActivityLogService $activityLog): void
+    public function handle(SuperOpsScimRepairService $repair, ActivityLogService $activityLog, ClientOnboardingService $onboarding): void
     {
         $client = Client::query()->find($this->clientId);
 
@@ -58,6 +59,12 @@ class RepairSuperOpsScimExportJob implements ShouldQueue, ShouldBeUnique, Should
 
         $started = microtime(true);
         $result = $repair->retryExport($client, provisionMissing: true, queueSync: true);
+
+        if ($result['ok']) {
+            $onboarding->markScimExportChecklistComplete($client);
+        } else {
+            $onboarding->clearScimExportChecklistComplete($client);
+        }
 
         $activityLog->log(
             'client.scim_export_retried',

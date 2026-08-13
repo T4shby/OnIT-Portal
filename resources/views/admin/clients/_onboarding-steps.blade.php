@@ -1,9 +1,17 @@
 @php
     $defaultOpenIndex = 0;
     foreach ($onboardingSteps as $i => $step) {
-        if (! $step['complete'] && ! $step['blocked']) {
+        if ($step['failed'] ?? false) {
             $defaultOpenIndex = $i;
             break;
+        }
+    }
+    if (! ($onboardingSteps[$defaultOpenIndex]['failed'] ?? false)) {
+        foreach ($onboardingSteps as $i => $step) {
+            if (! $step['complete'] && ! $step['blocked']) {
+                $defaultOpenIndex = $i;
+                break;
+            }
         }
     }
 @endphp
@@ -16,7 +24,8 @@
         @php
             $stepNumber = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
             $isDone = $step['complete'];
-            $isBlocked = $step['blocked'] && ! $step['complete'];
+            $isFailed = ($step['failed'] ?? false) && ! $isDone;
+            $isBlocked = $step['blocked'] && ! $step['complete'] && ! $isFailed;
             $showGraphAccept = in_array($step['key'], ['entra_group_created', 'entra_admin_consent_granted'], true)
                 && ! $isDone
                 && ! $isBlocked;
@@ -25,7 +34,7 @@
         @endphp
 
         <article
-            class="onboarding-guide__item @if($isDone) is-done @endif @if($isBlocked) is-blocked @endif"
+            class="onboarding-guide__item @if($isDone) is-done @endif @if($isFailed) is-failed @endif @if($isBlocked) is-blocked @endif"
             :class="{ 'is-open': openStep === {{ $index }} }"
         >
             <button
@@ -43,6 +52,8 @@
 
                 @if($isDone)
                     <span class="onboarding-status onboarding-status--done">Done</span>
+                @elseif($isFailed)
+                    <span class="onboarding-status onboarding-status--failed">Failed</span>
                 @elseif($isBlocked)
                     <span class="onboarding-status onboarding-status--blocked">Blocked</span>
                 @else
@@ -66,6 +77,13 @@
                 x-cloak
                 class="onboarding-guide__panel"
             >
+                @if($isFailed && filled($step['failure_summary'] ?? null))
+                    <p class="onboarding-guide__note mb-4 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-100">
+                        <span class="portal-label mb-1 block text-red-200/90">SCIM export not running</span>
+                        {{ $step['failure_summary'] }}
+                    </p>
+                @endif
+
                 @if($showGraphAccept)
                     @if(! empty($adminConsentUrl))
                         <div class="onboarding-guide__extra mb-4">

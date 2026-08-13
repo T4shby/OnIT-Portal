@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Client;
+use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\MicrosoftGraphClient;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -112,8 +113,24 @@ class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncry
             'superops_scim_app' => true,
             'superops_scim_name_mappings' => $nameMappingsOk,
             'superops_scim_sync_queued' => $syncQueued,
-            'superops_scim_provisioning' => $stepComplete,
+            'superops_scim_provisioning' => false,
         ]);
+
+        Cache::forget('scim.health.'.$client->id);
+
+        if ($stepComplete) {
+            $health = $graph->getSuperOpsScimProvisioningHealth(
+                (string) $client->entra_tenant_id,
+                (string) $client->entra_superops_app_id,
+            );
+            if ($health['ok'] ?? false) {
+                $onboarding->markScimExportChecklistComplete($client);
+            } else {
+                $onboarding->clearScimExportChecklistComplete($client);
+            }
+        } else {
+            $onboarding->clearScimExportChecklistComplete($client);
+        }
 
         $activityLog->log(
             'client.scim_credentials_applied',

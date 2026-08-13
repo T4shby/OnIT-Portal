@@ -302,7 +302,7 @@ php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 
 If repair says credentials are missing, use **Admin → Clients → Edit → Apply SCIM** with SuperOps step **05** Tenant URL + Secret Token.
 
-**Staff UI:** Edit Client SCIM panel shows a red banner when Graph reports no provisioning job or missing BaseAddress (cached ~5 minutes).
+**Staff UI:** Edit Client SCIM panel shows a red alert when Graph reports no provisioning job or missing BaseAddress (cached ~5 minutes). Checklist step **07** shows a red **Failed** badge (not **Done**) when credentials exist but export is not active — auto-opens that step. One **Retry SCIM export** button (no duplicate).
 
 **After repair:** Entra → Enterprise apps → SuperOps - {Company} → **Provisioning logs** — expect **Create** for missing users within 1–2 minutes. Then **Sync now** again to bind `superops_user_id`.
 
@@ -314,6 +314,9 @@ If repair says credentials are missing, use **Admin → Clients → Edit → App
 
 | Date | Change |
 |------|--------|
+| 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SCIM Entra app (0 templates); technician only re-Applies SCIM tokens |
+| 2026-08-13 | SCIM Apply UI: **Credentials saved in Entra** banner; paste form collapsed — secret never stored in portal |
+| 2026-08-13 | Checklist step **07** **Failed** badge when live export unhealthy (not stale Done); Apply/Repair sync checklist to Graph health |
 | 2026-08-13 | **Retry SCIM export** on Edit Client (no secret re-paste) + auto-retry after partial Apply SCIM — `portal:repair-superops-scim` |
 | 2026-08-07 | Checklist step 07 Done only with name mappings + Sync queued; SuperOps bulk vs Entra scope Do not ignore warning |
 | 2026-08-04 | Scrub real customer names from examples (use `{Company}` / `Smith` placeholders); SuperOps names update after background Sync + SCIM (minutes) |

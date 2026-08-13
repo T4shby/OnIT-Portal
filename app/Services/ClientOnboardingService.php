@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Client;
+use App\Services\EntraSync\MicrosoftGraphClient;
+use Illuminate\Support\Facades\Cache;
 
 class ClientOnboardingService
 {
@@ -117,6 +119,7 @@ class ClientOnboardingService
             || (bool) ($checklist['superops_scim_app'] ?? false)
             || filled($client->entra_superops_app_id);
         $scimProvisioningComplete = $this->isScimProvisioningComplete($client, $checklist, $legacyScimComplete);
+        $scimExportFailed = $this->isScimExportFailed($client);
         $scimScopeWarnings = $this->superOpsEntraScopeWarnings($client);
 
         $ssoComplete = (bool) ($checklist['superops_client_sso_configured'] ?? false);
@@ -511,6 +514,10 @@ class ClientOnboardingService
                     : 'Apply SCIM tokens + start (Free)',
                 'who' => self::RESPONSIBLE_ON_IT_CUSTOMER_ENTRA,
                 'complete' => $scimProvisioningComplete,
+                'failed' => $scimExportFailed,
+                'failure_summary' => $scimExportFailed
+                    ? $this->scimExportFailureSummary($client)
+                    : null,
                 'manual' => false,
                 'auto_detected' => $scimProvisioningComplete,
                 'blocked' => ! $scimAppComplete,
@@ -901,12 +908,97 @@ class ClientOnboardingService
     }
 
     /**
-     * Step 07 green only when Apply recorded name mappings + Sync queue (or grandfathered legacy).
+     * @return array<string, mixed>|null
+     */
+    public function scimExportHealth(Client $client): ?array
+    {
+        if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_app_id)) {
+            return null;
+        }
+
+        return Cache::remember('scim.health.'.$client->id, now()->addMinutes(5), function () use ($client): array {
+            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
+                (string) $client->entra_tenant_id,
+                (string) $client->entra_superops_app_id,
+            );
+        });
+    }
+
+    public function isScimExportFailed(Client $client): bool
+    {
+        $health = $this->scimExportHealth($client);
+        if ($health === null || ($health['needsApplyScim'] ?? false)) {
+            return false;
+        }
+
+        return ! ($health['ok'] ?? false);
+    }
+
+    public function scimExportFailureSummary(Client $client): string
+    {
+        $health = $this->scimExportHealth($client);
+        if ($health === null) {
+            return 'SuperOps SCIM export is not healthy.';
+        }
+
+        if ($health['error'] ?? null) {
+            return (string) $health['error'];
+        }
+
+        $warnings = is_array($health['warnings'] ?? null) ? $health['warnings'] : [];
+        if ($warnings !== []) {
+            return (string) $warnings[0];
+        }
+
+        return 'Entra is not exporting requesters to SuperOps (Sync 1 stopped).';
+    }
+
+    public function resetScimAfterEntraAppRecreate(Client $client): void
+    {
+        $this->updateChecklist($client, [
+            'superops_scim_provisioning' => false,
+            'superops_scim_configured' => false,
+            'superops_scim_name_mappings' => false,
+            'superops_scim_sync_queued' => false,
+        ]);
+    }
+
+    public function clearScimExportChecklistComplete(Client $client): void
+    {
+        $this->updateChecklist($client, [
+            'superops_scim_provisioning' => false,
+            'superops_scim_configured' => false,
+        ]);
+    }
+
+    public function markScimExportChecklistComplete(Client $client): void
+    {
+        $this->updateChecklist($client, [
+            'superops_scim_tokens' => true,
+            'superops_scim_app' => true,
+            'superops_scim_name_mappings' => true,
+            'superops_scim_sync_queued' => true,
+            'superops_scim_provisioning' => true,
+            'superops_scim_configured' => true,
+        ]);
+    }
+
+    /**
+     * Step 07/08 green only when live export is OK (or not yet started), not stale checklist ticks.
      *
      * @param  array<string, mixed>  $checklist
      */
     public function isScimProvisioningComplete(Client $client, array $checklist, ?bool $legacyScimComplete = null): bool
     {
+        if ($this->isScimExportFailed($client)) {
+            return false;
+        }
+
+        $health = $this->scimExportHealth($client);
+        if ($health && ($health['ok'] ?? false)) {
+            return true;
+        }
+
         $legacyScimComplete ??= (bool) ($checklist['superops_scim_configured'] ?? false);
         if ($legacyScimComplete) {
             return true;

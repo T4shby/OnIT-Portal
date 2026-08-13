@@ -83,6 +83,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | Docs: M365/Entra automation in portal only; SuperOps console for tokens + SSO paste — [ClientOnboarding.md](ClientOnboarding.md) |
+| 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SuperOps SCIM Entra app (0 templates) — then Apply SCIM only — [ClientOnboarding.md](ClientOnboarding.md) |
+| 2026-08-13 | Checklist step **07** shows **Failed** (not Done) when live Entra SCIM export is unhealthy; cleaner SCIM alert + single Retry — [ClientOnboarding.md](ClientOnboarding.md), [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-13 | Integration Health **SuperOps SCIM** column — Entra export health next to SuperOps API feed; failed/setup in KPI + notices — [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-13 | SCIM job health/repair (`portal:repair-superops-scim`), Edit Client banner, provision missing SuperOps users on Sync 2 — [SuperOpsEntraSync.md](SuperOpsEntraSync.md), [AccessAndSync.md](AccessAndSync.md) |
 | 2026-08-11 | Docs pass: domain cutover (async Sync result, SuperOps align paths), UIOverhaul live-on-branch status, Roadmap — [DomainEmailChange.md](DomainEmailChange.md), [UIOverhaul.md](UIOverhaul.md), [Roadmap.md](Roadmap.md) |
