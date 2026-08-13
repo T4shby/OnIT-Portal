@@ -58,7 +58,7 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->andReturn($groupId);
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
             ->once()
-            ->with($tenantId, 'SuperOps - We Are Find', null)
+            ->with($tenantId, 'SuperOps - We Are Find', null, true)
             ->andReturn([
                 'appId' => $scimAppId,
                 'applicationObjectId' => $scimObjectId,
@@ -221,21 +221,27 @@ class CustomerEntraBootstrapServiceTest extends TestCase
             ->once()
             ->andThrow(new \RuntimeException('Microsoft Graph cannot create security groups (HTTP 403)'));
         $graph->shouldReceive('ensureNamedEnterpriseApplication')
-            ->once()
-            ->with($tenantId, 'SuperOps - YorPower', null)
-            ->andReturn([
-                'appId' => $scimAppId,
-                'applicationObjectId' => 'scim-obj',
-                'servicePrincipalId' => 'scim-sp',
-            ]);
-        $graph->shouldReceive('ensureNamedEnterpriseApplication')
-            ->once()
-            ->with($tenantId, 'SuperOps Requester SSO - YorPower', null)
-            ->andReturn([
-                'appId' => $ssoAppId,
-                'applicationObjectId' => 'sso-obj',
-                'servicePrincipalId' => 'sso-sp',
-            ]);
+            ->twice()
+            ->andReturnUsing(function (string $tid, string $name, ?string $known = null, bool $scim = false) use ($tenantId, $scimAppId, $ssoAppId) {
+                $this->assertSame($tenantId, $tid);
+                if (str_contains($name, 'Requester SSO')) {
+                    $this->assertFalse($scim);
+
+                    return [
+                        'appId' => $ssoAppId,
+                        'applicationObjectId' => 'sso-obj',
+                        'servicePrincipalId' => 'sso-sp',
+                    ];
+                }
+
+                $this->assertTrue($scim);
+
+                return [
+                    'appId' => $scimAppId,
+                    'applicationObjectId' => 'scim-obj',
+                    'servicePrincipalId' => 'scim-sp',
+                ];
+            });
         $graph->shouldReceive('ensureApplicationUserRole')->twice()->andReturn('role');
         $graph->shouldNotReceive('assignGroupToEnterpriseApp');
         $graph->shouldReceive('getSuperOpsScimProvisioningHealth')

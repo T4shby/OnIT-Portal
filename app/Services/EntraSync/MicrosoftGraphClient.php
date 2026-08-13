@@ -406,13 +406,21 @@ class MicrosoftGraphClient
 
     /**
      * Non-gallery app registration + enterprise service principal.
-     * Prefers POST /applications (with User app role) over template instantiate — more reliable
-     * against directory replication 404s when immediately reading/patching the new object.
+     *
+     * For SuperOps SCIM apps, prefer applicationTemplates instantiate — POST /applications
+     * creates shells with zero synchronization templates (Apply SCIM cannot start export).
      *
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
      */
-    public function createNonGalleryApplication(string $tenantId, string $displayName): array
-    {
+    public function createNonGalleryApplication(
+        string $tenantId,
+        string $displayName,
+        bool $forScimProvisioning = false,
+    ): array {
+        if ($forScimProvisioning) {
+            return $this->createNonGalleryApplicationViaTemplate($tenantId, $displayName);
+        }
+
         $userRoleId = (string) Str::uuid();
         $response = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
             'displayName' => $displayName,
@@ -464,9 +472,9 @@ class MicrosoftGraphClient
     private function createNonGalleryApplicationViaTemplate(
         string $tenantId,
         string $displayName,
-        Response $failedDirectCreate,
+        ?Response $failedDirectCreate = null,
     ): array {
-        // Gallery template ID for "Non-gallery" / custom LOB apps.
+        // Gallery template ID for "Non-gallery" / custom LOB apps (required for SCIM provisioning UI/API).
         $templateId = '8adf8e6e-67b2-4cf2-a259-e3dc5476c621';
         $response = $this->graphPost(
             $tenantId,
@@ -482,10 +490,14 @@ class MicrosoftGraphClient
         }
 
         if ($response->failed()) {
+            $prefix = $failedDirectCreate
+                ? 'Microsoft Graph create non-gallery app failed: direct='
+                    .$failedDirectCreate->status().' '.$failedDirectCreate->body()
+                    .'; template='
+                : 'Microsoft Graph instantiate non-gallery template failed: ';
+
             throw new RuntimeException(
-                'Microsoft Graph create non-gallery app failed: direct='
-                .$failedDirectCreate->status().' '.$failedDirectCreate->body()
-                .'; template='.$response->status().' '.$response->body()
+                $prefix.$response->status().' '.$response->body()
             );
         }
 
@@ -660,6 +672,7 @@ class MicrosoftGraphClient
         string $tenantId,
         string $displayName,
         ?string $knownAppClientId = null,
+        bool $forScimProvisioning = false,
     ): array {
         $knownAppClientId = filled($knownAppClientId) ? strtolower(trim((string) $knownAppClientId)) : null;
 
@@ -709,7 +722,7 @@ class MicrosoftGraphClient
             ];
         }
 
-        return $this->createNonGalleryApplication($tenantId, $displayName);
+        return $this->createNonGalleryApplication($tenantId, $displayName, $forScimProvisioning);
     }
 
     /**
@@ -1798,12 +1811,8 @@ class MicrosoftGraphClient
             usleep(1_000_000);
         }
 
-        return $this->createNonGalleryApplication($tenantId, $displayName);
+        return $this->createNonGalleryApplication($tenantId, $displayName, forScimProvisioning: true);
     }
-
-    /**
-     * Remove enterprise app + app registration so bootstrap can create a fresh SCIM shell.
-     */
     public function deleteEnterpriseApplicationByAppId(string $tenantId, string $appId): void
     {
         $tenantId = strtolower(trim($tenantId));

@@ -315,7 +315,7 @@ If repair says credentials are missing, use **Admin → Clients → Edit → App
 | Date | Change |
 |------|--------|
 | 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SCIM Entra app (0 templates); technician only re-Applies SCIM tokens |
-| 2026-08-13 | SCIM Apply UI: **Credentials saved in Entra** banner; paste form collapsed — secret never stored in portal |
+| 2026-08-13 | SuperOps SCIM Entra apps created via non-gallery **template instantiate** (not POST /applications) so Graph exposes SCIM templates |
 | 2026-08-13 | Checklist step **07** **Failed** badge when live export unhealthy (not stale Done); Apply/Repair sync checklist to Graph health |
 | 2026-08-13 | **Retry SCIM export** on Edit Client (no secret re-paste) + auto-retry after partial Apply SCIM — `portal:repair-superops-scim` |
 | 2026-08-07 | Checklist step 07 Done only with name mappings + Sync queued; SuperOps bulk vs Entra scope Do not ignore warning |

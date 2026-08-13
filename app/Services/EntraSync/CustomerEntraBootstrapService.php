@@ -182,6 +182,7 @@ class CustomerEntraBootstrapService
                         $tenantId,
                         $scimAppName,
                         filled($knownScimAppId) ? (string) $knownScimAppId : null,
+                        forScimProvisioning: true,
                     ),
                 );
             }
