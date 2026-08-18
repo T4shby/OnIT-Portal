@@ -3,7 +3,7 @@
         <a href="{{ route('admin.clients.users.index', $client) }}" class="portal-body-muted text-sm hover:text-onit">&larr; {{ $client->name }}</a>
     </div>
 
-    @include('admin.partials.header', ['title' => 'Add user — '.$client->name])
+    @include('admin.partials.header', ['title' => 'Add user - '.$client->name])
 
     <x-card class="w-full">
         <p class="portal-body-muted mb-6 text-sm">

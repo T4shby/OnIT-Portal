@@ -1,4 +1,4 @@
-# On IT Portal — Architectural Decision Records
+# On IT Portal - Architectural Decision Records
 
 ## ADR-001
 
@@ -62,7 +62,7 @@ All client-facing queries must include tenant scope. Admin roles require special
 
 ## ADR-005 (superseded by ADR-011)
 
-Date: 2026-06-09 — Superseded 2026-06-12
+Date: 2026-06-09 - Superseded 2026-06-12
 
 ---
 
@@ -74,7 +74,7 @@ Decision:
 Integrate SuperOps as first-class partner (embedded support + SSO launch). Pax8 uses the same launch-route pattern (`pax8_sso`); Pax8 API automation is Phase 3.
 
 Reason:
-Business requirement for true SSO — one Microsoft login, support without second credential.
+Business requirement for true SSO - one Microsoft login, support without second credential.
 
 Consequences:
 SuperOps services, migration, support routes, Brain/SuperOpsIntegration.md. Pax8: `Pax8SsoService`, `Pax8LaunchController`, `clients.pax8_company_id`, Brain/Pax8Integration.md.
@@ -175,7 +175,7 @@ Documented in [LocalDevelopment.md](LocalDevelopment.md). Juniors must not clone
 
 ## ADR-013 (updated 2026-07-14)
 
-Date: 2026-06-12 — updated 2026-07-14
+Date: 2026-06-12 - updated 2026-07-14
 
 Decision:
 Configure **SuperOps Requester Client SSO** through a dedicated SAML enterprise app in each customer's Entra tenant, and **SuperOps Technician SSO** through the separate On IT technician SAML app. Technicians launch to `/#/technician/login` on the same SuperOps host as requesters (`portal.onit.ltd`), not `app.superops.ai`. The portal redirects only; SuperOps SPA initiates SP-initiated SAML.
@@ -211,7 +211,7 @@ Decision:
 Launch SuperOps at `/#/requester/login` (not `/#/login` or the invalid `/#/login/requester`). Verified from SuperOps production JS bundle route table.
 
 Reason:
-We initially used `/#/login/requester`, which is not a registered SuperOps route — it showed the role chooser. The correct SPA path is `/#/requester/login`.
+We initially used `/#/login/requester`, which is not a registered SuperOps route - it showed the role chooser. The correct SPA path is `/#/requester/login`.
 
 Consequences:
 Portal default `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login`. Users should go straight to requester SSO without clicking the chooser.
@@ -238,7 +238,7 @@ Supersedes the deferred-sync intent in ADR-014 for portal users. SuperOps reques
 Date: 2026-06-19
 
 Decision:
-Pax8 technician launch uses `PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH` (default `/login`) with `login_hint`. True Microsoft SSO requires Pax8 **Enterprise SSO (Azure AD)** configured in Pax8 admin — the portal cannot bypass Auth0's identifier step or force Azure redirect like SuperOps SAML.
+Pax8 technician launch uses `PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH` (default `/login`) with `login_hint`. True Microsoft SSO requires Pax8 **Enterprise SSO (Azure AD)** configured in Pax8 admin - the portal cannot bypass Auth0's identifier step or force Azure redirect like SuperOps SAML.
 
 Reason:
 Pax8 partner auth runs through Auth0 at `login.pax8.com`. `login_hint` pre-fills email on the identifier screen but does not complete SSO. Pax8's Enterprise SSO PDF requires users to authenticate at `https://app.pax8.com` after Azure AD federation is enabled in Pax8 admin. Launching to bare `app.pax8.com` without `/login` is less explicit than SuperOps' technician login path pattern.
@@ -250,10 +250,10 @@ Technician launch URL: `https://app.pax8.com/login?login_hint=…`. Operator mus
 
 ## ADR-018 (updated 2026-07-14)
 
-Date: 2026-06-19 — updated 2026-07-14
+Date: 2026-06-19 - updated 2026-07-14
 
 Decision:
-(1) Portal sync **auto-maintains** the customer security group via Graph (`GroupMember.ReadWrite.All`) when `entra_group_id` is set — technicians create an empty Assigned group only. (2) Each customer has separate Entra enterprise applications: `SuperOps - {Company}` for SCIM and `SuperOps Requester SSO - {Company}` for Client SSO.
+(1) Portal sync **auto-maintains** the customer security group via Graph (`GroupMember.ReadWrite.All`) when `entra_group_id` is set - technicians create an empty Assigned group only. (2) Each customer has separate Entra enterprise applications: `SuperOps - {Company}` for SCIM and `SuperOps Requester SSO - {Company}` for Client SSO.
 
 Reason:
 Auto-maintained membership removes bulk-add work. Separate apps keep SuperOps' independent SCIM and Client SSO configurations unambiguous and allow Entra Free to store and target distinct Application IDs for provisioning and sign-in assignment.
@@ -328,7 +328,7 @@ Consequences:
 Date: 2026-08-10
 
 Decision:
-Account Manager / Super Admin product coverage uses **in-app reporting** on Staff Admin dashboard + Integration Health — not outbound email digests as the primary KPI surface.
+Account Manager / Super Admin product coverage uses **in-app reporting** on Staff Admin dashboard + Integration Health - not outbound email digests as the primary KPI surface.
 
 Reason:
 Sold→live/cold state is already computed live; email is stale, unauthenticated, and duplicates IH. Ops target is **cold sold cells = 0**, visible in one place operators already open.
@@ -343,7 +343,7 @@ Consequences:
 Date: 2026-08-10
 
 Decision:
-Plan **usecure** as a modular optional dashboard feed (**not** a separate product stack): MSP partner credentials + per-client company map + `product_entitlements.usecure`, Integration Health column, optional prewarm — identical commercial model to Huntress (sold to some clients; all companies under On IT partner tenant). **Do not implement until beta GraphQL API key + URL are issued by usecure Support.** Do not require Gradient as a middleman for portal reads.
+Plan **usecure** as a modular optional dashboard feed (**not** a separate product stack): MSP partner credentials + per-client company map + `product_entitlements.usecure`, Integration Health column, optional prewarm - identical commercial model to Huntress (sold to some clients; all companies under On IT partner tenant). **Do not implement until beta GraphQL API key + URL are issued by usecure Support.** Do not require Gradient as a middleman for portal reads.
 
 Reason:
 usecure is another resold security product; customers who do not buy must not see reports. API is beta and keys are support-issued, so design-only avoids abandoned half-wired flags in production.

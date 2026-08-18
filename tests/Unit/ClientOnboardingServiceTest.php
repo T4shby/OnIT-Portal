@@ -51,7 +51,7 @@ class ClientOnboardingServiceTest extends TestCase
         $sectionTitles = collect($step['guide']['sections'])->pluck('title')->all();
         $recoveryTitles = collect($step['guide']['recovery'] ?? [])->pluck('title')->all();
         $this->assertContains('Remaining: Apply SuperOps SCIM tokens', $sectionTitles);
-        $this->assertContains('Apply button failed — paste credentials in Azure', $recoveryTitles);
+        $this->assertContains('Apply button failed - paste credentials in Azure', $recoveryTitles);
         $this->assertContains('Name mappings not auto-applied', $recoveryTitles);
         $this->assertContains('App role or group assign missing', $recoveryTitles);
         $this->assertNotEmpty($step['guide']['automated'] ?? []);

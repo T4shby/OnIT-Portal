@@ -13,10 +13,10 @@ use Throwable;
  * create or link SuperOps SCIM + Client SSO enterprise apps (Entra-side).
  *
  * SuperOps UI steps still required only when not already complete: SCIM tokens
- * (Tenant URL + Secret) and Client SSO wire — remaining prompts are driven from
+ * (Tenant URL + Secret) and Client SSO wire - remaining prompts are driven from
  * checklist state, not a hard-coded every-time warning.
  *
- * Always waits/retries Graph after Accept — Azure often returns IdentityNotFound /
+ * Always waits/retries Graph after Accept - Azure often returns IdentityNotFound /
  * "insufficient privileges" for a short time even when consent succeeded.
  *
  * Progress is saved after each stage so P1/tenant are never lost if group create fails.
@@ -79,7 +79,7 @@ class CustomerEntraBootstrapService
         } else {
             $warnings[] = 'Graph still settling after Accept'
                 .($ready['last_error'] ? ' ('.$ready['last_error'].')' : '')
-                .'. Continuing with retries — if group/apps stay empty use **Retry Graph setup**.';
+                .'. Continuing with retries - if group/apps stay empty use **Retry Graph setup**.';
             Log::warning('Entra bootstrap Graph not ready after wait', [
                 'client_id' => $client->id,
                 'attempts' => $ready['attempts'],
@@ -103,7 +103,7 @@ class CustomerEntraBootstrapService
             ]);
             $tier = ClientOnboardingService::ENTRA_LICENSE_FREE;
             $fields['entra_license_tier'] = $tier;
-            $warnings[] = 'Could not read licence SKUs — left as Free. Set tier on the left if the tenant is P1. ('.$e->getMessage().')';
+            $warnings[] = 'Could not read licence SKUs - left as Free. Set tier on the left if the tenant is P1. ('.$e->getMessage().')';
             $this->persist($client, $fields);
         }
 
@@ -151,7 +151,7 @@ class CustomerEntraBootstrapService
                         (string) $knownScimAppId,
                     );
                 } catch (Throwable $e) {
-                    Log::warning('Entra bootstrap SCIM health check failed — forcing recreate', [
+                    Log::warning('Entra bootstrap SCIM health check failed - forcing recreate', [
                         'client_id' => $client->id,
                         'error' => $e->getMessage(),
                     ]);
@@ -290,7 +290,7 @@ class CustomerEntraBootstrapService
                     $details[] = "Assigned «{$groupName}» to Client SSO app (P1).";
                 } catch (Throwable $e) {
                     $warnings[] = 'Client SSO group assign deferred (app IDs are saved): '.$e->getMessage()
-                        .' — use **Retry Graph setup** on Edit client, or assign group manually in Entra Users and groups. Not required to continue SCIM / Client SSO wire.';
+                        .' - use **Retry Graph setup** on Edit client, or assign group manually in Entra Users and groups. Not required to continue SCIM / Client SSO wire.';
                 }
             } elseif ($usesGroupScim && ! filled($groupId)) {
                 $warnings[] = 'Client SSO group assign skipped until portal group exists.';
@@ -323,11 +323,11 @@ class CustomerEntraBootstrapService
         $ok = filled($client->entra_tenant_id) && $hasGroup;
 
         if ($ok) {
-            $summary = 'Microsoft tenant connected — tenant, licence, group and Entra apps saved where possible.';
+            $summary = 'Microsoft tenant connected - tenant, licence, group and Entra apps saved where possible.';
         } elseif ($hasApps && ! $hasGroup) {
-            $summary = 'Tenant and SuperOps apps saved; portal group still missing — fix Group.ReadWrite.All or paste Group ID, then Retry Graph setup.';
+            $summary = 'Tenant and SuperOps apps saved; portal group still missing - fix Group.ReadWrite.All or paste Group ID, then Retry Graph setup.';
         } else {
-            $summary = 'Microsoft Accept completed with errors — check warnings and use Retry Graph setup.';
+            $summary = 'Microsoft Accept completed with errors - check warnings and use Retry Graph setup.';
         }
 
         return [
@@ -353,7 +353,7 @@ class CustomerEntraBootstrapService
         }
 
         if (! (bool) ($checklist['superops_client_sso_configured'] ?? false)) {
-            $out[] = 'Still required: Client SSO SAML (step 08) — wire SuperOps ↔ Entra if not done.';
+            $out[] = 'Still required: Client SSO SAML (step 08) - wire SuperOps ↔ Entra if not done.';
         }
 
         return $out;
@@ -376,7 +376,7 @@ class CustomerEntraBootstrapService
         $saved = filled($savedAppId) ? (string) $savedAppId : '';
 
         if ($saved !== '') {
-            $details[] = "{$label} app ID already on client record: {$saved} (Graph could not re-ensure: {$msg}). Keep this ID — sign in → Edit client → **Retry Graph setup** after consent settles, without wiping SuperOps links.";
+            $details[] = "{$label} app ID already on client record: {$saved} (Graph could not re-ensure: {$msg}). Keep this ID - sign in → Edit client → **Retry Graph setup** after consent settles, without wiping SuperOps links.";
 
             return;
         }

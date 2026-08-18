@@ -28,7 +28,7 @@ Pill label is **Healthy / Issues / Critical**. Each column also exposes **`statu
 | **Support & Devices** (SuperOps) | SLA ≥ 95% (or no SLA sample) and open tickets &lt; 10 | SLA &lt; 95%, or open tickets ≥ 10 | SLA &lt; 90%, or open tickets ≥ 25 |
 | **Microsoft 365** | not over-assigned | seats assigned &gt; purchased | assigned &gt; 110% of purchased |
 | **Detection & Response** (Huntress) | open incidents = 0 and no unresponsive agents | any open incident, or any unresponsive agents | open incidents ≥ 3, or unresponsive ≥ 5 **and** ≥ 20% of agents |
-| **Backup** (Dropsuite) | no failed/retrying last 24h | — | any failed/retrying in last 24h feed |
+| **Backup** (Dropsuite) | no failed/retrying last 24h | - | any failed/retrying in last 24h feed |
 
 **SuperOps deliberately ignores device online/offline.** Many customers have kit that is offline by design (field engineers, plant, night power-off). Traffic lights here are about **SLA and ticket backlog**, not RMM presence. Device counts can still appear as informatics on the card.
 
@@ -53,22 +53,22 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | Field | Source | Notes |
 |-------|--------|--------|
 | **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v3` |
-| **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** — never empty “—” when not sold |
+| **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
-| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until prior-month row exists: **Last month** shows locked (padlock) + **always-visible** orange/amber hint under the toggle — not browser `title` tooltip |
+| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until prior-month row exists: **Last month** shows locked (padlock) + **always-visible** orange/amber hint under the toggle - not browser `title` tooltip |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
-| **Avg first response** | — | **Not shipped** — SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
-| **Device patch / need updates** | — | **Not shipped** — SuperOps asset payload has no patch posture fields yet |
-| **Restore retention days** | — | **Not shipped** — not in Dropsuite summary payload |
+| **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
+| **Device patch / need updates** | - | **Not shipped** - SuperOps asset payload has no patch posture fields yet |
+| **Restore retention days** | - | **Not shipped** - not in Dropsuite summary payload |
 
 ### Not sold vs unprotected (client-facing)
 
 For **Huntress** / **Dropsuite** when entitlement is not sold:
 
 - Status label: **Add-on** (not “Not sold”).
-- Card reason: optional feed; **On IT still helps via support tickets** — tile only tracks the automated product feed when on plan.
-- **Value strip / report hero stats:** if MDR not sold, show **tickets resolved · open tickets · SLA** — do **not** lead with Threats stopped `—` (reads as zero protection).
+- Card reason: optional feed; **On IT still helps via support tickets** - tile only tracks the automated product feed when on plan.
+- **Value strip / report hero stats:** if MDR not sold, show **tickets resolved · open tickets · SLA** - do **not** lead with Threats stopped `-` (reads as zero protection).
 
 Support (SuperOps) remains the protection signal for support-only orgs.
 
@@ -76,19 +76,19 @@ Support (SuperOps) remains the protection signal for support-only orgs.
 
 | Huntress sold? | Value strip (hero) | Detection & Response tile | Technician notes |
 |----------------|--------------------|---------------------------|------------------|
-| **No** | Tickets resolved · Open tickets · SLA met | **Add-on** + support-still-helps copy | **Support-led home** — grey H chip is expected, not a fault |
+| **No** | Tickets resolved · Open tickets · SLA met | **Add-on** + support-still-helps copy | **Support-led home** - grey H chip is expected, not a fault |
 | **Yes**, feed live | Threats stopped · Tickets resolved · SLA | Traffic lights from incidents/agents | MDR metrics are real Huntress feed only |
-| **Yes**, not mapped / cold | Same triple; threats may be `—` until live | Setup needed / loading | Finish mapping + IH; do **not** invent counts from tickets |
+| **Yes**, not mapped / cold | Same triple; threats may be `-` until live | Setup needed / loading | Finish mapping + IH; do **not** invent counts from tickets |
 
 **Code:** `ClientHomeOverviewService::staffHomeComposition()` + glance/Reports value strip rules.  
 **Staff UI:** Admin → **Clients → Edit** → panel **What the client sees at home** (`_client-home-composition.blade.php`). Clients list legend + Admin Dashboard sold-coverage blurb link here.  
-**No in-app “view as client”** — use Integration Health or a real client login for live numbers.
+**No in-app “view as client”** - use Integration Health or a real client login for live numbers.
 
 Technicians: if a customer asks “why no threats stopped?”, check Huntress sold. Grey H = by design. Do not treat support-led homes as broken MDR.
 
 ## Mobile (2026-08-18)
 
-Client portal pages use a **mobile-first shell** (not Staff Admin — that already had a drawer).
+Client portal pages use a **mobile-first shell** (not Staff Admin - that already had a drawer).
 
 | Area | Behaviour |
 |------|-----------|
@@ -131,12 +131,12 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |
 | 2026-08-11 | **Last month locked UX:** padlock segment + always-visible hint under toggle (glance + Reports); no finicky hover tooltip. |
-| 2026-08-11 | **Last month hover (superseded):** client-facing title tooltip — replaced by always-visible hint. |
+| 2026-08-11 | **Last month hover (superseded):** client-facing title tooltip - replaced by always-visible hint. |
 | 2026-08-11 | **Reports 500:** Blade rejected nested `month@if` (open tag not compiled); last-month optional date uses separate `@if` lines. |
 | 2026-08-10 | **Staff composition panel:** Edit Client shows support-led vs MDR home from sold products; Clients list + Admin coverage copy. |
 | 2026-08-10 | **Not-sold reframed:** Huntress/Dropsuite “Add-on” + support-still-helps copy; value strip omits empty Threats stopped when MDR not sold. |
 | 2026-08-10 | **Customer gap close:** waiting-on-client; Huntress threats/responses MTD; activity feed; nightly metric snapshots + last-month deltas; Graph Secure Score/MFA (soft-fail). Still open: avg first response, patch posture, restore retention days. |
-| 2026-08-10 | **Security posture Graph:** `SecurityEvents.Read.All` + `AuditLog.Read.All` + `Reports.Read.All` on OnIT Portal for Portals; existing tenants re-Accept only — [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md). |
+| 2026-08-10 | **Security posture Graph:** `SecurityEvents.Read.All` + `AuditLog.Read.All` + `Reports.Read.All` on OnIT Portal for Portals; existing tenants re-Accept only - [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md). |
 | 2026-08-10 | Initial glance scaffold (wrong visual language). |
 | 2026-08-10 | **Rewrite** to match zip 1a/1c; explicit gaps kept. |
 | 2026-08-10 | **Polish:** reports layout inline-safe; glance compact “not set up”; quieter activity. |

@@ -1,8 +1,8 @@
-# Pax8 Enterprise SSO — Setup Guide (On IT)
+# Pax8 Enterprise SSO - Setup Guide (On IT)
 
 Step-by-step guide to enable **Microsoft Entra ID federation for Pax8 partner (technician) login**. The On IT Portal launches technicians to Pax8 with `login_hint`; Pax8 Enterprise SSO completes Microsoft authentication.
 
-**Official Pax8 reference:** [Enterprise SSO PDF](https://www.pax8nebula.com/m/10eadb52f582df44/original/Enterprise-SSO.pdf) (May 2021 — same workflow as Pax8 “Enterprise SSO v2”)
+**Official Pax8 reference:** [Enterprise SSO PDF](https://www.pax8nebula.com/m/10eadb52f582df44/original/Enterprise-SSO.pdf) (May 2021 - same workflow as Pax8 “Enterprise SSO v2”)
 
 **Related:** [Pax8Integration.md](Pax8Integration.md) · [OperatorRunbook.md](OperatorRunbook.md) (Phase A2) · [AccessAndSync.md](AccessAndSync.md)
 
@@ -22,12 +22,12 @@ Technician → On IT Portal (OAuth app #1)
 
 | Layer | Who configures | What |
 |---|---|---|
-| **Portal** | Developer / ops | `.env` launch URLs — already implemented |
+| **Portal** | Developer / ops | `.env` launch URLs - already implemented |
 | **Pax8** | **Primary Partner Admin** | Enterprise SSO → Azure AD, DNS TXT, Finalize |
 | **Entra** | Global Admin (once) | Consent to Pax8 app on first federated login |
 | **Pax8 users** | Partner Admin | Each technician is a **Pax8 app user** with UPN matching Microsoft |
 
-**No separate Entra SAML enterprise app** — unlike SuperOps, Pax8 owns the Azure AD federation inside Pax8 admin. The portal only opens `app.pax8.com` with `login_hint`.
+**No separate Entra SAML enterprise app** - unlike SuperOps, Pax8 owns the Azure AD federation inside Pax8 admin. The portal only opens `app.pax8.com` with `login_hint`.
 
 **Customer (self-service) SSO:** not available per Pax8 docs. Client users use company deep link + `login_hint` until Pax8 ships customer IdP SSO.
 
@@ -47,13 +47,13 @@ Technician → On IT Portal (OAuth app #1)
 
 ## Master checklist (tick as you go)
 
-### Part A — Pax8 app users (before SSO)
+### Part A - Pax8 app users (before SSO)
 
 - [ ] **A1** Pax8 → **Users** → confirm each technician exists (e.g. `tom.ashby@onit.ltd`)
 - [ ] **A2** UPN in Entra matches Pax8 username exactly (check Entra → Users → user → UPN)
 - [ ] **A3** Notify staff they will sign in with Microsoft on next Pax8 login
 
-### Part B — Enterprise SSO in Pax8 (Primary Partner Admin)
+### Part B - Enterprise SSO in Pax8 (Primary Partner Admin)
 
 - [ ] **B1** **Admin → My Partner Profile → Enterprise SSO → Azure AD**
 - [ ] **B2** **Email Domain:** primary Azure domain (On IT: `onit.ltd`)
@@ -63,18 +63,18 @@ Technician → On IT Portal (OAuth app #1)
 - [ ] **B6** Click **Verify Domain** → status **Verified**
 - [ ] **B7** Click **Finalize**
 
-### Part C — Portal production `.env`
+### Part C - Portal production `.env`
 
-- [ ] **C1** `PAX8_PARTNER_PORTAL_URL=https://app.pax8.com` (required — not `mycommandconsole.com`)
+- [ ] **C1** `PAX8_PARTNER_PORTAL_URL=https://app.pax8.com` (required - not `mycommandconsole.com`)
 - [ ] **C2** `PAX8_PARTNER_LOGIN_PATH=/login`
 - [ ] **C3** Deploy + `php artisan config:clear` + `optimize`
 
-### Part D — Optional Entra access scoping
+### Part D - Optional Entra access scoping
 
 - [ ] **D1** Entra → **Enterprise applications** → **Pax8** → **Users and groups**
 - [ ] **D2** Assign a security group (e.g. `Pax8 Technicians`) instead of whole tenant
 
-### Part E — Test
+### Part E - Test
 
 - [ ] **E1** Private window → `https://app.onit.ltd` → Pax8 tile
 - [ ] **E2** Lands on `app.pax8.com/login?login_hint=…` → identifier → **Continue** → Microsoft
@@ -82,9 +82,9 @@ Technician → On IT Portal (OAuth app #1)
 
 ---
 
-## Part 1 — Pax8 app users (do this first)
+## Part 1 - Pax8 app users (do this first)
 
-### Step A1 — Match Microsoft UPN
+### Step A1 - Match Microsoft UPN
 
 For each technician:
 
@@ -94,7 +94,7 @@ For each technician:
 
 If UPN differs from mailbox alias, create a Pax8 app user with the **UPN**, not the alias.
 
-### Step A2 — Create missing app users
+### Step A2 - Create missing app users
 
 1. Pax8 → **Users → Create Users**
 2. Create app users with correct usernames
@@ -102,9 +102,9 @@ If UPN differs from mailbox alias, create a Pax8 app user with the **UPN**, not 
 
 ---
 
-## Part 2 — Enterprise SSO in Pax8
+## Part 2 - Enterprise SSO in Pax8
 
-### Step B1 — Open Enterprise SSO
+### Step B1 - Open Enterprise SSO
 
 1. Sign in to Pax8 as **Primary Partner Admin**
 2. **Admin → My Partner Profile**
@@ -112,7 +112,7 @@ If UPN differs from mailbox alias, create a Pax8 app user with the **UPN**, not 
 
 > **Partner Admin** cannot see this tab. **Primary Partner Admin** required.
 
-### Step B2 — Domain configuration
+### Step B2 - Domain configuration
 
 | Field | On IT value | Notes |
 |---|---|---|
@@ -121,16 +121,16 @@ If UPN differs from mailbox alias, create a Pax8 app user with the **UPN**, not 
 
 Use Entra **Global Admin** link in Pax8 UI to confirm primary domain if unsure.
 
-### Step B3 — DNS verification
+### Step B3 - DNS verification
 
 1. Click **Create**
 2. Copy **TXT verification** value(s) from Pax8
 3. Add TXT record(s) at DNS host for `onit.ltd` (and aliases if any)
 4. Wait a few minutes (up to hours for slow DNS)
-5. Click **Verify Domain** — must show **Verified**
+5. Click **Verify Domain** - must show **Verified**
 6. Check propagation: `nslookup -type=txt onit.ltd`
 
-### Step B4 — Finalize
+### Step B4 - Finalize
 
 1. Click **Finalize**
 2. Federation is live for all configured domains
@@ -138,7 +138,7 @@ Use Entra **Global Admin** link in Pax8 UI to confirm primary domain if unsure.
 
 ---
 
-## Part 3 — Portal configuration
+## Part 3 - Portal configuration
 
 Production `.env` on `app.onit.ltd`:
 
@@ -170,7 +170,7 @@ tom.ashby@onit.ltd → app.onit.ltd/dashboard → Pax8 tile
 
 ---
 
-## Part 4 — First login and Entra consent
+## Part 4 - First login and Entra consent
 
 1. Log out of Pax8
 2. Open portal → **Pax8** (or go to `app.pax8.com/login`)
@@ -180,7 +180,7 @@ tom.ashby@onit.ltd → app.onit.ltd/dashboard → Pax8 tile
 
 ---
 
-## Part 5 — Optional: restrict who can federate
+## Part 5 - Optional: restrict who can federate
 
 By default, any Entra user in a federated domain who is also a Pax8 app user can sign in.
 
@@ -190,11 +190,11 @@ To narrow access:
 2. Find **Pax8** in the list
 3. **Users and groups** → assign `Pax8 Technicians` (or similar) instead of whole tenant
 
-Portal and Pax8 app user records are still required — Entra assignment is an extra gate.
+Portal and Pax8 app user records are still required - Entra assignment is an extra gate.
 
 ---
 
-## Part 6 — Per customer (company view)
+## Part 6 - Per customer (company view)
 
 Enterprise SSO does **not** apply to self-service customers yet (Pax8 FAQ).
 
@@ -214,7 +214,7 @@ For client users on the portal:
 | TXT verify fails | DNS not propagated or wrong record | Wait; `nslookup -type=txt onit.ltd` |
 | Identifier page, no Microsoft after Continue | Domain not finalized or user not app user | Complete B7; check Pax8 user exists |
 | Login fails after SSO enabled | UPN ≠ Pax8 username | Align Entra UPN, Pax8 user, portal email |
-| SSO works on `app.pax8.com` but not custom URL | Expected — Pax8 limitation | Portal must launch `app.pax8.com` only |
+| SSO works on `app.pax8.com` but not custom URL | Expected - Pax8 limitation | Portal must launch `app.pax8.com` only |
 | Password/MFA at Pax8 instead of Microsoft | Federation not active for domain | Re-check domains; use `app.pax8.com` |
 | Customer cannot use Microsoft SSO | Not supported by Pax8 yet | Company deep link only |
 | PSA iframe login broken after SSO | Known Pax8 limitation | Open Pax8 in separate tab |
@@ -225,15 +225,15 @@ For client users on the portal:
 
 | Question | Answer |
 |---|---|
-| Can some users bypass SSO? | No — all users in configured domains must use Microsoft |
-| MFA after federation? | Microsoft only — no Pax8 MFA for new users |
+| Can some users bypass SSO? | No - all users in configured domains must use Microsoft |
+| MFA after federation? | Microsoft only - no Pax8 MFA for new users |
 | Customer self-service SSO? | Not at this time |
 | Delete SSO connection? | All users logged out; revert to Pax8 credentials |
-| Auto provision from Entra? | Pax8 working on API — not available yet |
+| Auto provision from Entra? | Pax8 working on API - not available yet |
 
 ---
 
-## Quick reference — On IT values
+## Quick reference - On IT values
 
 | Item | Value |
 |---|---|

@@ -55,7 +55,7 @@ class ListGraphReconsentUrlsCommand extends Command
             $this->line('## Graph re-consent batch');
             $this->line('');
             foreach ($rows as $row) {
-                $this->line("- [ ] **{$row['name']}** (`#{$row['id']}`) — [Accept]({$row['url']})");
+                $this->line("- [ ] **{$row['name']}** (`#{$row['id']}`) - [Accept]({$row['url']})");
             }
             $this->newLine();
             $this->line('_After Accept: optionally refresh M365 insights / prewarm; no SCIM/SSO redo._');

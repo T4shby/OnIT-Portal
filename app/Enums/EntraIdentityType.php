@@ -15,7 +15,7 @@ enum EntraIdentityType: string
         };
     }
 
-    /** Suffix hint written to extensionAttribute1 — Entra SCIM appends this to last name in SuperOps. */
+    /** Suffix hint written to extensionAttribute1 - Entra SCIM appends this to last name in SuperOps. */
     public function superOpsNameHint(): string
     {
         return $this->displaySuffix();

@@ -15,7 +15,7 @@
         'dropsuite' => '<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><path d="M3 12a9 3 0 0 0 18 0"></path>',
         default => '<circle cx="12" cy="12" r="9"></circle>',
     };
-    // Live / empty only — pipeline metrics stripped at the service layer, belt-and-braces here.
+    // Live / empty only - pipeline metrics stripped at the service layer, belt-and-braces here.
     $metrics = collect($col['metrics'] ?? [])
         ->reject(fn ($m) => ($m['kind'] ?? '') === 'pipeline')
         ->values();
@@ -80,7 +80,7 @@
                     <span class="glance-metric-label">{{ $metric['label'] }}</span>
                     <span class="glance-metric-value" style="{{ $kind === 'empty' ? 'color:rgba(255,255,255,.35)' : 'color:#fff' }}">
                         @if($kind === 'empty')
-                            —
+                            -
                         @else
                             {{ $metric['value'] }}
                             @if(! empty($metric['suffix']))

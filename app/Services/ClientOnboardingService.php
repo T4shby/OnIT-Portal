@@ -18,7 +18,7 @@ class ClientOnboardingService
         self::ENTRA_LICENSE_P1,
     ];
 
-    /** Shown on checklist steps — MSP role labels, not generic "you". */
+    /** Shown on checklist steps - MSP role labels, not generic "you". */
     public const RESPONSIBLE_ON_IT_PORTAL = 'On IT · portal / SuperOps';
 
     public const RESPONSIBLE_ON_IT_CUSTOMER_ENTRA = 'On IT · customer Entra';
@@ -140,13 +140,13 @@ class ClientOnboardingService
             ], OnboardingManual::build(
                 automated: $superopsLinked
                     ? [
-                        '**SuperOps Account ID** is saved on the left — this step is Done (auto-detected).',
+                        '**SuperOps Account ID** is saved on the left - this step is Done (auto-detected).',
                     ]
                     : [
                         'Step turns Done automatically as soon as **SuperOps Account ID** is saved (no manual tick).',
                     ],
                 notes: $superopsLinked
-                    ? ['Nothing left unless the wrong SuperOps client is linked — then use recovery.']
+                    ? ['Nothing left unless the wrong SuperOps client is linked - then use recovery.']
                     : ['Remaining: copy Account ID from SuperOps and paste on the left → **Save client**.'],
                 sections: $superopsLinked
                     ? []
@@ -167,7 +167,7 @@ class ClientOnboardingService
                         $superOpsUrl.' → Clients · portal left',
                         [
                             'Confirm SuperOps client name matches **'.$client->name.'**.',
-                            'Use the number after `/client/` only — not a ticket or invoice ID.',
+                            'Use the number after `/client/` only - not a ticket or invoice ID.',
                             'Paste again → **Save client**. Done updates on reload.',
                         ],
                     ),
@@ -189,14 +189,14 @@ class ClientOnboardingService
                 automated: $pax8Configured
                     ? [
                         filled($client->pax8_company_id ?? null)
-                            ? '**Pax8 Company ID** is saved (and access as configured) — step Done automatically.'
-                            : 'Pax8 not required for this client (access off / no Company ID) — step Done automatically.',
+                            ? '**Pax8 Company ID** is saved (and access as configured) - step Done automatically.'
+                            : 'Pax8 not required for this client (access off / no Company ID) - step Done automatically.',
                     ]
                     : [
                         'Step Done automatically when Pax8 is unused **or** Company ID + access are saved.',
                     ],
                 notes: $pax8Configured
-                    ? ['Nothing left unless Pax8 launch fails — open recovery.']
+                    ? ['Nothing left unless Pax8 launch fails - open recovery.']
                     : [
                         'If they do not use Pax8: leave Company ID blank and **Pax8 access** unticked → step becomes Done.',
                         'If they use Pax8: remaining is copy UUID → paste → tick access → **Save client**.',
@@ -221,7 +221,7 @@ class ClientOnboardingService
                         [
                             'Confirm UUID matches the customer company in Pax8, not another tenant.',
                             'Re-paste **Pax8 Company ID**, confirm **Pax8 access**, **Save client**.',
-                            'If launch still fails, escalate platform Pax8 SSO config (Tom) — not a customer Accept.',
+                            'If launch still fails, escalate platform Pax8 SSO config (Tom) - not a customer Accept.',
                         ],
                     ),
                 ],
@@ -230,7 +230,7 @@ class ClientOnboardingService
                 ],
             )),
 
-            // Inserted product setup steps only when sold (entitled) — see filter after build.
+            // Inserted product setup steps only when sold (entitled) - see filter after build.
             $this->withManual([
                 'key' => 'huntress_linked',
                 'title' => 'Link Huntress (when sold)',
@@ -242,7 +242,7 @@ class ClientOnboardingService
                 'product_key' => 'huntress',
             ], OnboardingManual::build(
                 automated: filled($client->huntress_organization_id)
-                    ? ['**Huntress Organization ID** saved — step Done.']
+                    ? ['**Huntress Organization ID** saved - step Done.']
                     : ['Sold for this client: paste Huntress org ID on the Products section → Save.'],
                 notes: filled($client->huntress_organization_id)
                     ? ['Nothing left unless the wrong Huntress org was linked.']
@@ -283,7 +283,7 @@ class ClientOnboardingService
                 'product_key' => 'dropsuite',
             ], OnboardingManual::build(
                 automated: filled($client->dropsuite_organization_id)
-                    ? ['**Dropsuite Organization ID** saved — step Done.']
+                    ? ['**Dropsuite Organization ID** saved - step Done.']
                     : ['Sold for this client: paste Dropsuite org ID on the Products section → Save.'],
                 notes: filled($client->dropsuite_organization_id)
                     ? ['Nothing left unless the wrong Dropsuite org was linked.']
@@ -328,10 +328,10 @@ class ClientOnboardingService
                         'No hand-copy of Object ID when Connect / Accept succeeds.',
                     ]
                     : [
-                        'One **Connect Microsoft tenant** / Accept (top of guide) writes tenant ID, licence, portal group **'.$groupName.'**, and SuperOps Entra app IDs — portal waits for Graph after Accept.',
+                        'One **Connect Microsoft tenant** / Accept (top of guide) writes tenant ID, licence, portal group **'.$groupName.'**, and SuperOps Entra app IDs - portal waits for Graph after Accept.',
                     ],
                 notes: $entraGroupComplete
-                    ? ['Nothing left on this step — expand recovery only if IDs are wrong and you need a re-run.']
+                    ? ['Nothing left on this step - expand recovery only if IDs are wrong and you need a re-run.']
                     : ['Remaining: private browser → orange **Connect Microsoft tenant** once at the top of this guide (same Accept as step 04).'],
                 sections: $entraGroupComplete
                     ? []
@@ -342,7 +342,7 @@ class ClientOnboardingService
                             [
                                 'Private/incognito browser (not your everyday On IT profile).',
                                 'Click orange **Connect Microsoft tenant** at the top of this guide.',
-                                'Sign in with On IT **GDAP** so Microsoft shows **'.$client->name.'** — customer tenant, not On IT first.',
+                                'Sign in with On IT **GDAP** so Microsoft shows **'.$client->name.'** - customer tenant, not On IT first.',
                                 '**Accept** Portal Graph permissions. You return here with IDs on the left (Graph waits/retries automatically).',
                             ],
                         ),
@@ -377,10 +377,10 @@ class ClientOnboardingService
                         'Bootstrap used that consent for group + SuperOps app shells where Graph allowed.',
                     ]
                     : [
-                        'Same orange **Connect Microsoft tenant** at the top of this guide as step 03 — Accept once drives bootstrap (group, SCIM app, Client SSO shell). Graph waits/retries after Accept.',
+                        'Same orange **Connect Microsoft tenant** at the top of this guide as step 03 - Accept once drives bootstrap (group, SCIM app, Client SSO shell). Graph waits/retries after Accept.',
                     ],
                 notes: $adminConsentComplete
-                    ? ['Nothing left unless a later bootstrap/SCIM step fails — then **Retry Graph setup** or re-Accept if permissions changed.']
+                    ? ['Nothing left unless a later bootstrap/SCIM step fails - then **Retry Graph setup** or re-Accept if permissions changed.']
                     : ['Remaining: **Accept** via the orange Connect button at the top (private browser + GDAP for **'.$client->name.'**).'],
                 sections: $adminConsentComplete
                     ? []
@@ -421,11 +421,11 @@ class ClientOnboardingService
                 'blocked' => ! $entraTenantSaved,
             ], OnboardingManual::build(
                 automated: [
-                    'Nothing portal-side is automated here — SuperOps issues SCIM tokens only in their console (no API hand-off to us).',
+                    'Nothing portal-side is automated here - SuperOps issues SCIM tokens only in their console (no API hand-off to us).',
                 ],
                 notes: $scimTokensComplete
                     ? [
-                        'Marked complete — keep Tenant URL + Secret ready for step 07 Apply (or re-generate if lost). Secret is not stored on the portal.',
+                        'Marked complete - keep Tenant URL + Secret ready for step 07 Apply (or re-generate if lost). Secret is not stored on the portal.',
                     ]
                     : [
                         'Remaining: SuperOps **Generate Tokens** for **'.$client->name.'** → keep Tenant URL + Secret → tick this step → use them on step 07.',
@@ -439,7 +439,7 @@ class ClientOnboardingService
                             [
                                 'SuperOps MSP → **Integrations** → **Microsoft Entra ID** → **Generate Tokens**.',
                                 'Client picker → **'.$client->name.'** (same as step 01).',
-                                'Copy **Tenant URL** (SuperOps SCIM URL — not Azure Tenant ID) and **Secret Token** / Auth Token into a temp note.',
+                                'Copy **Tenant URL** (SuperOps SCIM URL - not Azure Tenant ID) and **Secret Token** / Auth Token into a temp note.',
                                 'This checklist → tick **Mark this step complete** (not **Save client**).',
                             ],
                         ),
@@ -472,14 +472,14 @@ class ClientOnboardingService
                 automated: filled($client->entra_superops_app_id)
                     ? [
                         'Entra app **'.$appName.'** already exists with App role Value **User**.',
-                        '**SuperOps Application (client) ID** is saved on the left — step is Done when that ID is present.',
+                        '**SuperOps Application (client) ID** is saved on the left - step is Done when that ID is present.',
                     ]
                     : [
                         'After a successful Connect Microsoft, portal creates **'.$appName.'** (App role User) and saves the Application (client) ID.',
                     ],
                 notes: filled($client->entra_superops_app_id)
                     ? ['Nothing left on this step unless you need to re-create the app (recovery).']
-                    : ['Remaining: finish Connect / Accept (steps 03–04), then confirm **SuperOps Application (client) ID** on the left — or Retry Graph setup.'],
+                    : ['Remaining: finish Connect / Accept (steps 03-04), then confirm **SuperOps Application (client) ID** on the left - or Retry Graph setup.'],
                 sections: filled($client->entra_superops_app_id)
                     ? []
                     : [
@@ -488,7 +488,7 @@ class ClientOnboardingService
                             'Connect Microsoft / Retry Graph setup → left column',
                             [
                                 'Complete **Connect Microsoft tenant** (or **Retry Graph setup**) after Graph allows Application.ReadWrite.All.',
-                                'Confirm **SuperOps Application (client) ID** is filled — that auto-completes this step.',
+                                'Confirm **SuperOps Application (client) ID** is filled - that auto-completes this step.',
                             ],
                         ),
                     ],
@@ -556,15 +556,15 @@ class ClientOnboardingService
                         'Tenant / group IDs (and Free app IDs when needed) already came from earlier steps.',
                     ]
                     : [
-                        'IDs from Connect/bootstrap; you only tick enable + **Save client** — no server/.env work.',
+                        'IDs from Connect/bootstrap; you only tick enable + **Save client** - no server/.env work.',
                     ],
                 notes: array_values(array_filter([
                     $syncConfigured
-                        ? 'Nothing left — open recovery only if Dry run / Sync now buttons are missing.'
+                        ? 'Nothing left - open recovery only if Dry run / Sync now buttons are missing.'
                         : 'Remaining: confirm IDs on the left → tick **Entra sync enabled** → **Save client**.',
                     $syncEnabledGlobally
                         ? null
-                        : 'Platform sync flag is off in config — if buttons stay missing after save, message Tom.',
+                        : 'Platform sync flag is off in config - if buttons stay missing after save, message Tom.',
                 ])),
                 sections: $syncConfigured
                     ? []
@@ -589,7 +589,7 @@ class ClientOnboardingService
                         [
                             'Finish step 07 SCIM apply and confirm tenant/group IDs exist.',
                             'Save client again with **Entra sync enabled** ticked.',
-                            'If still missing and config says ENTRA_SYNC is off platform-wide, message Tom — not a customer task.',
+                            'If still missing and config says ENTRA_SYNC is off platform-wide, message Tom - not a customer task.',
                         ],
                     ),
                 ],
@@ -609,13 +609,13 @@ class ClientOnboardingService
             ], OnboardingManual::build(
                 automated: $syncRun
                     ? [
-                        '**Last synced** is set (or Sync has run) — step Done automatically when the portal records a sync.',
+                        '**Last synced** is set (or Sync has run) - step Done automatically when the portal records a sync.',
                     ]
                     : [
-                        'Apply SCIM (07) queues a background Sync only when name mappings **and** Entra group ID are in place — re-run Apply if step 07 is still Pending.',
+                        'Apply SCIM (07) queues a background Sync only when name mappings **and** Entra group ID are in place - re-run Apply if step 07 is still Pending.',
                     ],
                 notes: $portalSyncRunComplete
-                    ? ['Already complete — open recovery only if SuperOps names / Azure membership look wrong.']
+                    ? ['Already complete - open recovery only if SuperOps names / Azure membership look wrong.']
                     : ['Remaining: left **Dry run sync** → then **Sync now** → wait a few minutes → confirm **Last synced**.'],
                 warnings: $scimScopeWarnings,
                 sections: $portalSyncRunComplete
@@ -639,7 +639,7 @@ class ClientOnboardingService
                         [
                             'Re-do step 04 Accept / bootstrap if Graph permissions are the issue.',
                             'Confirm App role Value **User** on **'.$appName.'**, then dry run again.',
-                            'Fix the red banner message first — do not force Sync now if Dry run is wrong.',
+                            'Fix the red banner message first - do not force Sync now if Dry run is wrong.',
                         ],
                     ),
                     OnboardingManual::section(
@@ -651,8 +651,8 @@ class ClientOnboardingService
                             $usesGroupScim
                                 ? null
                                 : 'Enterprise applications → **'.$appName.'** and **'.$ssoAppName.'** → Users and groups (Free: portal assigns after Sync now).',
-                            '**'.$appName.'** → Provisioning logs — Updates after a few minutes.',
-                            'SuperOps → **Clients** → **'.$client->name.'** → **Requesters** — after background Sync + SCIM, names show `(User Mailbox)` / `(Shared Mailbox)`.',
+                            '**'.$appName.'** → Provisioning logs - Updates after a few minutes.',
+                            'SuperOps → **Clients** → **'.$client->name.'** → **Requesters** - after background Sync + SCIM, names show `(User Mailbox)` / `(Shared Mailbox)`.',
                             'Plain names: wait one cycle, step 07 name mappings recovery, then **Sync now** again.',
                         ])),
                     ),
@@ -672,11 +672,11 @@ class ClientOnboardingService
                 'blocked' => ! $portalSyncRunComplete,
             ], OnboardingManual::build(
                 automated: [
-                    'Portal + SuperOps Client SSO were configured in earlier steps — this step only proves a real customer login.',
+                    'Portal + SuperOps Client SSO were configured in earlier steps - this step only proves a real customer login.',
                 ],
                 notes: $loginTested
-                    ? ['Already ticked — re-test only if something broke after a re-wire.']
-                    : ['Remaining: private window, customer work email only — not an On IT account.'],
+                    ? ['Already ticked - re-test only if something broke after a re-wire.']
+                    : ['Remaining: private window, customer work email only - not an On IT account.'],
                 sections: $loginTested
                     ? []
                     : [
@@ -726,11 +726,11 @@ class ClientOnboardingService
                 'blocked' => ! $loginTested,
             ], OnboardingManual::build(
                 automated: [
-                    'All setup was done by On IT — customer never received Accept links or checklist tasks.',
+                    'All setup was done by On IT - customer never received Accept links or checklist tasks.',
                 ],
                 notes: (bool) ($checklist['handed_off'] ?? false)
                     ? ['Hand-off already marked complete.']
-                    : ['Remaining: short message with sign-in URL only — then tick this step.'],
+                    : ['Remaining: short message with sign-in URL only - then tick this step.'],
                 sections: (bool) ($checklist['handed_off'] ?? false)
                     ? []
                     : [
@@ -747,11 +747,11 @@ class ClientOnboardingService
                 recovery: [
                     OnboardingManual::section(
                         'Customer cannot sign in after hand-off',
-                        'Steps 10–11 · licence · Client SSO',
+                        'Steps 10-11 · licence · Client SSO',
                         [
                             'Re-run step 11 smoke test with their email.',
                             'Confirm licensed mailbox and SuperOps Client SSO still Enabled for this client.',
-                            'Escalate internally — do not send the customer Azure Accept or setup links.',
+                            'Escalate internally - do not send the customer Azure Accept or setup links.',
                         ],
                     ),
                 ],
@@ -843,17 +843,17 @@ class ClientOnboardingService
             ])),
             notes: array_values(array_filter([
                 $scimComplete
-                    ? 'Nothing left here — SuperOps Requester suffixes still need the background Sync + SCIM Updates (step 09 proves Last synced).'
+                    ? 'Nothing left here - SuperOps Requester suffixes still need the background Sync + SCIM Updates (step 09 proves Last synced).'
                     : 'Remaining: SuperOps **Generate Tokens** (step 05) → paste Tenant URL + Secret → **Apply SCIM credentials + start**. Secret is not stored.',
                 ...$gateNotes,
             ])),
             warnings: array_values(array_filter([
                 ...$scopeWarnings,
                 ! $scimComplete && array_key_exists('superops_scim_name_mappings', $checklist) && ! $mappingsOk
-                    ? 'Last Apply did **not** set SuperOps name mappings — step cannot go green. Re-Apply SCIM or use recovery for manual attribute mapping.'
+                    ? 'Last Apply did **not** set SuperOps name mappings - step cannot go green. Re-Apply SCIM or use recovery for manual attribute mapping.'
                     : null,
                 ! $scimComplete && array_key_exists('superops_scim_sync_queued', $checklist) && ! $syncQueued
-                    ? 'Last Apply did **not** queue portal Sync — usually missing **Entra group ID**. Fix group, then re-Apply.'
+                    ? 'Last Apply did **not** queue portal Sync - usually missing **Entra group ID**. Fix group, then re-Apply.'
                     : null,
             ])),
             sections: $scimComplete
@@ -866,13 +866,13 @@ class ClientOnboardingService
                             'Finish step 05 if needed, then paste SuperOps **Tenant URL** and **Secret Token**.',
                             'Confirm **Entra group ID** is saved on the left (otherwise Sync will not queue and this step stays Pending).',
                             'Click **Apply SCIM credentials + start**.',
-                            'Success only when flash confirms name mappings **and** Portal Sync queued — then SuperOps names take a few minutes in the **background**.',
+                            'Success only when flash confirms name mappings **and** Portal Sync queued - then SuperOps names take a few minutes in the **background**.',
                         ],
                     ),
                 ],
             recovery: [
                 OnboardingManual::section(
-                    'Apply button failed — paste credentials in Azure',
+                    'Apply button failed - paste credentials in Azure',
                     $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName.' → Provisioning'),
                     [
                         ...$this->openCustomerAzureSteps($clientName),
@@ -1045,7 +1045,7 @@ class ClientOnboardingService
         if ($superOpsCount === null) {
             if ($portalScoped <= 2 && filled($client->superops_account_id) && $client->entra_synced_at !== null) {
                 return [
-                    'Portal Entra scope is very small (**'.$portalScoped.'** identity/identities with Entra IDs) for a linked SuperOps client. SuperOps may already have a large Requester list from import/CSV — only people in **customer Entra** get `(User Mailbox)` / `(Shared Mailbox)` via SCIM. Confirm SuperOps → Requesters vs **Admin → Users** for this client.',
+                    'Portal Entra scope is very small (**'.$portalScoped.'** identity/identities with Entra IDs) for a linked SuperOps client. SuperOps may already have a large Requester list from import/CSV - only people in **customer Entra** get `(User Mailbox)` / `(Shared Mailbox)` via SCIM. Confirm SuperOps → Requesters vs **Admin → Users** for this client.',
                 ];
             }
 
@@ -1098,7 +1098,7 @@ class ClientOnboardingService
                     'Remaining work is only SuperOps hand-off (they do not expose Entity ID / ACS via API): copy two SuperOps URLs → wire on the form → paste Login URL + cert into SuperOps Step 3 → Save.',
                 ]
                 : [
-                    'Connect Microsoft did not leave a Client SSO app ID — Retry Graph setup first. After that, SuperOps paste → wire → Save is the only remaining work.',
+                    'Connect Microsoft did not leave a Client SSO app ID - Retry Graph setup first. After that, SuperOps paste → wire → Save is the only remaining work.',
                 ],
             sections: [
                 OnboardingManual::section(
@@ -1125,7 +1125,7 @@ class ClientOnboardingService
                     )
                     : null,
                 OnboardingManual::section(
-                    'Wire button failed — set SAML in Azure manually',
+                    'Wire button failed - set SAML in Azure manually',
                     $this->customerAzureWhere($clientName, 'Manage → Enterprise applications → '.$appName),
                     [
                         ...$this->openCustomerAzureSteps($clientName),
@@ -1150,7 +1150,7 @@ class ClientOnboardingService
                         'Portal left → Sync now; Entra Users and groups on **'.$appName.'**',
                         [
                             'Confirm **Client SSO Application (client) ID** matches App registrations → **'.$appName.'**.',
-                            'Run **Sync now** — do not add users by hand.',
+                            'Run **Sync now** - do not add users by hand.',
                         ],
                     ),
             ])),
@@ -1162,7 +1162,7 @@ class ClientOnboardingService
 
     /**
      * Open the customer's Entra tenant for GDAP work.
-     * Never "sign into On IT then switch" — private browser, land on the customer tenant.
+     * Never "sign into On IT then switch" - private browser, land on the customer tenant.
      *
      * @return list<string>
      */
@@ -1171,7 +1171,7 @@ class ClientOnboardingService
         return [
             'Open a **private/incognito** browser (not your normal On IT technician browser profile).',
             'Go to https://portal.azure.com and sign in with On IT **GDAP** so you land in tenant **'.$clientName.'** directly.',
-            'Do **not** sign into **On IT Technology Partners LTD** first and switch directories — always open the customer tenant straight away.',
+            'Do **not** sign into **On IT Technology Partners LTD** first and switch directories - always open the customer tenant straight away.',
             'Confirm top-right shows **'.$clientName.'** before you continue.',
         ];
     }
@@ -1281,7 +1281,7 @@ class ClientOnboardingService
             ],
             'entra_license_tier' => [
                 'Entra directory tier for Free vs P1 assignment (not the user SKU list alone).',
-                'Microsoft 365 Business Premium (SPB) includes Entra ID P1 — choose P1, not Free.',
+                'Microsoft 365 Business Premium (SPB) includes Entra ID P1 - choose P1, not Free.',
                 'Mismatch: leave Free and the portal assigns users one-by-one; P1 uses the security group.',
             ],
             'entra_tenant_id' => [

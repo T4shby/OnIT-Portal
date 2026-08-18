@@ -194,7 +194,7 @@ class M365InsightsServiceTest extends TestCase
         $this->assertSame(37, $summary->totalSeatsAssigned);
         $this->assertSame(100.0, $summary->overallUtilizationPct);
 
-        // Two Business Premium Graph SKUs share a marketing name — disambiguate with part number.
+        // Two Business Premium Graph SKUs share a marketing name - disambiguate with part number.
         $this->assertSame('Microsoft 365 Business Premium · SPB', $summary->topSkus[0]['displayName']);
         $this->assertSame('Exchange Online (Plan 1)', $summary->topSkus[1]['displayName']);
 

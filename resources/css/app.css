@@ -437,7 +437,7 @@
         @apply mt-8 border-t border-white/10 pt-6;
     }
 
-    /* Brain/design/components.md — agenda + FAQ patterns */
+    /* Brain/design/components.md - agenda + FAQ patterns */
     .agenda-title {
         @apply font-condensed text-base font-semibold uppercase tracking-wide text-white sm:text-[1.05rem];
     }
@@ -587,7 +587,7 @@
     }
 
     .onboarding-manual__prereq-list li::before {
-        content: '—';
+        content: '-';
         @apply absolute left-0 top-0 font-bold text-onit;
     }
 
@@ -727,7 +727,7 @@
     }
 
     .client-create-intro__list li::before {
-        content: '—';
+        content: '-';
         @apply absolute left-0 font-bold text-onit;
     }
 

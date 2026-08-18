@@ -1,4 +1,4 @@
-{{-- SuperOps managed devices — DashboardFeed key: superops --}}
+{{-- SuperOps managed devices - DashboardFeed key: superops --}}
 @php
     $s = $summary;
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
@@ -19,17 +19,17 @@
     @if($s->hasData())
         @if($orgWide)
             <p class="org-hero-num org-accent" style="margin:8px 0 0">
-                {{ $s->assetsTotal === null ? '—' : number_format($s->assetsTotal) }}
+                {{ $s->assetsTotal === null ? '-' : number_format($s->assetsTotal) }}
             </p>
             <p class="org-muted" style="margin:4px 0 0;font-size:12px">devices managed</p>
             <div class="org-stack">
                 <div class="org-metric">
                     <span class="org-metric-l">Checking in</span>
-                    <span class="org-metric-v">{{ $s->assetsOnline === null ? '—' : number_format($s->assetsOnline) }}</span>
+                    <span class="org-metric-v">{{ $s->assetsOnline === null ? '-' : number_format($s->assetsOnline) }}</span>
                 </div>
                 <div class="org-metric">
                     <span class="org-metric-l">Not checking in</span>
-                    <span class="org-metric-v" style="font-weight:500;color:rgba(255,255,255,.55)">{{ $s->assetsOffline === null ? '—' : number_format($s->assetsOffline) }}</span>
+                    <span class="org-metric-v" style="font-weight:500;color:rgba(255,255,255,.55)">{{ $s->assetsOffline === null ? '-' : number_format($s->assetsOffline) }}</span>
                 </div>
             </div>
             <p class="org-muted" style="margin:12px 0 0;font-size:11px;line-height:1.35">
@@ -37,7 +37,7 @@
             </p>
         @else
             <p class="org-hero-num org-accent" style="margin:8px 0 0">
-                {{ $s->openTicketsTotal === null ? '—' : number_format($s->openTicketsTotal) }}
+                {{ $s->openTicketsTotal === null ? '-' : number_format($s->openTicketsTotal) }}
             </p>
             <p class="org-muted" style="margin:4px 0 0;font-size:12px">your open tickets</p>
         @endif

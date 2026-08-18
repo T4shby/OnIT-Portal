@@ -1,4 +1,4 @@
-# New Client Setup Guide — SUPERSEDED
+# New Client Setup Guide - SUPERSEDED
 
 > **Do not use this document for day-to-day onboarding.**
 >
@@ -12,7 +12,7 @@ Canonical operating model:
 
 1. In-app checklist (12 steps).
 2. SuperOps Client SSO with a customer-owned Entra SAML app.
-3. Portal sync + SuperOps SCIM for users — not manual Admin → Users for every joiner.
+3. Portal sync + SuperOps SCIM for users - not manual Admin → Users for every joiner.
 
 Deep reference only:
 

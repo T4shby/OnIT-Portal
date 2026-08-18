@@ -16,7 +16,7 @@
             <strong class="text-white/80">Retry Graph setup</strong> unless app IDs are missing.
         </p>
         <p class="text-xs text-white/45 leading-relaxed">
-            Microsoft has no multi-tenant “one click for all customers”. A person (or GDAP session) must Accept per tenant —
+            Microsoft has no multi-tenant “one click for all customers”. A person (or GDAP session) must Accept per tenant -
             this page is the staff checklist so you never need artisan for that.
         </p>
     </div>
@@ -56,7 +56,7 @@
                 @empty
                     <tr>
                         <td colspan="3" class="px-6 py-12">
-                            <x-empty-state title="No linked tenants" description="Connect Microsoft on Edit Client first — then re-consent links appear here." />
+                            <x-empty-state title="No linked tenants" description="Connect Microsoft on Edit Client first - then re-consent links appear here." />
                         </td>
                     </tr>
                 @endforelse

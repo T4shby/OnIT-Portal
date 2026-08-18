@@ -6,7 +6,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 **MSP ownership:** On IT technicians perform every setup and acceptance action on the customer’s behalf using delegated / GDAP access. The customer does not receive setup links, sign in, or complete checklist tasks.
 
-**Split:** **M365/Entra = portal** (Connect, Retry Graph setup, Apply SCIM, Wire SSO, Sync). **SuperOps = MSP console** (SCIM tokens, Client SSO Entity ID/ACS in, Login URL + cert out). Do not open Azure to create/delete SCIM apps or provisioning — **Retry Graph setup** handles broken SCIM Entra shells automatically.
+**Split:** **M365/Entra = portal** (Connect, Retry Graph setup, Apply SCIM, Wire SSO, Sync). **SuperOps = MSP console** (SCIM tokens, Client SSO Entity ID/ACS in, Login URL + cert out). Do not open Azure to create/delete SCIM apps or provisioning - **Retry Graph setup** handles broken SCIM Entra shells automatically.
 
 ## Start here
 
@@ -19,7 +19,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 | Button | Where | What it saves |
 |---|---|---|
 | **Save client** | Left (orange) | IDs, licence tier, sync settings |
-| **Save checklist** / tick | Right | Step ticks — ticking **Mark this step complete** auto-saves (Save checklist still works too) |
+| **Save checklist** / tick | Right | Step ticks - ticking **Mark this step complete** auto-saves (Save checklist still works too) |
 
 | Tool allowed | Not needed |
 |---|---|
@@ -31,16 +31,16 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 **Automation-first:** each step shows what Connect / portal already did (**Already done automatically**). Remaining work stays short. Long Azure click-paths sit under **Only if something failed** (opens when Apply/Wire fails). Status turns Done from saved IDs, successful Apply/Wire, or manual tick where still required.
 
-**Before steps 03–04 — Connect Microsoft (preferred):**
+**Before steps 03-04 - Connect Microsoft (preferred):**
 
 1. **Private/incognito browser**.
 2. Edit Client checklist → orange **Connect Microsoft tenant** at the **top of the guide** (Accept Portal Graph). Steps 03/04 point at that single button (no second Connect in the step body).
 3. Sign in with On IT **GDAP** so you land in the **customer** tenant (do **not** open On IT then switch).
 4. **Accept** permissions. Portal **waits/retries Graph**, then writes tenant ID, Free/P1 licence, portal group Object ID, SuperOps SCIM app ID, Client SSO app ID.
 5. If group or app IDs still empty **or** SCIM export is Failed / Integration Health SuperOps SCIM red: **Retry Graph setup** at the top of the guide (not a second Accept). That recreates a broken SCIM Entra shell automatically when Graph reports 0 provisioning templates. Then **Apply SCIM** again with SuperOps tokens. Re-consent only if platform permissions changed.
-6. **Platform permission adds** (On IT tenant Step 0 — e.g. Secure Score / MFA): after Grant consent in On IT, **re-Accept once per customer**. Do **not** delete the client or redo SuperOps SCIM/SSO from scratch — [CustomerEntraSyncRunbook.md §0.3a](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
+6. **Platform permission adds** (On IT tenant Step 0 - e.g. Secure Score / MFA): after Grant consent in On IT, **re-Accept once per customer**. Do **not** delete the client or redo SuperOps SCIM/SSO from scratch - [CustomerEntraSyncRunbook.md §0.3a](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
 
-**Do not** open Azure to delete/recreate SuperOps SCIM apps for “0 templates” — portal **Retry Graph setup** owns that. Do **not** spam **Retry SCIM export** when health says templates are missing.
+**Do not** open Azure to delete/recreate SuperOps SCIM apps for “0 templates” - portal **Retry Graph setup** owns that. Do **not** spam **Retry SCIM export** when health says templates are missing.
 
 Manual Azure Overview → Licence paste is legacy fallback only if Graph permissions are missing.
 
@@ -59,7 +59,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 11 | Test as a customer user | Private window customer login + SuperOps tile | Smoke test tick |
 | 12 | Hand off to the customer | Sign-in URL message only | Hand-off tick |
 
-Steps 05–07 are one SCIM job split so a new technician can finish each screen without guessing. Older clients that already had SCIM marked complete stay complete.
+Steps 05-07 are one SCIM job split so a new technician can finish each screen without guessing. Older clients that already had SCIM marked complete stay complete.
 
 ### Where each product lives
 
@@ -81,7 +81,7 @@ Steps 05–07 are one SCIM job split so a new technician can finish each screen 
 
 - Work email must match in M365, SuperOps, and the portal.
 - Group name is always `On IT Portal - {Company}` and starts empty.
-- Customer SCIM app is `SuperOps - {Company}` (SCIM only — not SAML).
+- Customer SCIM app is `SuperOps - {Company}` (SCIM only - not SAML).
 - SuperOps requester login uses **Client SSO** (step 08). Global SSO + customer Accept is retired.
 - Portal Graph Accept (04) remains; step 08 is SAML setup, not a Microsoft Accept page.
 - Entra ID Free: never add SSO users one-by-one. Save the customer Client SSO Application ID; step 10 **Sync now** assigns active licensed users.
@@ -111,17 +111,17 @@ Use these only when the live step is blocked or broken:
 | 2026-08-13 | Retry Graph setup recreates broken SCIM apps (0 templates); Apply SCIM only remaining SuperOps paste; no Azure UI |
 | 2026-08-07 | Step 07 Done only when name mappings + Sync queued; SuperOps bulk outside Entra → Do not ignore warning |
 | 2026-08-06 | Guide UX: all 12 steps use automation-first (Already automatic / remaining / recovery only on failure) |
-| 2026-08-06 | Guide UX: automation-first (**Already done automatically** + short remaining work; Azure/SuperOps recovery only under failure) — steps 03–08 + SSO form |
-| 2026-08-04 | SuperOps last names after Apply SCIM / Sync now: expect minutes (background Sync + SCIM); no real customer names in steps — use `{Company}` / this client only |
+| 2026-08-06 | Guide UX: automation-first (**Already done automatically** + short remaining work; Azure/SuperOps recovery only under failure) - steps 03-08 + SSO form |
+| 2026-08-04 | SuperOps last names after Apply SCIM / Sync now: expect minutes (background Sync + SCIM); no real customer names in steps - use `{Company}` / this client only |
 | 2026-08-06 | Step 08 wording: plain SuperOps ↔ Entra flow (wire button, SuperOps Step 1/2/3 labels) |
-| 2026-08-04 | Connect Microsoft tenant: Accept + Graph bootstrap fills tenant/licence/group/app IDs (steps 03–04/06–08 Entra side) |
+| 2026-08-04 | Connect Microsoft tenant: Accept + Graph bootstrap fills tenant/licence/group/app IDs (steps 03-04/06-08 Entra side) |
 | 2026-08-04 | Customer Azure steps: private browser + log straight into customer tenant (no On IT→switch); Entra left **Manage** before Groups / Enterprise apps |
 | 2026-07-14 | Replaced requester Global SSO Accept with customer-owned Client SSO in step 08 |
 | 2026-07-14 | Licence check from Entra Overview before step 03 |
 | 2026-07-14 | MSP ownership explicit: On IT technicians perform all setup via GDAP; customers receive no setup tasks or Accept links |
 | 2026-07-14 | Entra ID Free: Client SSO Application ID lets Sync now assign active licensed users after step 08 |
 | 2026-07-14 | Every live step now has separate **Where** blocks per app (Portal / SuperOps / Azure); Brain map lists product + menu path per step |
-| 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) — simple words, complete how-to |
+| 2026-07-14 | Restored full Entra click paths (create app, Admin Credentials, App roles, Application client ID, Users and groups) - simple words, complete how-to |
 | 2026-07-14 | Free Application (client) ID path made explicit in step 07 (App registrations Overview, not Object ID); Azure work called out in guide header |
 | 2026-07-14 | Canonical zero-training technician guide; mirrors live 12-step checklist |
 | 2026-06-25 | SuperOps requester naming + Free app ID notes |

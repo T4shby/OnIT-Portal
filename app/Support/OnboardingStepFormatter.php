@@ -38,8 +38,8 @@ class OnboardingStepFormatter
                 );
                 $html = implode('<span class="onboarding-manual__arrow" aria-hidden="true"> → </span>', $wrapped);
             }
-        } elseif (preg_match('/^([A-Za-z][A-Za-z0-9 ()\/]+):(.+)$/', $text, $matches)) {
-            $html = '<strong class="onboarding-manual__term">'.$matches[1].':</strong>'.e(ltrim($matches[2]));
+        } elseif (preg_match('/^([A-Za-z][A-Za-z0-9 ()\/]+):(.+)$/', $html, $matches)) {
+            $html = '<strong class="onboarding-manual__term">'.$matches[1].':</strong>'.ltrim($matches[2]);
         }
 
         return $html;

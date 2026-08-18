@@ -49,7 +49,7 @@
                     <p class="text-xs text-white/50 max-w-2xl">
                         KPI: sold service feeds should be <strong class="text-white/70">live</strong> (snapshot present).
                         Target <strong class="text-white/70">0 never loaded (cold)</strong>. Setup = sold but map/platform pending.
-                        Clients without Huntress still get a full support-led home — missing MDR is not “unprotected.”
+                        Clients without Huntress still get a full support-led home - missing MDR is not “unprotected.”
                         See composition on <a href="{{ route('admin.clients.index') }}" class="text-onit hover:text-white">each client’s Edit</a> page.
                     </p>
                 </div>
@@ -59,7 +59,7 @@
                 <x-card>
                     <p class="admin-stat-label">Live %</p>
                     <p class="admin-stat-value text-onit">
-                        {{ $coverage['live_pct'] === null ? '—' : number_format($coverage['live_pct'], 0).'%' }}
+                        {{ $coverage['live_pct'] === null ? '-' : number_format($coverage['live_pct'], 0).'%' }}
                     </p>
                 </x-card>
                 <x-card>

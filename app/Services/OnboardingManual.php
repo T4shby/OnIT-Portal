@@ -124,7 +124,7 @@ class OnboardingManual
 
         foreach ($guide['sections'] as $section) {
             if ($section['where']) {
-                $lines[] = $section['title'].' — Where: '.$section['where'];
+                $lines[] = $section['title'].' - Where: '.$section['where'];
             } else {
                 $lines[] = $section['title'];
             }
@@ -141,7 +141,7 @@ class OnboardingManual
         foreach ($guide['recovery'] ?? [] as $section) {
             $lines[] = 'If it fails: '.$section['title'];
             if ($section['where']) {
-                $lines[] = $section['title'].' — Where: '.$section['where'];
+                $lines[] = $section['title'].' - Where: '.$section['where'];
             }
             foreach ($section['steps'] as $step) {
                 $lines[] = $step;

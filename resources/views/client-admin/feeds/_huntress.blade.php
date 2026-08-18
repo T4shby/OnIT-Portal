@@ -1,4 +1,4 @@
-{{-- Huntress security — DashboardFeed key: huntress --}}
+{{-- Huntress security - DashboardFeed key: huntress --}}
 @php
     $h = $huntressSummary;
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
@@ -24,13 +24,13 @@
             $attention = ($openIncidents ?? 0) > 0 || ($isolated ?? 0) > 0;
         @endphp
         <p class="org-hero-num {{ $attention ? 'org-warn' : '' }}" style="margin:8px 0 0">
-            {{ $openIncidents === null ? '—' : number_format($openIncidents) }}
+            {{ $openIncidents === null ? '-' : number_format($openIncidents) }}
         </p>
         <p class="org-muted" style="margin:4px 0 0;font-size:12px">open security cases</p>
         <div class="org-stack">
             <div class="org-metric">
                 <span class="org-metric-l">Resolved</span>
-                <span class="org-metric-v">{{ $resolved === null ? '—' : number_format($resolved) }}</span>
+                <span class="org-metric-v">{{ $resolved === null ? '-' : number_format($resolved) }}</span>
             </div>
             @if($h->agentsTotal !== null)
                 <div class="org-metric">

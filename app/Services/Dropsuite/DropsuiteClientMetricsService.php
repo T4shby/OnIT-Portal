@@ -584,7 +584,7 @@ class DropsuiteClientMetricsService
             }
         }
 
-        // PDF calendars/contacts: max 25 per page — keep paging while full.
+        // PDF calendars/contacts: max 25 per page - keep paging while full.
         return $rowCount >= 25 && $page < self::MAX_ACCOUNT_PAGES;
     }
 

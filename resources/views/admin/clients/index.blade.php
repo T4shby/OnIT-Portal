@@ -27,7 +27,7 @@
                         <span class="product-chip-sep">·</span>
                         separator.
                         <span class="product-chip product-chip--vendor product-chip--muted">P</span>
-                        = Pax8 (dashed border). Where they buy cloud licences — not an On IT product.
+                        = Pax8 (dashed border). Where they buy cloud licences - not an On IT product.
                     </p>
                 </div>
             </div>
@@ -36,19 +36,19 @@
                 <div class="flex flex-col gap-1.5 text-xs text-white/55">
                     <span class="inline-flex items-center gap-2">
                         <span class="product-chip product-chip--live">·</span>
-                        Green — live / assigned
+                        Green - live / assigned
                     </span>
                     <span class="inline-flex items-center gap-2">
                         <span class="product-chip product-chip--setup">·</span>
-                        Yellow — setup / link needed
+                        Yellow - setup / link needed
                     </span>
                     <span class="inline-flex items-center gap-2">
                         <span class="product-chip product-chip--error">·</span>
-                        Red — platform error
+                        Red - platform error
                     </span>
                     <span class="inline-flex items-center gap-2">
                         <span class="product-chip product-chip--muted">·</span>
-                        Greyed out — not sold / not assigned
+                        Greyed out - not sold / not assigned
                     </span>
                 </div>
             </div>
@@ -56,7 +56,7 @@
         <p class="mt-4 border-t border-white/10 pt-3 text-xs text-white/50 leading-relaxed max-w-4xl">
             <strong class="text-white/70 font-medium">Client home differs by sold products.</strong>
             Grey <span class="product-chip product-chip--muted">H</span> (Huntress not sold) → support-led dashboard
-            (tickets + SLA as hero stats — not empty “Threats stopped”).
+            (tickets + SLA as hero stats - not empty “Threats stopped”).
             Open <strong class="text-white/65 font-medium">Edit</strong> on a client for the full “What the client sees at home” panel.
         </p>
     </div>

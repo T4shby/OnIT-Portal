@@ -1,5 +1,5 @@
 <x-admin-layout>
-    @include('admin.partials.header', ['title' => 'Dropsuite — '.$client->name])
+    @include('admin.partials.header', ['title' => 'Dropsuite - '.$client->name])
 
     <div class="mb-6 flex flex-wrap items-center gap-3">
         <a href="{{ route('admin.clients.edit', $client) }}" class="cta-btn-ghost text-sm px-4 py-2">← Edit client</a>

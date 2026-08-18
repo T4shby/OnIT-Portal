@@ -172,7 +172,7 @@ class IntegrationHealthService
                     $rowFailed++;
                     $failed++;
                 } else {
-                    // ok, due, aging, running, queued — treat as live path for coverage %
+                    // ok, due, aging, running, queued - treat as live path for coverage %
                     $rowLive++;
                     $live++;
                 }
@@ -288,7 +288,7 @@ class IntegrationHealthService
         $scheduleLocks = $this->scheduleLockRows();
         // True problems only: expired mutex rows still in the table, or a long-lived
         // schedule mutex while the minute tick is late (process died mid withoutOverlapping).
-        // Do NOT treat "TTL remaining > 5m" alone as stuck — Laravel withoutOverlapping
+        // Do NOT treat "TTL remaining > 5m" alone as stuck - Laravel withoutOverlapping
         // often sets expiry ~24h ahead, so healthy locks always look "long-held".
         $stuckScheduleLocks = collect($scheduleLocks)
             ->filter(function (array $lock) use ($tickAgeMinutes): bool {
@@ -310,21 +310,21 @@ class IntegrationHealthService
         $headline = 'All systems refreshing normally';
         $severityLevel = 'ok';
         if (! $schedulerOk) {
-            $headline = 'Minute scheduler is not ticking — cron schedule:run may be dead';
+            $headline = 'Minute scheduler is not ticking - cron schedule:run may be dead';
             $severityLevel = 'critical';
         } elseif ($stuckScheduleLocks !== []) {
-            $headline = 'Schedule mutex problem — expired lock left behind or lock held while cron tick is late';
+            $headline = 'Schedule mutex problem - expired lock left behind or lock held while cron tick is late';
             $severityLevel = 'warning';
         } elseif (! $prewarmOk) {
-            $headline = 'Auto-refresh (prewarm) is late — client data will age until it runs again';
+            $headline = 'Auto-refresh (prewarm) is late - client data will age until it runs again';
             $severityLevel = 'warning';
         } elseif ($workerLagSuspect) {
             $headline = 'Jobs are waiting but no worker is processing them';
             $severityLevel = 'critical';
         } elseif ($coldCount > 0) {
             $headline = $coldCount === 1
-                ? '1 sold integration has never loaded a snapshot — prewarm/workers should fill it'
-                : "{$coldCount} sold integration feeds have never loaded a snapshot — check prewarm, workers, and mapping IDs";
+                ? '1 sold integration has never loaded a snapshot - prewarm/workers should fill it'
+                : "{$coldCount} sold integration feeds have never loaded a snapshot - check prewarm, workers, and mapping IDs";
             $severityLevel = 'warning';
         } elseif (($queue['pending'] ?? 0) > 0) {
             $headline = 'Refresh jobs are in the queue and should finish shortly';
@@ -411,7 +411,7 @@ class IntegrationHealthService
                     'is_expired' => $expired,
                     'expires_in_seconds' => $expiresIn,
                     'expired_for_seconds' => $expiredFor,
-                    // Kept for BC in views — meaning: remaining TTL while active; age when expired.
+                    // Kept for BC in views - meaning: remaining TTL while active; age when expired.
                     'held_for_seconds' => $expired ? $expiredFor : $expiresIn,
                     'seconds_until_release' => $expiresIn,
                 ];
@@ -445,7 +445,7 @@ class IntegrationHealthService
 
         if (! empty($pipeline['stuck_schedule_locks'])) {
             $n = count($pipeline['stuck_schedule_locks']);
-            $notices[] = "{$n} schedule mutex issue(s): expired lock left in cache_locks, or a long withoutOverlapping lock while the minute tick is late. Healthy withoutOverlapping locks are normal during schedule:run — they are not failures. Expired rows clear on next prewarm.";
+            $notices[] = "{$n} schedule mutex issue(s): expired lock left in cache_locks, or a long withoutOverlapping lock while the minute tick is late. Healthy withoutOverlapping locks are normal during schedule:run - they are not failures. Expired rows clear on next prewarm.";
         }
 
         if ($pipeline['prewarm']['never_ran'] ?? false) {
@@ -458,7 +458,7 @@ class IntegrationHealthService
         if ($pipeline['workers']['lag_suspect'] ?? false) {
             $oldest = $pipeline['workers']['oldest_pending_seconds'] ?? 0;
             $pending = $pipeline['workers']['pending'] ?? 0;
-            $notices[] = "{$pending} job(s) waiting with nothing reserved — workers not draining. Oldest ~".(int) round($oldest / 60).'m.';
+            $notices[] = "{$pending} job(s) waiting with nothing reserved - workers not draining. Oldest ~".(int) round($oldest / 60).'m.';
         }
 
         if ($clearedOrphans > 0) {
@@ -474,7 +474,7 @@ class IntegrationHealthService
         }
 
         if ($agingCount > 0) {
-            $notices[] = "{$agingCount} data source(s) past freshness — clients may see softer wording.";
+            $notices[] = "{$agingCount} data source(s) past freshness - clients may see softer wording.";
         }
 
         if ($dueCount > 0) {
@@ -488,11 +488,11 @@ class IntegrationHealthService
             $intervalLabel = rtrim(rtrim(number_format($interval, 1), '0'), '.');
             if ($pipeline['prewarm']['ok'] ?? false) {
                 // Idle cadence intentionally leaves a short “due” window before the next prewarm.
-                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age — normal until next prewarm "
+                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age - normal until next prewarm "
                     ."(~every {$intervalLabel}m; last ran {$prewarmAge}m ago). Workers stay idle with an empty queue until then.";
             } else {
                 $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age and prewarm is late "
-                    ."(last ran {$prewarmAge}m ago; expect ~{$intervalLabel}m) — SuperOps, M365, Huntress, Dropsuite will age until prewarm runs.";
+                    ."(last ran {$prewarmAge}m ago; expect ~{$intervalLabel}m) - SuperOps, M365, Huntress, Dropsuite will age until prewarm runs.";
             }
         }
 
@@ -502,10 +502,10 @@ class IntegrationHealthService
                     $msg = filled($cell['error'] ?? null)
                         ? $cell['error']
                         : ($cell['blockers'][0] ?? $cell['what_it_is_doing'] ?? 'Check configuration');
-                    $notices[] = "{$row['client_name']}: {$cell['friendly_label']} — {$msg}";
+                    $notices[] = "{$row['client_name']}: {$cell['friendly_label']} - {$msg}";
                 }
                 if (($cell['status'] ?? '') === 'cold') {
-                    $notices[] = "{$row['client_name']}: {$cell['label']} never loaded — no successful cache yet.";
+                    $notices[] = "{$row['client_name']}: {$cell['label']} never loaded - no successful cache yet.";
                 }
             }
         }
@@ -635,7 +635,7 @@ class IntegrationHealthService
                 label: $label,
                 status: 'failed',
                 statusLabel: 'Setup needed',
-                whatItIsDoing: 'Bootstrap incomplete — no SuperOps SCIM Application (client) ID saved.',
+                whatItIsDoing: 'Bootstrap incomplete - no SuperOps SCIM Application (client) ID saved.',
                 whatNext: 'Connect Microsoft on Edit Client, then Apply SCIM (step 07).',
                 blockers: ['SuperOps SCIM: Connect / bootstrap first, then Apply SCIM with Tenant URL + Secret.'],
                 error: 'SuperOps SCIM Application ID not saved',
@@ -668,9 +668,9 @@ class IntegrationHealthService
                 label: $label,
                 status: 'failed',
                 statusLabel: 'Setup needed',
-                whatItIsDoing: 'SuperOps Tenant URL not stored in Entra — requesters will not export.',
+                whatItIsDoing: 'SuperOps Tenant URL not stored in Entra - requesters will not export.',
                 whatNext: 'Edit Client → Apply SCIM with Tenant URL + Secret Token (SuperOps step 05).',
-                blockers: ['SuperOps SCIM: Apply SCIM credentials — Sync 2 alone does not create SuperOps requesters.'],
+                blockers: ['SuperOps SCIM: Apply SCIM credentials - Sync 2 alone does not create SuperOps requesters.'],
                 error: 'Apply SCIM not completed',
             );
         }
@@ -685,7 +685,7 @@ class IntegrationHealthService
                 statusLabel: 'Export stopped',
                 whatItIsDoing: $hint,
                 whatNext: 'Customer Entra → SuperOps app → Provisioning → Start, or php artisan portal:repair-superops-scim --client='.$client->id,
-                blockers: ['SuperOps SCIM export stopped — '.$hint],
+                blockers: ['SuperOps SCIM export stopped - '.$hint],
                 error: 'SCIM provisioning job missing or not running',
             );
         }
@@ -991,7 +991,7 @@ class IntegrationHealthService
         } elseif ($lastSuccessAt === null && $lastFailed) {
             // Cold + last job failed: show Failed so Mapping ID / API errors surface in IH.
             $status = 'failed';
-            $detail = $error ?: 'Last refresh failed — no successful cache yet';
+            $detail = $error ?: 'Last refresh failed - no successful cache yet';
         } elseif ($lastSuccessAt === null) {
             $status = 'cold';
             $detail = 'No successful refresh stored yet';
@@ -1002,7 +1002,7 @@ class IntegrationHealthService
             $status = 'aging';
             $detail = $processHint.' · past '.$clientWindowMinutes.'m client window ('.$ageRounded.'m ago)';
         } elseif ($dueForRequeue && in_array($key, ['superops', 'huntress', 'dropsuite', 'm365_directory', 'm365_insights'], true)) {
-            // Between requeue threshold and client window — will enqueue on next prewarm.
+            // Between requeue threshold and client window - will enqueue on next prewarm.
             $status = 'due';
             $detail = $processHint.' · requeue threshold '.$requeueAfterMinutes.'m hit (age '.$ageRounded.'m)'
                 .' · waiting for prewarm / workers';
@@ -1111,8 +1111,8 @@ class IntegrationHealthService
                 'status_label' => 'Getting old',
                 'what_it_is_doing' => $ageBit.' Past the freshness target.',
                 'what_next' => $key === 'entra_sync'
-                    ? 'Entra job is late — check schedule:run and SyncEntraClientJob workers.'
-                    : 'Auto-refresh should have queued this — check prewarm + workers above.',
+                    ? 'Entra job is late - check schedule:run and SyncEntraClientJob workers.'
+                    : 'Auto-refresh should have queued this - check prewarm + workers above.',
             ],
             'queued' => [
                 'status_label' => 'In the queue',
@@ -1121,7 +1121,7 @@ class IntegrationHealthService
                         .(! empty($job['reserved']) ? ' (worker claimed it).' : '.')
                     : 'Marked to run; job row may still be landing.',
                 'what_next' => ! empty($job['reserved'])
-                    ? 'Worker is busy — wait for finish (or stuck if >5m).'
+                    ? 'Worker is busy - wait for finish (or stuck if >5m).'
                     : 'Workers should pick this up within about a minute.',
             ],
             'running' => [
@@ -1136,12 +1136,12 @@ class IntegrationHealthService
             ],
             'failed' => [
                 'status_label' => 'Failed',
-                'what_it_is_doing' => 'Last attempt errored — showing last good data if any.',
+                'what_it_is_doing' => 'Last attempt errored - showing last good data if any.',
                 'what_next' => $blockers[0] ?? 'Open error detail and fix the API/config issue.',
             ],
             'cold' => [
                 'status_label' => 'Never loaded',
-                'what_it_is_doing' => 'No snapshot stored yet — this is incomplete for a sold/mapped product.',
+                'what_it_is_doing' => 'No snapshot stored yet - this is incomplete for a sold/mapped product.',
                 'what_next' => 'Should not sit forever: check prewarm, workers, then mapping ID / platform credentials. Force a refresh from Integration Health or the product page.',
             ],
             'disabled' => [
@@ -1152,7 +1152,7 @@ class IntegrationHealthService
             default => [
                 'status_label' => strtoupper($status),
                 'what_it_is_doing' => $ageBit,
-                'what_next' => $blockers[0] ?? '—',
+                'what_next' => $blockers[0] ?? '-',
             ],
         };
     }
@@ -1179,12 +1179,12 @@ class IntegrationHealthService
         $lines = [];
 
         if ($status === 'stuck') {
-            $lines[] = "{$label}: RUNNING >".self::STUCK_AFTER_MINUTES.'m — job likely hung or worker died mid-flight';
+            $lines[] = "{$label}: RUNNING >".self::STUCK_AFTER_MINUTES.'m - job likely hung or worker died mid-flight';
         }
 
         if ($status === 'queued') {
             if ($job === null) {
-                $lines[] = "{$label}: flag=queued but no jobs row — unique discard / failed dispatch";
+                $lines[] = "{$label}: flag=queued but no jobs row - unique discard / failed dispatch";
             } elseif (! empty($job['reserved'])) {
                 $lines[] = "{$label}: reserved by a worker · wait ".$job['age_seconds'].'s · attempts '.$job['attempts'];
             } else {
@@ -1201,12 +1201,12 @@ class IntegrationHealthService
                 $lines[] = "{$label}: age {$ageRounded}m · not queued yet · next prewarm (~{$intervalLabel}m cadence) will start a job";
             }
             if ($status === 'aging') {
-                $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m — clients may see soft note";
+                $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m - clients may see soft note";
             }
         }
 
         if ($status === 'cold') {
-            $lines[] = "{$label}: no successful cache yet — prewarm should enqueue cold job";
+            $lines[] = "{$label}: no successful cache yet - prewarm should enqueue cold job";
         }
 
         if ($lastFailed && $error) {

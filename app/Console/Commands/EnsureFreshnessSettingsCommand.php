@@ -19,7 +19,7 @@ class EnsureFreshnessSettingsCommand extends Command
         $created = $freshness->ensureDefaults();
 
         if ($created === 0) {
-            $this->info('All auto-refresh settings already present — nothing to change.');
+            $this->info('All auto-refresh settings already present - nothing to change.');
         } else {
             $this->info("Created {$created} auto-refresh setting(s) with defaults.");
         }

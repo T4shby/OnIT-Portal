@@ -98,7 +98,7 @@ class ClientHomeOverviewService
 
     /**
      * Staff-facing: what this client’s home (/dashboard) and Reports show, given product entitlements.
-     * Does not load live feed numbers — only sold/setup state so technicians can explain differences
+     * Does not load live feed numbers - only sold/setup state so technicians can explain differences
      * between customers (e.g. support-only vs MDR included) without inventing metrics.
      *
      * @return array{
@@ -140,7 +140,7 @@ class ClientHomeOverviewService
                 $clientReason = $notSold['reason'];
             } elseif ($status === ClientProductService::STATUS_SETUP_NEEDED) {
                 $clientLabel = 'Setup needed';
-                $clientReason = 'Sold and on the plan — mapping or tenant link still needed before numbers appear.';
+                $clientReason = 'Sold and on the plan - mapping or tenant link still needed before numbers appear.';
             } elseif ($status === ClientProductService::STATUS_PLATFORM_DOWN) {
                 $clientLabel = 'Critical';
                 $clientReason = 'Platform credentials disabled or incomplete on the On IT side.';
@@ -174,18 +174,18 @@ class ClientHomeOverviewService
                 .'Detection & Response shows as an optional Add-on, not unprotected.';
             $bullets = [
                 'Turning Huntress sold + mapping the org ID switches hero stats to include Threats stopped (via MDR).',
-                'Grey H on the Clients list means not sold — the client home stays support-led, not “broken AV.”',
-                'Never invent threat counts from SuperOps tickets — that would mislabel ticket work as MDR.',
+                'Grey H on the Clients list means not sold - the client home stays support-led, not “broken AV.”',
+                'Never invent threat counts from SuperOps tickets - that would mislabel ticket work as MDR.',
             ];
         } else {
             $labels = ['Threats stopped (MDR)', 'Tickets resolved', 'SLA met'];
             $headline = 'MDR + support home (Huntress sold)';
-            $summary = 'Hero stats: Threats stopped · Tickets resolved · SLA met (threats may show — until the Huntress feed is live).';
+            $summary = 'Hero stats: Threats stopped · Tickets resolved · SLA met (threats may show - until the Huntress feed is live).';
             $detail = 'Client sees automated Huntress metrics when the feed is live. '
-                .'If the feed is cold or setup is incomplete, threats can be blank — finish mapping and Integration Health, do not invent figures.';
+                .'If the feed is cold or setup is incomplete, threats can be blank - finish mapping and Integration Health, do not invent figures.';
             $bullets = [
                 'Sold but not mapped = Setup needed on the client home (amber), not Add-on.',
-                'Live feed zero threats is fine; a dash only while loading/cold is OK — not when product is not sold.',
+                'Live feed zero threats is fine; a dash only while loading/cold is OK - not when product is not sold.',
                 'Untick Huntress sold only if they are truly off that product (reverts home to support-led).',
             ];
         }
@@ -468,7 +468,7 @@ class ClientHomeOverviewService
     }
 
     /**
-     * SuperOps live health — client-facing, not presence/agent-online.
+     * SuperOps live health - client-facing, not presence/agent-online.
      *
      * Devices are ignored: many customers have on-site / offline-by-design kit
      * (field engineers, plant, night shutdown), so “offline” is noise not health.
@@ -491,21 +491,21 @@ class ClientHomeOverviewService
         if ($slaVal !== null && $slaVal < 90) {
             return $this->healthBand(
                 'critical',
-                "Only {$slaLabel}% of tickets were answered within the agreed time this month — below our critical target.",
+                "Only {$slaLabel}% of tickets were answered within the agreed time this month - below our critical target.",
             );
         }
 
         if ($open >= 25) {
             return $this->healthBand(
                 'critical',
-                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').' — this is higher than we would normally expect.',
+                $this->countPhrase($open, 'support ticket is still open', 'support tickets are still open').' - this is higher than we would normally expect.',
             );
         }
 
         if ($slaVal !== null && $slaVal < 95) {
             return $this->healthBand(
                 'issues',
-                "{$slaLabel}% of tickets were answered within the agreed time this month — short of the 95% target.",
+                "{$slaLabel}% of tickets were answered within the agreed time this month - short of the 95% target.",
             );
         }
 
@@ -529,7 +529,7 @@ class ClientHomeOverviewService
 
         return $this->healthBand(
             'healthy',
-            $this->countPhrase($open, 'support ticket is open', 'support tickets are open').' — within a normal range.',
+            $this->countPhrase($open, 'support ticket is open', 'support tickets are open').' - within a normal range.',
         );
     }
 
@@ -590,7 +590,7 @@ class ClientHomeOverviewService
         if ($open >= 1) {
             return $this->healthBand(
                 'issues',
-                $this->countPhrase($open, 'security case is open', 'security cases are open').' — our team is on it.',
+                $this->countPhrase($open, 'security case is open', 'security cases are open').' - our team is on it.',
             );
         }
 
@@ -642,7 +642,7 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No SuperOps snapshot yet — waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'No SuperOps snapshot yet - waiting for auto-refresh.');
         }
 
         if (! empty($summary->refreshInProgress) && ! method_exists($summary, 'hasData')) {
@@ -718,7 +718,7 @@ class ClientHomeOverviewService
                 return $this->markState($base, 'not_sold', 'Microsoft 365 is not sold for this organisation.');
             }
             if ($st === ClientProductService::STATUS_SETUP_NEEDED) {
-                return $this->markState($base, 'setup_needed', 'Microsoft 365 tenant link is not finished — contact your account manager.');
+                return $this->markState($base, 'setup_needed', 'Microsoft 365 tenant link is not finished - contact your account manager.');
             }
 
             return array_merge($base, [
@@ -739,7 +739,7 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Microsoft 365 licence snapshot yet — waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'No Microsoft 365 licence snapshot yet - waiting for auto-refresh.');
         }
 
         $reason = (string) ($summary->unavailableReason ?? '');
@@ -824,7 +824,7 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Huntress snapshot yet — waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'No Huntress snapshot yet - waiting for auto-refresh.');
         }
 
         if (empty($summary->available) && empty($summary->lastRefreshedAt)) {
@@ -896,7 +896,7 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Dropsuite snapshot yet — waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'No Dropsuite snapshot yet - waiting for auto-refresh.');
         }
 
         if (empty($summary->available) || (method_exists($summary, 'hasData') && ! $summary->hasData() && empty($summary->lastRefreshedAt))) {
@@ -969,7 +969,7 @@ class ClientHomeOverviewService
             'href_label' => $href_label,
             'state' => 'live_candidate',
             'tone' => 'neutral',
-            'status_label' => '—',
+            'status_label' => '-',
             'status_reason' => null,
             'message' => null,
             'metrics' => [],
@@ -1024,7 +1024,7 @@ class ClientHomeOverviewService
     }
 
     /**
-     * Client-facing “not on plan” copy — never imply zero protection without the add-on.
+     * Client-facing “not on plan” copy - never imply zero protection without the add-on.
      *
      * @return array{label: string, reason: string}
      */
@@ -1033,11 +1033,11 @@ class ClientHomeOverviewService
         return match ($productKey) {
             'huntress' => [
                 'label' => 'Add-on',
-                'reason' => '24/7 managed detection & response (Huntress) is an optional add-on — not on this plan. On IT still helps with security through support tickets and our technicians. This tile only shows automated Huntress metrics when that feed is included.',
+                'reason' => '24/7 managed detection & response (Huntress) is an optional add-on - not on this plan. On IT still helps with security through support tickets and our technicians. This tile only shows automated Huntress metrics when that feed is included.',
             ],
             'dropsuite' => [
                 'label' => 'Add-on',
-                'reason' => 'Dedicated email & cloud backup (Dropsuite) is an optional add-on — not on this plan. On IT still helps with recovery questions on support tickets. Ask your account manager if you want this feed added.',
+                'reason' => 'Dedicated email & cloud backup (Dropsuite) is an optional add-on - not on this plan. On IT still helps with recovery questions on support tickets. Ask your account manager if you want this feed added.',
             ],
             'm365', 'm365_insights' => [
                 'label' => 'Not on plan',
@@ -1201,7 +1201,7 @@ class ClientHomeOverviewService
         if ($value === null || $value === '') {
             return [
                 'label' => $label,
-                'value' => '—',
+                'value' => '-',
                 'hint' => $hint ?? 'No value in latest snapshot',
                 'kind' => 'empty',
                 'suffix' => null,

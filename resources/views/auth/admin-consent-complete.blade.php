@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#011926">
-    <title>Admin consent granted — {{ config('app.name') }}</title>
+    <title>Admin consent granted - {{ config('app.name') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -27,9 +27,9 @@
                     </x-alert>
 
                     <p class="portal-body-muted text-sm mb-6 leading-relaxed">
-                        This page is expected — Microsoft redirects here after you click Accept. It is
+                        This page is expected - Microsoft redirects here after you click Accept. It is
                         <strong class="text-white/80">not</strong> a failed login.
-                        The portal also runs Graph setup (group + apps); Azure may need a short wait — we retry automatically.
+                        The portal also runs Graph setup (group + apps); Azure may need a short wait - we retry automatically.
                     </p>
 
                     <ul class="support-list mb-6 text-sm portal-body-muted">
@@ -38,7 +38,7 @@
                                 <li>{{ $line }}</li>
                             @endforeach
                         @else
-                            <li>In <strong class="text-white/80">customer</strong> Entra → Enterprise applications → OnIT Portal for Portals → Permissions — confirm all show <strong class="text-white/80">Granted</strong></li>
+                            <li>In <strong class="text-white/80">customer</strong> Entra → Enterprise applications → OnIT Portal for Portals → Permissions - confirm all show <strong class="text-white/80">Granted</strong></li>
                         @endif
                         @if(! empty($bootstrap['warnings']))
                             @foreach($bootstrap['warnings'] as $line)
@@ -61,7 +61,7 @@
                                 </li>
                             @elseif($hasSavedAppNote)
                                 <li class="text-white/70">
-                                    This client was already partly set up — saved SuperOps app IDs are kept.
+                                    This client was already partly set up - saved SuperOps app IDs are kept.
                                     Prefer <strong class="text-white/85">Retry Graph setup</strong> over re-creating apps or wiping SCIM/SSO.
                                 </li>
                             @else
@@ -74,7 +74,7 @@
                         @elseif(! empty($bootstrap['ok']))
                             <li>
                                 Consent and Graph setup look complete for this tenant.
-                                Secure Score / MFA appear after the next Microsoft 365 insights refresh — no SCIM or Client SSO redo.
+                                Secure Score / MFA appear after the next Microsoft 365 insights refresh - no SCIM or Client SSO redo.
                             </li>
                         @endif
                     </ul>

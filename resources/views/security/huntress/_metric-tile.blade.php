@@ -6,7 +6,7 @@
         default => 'text-white',
     };
     $display = ! isset($value) || $value === null
-        ? '—'
+        ? '-'
         : (is_numeric($value) ? number_format((int) $value) : $value);
 @endphp
 <div class="border border-white/10 bg-[#011926]/50 p-4 sm:p-5">

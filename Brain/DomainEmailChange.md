@@ -8,14 +8,14 @@
 | System | Primary email changes |
 |--------|------------------------|
 | **Portal Entra sync** | Same person → **one** row; `users.email` **updated** to Graph `mail` (else UPN). Role **preserved**. |
-| **SuperOps requesters** | After the same Sync (background job): (1) bind `portal.superops_user_id` when matched; (2) SuperOps `updateClientUser` email = M365 primary. Match: SuperOps id → primary → **Graph aliases** (`proxyAddresses` / `otherMails`) → unique local-part. Unmatched count is in `EntraSyncResult` / activity + `entra_sync.last_result.{client}` (integration health), not a post-redirect flash — **Sync now** only confirms “started in background”. |
+| **SuperOps requesters** | After the same Sync (background job): (1) bind `portal.superops_user_id` when matched; (2) SuperOps `updateClientUser` email = M365 primary. Match: SuperOps id → primary → **Graph aliases** (`proxyAddresses` / `otherMails`) → unique local-part. Unmatched count is in `EntraSyncResult` / activity + `entra_sync.last_result.{client}` (integration health), not a post-redirect flash - **Sync now** only confirms “started in background”. |
 | **Login** | Match by object id first; refresh email when free and primary differs. |
 | **Duplicates from the old bug** | Next sync **merges** portal shadows; SuperOps email pass then points the live requester at `.com`. |
-| **SCIM still matters** | Names via `extensionAttribute1`, create/deprovision. Email renames can **lag or stick** in SCIM — API align is the enforcement after portal knows the truth. |
+| **SCIM still matters** | Names via `extensionAttribute1`, create/deprovision. Email renames can **lag or stick** in SCIM - API align is the enforcement after portal knows the truth. |
 
 **Never invent a second portal user** when Graph only reports a new primary for an existing object id.
 
-Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pause SuperOps email API writes.
+Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) - set `false` only to pause SuperOps email API writes.
 
 ## Ops checklist (every domain cutover)
 
@@ -29,8 +29,8 @@ Env: `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN=true` (default) — set `false` only to pa
 
 3. **Portal**  
    - Admin → Clients → **Edit** client → **Sync now** (or wait for adaptive `portal:sync-entra-users`).  
-   - Job runs in the **background** (avoids nginx 504). Wait 1–2 minutes, then check **Last synced** and SuperOps requesters.  
-   - Summary string (including SuperOps email align counts) is stored on `entra_sync.last_result.{id}` for Integration Health / ops — **not** shown as an on-page flash after Sync now.  
+   - Job runs in the **background** (avoids nginx 504). Wait 1-2 minutes, then check **Last synced** and SuperOps requesters.  
+   - Summary string (including SuperOps email align counts) is stored on `entra_sync.last_result.{id}` for Integration Health / ops - **not** shown as an on-page flash after Sync now.  
    - Prefer one dry-run first if using Artisan:  
      `php artisan portal:sync-entra-users --client={id} --dry-run --inline`  
      then without `--dry-run`.

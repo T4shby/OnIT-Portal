@@ -12,7 +12,7 @@ use App\Models\User;
  * - Technician Admin (`super_admin` / `account_manager`): all assigned customers
  *   (super_admin = every client); full org data per customer + Staff Admin tools
  * - Client Admin (`client_admin`): only their own customer organisation; full
- *   people + systems for that one tenant — never other customers
+ *   people + systems for that one tenant - never other customers
  * - Requester / Billing: personal items only within their organisation
  */
 class ClientVisibilityService

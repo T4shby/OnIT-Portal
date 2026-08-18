@@ -1,4 +1,4 @@
-# On IT Portal — Customer Journey
+# On IT Portal - Customer Journey
 
 ## 1. Invitation
 
@@ -13,12 +13,12 @@ Admin: **Admin → Clients → Add/Edit** (in-app setup wizard) or [ClientOnboar
 
 ## 3. Daily Use
 
-- **Dashboard** — notices, recommendations, opportunities, service cards
-- **Support** (`/support`) — tickets in-portal, no second login
-- **SuperOps full portal** — one click → `/#/requester/login` → Microsoft SAML → requester dashboard
-- **SuperOps** — same-tab launch via `/integrations/superops/launch`
-- **Pax8** — same-tab launch via `/integrations/pax8/launch` (partner portal for team, company view for clients)
-- **M365 / KB / Billing** — external links (new tab when configured)
+- **Dashboard** - notices, recommendations, opportunities, service cards
+- **Support** (`/support`) - tickets in-portal, no second login
+- **SuperOps full portal** - one click → `/#/requester/login` → Microsoft SAML → requester dashboard
+- **SuperOps** - same-tab launch via `/integrations/superops/launch`
+- **Pax8** - same-tab launch via `/integrations/pax8/launch` (partner portal for team, company view for clients)
+- **M365 / KB / Billing** - external links (new tab when configured)
 
 ## 4. Returning User
 

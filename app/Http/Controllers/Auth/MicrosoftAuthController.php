@@ -133,7 +133,7 @@ class MicrosoftAuthController extends Controller
 
         if ($user->portal_login_enabled === false) {
             return redirect()->route('login')
-                ->with('error', 'This account cannot sign in to the portal. Shared mailboxes are synced for support records only — please use your personal work account.');
+                ->with('error', 'This account cannot sign in to the portal. Shared mailboxes are synced for support records only - please use your personal work account.');
         }
 
         $user->loadMissing('client');
@@ -345,14 +345,14 @@ class MicrosoftAuthController extends Controller
     private function missingAuthorizationCodeMessage(): string
     {
         return 'Microsoft did not return a sign-in code to the portal. '
-            .'Open https://app.onit.ltd/login in a normal browser window (no private browsing, VPN off), click Sign in with Microsoft once, and wait — do not refresh, go back, or open multiple login tabs. '
+            .'Open https://app.onit.ltd/login in a normal browser window (no private browsing, VPN off), click Sign in with Microsoft once, and wait - do not refresh, go back, or open multiple login tabs. '
             .'In Entra → OnIT Portal for Portals → Authentication, the redirect URI must be Web (not SPA): '.config('services.azure.redirect');
     }
 
     private function sessionLostMessage(): string
     {
         return 'Sign-in session was lost during the Microsoft redirect. '
-            .'Use one browser window at https://app.onit.ltd/login — turn off VPN/private-browsing cookie blocking if possible, click Sign in with Microsoft once, and finish in the same tab. '
+            .'Use one browser window at https://app.onit.ltd/login - turn off VPN/private-browsing cookie blocking if possible, click Sign in with Microsoft once, and finish in the same tab. '
             .'Production should use MICROSOFT_OAUTH_STATELESS=true (now the default after git pull + config:clear).';
     }
 }

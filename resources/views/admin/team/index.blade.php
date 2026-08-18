@@ -36,7 +36,7 @@
                                     <span class="block max-w-[12rem] truncate text-sm sm:max-w-xs lg:max-w-md" title="{{ $clientNames }}">{{ $clientNames }}</span>
                                 @endif
                             @else
-                                <span class="portal-body-muted text-sm">—</span>
+                                <span class="portal-body-muted text-sm">-</span>
                             @endif
                         </td>
                         <td>

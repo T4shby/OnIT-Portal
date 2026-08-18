@@ -11,7 +11,7 @@ use App\Models\Client;
  * System-health tiles that declare overviewPartial() are auto-rendered; SuperOps-owned
  * sections (tickets, SLA) stay SuperOps-specific in the main metrics blade.
  *
- * @see Brain/ClientAdminDashboard.md — "Dashboard feed contract"
+ * @see Brain/ClientAdminDashboard.md - "Dashboard feed contract"
  */
 interface DashboardFeed
 {

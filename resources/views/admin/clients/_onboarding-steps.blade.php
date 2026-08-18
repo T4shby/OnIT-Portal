@@ -97,7 +97,7 @@
                                 <p class="portal-body-muted text-sm leading-relaxed mb-3">
                                     Accept already recorded. If group or app IDs are empty, use
                                     <strong class="text-white/80">Retry Graph setup</strong> at the top of this guide
-                                    (waits for Azure — not another Accept unless permissions changed).
+                                    (waits for Azure - not another Accept unless permissions changed).
                                 </p>
                             @endif
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-center" x-data="{ copied: false }">

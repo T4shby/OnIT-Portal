@@ -112,7 +112,7 @@ class Pax8SsoService
     }
 
     /**
-     * Pax8 Enterprise SSO only works at app.pax8.com — not mycommandconsole.com.
+     * Pax8 Enterprise SSO only works at app.pax8.com - not mycommandconsole.com.
      *
      * @see Brain/Pax8EnterpriseSsoSetup.md
      */

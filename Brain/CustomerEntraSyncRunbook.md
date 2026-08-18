@@ -1,8 +1,8 @@
-# Customer Entra sync — complete runbook (re-do from scratch)
+# Customer Entra sync - complete runbook (re-do from scratch)
 
 **Use this** when onboarding a new MSP customer or if you need to rebuild Entra sync, SCIM, and SSO from zero.
 
-**In-app wizard:** **Admin → Clients → Edit** — checklist on the **right** (full instructions per step). **Not all steps are on the portal** — see table below.
+**In-app wizard:** **Admin → Clients → Edit** - checklist on the **right** (full instructions per step). **Not all steps are on the portal** - see table below.
 
 **Related:** [AccessAndSync.md](AccessAndSync.md) · [EntraGroupSync.md](EntraGroupSync.md) · [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
 
@@ -10,7 +10,7 @@
 
 ## Do I need git pull on the server?
 
-**Yes — on production (`app.onit.ltd`), pull after code is pushed to `main`.** You do not push from the server.
+**Yes - on production (`app.onit.ltd`), pull after code is pushed to `main`.** You do not push from the server.
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
@@ -29,7 +29,7 @@ Pull when:
 - Checklist instructions were updated (manual format: **Before you start**, numbered **Part A/B/C**, **Check your work**)
 - Entra sync / group auto-maintain code changed (`eab02ed` and later)
 
-You do **not** need pull for Azure or SuperOps steps — those are outside the portal.
+You do **not** need pull for Azure or SuperOps steps - those are outside the portal.
 
 ---
 
@@ -37,10 +37,10 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 
 | Checklist step | Primary system | URL / location |
 |----------------|----------------|----------------|
-| — | **Portal** (before checklist) | Admin → Clients → **Add Client** → Create → Edit opens |
+| - | **Portal** (before checklist) | Admin → Clients → **Add Client** → Create → Edit opens |
 | 01 Link SuperOps | **SuperOps** + Portal | SuperOps MSP console → paste ID on portal |
 | 02 Pax8 (or skip) | **Pax8** + Portal | app.pax8.com → paste ID on portal |
-| 03 Portal group + Entra IDs | **Azure** (customer tenant) | portal.azure.com — customer directory |
+| 03 Portal group + Entra IDs | **Azure** (customer tenant) | portal.azure.com - customer directory |
 | 04 Portal Graph Accept | **On IT technician** + customer tenant via GDAP | Orange Accept button on checklist |
 | 05 SCIM tokens | **SuperOps** | Generate Tokens for this client |
 | 06 SCIM app | **Azure** (customer) | Create `SuperOps - {Company}` + Test Connection |
@@ -51,7 +51,7 @@ You do **not** need pull for Azure or SuperOps steps — those are outside the p
 | 11 Test as customer | **Browser** | Incognito customer work email |
 | 12 Hand off | **Email/ticket** | Tell customer the portal URL |
 
-**Once per platform (not per client):** Graph permissions on **OnIT Portal for Portals** in **On IT** tenant — Step 0 below.
+**Once per platform (not per client):** Graph permissions on **OnIT Portal for Portals** in **On IT** tenant - Step 0 below.
 
 ---
 
@@ -61,9 +61,9 @@ Per **customer** M365 tenant:
 
 | # | Object | Who creates | Manual ongoing work |
 |---|--------|-------------|---------------------|
-| 1 | Empty security group `On IT Portal - {Company}` | On IT technician (GDAP) | **None** — portal sync fills members |
-| 2 | One Entra enterprise app `SuperOps - {Company}` | On IT technician | **None** — SCIM provisioning only on this app |
-| 3 | SuperOps app scope | On IT technician | **P1:** assign group to app once in Azure. **Free:** paste Application (client) ID on portal — portal assigns users on sync |
+| 1 | Empty security group `On IT Portal - {Company}` | On IT technician (GDAP) | **None** - portal sync fills members |
+| 2 | One Entra enterprise app `SuperOps - {Company}` | On IT technician | **None** - SCIM provisioning only on this app |
+| 3 | SuperOps app scope | On IT technician | **P1:** assign group to app once in Azure. **Free:** paste Application (client) ID on portal - portal assigns users on sync |
 | 4 | Portal client record (tenant ID, group ID, sync on) | On IT technician (portal) | Dry run → Sync now |
 
 **Separate (On IT tenant, once per platform):** app registration **OnIT Portal for Portals** (OAuth login + Graph sync). Consented into each customer tenant.
@@ -99,18 +99,18 @@ The **group** exists because Entra SCIM only provisions users **assigned to the 
 | **2** | Customer tenant | Create **empty** security group → copy Object ID |
 | **3** | Portal | Paste **Entra tenant ID** + **Entra group ID** → Save client |
 | **4** | Customer tenant | **Admin consent** for OnIT Portal for Portals (checklist step **04**) |
-| **5** | Customer tenant | One app `SuperOps - {Company}` — SCIM + assign group (checklist step **05**) |
-| **8** | On IT technician + customer tenant via GDAP | Checklist **08** — configure SuperOps Client SSO; P1 assign Portal group / Free save SSO app ID for Sync now |
+| **5** | Customer tenant | One app `SuperOps - {Company}` - SCIM + assign group (checklist step **05**) |
+| **8** | On IT technician + customer tenant via GDAP | Checklist **08** - configure SuperOps Client SSO; P1 assign Portal group / Free save SSO app ID for Sync now |
 | **7** | Portal | Enable Entra sync → Dry run → Sync now |
 | **8** | Test | Group members in Entra, requesters in SuperOps, SAML login |
 
-**Step 0 before step 4** — customer consent must include `GroupMember.ReadWrite.All` if that permission was added after an earlier consent (re-consent required).
+**Step 0 before step 4** - customer consent must include `GroupMember.ReadWrite.All` if that permission was added after an earlier consent (re-consent required).
 
 ---
 
-## Step 0 — Graph permissions (On IT tenant, one-time)
+## Step 0 - Graph permissions (On IT tenant, one-time)
 
-Sign in to Azure as `@onit.ltd`. Stay in **On IT Technology Partners LTD** — **not** the customer tenant.
+Sign in to Azure as `@onit.ltd`. Stay in **On IT Technology Partners LTD** - **not** the customer tenant.
 
 ### 0.1 Open the correct app registration
 
@@ -126,7 +126,7 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 
 1. Click **+ Add a permission**
 2. In the right panel, click **Microsoft Graph** (blue hexagon under Commonly used Microsoft APIs)
-3. Click the **Application permissions** tab (on the **right** — not Delegated)
+3. Click the **Application permissions** tab (on the **right** - not Delegated)
 4. In **Search permissions**, find and tick each row below:
 
 | Search for | Tick this permission | Description shown |
@@ -154,23 +154,23 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 
 All **Application** rows must show:
 
-- **Status:** green tick — **Granted for On IT Technology Partners LTD**
+- **Status:** green tick - **Granted for On IT Technology Partners LTD**
 
 Expected Microsoft Graph permissions:
 
 **Delegated (4):** email, openid, profile, User.Read  
 **Application (14):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All, **SecurityEvents.Read.All**, **AuditLog.Read.All**, **Reports.Read.All**
 
-> **Connect Microsoft** (checklist 03/04) and customer **re-consent** only pick up permissions that already exist on the app in the **On IT** tenant. After adding or changing Application permissions: (1) Grant consent in On IT, (2) **re-run Accept** once per customer — do **not** delete the client record or SuperOps Entra apps.
+> **Connect Microsoft** (checklist 03/04) and customer **re-consent** only pick up permissions that already exist on the app in the **On IT** tenant. After adding or changing Application permissions: (1) Grant consent in On IT, (2) **re-run Accept** once per customer - do **not** delete the client record or SuperOps Entra apps.
 
 ### 0.3a Existing customers after a platform permission add (e.g. Secure Score / MFA)
 
 You do **not** need to delete clients, wipe SCIM, or redo SuperOps Client SSO.
 
-1. Complete Step 0.2–0.3 in the **On IT** tenant (new rows + Grant admin consent for On IT).
-2. **Batch re-consent every linked tenant** (private/GDAP into each customer — one Accept per tenant):
+1. Complete Step 0.2-0.3 in the **On IT** tenant (new rows + Grant admin consent for On IT).
+2. **Batch re-consent every linked tenant** (private/GDAP into each customer - one Accept per tenant):
 
-   - **Staff UI (preferred):** Admin → Clients → **Graph re-consent** — Accept links for every active tenant.
+   - **Staff UI (preferred):** Admin → Clients → **Graph re-consent** - Accept links for every active tenant.
    - Per client Edit → **Re-consent Graph permissions**.
    - Optional server list: `php artisan portal:graph-reconsent-urls --markdown --active`
 
@@ -187,11 +187,11 @@ This happened on first deploy (June 2026). **Fix:**
 2. Confirm all Application permissions still appear in the table
 3. Click **Grant admin consent for On IT Technology Partners LTD** again
 
-That was enough — no manifest edit, no PowerShell. If it still fails after refresh, wait 2–3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
+That was enough - no manifest edit, no PowerShell. If it still fails after refresh, wait 2-3 minutes (Azure propagation) and retry. Only then consider removing and re-adding the permission via **Add a permission** again.
 
 ---
 
-## Step 2 — Empty security group (customer tenant)
+## Step 2 - Empty security group (customer tenant)
 
 1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant. Do **not** open On IT Technology Partners LTD first and switch.
 2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**
@@ -199,14 +199,14 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
    - **Group type:** Security
    - **Group name:** `On IT Portal - {Company}`
    - **Membership type:** Assigned
-4. **Leave Members empty** — do not add anyone
+4. **Leave Members empty** - do not add anyone
 5. Click **Create**
 6. Open the new group → **Overview** → copy **Object ID** (GUID)
 7. Entra left **Overview** → copy **Tenant ID** (GUID) if not already on the portal client
 
 ---
 
-## Step 3 — Portal client fields
+## Step 3 - Portal client fields
 
 **Admin → Clients → Edit {Company}**
 
@@ -214,28 +214,28 @@ That was enough — no manifest edit, no PowerShell. If it still fails after ref
 |-------|--------|
 | Entra Tenant ID | Customer tenant GUID |
 | Entra Group ID | Group Object ID from step 2 |
-| SuperOps Application (client) ID | App registrations → SuperOps app → Overview → **Application (client) ID** — **not** Object ID. Required on Entra ID Free. |
+| SuperOps Application (client) ID | App registrations → SuperOps app → Overview → **Application (client) ID** - **not** Object ID. Required on Entra ID Free. |
 | Entra sync enabled | ✓ |
 
 Click **Save client**.
 
 ---
 
-## Step 4 — Admin consent (customer tenant) — checklist **04**
+## Step 4 - Admin consent (customer tenant) - checklist **04**
 
 Must be done in the **customer** tenant as Global Admin (or GDAP with consent rights).
 
 **Actor:** the On IT technician does this on the customer’s behalf using GDAP. Do not send the consent URL or task to the customer.
 
-### Option A — Link from portal checklist
+### Option A - Link from portal checklist
 
-1. **Admin → Clients → Edit** → checklist **Step 04 — Portal Graph admin consent**
+1. **Admin → Clients → Edit** → checklist **Step 04 - Portal Graph admin consent**
 2. On IT technician opens the consent URL using delegated / GDAP access
 3. Confirm the sign-in page shows the **customer** tenant name (not On IT)
 4. Review permissions → **Accept**
 5. Success page confirms consent
 
-### Option B — Manual URL
+### Option B - Manual URL
 
 ```
 https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={PORTAL-APP-CLIENT-ID}
@@ -249,48 +249,48 @@ https://login.microsoftonline.com/{CUSTOMER-TENANT-ID}/adminconsent?client_id={P
 1. **Microsoft Entra ID** → **Enterprise applications** → search **OnIT Portal for Portals** (or **On IT Portal**)
 2. **Permissions** → all Application permissions show **Granted**
 
-**Re-consent** if you added permissions after an earlier consent — old consent does not include new permissions (e.g. `Application.Read.All`, `AppRoleAssignment.ReadWrite.All`).
+**Re-consent** if you added permissions after an earlier consent - old consent does not include new permissions (e.g. `Application.Read.All`, `AppRoleAssignment.ReadWrite.All`).
 
 ---
 
-## Step 5–7 — SuperOps SCIM app only — checklist **05** + **06** + **07**
+## Step 5-7 - SuperOps SCIM app only - checklist **05** + **06** + **07**
 
 App name: **`SuperOps - {Company}`**
 
-### 5a — SuperOps SCIM tokens
+### 5a - SuperOps SCIM tokens
 
 1. SuperOps MSP console → **Integrations → Microsoft Entra ID**
 2. **Generate Tokens** → select this SuperOps client
-3. Copy **Tenant URL** and **Secret Token** (Auth Token) — store in password manager; regenerate if exposed
+3. Copy **Tenant URL** and **Secret Token** (Auth Token) - store in password manager; regenerate if exposed
 
-### 5b — Create app and SCIM (customer tenant)
+### 5b - Create app and SCIM (customer tenant)
 
 1. **Entra ID → Enterprise applications → New application**
 2. **Create your own application** → non-gallery → name `SuperOps - {Company}` → **Create**
 3. **Provisioning** → **Provisioning** → Mode: **Automatic**
 4. **Admin Credentials:** Authentication method = **Bearer authentication** (default). **Tenant URL** + **Secret Token** (Auth Token) from SuperOps → **Test Connection** → must succeed → **Save**
-5. **App role (required on Entra ID Free — portal sync assigns users via Graph):**
+5. **App role (required on Entra ID Free - portal sync assigns users via Graph):**
    - **App registrations** → open the SuperOps app (same name: `SuperOps - {Company}`)
    - **App roles** → if no enabled role exists, **Create app role**:
      - **Display name:** `User`
      - **Allowed member types:** Users/Groups
-     - **Value:** `User` (required — do not leave blank)
+     - **Value:** `User` (required - do not leave blank)
      - **Description:** `Default access for SCIM users` (required)
      - **Enable this app role:** ✓ → **Save**
    - If a **User** role already exists: open it → confirm **Value** is set (e.g. `User`) and the role is **enabled**
-   - **Remove duplicate roles with blank Value** (keep one role with Value `User`, e.g. "Default access for SCIM users") — portal sync picks the role with Value `User`, not `msiam_access`
-6. **SCIM name mapping (all Direct — no Expression):**
+   - **Remove duplicate roles with blank Value** (keep one role with Value `User`, e.g. "Default access for SCIM users") - portal sync picks the role with Value `User`, not `msiam_access`
+6. **SCIM name mapping (all Direct - no Expression):**
    - **name.givenName** → Direct → `givenName`
    - **name.familyName** → Direct → `extensionAttribute1` → Default if null `[surname]`
    - **name.formatted** → Direct → `displayName`
-   - Do **not** put the expression in "Default value if null" on a Direct mapping — it will not run
+   - Do **not** put the expression in "Default value if null" on a Direct mapping - it will not run
 7. **Users and groups:**
-   - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once — portal sync keeps membership updated)
-   - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** — do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
+   - **Entra ID P1:** **Add user/group** → security group `On IT Portal - {Company}` → **Assign** (once - portal sync keeps membership updated)
+   - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps app → Overview → portal **SuperOps Application (client) ID** - do **not** use Object ID on that page. Portal sync assigns licensed users; do not add users manually in Azure
 7. **Provisioning → Start provisioning** (or wait for cycle)
-8. **Portal Sync now** → expect `SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)` — confirm **Update** per user in Entra **Provisioning logs**; requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
+8. **Portal Sync now** → expect `SuperOps last names updated N; SuperOps SCIM provision requested for N user(s)` - confirm **Update** per user in Entra **Provisioning logs**; requesters show `(User Mailbox)` / `(Shared Mailbox)` in SuperOps only
 
-### 8 — SuperOps requester Client SSO — checklist **08**
+### 8 - SuperOps requester Client SSO - checklist **08**
 
 On IT uses customer-specific **Client SSO** so customer identities remain in their own Entra tenant with no On IT B2B guests. Full detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
@@ -301,11 +301,11 @@ On IT uses customer-specific **Client SSO** so customer identities remain in the
 3. Portal form → **Wire SuperOps into Microsoft Entra** → paste returned Login URL + Base64 certificate into SuperOps Step 3 → Save.
 4. Free: **Sync now** assigns users via saved `entra_superops_sso_app_id`. Incognito test with a customer work email.
 
-**Only if Connect/wire fails:** create the SAML enterprise app by hand in customer Entra, or set Identifier/Reply URL under Single sign-on → SAML — recovery block on the live step. Do **not** put SAML on the SCIM app `SuperOps - {Company}`.
+**Only if Connect/wire fails:** create the SAML enterprise app by hand in customer Entra, or set Identifier/Reply URL under Single sign-on → SAML - recovery block on the live step. Do **not** put SAML on the SCIM app `SuperOps - {Company}`.
 
 ---
 
-## Step 9–10 — Portal sync — checklist **09** + **10**
+## Step 9-10 - Portal sync - checklist **09** + **10**
 
 ### Server deploy (after `git pull`)
 
@@ -348,8 +348,8 @@ MICROSOFT_CLIENT_SECRET=<secret>
 
 1. **Admin → Clients → Edit**
 2. Confirm tenant ID, group ID, **SuperOps Application (client) ID** (Free tier), sync enabled
-3. **Dry run sync** — expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps last names updated N`
-4. **Sync now** — starts sync **in the background** after redirect (safe to close the browser). Refresh Edit to see **Last synced**. For a live count summary in the terminal, use `php artisan portal:sync-entra-users --client={id}`. Check Entra **Provisioning logs** for **Update** entries after sync completes.
+3. **Dry run sync** - expect user counts, `SuperOps group: +N`, `SuperOps app: +N`, `SuperOps last names updated N`
+4. **Sync now** - starts sync **in the background** after redirect (safe to close the browser). Refresh Edit to see **Last synced**. For a live count summary in the terminal, use `php artisan portal:sync-entra-users --client={id}`. Check Entra **Provisioning logs** for **Update** entries after sync completes.
 
 ### CLI alternative
 
@@ -360,13 +360,13 @@ php artisan portal:sync-entra-users --client={id}
 
 ---
 
-## Step 8 — Validation
+## Step 8 - Validation
 
 | # | Check | Pass when |
 |---|--------|-----------|
 | 1 | Entra group members | **Groups → On IT Portal - {Company} → Members** lists licensed users + shared mailboxes without manual adds |
-| 2 | SCIM logs | **Enterprise app → Provisioning → Provisioning logs** — users synced, no errors |
-| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** — names show `(User Mailbox)` or `(Shared Mailbox)`; emails match |
+| 2 | SCIM logs | **Enterprise app → Provisioning → Provisioning logs** - users synced, no errors |
+| 3 | SuperOps requesters | **SuperOps → Clients → {Company} → Requesters** - names show `(User Mailbox)` or `(Shared Mailbox)`; emails match |
 | 4 | SAML login | Incognito → `app.onit.ltd` → SuperOps tile → Microsoft sign-in with `@customerdomain` |
 | 5 | Joiner | New licensed user → after sync + SCIM cycle → in group, portal, SuperOps |
 | 6 | Leaver | Licence removed → portal user deactivated; removed from group → SCIM deprovisions |
@@ -382,13 +382,13 @@ php artisan portal:sync-entra-users --client={id}
 | Group sync 403 / forbidden | Missing `GroupMember.ReadWrite.All` or customer consent | Step 0 + step 4 (re-consent) |
 | Portal users sync, group empty | `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` or consent missing | Set `true`; `php artisan config:clear` |
 | Requesters not in SuperOps; Integration Health SuperOps SCIM red; step 07 **Failed** | Sync 1 job missing/stopped, **or** Entra SCIM app has **0 provisioning templates** (created via bare `POST /applications`) | `--check` first. If **0 templates** → Edit Client **Retry Graph setup** (auto recreate via template instantiate) → **Apply SCIM**. If templates OK + BaseAddress → **Retry SCIM export** / `portal:repair-superops-scim`. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#scim-job-missing--portal-sync-looks-fine-but-superops-has-gaps) |
-| Apply SCIM / Retry SCIM: “zero SCIM provisioning templates” | Wrong Entra app create path | **Retry Graph setup** then Apply — do not delete client; do not Azure UI recreate |
+| Apply SCIM / Retry SCIM: “zero SCIM provisioning templates” | Wrong Entra app create path | **Retry Graph setup** then Apply - do not delete client; do not Azure UI recreate |
 | Garbled SuperOps name e.g. `(AccountsShared MailboxAccounts)` | Join Expression still on displayName/name.formatted | Switch to **Direct** mapping per [SuperOpsEntraSync.md](SuperOpsEntraSync.md); Sync now |
 | Requester plain name (no suffix) | `name.familyName` not Direct from `extensionAttribute1` | Direct map **name.familyName** ← extensionAttribute1 (default `[surname]`); Sync now |
 | `extensionAttribute1` set (e.g. `Smith (User Mailbox)`) but SuperOps still plain | Entra **Provisioning logs** missing **Update** for that user | Sync now (portal provisions one user per call) or **Provision on demand** in Entra for that user |
 | Connect bootstrap: tenant/group OK but SCIM/SSO apps fail with Graph **404** `Request_ResourceNotFound` on app/roles | SP object id from create/instantiate not yet (or never) GET-able; stale SP id reused | Code waits/re-resolves SP by **appId**, retries role resolve, falls back to Application appRoles. Deploy latest → **Retry Graph setup**. If still fails: Entra → Enterprise app → Users and groups → assign portal group. |
 | Connect right after Accept: 401 IdentityNotFound / 403 insufficient privileges | Consent SP / scopes not live yet | Bootstrap waits + retries; if still incomplete use **Retry Graph setup**. Not a failed login. |
-| Could not resolve SuperOps enterprise app | Missing `Application.Read.All`, wrong GUID, or half-deleted SCIM app after bad reset | Prefer **Retry Graph setup** (recreate). Else Application.Read.All + re-consent. Use Application (client) ID — not Object ID |
+| Could not resolve SuperOps enterprise app | Missing `Application.Read.All`, wrong GUID, or half-deleted SCIM app after bad reset | Prefer **Retry Graph setup** (recreate). Else Application.Read.All + re-consent. Use Application (client) ID - not Object ID |
 | `Permission being assigned was not found on application` | SuperOps app has no **App role** (or **Value** left blank) | App registrations → SuperOps → **App roles** → Create or edit: Display name `User`, Value `User`, Description `Default access for SCIM users`, Users/Groups, Enable → Save → Sync now |
 | App role assignment 403 | Wrong Object ID pasted, or missing `AppRoleAssignment.ReadWrite.All` | Use Application (client) ID; re-consent; `php artisan cache:clear` |
 | SAML works, SCIM does not (or reverse) | Rare single-app conflict | Legacy two-app fallback |
@@ -402,7 +402,7 @@ php artisan portal:sync-entra-users --client={id}
 |-----|--------|---------|
 | **OnIT Portal for Portals** | On IT (registered); consented in customer | Portal login + Graph sync |
 | **SuperOps - {Company}** | Customer | SCIM provisioning only |
-| **SuperOps Requester SSO - {Company}** | Customer | Client SSO SAML — P1 assign Portal group / Free portal assigns users |
+| **SuperOps Requester SSO - {Company}** | Customer | Client SSO SAML - P1 assign Portal group / Free portal assigns users |
 
 **Not per customer:** On IT technician SSO and portal OAuth registration itself.
 

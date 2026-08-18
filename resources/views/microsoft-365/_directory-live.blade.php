@@ -11,7 +11,7 @@
     <x-card>
         <x-empty-state
             title="Directory synchronising"
-            description="No cached directory yet — Microsoft Graph is loading users, licences, and mailbox types in the background. Large tenants can take several minutes. This panel updates automatically when data arrives."
+            description="No cached directory yet - Microsoft Graph is loading users, licences, and mailbox types in the background. Large tenants can take several minutes. This panel updates automatically when data arrives."
         />
     </x-card>
     <p class="portal-body-muted text-xs mt-3" data-live-poll-notice>
@@ -42,7 +42,7 @@
             @if($display?->refreshInProgress)
                 <p class="portal-body-muted text-xs text-sky-300">
                     @if(! empty($adminContext))
-                        Refresh in progress — showing cached data below. Tables update when the new snapshot is ready (can take several minutes on large tenants).
+                        Refresh in progress - showing cached data below. Tables update when the new snapshot is ready (can take several minutes on large tenants).
                     @else
                         Updating the directory from Microsoft. The list below stays visible until new data is ready.
                     @endif
@@ -129,7 +129,7 @@
                                     {{ $person['accountEnabled'] ? 'Enabled' : 'Disabled' }}
                                 </x-badge>
                             </div>
-                            <p class="mt-1 text-xs text-white/55 break-all">{{ $person['email'] ?? '—' }}</p>
+                            <p class="mt-1 text-xs text-white/55 break-all">{{ $person['email'] ?? '-' }}</p>
                             <div class="portal-ticket-card__meta">
                                 <x-badge variant="info">{{ $person['typeLabel'] }}</x-badge>
                                 @if($person['portalLogin'])
@@ -168,7 +168,7 @@
                                 @php $person = $row['person']; @endphp
                                 <tr x-show="peopleFilter === 'all' || peopleFilter === '{{ $person['type'] }}'">
                                     <td>{{ $row['name'] !== '' ? $row['name'] : $person['displayName'] }}</td>
-                                    <td class="text-white/70">{{ $person['email'] ?? '—' }}</td>
+                                    <td class="text-white/70">{{ $person['email'] ?? '-' }}</td>
                                     <td><x-badge variant="info">{{ $person['typeLabel'] }}</x-badge></td>
                                     <td>
                                         <x-badge :variant="$person['accountEnabled'] ? 'success' : 'danger'">
@@ -183,7 +183,7 @@
                                                 @endforeach
                                             </div>
                                         @else
-                                            —
+                                            -
                                         @endif
                                     </td>
                                     <td>
@@ -236,10 +236,10 @@
                             @foreach($directory->groups as $group)
                                 <tr x-show="groupFilter === 'all' || groupFilter === '{{ $group['type'] }}'">
                                     <td>{{ $group['displayName'] }}</td>
-                                    <td class="text-white/70">{{ $group['email'] ?? '—' }}</td>
+                                    <td class="text-white/70">{{ $group['email'] ?? '-' }}</td>
                                     <td><x-badge variant="default">{{ $group['typeLabel'] }}</x-badge></td>
                                     <td class="text-white/60 text-sm max-w-md truncate" title="{{ $group['description'] }}">
-                                        {{ $group['description'] ?: '—' }}
+                                        {{ $group['description'] ?: '-' }}
                                     </td>
                                 </tr>
                             @endforeach

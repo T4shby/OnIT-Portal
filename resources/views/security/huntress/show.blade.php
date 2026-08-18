@@ -1,5 +1,5 @@
 @if($adminContext)
-    <x-admin-layout :title="'Case — '.$client->name">
+    <x-admin-layout :title="'Case - '.$client->name">
         @include('admin.partials.header', [
             'title' => 'Security case',
             'action' => '<a href="'.e($indexRoute).'" class="cta-btn-ghost text-sm px-6 py-3">Back to list</a>',

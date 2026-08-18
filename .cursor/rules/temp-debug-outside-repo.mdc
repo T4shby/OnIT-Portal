@@ -1,5 +1,5 @@
 ---
-description: Temp/debug scripts go in repo-root tmp/ only — never under app, storage, or other code paths
+description: Temp/debug scripts go in repo-root tmp/ only - never under app, storage, or other code paths
 alwaysApply: true
 ---
 
@@ -24,7 +24,7 @@ C:\Dev\OnIT-Portal\tmp\
 ## After use
 
 1. Delete the temp file when done (local + any copy scp’d to the server).
-2. Contents of `tmp/` are gitignored — do not force-add them.
+2. Contents of `tmp/` are gitignored - do not force-add them.
 3. Do **not** leave probe scripts on production under `storage/app/` or the live tree.
 4. Prefer `artisan` / proper tests for anything that should persist.
 

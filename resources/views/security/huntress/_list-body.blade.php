@@ -22,7 +22,7 @@
         @if($canViewAll ?? false)
             You can see every case for this organisation.
         @else
-            You only see cases linked to you — not other people’s.
+            You only see cases linked to you - not other people’s.
         @endif
     </p>
 </section>
@@ -105,7 +105,7 @@
 @elseif($s->refreshInProgress || $list->refreshInProgress)
     <x-card class="mb-8">
         <p class="portal-body-muted text-sm">
-            Syncing Huntress for this organisation. Metrics appear when the pull finishes — stay or refresh in a moment.
+            Syncing Huntress for this organisation. Metrics appear when the pull finishes - stay or refresh in a moment.
         </p>
     </x-card>
 @else

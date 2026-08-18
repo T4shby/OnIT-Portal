@@ -56,7 +56,7 @@
                         @else
                             <p class="text-red-100/90">
                                 Credentials are in Entra but export is not active. Retry recreates the job and starts
-                                provisioning — no secret re-paste, no Azure UI.
+                                provisioning - no secret re-paste, no Azure UI.
                             </p>
                         @endif
                         @if(! empty($scimHealth['warnings']) && is_array($scimHealth['warnings']))
@@ -81,11 +81,11 @@
 
         @if($scimInFlight)
             <div class="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
-                Apply SCIM is running in the background. Refresh in about a minute — this step stays <strong class="text-white/90">Failed</strong> until export is active.
+                Apply SCIM is running in the background. Refresh in about a minute - this step stays <strong class="text-white/90">Failed</strong> until export is active.
             </div>
         @elseif($scimRepairInFlight)
             <div class="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
-                Retry SCIM export is running in the background. Refresh in about a minute — check Integration Health → SuperOps SCIM.
+                Retry SCIM export is running in the background. Refresh in about a minute - check Integration Health → SuperOps SCIM.
             </div>
         @endif
 
@@ -136,7 +136,7 @@
                 <p>
                     Tenant URL host <strong class="text-white/90">{{ $scimBaseAddressHost ?: 'configured' }}</strong>
                     and secret token were written to Entra when you ran Apply SCIM.
-                    The portal does <strong class="text-white/90">not</strong> keep the secret — empty fields below are normal.
+                    The portal does <strong class="text-white/90">not</strong> keep the secret - empty fields below are normal.
                     @if($canRetryScimExport)
                         Use <strong class="text-white/90">Retry SCIM export</strong> above; no re-paste unless SuperOps rotated tokens.
                     @endif
@@ -147,7 +147,7 @@
         <details class="border border-white/10 bg-white/[0.02] px-4 py-3" @if($scimNeedsApply || ! $scimCredentialsInEntra) open @endif>
             <summary class="cursor-pointer select-none text-sm font-condensed uppercase tracking-wide text-onit">
                 @if($scimCredentialsInEntra)
-                    Re-Apply SCIM tokens (optional — token rotation only)
+                    Re-Apply SCIM tokens (optional - token rotation only)
                 @else
                     Apply SCIM credentials + start
                 @endif
@@ -209,7 +209,7 @@
                     </div>
                     <button type="submit" class="cta-btn text-sm px-6 py-3" :disabled="submitting || {{ $scimInFlight ? 'true' : 'false' }}">
                         <span x-show="!submitting">@if($scimInFlight) Apply already running… @else Apply SCIM credentials + start @endif</span>
-                        <span x-cloak x-show="submitting">Queued — redirecting…</span>
+                        <span x-cloak x-show="submitting">Queued - redirecting…</span>
                     </button>
                     <p class="portal-body-muted text-xs leading-relaxed" x-show="!submitting">
                         Queues a high-priority worker job: Graph tokens + name.familyName ← extensionAttribute1 + portal Sync.

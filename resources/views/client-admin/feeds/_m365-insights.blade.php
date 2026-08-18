@@ -1,4 +1,4 @@
-{{-- M365 licences tile — DashboardFeed key: m365_insights --}}
+{{-- M365 licences tile - DashboardFeed key: m365_insights --}}
 @php
     $m = $m365Insights;
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
@@ -17,18 +17,18 @@
 
     @if($m->hasData())
         <p class="org-hero-num org-accent" style="margin:8px 0 0">
-            {{ $m->overallUtilizationPct === null ? '—' : number_format($m->overallUtilizationPct, 0).'%' }}
+            {{ $m->overallUtilizationPct === null ? '-' : number_format($m->overallUtilizationPct, 0).'%' }}
         </p>
         <p class="org-muted" style="margin:4px 0 0;font-size:12px">paid licence utilisation</p>
         <div class="org-stack">
             <div class="org-metric">
                 <span class="org-metric-l">Licensed users</span>
-                <span class="org-metric-v">{{ $m->licensedUserCount === null ? '—' : number_format($m->licensedUserCount) }}</span>
+                <span class="org-metric-v">{{ $m->licensedUserCount === null ? '-' : number_format($m->licensedUserCount) }}</span>
             </div>
             <div class="org-metric">
                 <span class="org-metric-l">Seats assigned</span>
                 <span class="org-metric-v">
-                    {{ $m->totalSeatsAssigned === null ? '—' : number_format($m->totalSeatsAssigned) }}
+                    {{ $m->totalSeatsAssigned === null ? '-' : number_format($m->totalSeatsAssigned) }}
                     @if($m->totalSeatsPurchased !== null)
                         <span style="font-weight:500;color:rgba(255,255,255,.45)">/ {{ number_format($m->totalSeatsPurchased) }}</span>
                     @endif

@@ -74,7 +74,7 @@
                     style="-webkit-overflow-scrolling: touch;"
                 >
                     @if(! $canEditFreshness)
-                        <p class="mb-6 text-sm leading-relaxed text-amber-200/90">View only — Super Admins can save.</p>
+                        <p class="mb-6 text-sm leading-relaxed text-amber-200/90">View only - Super Admins can save.</p>
                     @endif
 
                     <div class="space-y-8">

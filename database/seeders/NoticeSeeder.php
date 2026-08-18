@@ -12,7 +12,7 @@ class NoticeSeeder extends Seeder
     {
         $notices = [
             'Welcome to the On IT Portal. Your single hub for all IT services.',
-            'Scheduled maintenance window: Saturday 2am–6am. Minimal disruption expected.',
+            'Scheduled maintenance window: Saturday 2am-6am. Minimal disruption expected.',
             'New security recommendations have been added to your dashboard.',
         ];
 

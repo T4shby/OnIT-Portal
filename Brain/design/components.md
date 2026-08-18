@@ -21,7 +21,7 @@ Hero headings use `hero-heading` (not `section-heading`). Wipe animation applies
         <h1 class="hero-heading orange-bg wipe-heading wipe-delay">Line Two</h1>
       </div>
       <p class="animate-in delay-3" style="max-width:520px;font-size:1.05rem;font-weight:300;color:rgba(255,255,255,0.82);line-height:1.75;margin-bottom:0.75rem;">
-        Primary hero subtext — one or two sentences.
+        Primary hero subtext - one or two sentences.
       </p>
       <p class="animate-in delay-3" style="max-width:520px;font-size:0.875rem;font-weight:300;color:rgba(255,255,255,0.62);line-height:1.7;margin-bottom:2rem;">
         Best for: [target audience description].
@@ -36,7 +36,7 @@ Hero headings use `hero-heading` (not `section-heading`). Wipe animation applies
 ```
  
 **Notes:**
-- `min-height:88vh` — always, so the hero fills the viewport
+- `min-height:88vh` - always, so the hero fills the viewport
 - Orange rule gets `animate-in delay-1` (it animates in before the heading)
 - The whole `.heading-stack` div gets `animate-in delay-2`
 - Subtext paragraphs share `delay-3`; CTA row gets `delay-4`
@@ -70,7 +70,7 @@ Hero headings use `hero-heading` (not `section-heading`). Wipe animation applies
  
 ## Benefit Card (3-column grid)
  
-Cards must have a **solid** background — never transparent. The grid overlay must not bleed through.
+Cards must have a **solid** background - never transparent. The grid overlay must not bleed through.
  
 ```html
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -165,7 +165,7 @@ Used for "what we help with" type content inside benefit cards:
  
 ## Client setup manual (onboarding checklist)
  
-Used inside `.onboarding-guide__panel` on **Admin → Clients → Edit**. Structured like an install manual — not a flat bullet list.
+Used inside `.onboarding-guide__panel` on **Admin → Clients → Edit**. Structured like an install manual - not a flat bullet list.
  
 | Block | CSS | Purpose |
 |-------|-----|---------|
@@ -195,7 +195,7 @@ Numbered steps with orange left-border on hover. Used for process flows and step
       </div>
     </div>
   </div>
-  <!-- repeat — last item omits border-b -->
+  <!-- repeat - last item omits border-b -->
 </div>
 ```
  
@@ -220,7 +220,7 @@ Numbered steps with orange left-border on hover. Used for process flows and step
 ## SLA / Data Table
  
 Used for service level agreements, pricing tiers, feature comparisons.
-Table background must be **solid** — no transparency.
+Table background must be **solid** - no transparency.
  
 ```html
 <div class="reveal" style="background:#071f2e;border:1px solid #0f3048;overflow-x:auto;">
@@ -474,7 +474,7 @@ Always left-aligned. Never centred.
  
 ## Background Image Section
  
-For sections with a full-bleed background photo. Use the correct overlay for the context — do not mix them.
+For sections with a full-bleed background photo. Use the correct overlay for the context - do not mix them.
  
 **Hero sections** (`0.88 / 0.65 / 0.3`):
 ```html
@@ -487,7 +487,7 @@ For sections with a full-bleed background photo. Use the correct overlay for the
 </div>
 ```
  
-**CTA sections** (`0.92 / 0.78 / 0.5`) — darker because form and bullets must be readable:
+**CTA sections** (`0.92 / 0.78 / 0.5`) - darker because form and bullets must be readable:
 ```html
 <div style="position:absolute;inset:0;
   background:linear-gradient(to right,
@@ -498,7 +498,7 @@ For sections with a full-bleed background photo. Use the correct overlay for the
 </div>
 ```
  
-Full section wrapper (same for both — swap overlay above):
+Full section wrapper (same for both - swap overlay above):
 ```html
 <section class="w-full" style="position:relative;overflow:hidden;">
   <div style="position:absolute;inset:0;

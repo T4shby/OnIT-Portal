@@ -12,7 +12,7 @@ class RepairSuperOpsScimCommand extends Command
 {
     protected $signature = 'portal:repair-superops-scim
                             {--client= : Repair a single client by ID}
-                            {--check : Report SCIM health only — no changes}
+                            {--check : Report SCIM health only - no changes}
                             {--provision-missing : Provision-on-demand portal users missing from SuperOps}
                             {--sync : Queue portal Entra sync after repair}';
 
@@ -90,7 +90,7 @@ class RepairSuperOpsScimCommand extends Command
 
             if ($health['needsApplyScim']) {
                 $hadFailure = true;
-                $this->error('  Cannot repair without Apply SCIM — paste SuperOps Tenant URL + Secret Token on Edit Client.');
+                $this->error('  Cannot repair without Apply SCIM - paste SuperOps Tenant URL + Secret Token on Edit Client.');
 
                 continue;
             }

@@ -113,16 +113,18 @@ Rules: white line first, orange last, left-aligned, orange rule above.
 
 ---
 
+**Layouts (2026-08-18):** live shells are `resources/views/components/layouts/{app,admin}.blade.php` via `x-app-layout` / `x-admin-layout`. The old Breeze copies under `resources/views/layouts/` were unused and removed.
+
 ## Layout
 
-### Client shell (`layouts/app.blade.php`)
+### Client shell (`components/layouts/app.blade.php`)
 
 - `.portal-shell` = `.onit-bg` + flex column, min-height 100dvh
 - `.portal-header` = `bg-onit-ink`, border `onit-border`
 - Main content: `max-w-portal mx-auto`, grid overlay behind content
 - Nav: Dashboard link white by default, orange on hover/active (`.portal-nav-link-active`)
 
-### Admin shell (`layouts/admin.blade.php`)
+### Admin shell (`components/layouts/admin.blade.php`)
 
 - `.admin-shell` + sidebar `bg-onit-ink`
 - `.admin-main` for content area

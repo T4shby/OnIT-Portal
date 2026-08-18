@@ -1,12 +1,12 @@
-# New customer tenant — deep reference
+# New customer tenant - deep reference
 
 > **Day-to-day start:** [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) and the live **Edit Client** 12-step guide.
 >
 > This file is a longer narrative if you want background. Do not skip the in-app checklist.
 
 **For:** On IT technicians who have never used this portal before.  
-**Time:** ~1–2 hours first time (less once you have done one customer).  
-**You do not need to write code or use SSH** for most steps — the portal admin UI does the work.
+**Time:** ~1-2 hours first time (less once you have done one customer).  
+**You do not need to write code or use SSH** for most steps - the portal admin UI does the work.
 
 ---
 
@@ -14,8 +14,8 @@
 
 | URL | What it is |
 |-----|------------|
-| **https://app.onit.ltd** | **On IT Portal** — where customers sign in and open SuperOps, Pax8, etc. |
-| **https://portal.onit.ltd** | **SuperOps requester portal** — tickets (hosted by SuperOps, not Laravel) |
+| **https://app.onit.ltd** | **On IT Portal** - where customers sign in and open SuperOps, Pax8, etc. |
+| **https://portal.onit.ltd** | **SuperOps requester portal** - tickets (hosted by SuperOps, not Laravel) |
 
 **Your job:** connect a **new customer company** so their staff can:
 
@@ -35,10 +35,10 @@ This guide is **only for each new customer tenant**.
 
 ## Golden rules
 
-1. **Work email must match everywhere** — same address in M365, SuperOps, and the portal.  
-2. **Microsoft 365 is the source of truth** — disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
-3. **Use a private/incognito browser for testing** — do not test with `tom.ashby@onit.ltd` (that is a technician account).  
-4. **Use the in-app wizard** — **Admin → Clients → Edit** → **Client setup** guide on the **right** (Portal Accept on step 04; Client SSO on step 08). **Dry run sync** / **Sync now** are on the **left**.
+1. **Work email must match everywhere** - same address in M365, SuperOps, and the portal.  
+2. **Microsoft 365 is the source of truth** - disable or remove licences in M365; sync updates the portal and (via SCIM) SuperOps.  
+3. **Use a private/incognito browser for testing** - do not test with `tom.ashby@onit.ltd` (that is a technician account).  
+4. **Use the in-app wizard** - **Admin → Clients → Edit** → **Client setup** guide on the **right** (Portal Accept on step 04; Client SSO on step 08). **Dry run sync** / **Sync now** are on the **left**.
 
 ---
 
@@ -47,15 +47,15 @@ This guide is **only for each new customer tenant**.
 | Person | Typical tasks |
 |--------|----------------|
 | **On IT technician (portal / SuperOps)** | SuperOps client, portal client record, Pax8 ID, enable sync, dry-run, test, handoff |
-| **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, Portal Graph consent, SuperOps Client SSO app — all in the **customer** tenant |
+| **On IT technician (customer Entra / GDAP)** | Security group, SCIM app, Portal Graph consent, SuperOps Client SSO app - all in the **customer** tenant |
 
 On IT technicians complete every action on the customer’s behalf using delegated / GDAP access. If the required GDAP role is unavailable, stop and escalate internally until access is corrected; do not send setup work or Accept URLs to the customer.
 
-This is the **same process for every MSP customer** — scale by repeating **Admin → Clients → Edit** per company.
+This is the **same process for every MSP customer** - scale by repeating **Admin → Clients → Edit** per company.
 
 ---
 
-## Before you start — collect from the customer
+## Before you start - collect from the customer
 
 | Item | Example |
 |------|---------|
@@ -64,30 +64,30 @@ This is the **same process for every MSP customer** — scale by repeating **Adm
 | Who needs portal access? | List of work emails |
 | Who is the **client admin**? (sees M365 directory) | `itmanager@acme.com` |
 | SuperOps client exists? | Yes / No |
-| Pax8 company exists? | Optional — for licensing tile |
+| Pax8 company exists? | Optional - for licensing tile |
 
 ---
 
-## Part 1 — You: SuperOps (~10 min)
+## Part 1 - You: SuperOps (~10 min)
 
-1. Sign in to the **SuperOps MSP console** (technician login — not the customer).  
+1. Sign in to the **SuperOps MSP console** (technician login - not the customer).  
 2. Go to **Clients**.  
 3. **Create** the client or open the existing one.  
 4. Copy the **Account ID** (you will paste this into the portal).  
-5. You do **not** need to manually add every requester long-term — **SCIM** (Part 3) will sync them. For the first setup, it helps if at least one test user exists as a requester with the correct email.
+5. You do **not** need to manually add every requester long-term - **SCIM** (Part 3) will sync them. For the first setup, it helps if at least one test user exists as a requester with the correct email.
 
 **Done when:** you have the SuperOps **Account ID** on a sticky note or notepad.
 
 ---
 
-## Part 2 — You: Portal client record (~5 min)
+## Part 2 - You: Portal client record (~5 min)
 
-**Page:** **Admin → Clients → Add Client** — form only. No checklist, no Microsoft Entra fields, no sync buttons.
+**Page:** **Admin → Clients → Add Client** - form only. No checklist, no Microsoft Entra fields, no sync buttons.
 
 1. Open **https://app.onit.ltd** and sign in with your **On IT** Microsoft account (`@onit.ltd`).  
 2. Click **Admin** in the top navigation (only On IT staff see this).  
 3. Go to **Clients → Add Client**.  
-4. Read **Step 1 of 2** on the page — you are only creating the client record.  
+4. Read **Step 1 of 2** on the page - you are only creating the client record.  
 5. Fill in:
 
 | Field | What to enter |
@@ -96,41 +96,41 @@ This is the **same process for every MSP customer** — scale by repeating **Adm
 | **SuperOps Account ID** | From Part 1 |
 | **SuperOps SSO enabled** | ✓ Tick |
 | **Active** | ✓ Tick |
-| **Pax8 Company ID** | Optional — only if they use the Pax8 licensing tile |
+| **Pax8 Company ID** | Optional - only if they use the Pax8 licensing tile |
 | **Pax8 access enabled** | ✓ if using Pax8 |
 
-6. Click **Create client** once — you land on **Edit Client** with the **10-step setup guide** on the right. Entra tenant ID, group ID, and sync appear on the left **after** you work through checklist step 03 (M365 security group).
+6. Click **Create client** once - you land on **Edit Client** with the **10-step setup guide** on the right. Entra tenant ID, group ID, and sync appear on the left **after** you work through checklist step 03 (M365 security group).
 
 **Done when:** client exists (you are on Edit). SuperOps Account ID saved = checklist step 01 done.
 
 ---
 
-## Part 3 — M365: group + consent + SuperOps app (~30 min)
+## Part 3 - M365: group + consent + SuperOps app (~30 min)
 
 **Full click-by-click:** [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
-These steps happen in the **customer's** Microsoft Entra tenant — **not** On IT's `@onit.ltd` tenant.
+These steps happen in the **customer's** Microsoft Entra tenant - **not** On IT's `@onit.ltd` tenant.
 
-**Prerequisite (On IT tenant, once per platform):** Graph Application permissions on **OnIT Portal for Portals** including `GroupMember.ReadWrite.All` — [runbook Step 0](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
+**Prerequisite (On IT tenant, once per platform):** Graph Application permissions on **OnIT Portal for Portals** including `GroupMember.ReadWrite.All` - [runbook Step 0](CustomerEntraSyncRunbook.md#step-0--graph-permissions-on-it-tenant-one-time).
 
-### 3a — Empty security group
+### 3a - Empty security group
 
 1. **Private/incognito browser** → https://portal.azure.com → sign in with GDAP so you land in the **customer** tenant (do not open On IT then switch).  
 2. **Microsoft Entra ID** → left **Manage** → **Groups** → **New group**.  
 3. Name: `On IT Portal - {Company}`. Type: **Security**. Membership: **Assigned**.  
-4. **Do not add members** — portal sync fills the group automatically.  
+4. **Do not add members** - portal sync fills the group automatically.  
 5. Copy group **Object ID** → portal **Entra group ID**.  
 6. Copy **Tenant ID** from Entra Overview → portal **Entra tenant ID**.
 
-### 3b — Admin consent (customer tenant)
+### 3b - Admin consent (customer tenant)
 
-1. **Admin → Clients → Edit** → checklist step **04** — open the consent URL.  
+1. **Admin → Clients → Edit** → checklist step **04** - open the consent URL.  
 2. Sign in as **customer** Global Admin (or GDAP).  
 3. Click **Accept**.
 
 Must include `GroupMember.ReadWrite.All` if group auto-maintain is enabled. Re-consent if permissions were added after an earlier consent.
 
-If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess` on the **On IT** app: refresh the Azure page and try again — see [runbook](CustomerEntraSyncRunbook.md#04-if-consent-fails-with-groupmemberreadwriteall-does-not-exist-in-requiredresourceaccess).
+If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess` on the **On IT** app: refresh the Azure page and try again - see [runbook](CustomerEntraSyncRunbook.md#04-if-consent-fails-with-groupmemberreadwriteall-does-not-exist-in-requiredresourceaccess).
 
 **Application permissions consented in customer tenant:**
 
@@ -142,9 +142,9 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 | `Group.Read.All` | M365 directory |
 | `GroupMember.ReadWrite.All` | Auto-fill SuperOps SCIM group |
 
-### 3c — One SuperOps Entra app: SCIM + SAML
+### 3c - One SuperOps Entra app: SCIM + SAML
 
-**Default:** one non-gallery app `SuperOps - {Company}` — **not** two separate apps.
+**Default:** one non-gallery app `SuperOps - {Company}` - **not** two separate apps.
 
 **SCIM (checklist step 05):**
 
@@ -152,11 +152,11 @@ If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResou
 2. Customer Entra → **Enterprise applications → New application** → `SuperOps - {Company}`.  
 3. **Provisioning → Automatic** → Authentication method: **Bearer authentication** → Tenant URL + Secret Token (Auth Token) from SuperOps → **Test connection** → Save.  
 4. **App role (Entra ID Free):** App registrations → SuperOps app → **App roles** → Create if missing: Display name `User`, Users/Groups, **Value** `User`, **Description** `Default access for SCIM users`, Enable → Save.  
-5. **SCIM name mapping (all Direct):** **name.givenName** ← givenName; **name.familyName** ← extensionAttribute1 (default `[surname]`); **name.formatted** ← displayName — see [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
+5. **SCIM name mapping (all Direct):** **name.givenName** ← givenName; **name.familyName** ← extensionAttribute1 (default `[surname]`); **name.formatted** ← displayName - see [SuperOpsEntraSync.md](SuperOpsEntraSync.md)
 6. **Users and groups:** P1 → assign `On IT Portal - {Company}` once. Entra ID Free → copy **Application (client) ID** to portal **SuperOps Application (client) ID** (portal sync assigns users).  
 7. Start provisioning. **Portal Sync now** updates SuperOps Last names automatically.
 
-**Requester Client SSO (checklist step 08) — separate from the SCIM app:**
+**Requester Client SSO (checklist step 08) - separate from the SCIM app:**
 
 1. SuperOps Client SSO → + Configuration → select customer → copy generated Entity ID + Consumer Service URL.
 2. Through GDAP create customer Entra non-gallery app `SuperOps Requester SSO - {Company}`.
@@ -171,7 +171,7 @@ Detail: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) · [Custome
 
 ---
 
-## Part 4 — You: Portal Entra sync (~10 min)
+## Part 4 - You: Portal Entra sync (~10 min)
 
 Back on **https://app.onit.ltd → Admin → Clients → Edit** for this customer.
 
@@ -180,8 +180,8 @@ Back on **https://app.onit.ltd → Admin → Clients → Edit** for this custome
 | Field | Value |
 |-------|--------|
 | **Entra tenant ID** | Customer tenant GUID from Part 3a |
-| **Entra group ID** | Group Object ID — portal auto-fills licensed users + shared mailboxes |
-| **SuperOps Application (client) ID** | App registrations → SuperOps → Overview → Application (client) ID — **required on Entra ID Free** |
+| **Entra group ID** | Group Object ID - portal auto-fills licensed users + shared mailboxes |
+| **SuperOps Application (client) ID** | App registrations → SuperOps → Overview → Application (client) ID - **required on Entra ID Free** |
 | **Entra sync enabled** | ✓ Tick |
 
 Click **Update** (main form) to save.
@@ -190,13 +190,13 @@ Click **Update** (main form) to save.
 
 Reads the **whole customer tenant** and creates/updates portal users for:
 
-- Every **licensed** M365 user → `Jane Smith (User Mailbox)` — can sign in to portal  
-- Every **shared mailbox** → `Accounts (Shared Mailbox)` — **cannot** sign in (for directory + SuperOps only)
+- Every **licensed** M365 user → `Jane Smith (User Mailbox)` - can sign in to portal  
+- Every **shared mailbox** → `Accounts (Shared Mailbox)` - **cannot** sign in (for directory + SuperOps only)
 
 Runs **hourly** automatically. You can run it manually now:
 
-1. **Dry run sync** — shows what would change (no database writes).  
-2. **Sync now** — applies changes.
+1. **Dry run sync** - shows what would change (no database writes).  
+2. **Sync now** - applies changes.
 
 Or via SSH (replace `{id}` with client ID from the URL):
 
@@ -205,14 +205,14 @@ php artisan portal:sync-entra-users --client={id} --dry-run
 php artisan portal:sync-entra-users --client={id}
 ```
 
-3. Go to **Admin → Users** — filter mentally by client; confirm expected people exist with correct emails and `(User Mailbox)` / `(Shared Mailbox)` suffixes.
+3. Go to **Admin → Users** - filter mentally by client; confirm expected people exist with correct emails and `(User Mailbox)` / `(Shared Mailbox)` suffixes.
 4. Sync output should include:
    - **`SuperOps group: +N / -M members`** when **Entra group ID** is set
    - **`SuperOps app: +N / -M users`** when **SuperOps Entra app ID** is set (Entra ID Free)
    - **`SuperOps last names updated N`** when last names written to `extensionAttribute1`
    - **`SuperOps SCIM provision requested for N user(s)`** when provision-on-demand runs (one call per user; confirm in Entra **Provisioning logs**)
-5. In customer Entra → **Groups → On IT Portal - {Company} → Members** — users appear without manual adds.
-6. **SuperOps requesters** update after **Sync now** (SCIM provision-on-demand, one user per call) with `(User Mailbox)` / `(Shared Mailbox)` names — provisioning must be **ON**. Allow several minutes for large tenants. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
+5. In customer Entra → **Groups → On IT Portal - {Company} → Members** - users appear without manual adds.
+6. **SuperOps requesters** update after **Sync now** (SCIM provision-on-demand, one user per call) with `(User Mailbox)` / `(Shared Mailbox)` names - provisioning must be **ON**. Allow several minutes for large tenants. See [SuperOpsEntraSync.md](SuperOpsEntraSync.md#requester-display-names).
 
 Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
@@ -220,7 +220,7 @@ Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](
 
 ---
 
-## Part 5 — You: Client admin + M365 directory (~5 min)
+## Part 5 - You: Client admin + M365 directory (~5 min)
 
 **Client admins** see **Microsoft 365** in the portal nav (users, shared mailboxes, groups, distribution lists).
 
@@ -240,9 +240,9 @@ Detail: [EntraGroupSync.md](EntraGroupSync.md) · [CustomerEntraSyncRunbook.md](
 
 ---
 
-## Part 6 — Test (~15 min)
+## Part 6 - Test (~15 min)
 
-Use a **private/incognito** window. Sign in as a **customer** user (e.g. `jane@acme.com`) — **not** `@onit.ltd`.
+Use a **private/incognito** window. Sign in as a **customer** user (e.g. `jane@acme.com`) - **not** `@onit.ltd`.
 
 | # | Test | Pass? |
 |---|------|-------|
@@ -260,11 +260,11 @@ Use a **private/incognito** window. Sign in as a **customer** user (e.g. `jane@a
 | SuperOps role chooser | Wrong account (`@onit.ltd`) or customer Client SSO not finished |
 | SuperOps Error 1027 | Missing lowercase `email` SAML claim on the customer Client SSO app |
 | M365 directory empty / error | Admin consent not done in customer tenant (Part 3b) |
-| Shared mailbox tried to log in | Expected — they cannot use portal login; use a personal work account |
+| Shared mailbox tried to log in | Expected - they cannot use portal login; use a personal work account |
 
 ---
 
-## Part 7 — Hand off to the customer
+## Part 7 - Hand off to the customer
 
 Send something like:
 
@@ -275,7 +275,7 @@ Send something like:
 
 ---
 
-## After go-live — day to day
+## After go-live - day to day
 
 | Event | What happens |
 |-------|----------------|
@@ -288,7 +288,7 @@ You can confirm portal state anytime: **Admin → Users** (filter by client).
 
 ---
 
-## Server deploy — commands after GitHub pull
+## Server deploy - commands after GitHub pull
 
 Run these on the **server** after Plesk pulls new code from GitHub (or after any deploy). SSH as root; adjust the path if yours differs.
 
@@ -321,7 +321,7 @@ php artisan optimize
 ENTRA_SYNC_ENABLED=true
 ```
 
-**Cron** (Plesk → Scheduled Tasks) — required for hourly user sync:
+**Cron** (Plesk → Scheduled Tasks) - required for hourly user sync:
 
 ```
 * * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> /dev/null 2>&1
@@ -331,7 +331,7 @@ Full hosting detail: [Deployment.md](Deployment.md)
 
 ---
 
-## Quick reference — three Entra apps per customer
+## Quick reference - three Entra apps per customer
 
 | App in customer tenant | Purpose |
 |------------------------|---------|
@@ -358,4 +358,4 @@ Full hosting detail: [Deployment.md](Deployment.md)
 
 | Date | Change |
 |------|--------|
-| 2026-06-23 | Initial guide — tenant-wide sync, M365 directory, client admin, post-deploy commands |
+| 2026-06-23 | Initial guide - tenant-wide sync, M365 directory, client admin, post-deploy commands |

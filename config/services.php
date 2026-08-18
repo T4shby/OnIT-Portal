@@ -128,7 +128,7 @@ return [
         'superops_provision_delay_after_names_seconds' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS', 3),
         // Entra UI provisions one user at a time; batching often skips extensionAttribute1 updates.
         'superops_provision_batch_size' => max(1, (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_BATCH_SIZE', 1)),
-        // Microseconds between provision-on-demand API calls (default 2.1s — Graph limit ~5 per 10s).
+        // Microseconds between provision-on-demand API calls (default 2.1s - Graph limit ~5 per 10s).
         'superops_provision_interval_us' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US', 2_100_000),
         'superops_provision_max_attempts' => max(1, (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_MAX_ATTEMPTS', 3)),
         'lock_seconds' => max(60, (int) env('ENTRA_SYNC_LOCK_SECONDS', 600)),

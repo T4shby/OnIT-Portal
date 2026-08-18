@@ -88,7 +88,7 @@ class M365InsightsService
     }
 
     /**
-     * Cold or past insights requeue threshold — used by prewarm.
+     * Cold or past insights requeue threshold - used by prewarm.
      * Requeues at insights_refresh_after_minutes (default 2.5) with the shared prewarm cadence.
      */
     public function needsBackgroundRefresh(Client $client): bool

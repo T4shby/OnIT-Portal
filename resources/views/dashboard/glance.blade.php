@@ -33,7 +33,7 @@
     $huntSold = is_array($hunt) && ! in_array($hunt['state'] ?? '', ['not_sold', 'hidden'], true);
 
     /*
-     * Value strip: never lead with empty “Threats stopped” when MDR is not sold —
+     * Value strip: never lead with empty “Threats stopped” when MDR is not sold -
      * that reads as zero protection. Support-only orgs get support metrics.
      */
     if ($huntLive && $threats !== null) {
@@ -42,41 +42,41 @@
                 'label' => 'Threats stopped',
                 'value' => $threats,
                 'note' => $okMetric($hunt, 'Threats stopped (MTD)') !== null ? 'via MDR this month' : 'remediated (MDR)',
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'Tickets resolved',
                 'value' => $resolved,
                 'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'SLA met',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '—',
+                'empty' => '-',
             ],
         ];
     } elseif ($huntSold) {
-        // Sold but cold / loading — hold blank rather than invent MTD.
+        // Sold but cold / loading - hold blank rather than invent MTD.
         $valueStrip = [
             [
                 'label' => 'Threats stopped',
                 'value' => $threats,
                 'note' => $threats !== null ? 'via MDR' : null,
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'Tickets resolved',
                 'value' => $resolved,
                 'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'SLA met',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '—',
+                'empty' => '-',
             ],
         ];
     } else {
@@ -85,19 +85,19 @@
                 'label' => 'Tickets resolved',
                 'value' => $resolved,
                 'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'Open tickets',
                 'value' => $openTickets,
                 'note' => null,
-                'empty' => '—',
+                'empty' => '-',
             ],
             [
                 'label' => 'SLA met',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '—',
+                'empty' => '-',
             ],
         ];
     }
@@ -246,8 +246,8 @@
                 @foreach($monthCompare['value_deltas'] as $delta)
                     <div style="font-size:12px" class="glance-muted">
                         <span style="font-weight:600;color:rgba(255,255,255,.85)">{{ $delta['label'] }}</span>
-                        now {{ $delta['current'] ?? '—' }}
-                        · then {{ $delta['previous'] ?? '—' }}
+                        now {{ $delta['current'] ?? '-' }}
+                        · then {{ $delta['previous'] ?? '-' }}
                     </div>
                 @endforeach
             </div>
@@ -265,14 +265,14 @@
                     };
                     $short = match ($col['state'] ?? '') {
                         'live' => $col['status_label'] ?? 'Live',
-                        // Prefer product label (“Add-on” / “Not on plan”) — never “Not sold”.
+                        // Prefer product label (“Add-on” / “Not on plan”) - never “Not sold”.
                         'not_sold' => $col['status_label'] ?? 'Not on plan',
                         'setup_needed' => 'Setup needed',
                         'platform' => 'Platform off',
                         'cold' => 'Never loaded',
                         'loading' => 'Loading',
                         'error' => 'Error',
-                        default => $col['status_label'] ?? '—',
+                        default => $col['status_label'] ?? '-',
                     };
                 @endphp
                 <div class="glance-pill" title="{{ $col['status_reason'] ?? $col['status_label'] ?? '' }}">

@@ -1,4 +1,4 @@
-# SuperOps Requester Client SSO — On IT Runbook
+# SuperOps Requester Client SSO - On IT Runbook
 
 Canonical runbook for Microsoft Entra SAML sign-in to SuperOps for customer requesters.
 
@@ -86,9 +86,9 @@ In-app checklist **step 08** is automation-first: Entra app shell from Connect/b
 3. Copy **IDP Login URL** and **Certificate** returned on that page.
 4. Paste into SuperOps Client SSO Step 3 → **Save** / leave Enabled.
 
-Graph uses Application.ReadWrite.All and **Policy.ReadWrite.ApplicationConfiguration** for SAML claims. Wire waits/retries policy create + assign (up to ~8 attempts); a remaining failure is a real Graph claims error — not “SSO app missing” — fix by re-Wire or manual Attributes & Claims. Azure Enterprise apps SAML blade is under step recovery if Wire fails.
+Graph uses Application.ReadWrite.All and **Policy.ReadWrite.ApplicationConfiguration** for SAML claims. Wire waits/retries policy create + assign (up to ~8 attempts); a remaining failure is a real Graph claims error - not “SSO app missing” - fix by re-Wire or manual Attributes & Claims. Azure Enterprise apps SAML blade is under step recovery if Wire fails.
 
-Long Azure click-paths and “if someone cannot login” live under **Only if something failed** on the live checklist — same for all 12 steps (automated / remaining / recovery).
+Long Azure click-paths and “if someone cannot login” live under **Only if something failed** on the live checklist - same for all 12 steps (automated / remaining / recovery).
 
 ### C. Create the customer's Entra SAML application (legacy / fallback)
 

@@ -40,7 +40,7 @@
                     </form>
                     <p class="portal-body-muted text-xs leading-relaxed">
                         Tenant ID is saved. Use this only if group or SuperOps app IDs are still empty
-                        (Azure lag after Accept — not a second Microsoft login).
+                        (Azure lag after Accept - not a second Microsoft login).
                     </p>
                     <a
                         href="{{ $adminConsentUrl }}"

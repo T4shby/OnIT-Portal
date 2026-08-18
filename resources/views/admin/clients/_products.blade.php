@@ -39,7 +39,7 @@
         <div>
             <p class="portal-label mb-1">Licence vendor</p>
             <p class="portal-body-muted text-xs leading-relaxed">
-                Where this client buys Microsoft / cloud licences (marketplace reseller) — not an On IT product.
+                Where this client buys Microsoft / cloud licences (marketplace reseller) - not an On IT product.
                 Tick when assigned; paste company ID for portal launch. Add further vendors in the catalog
                 the same way as Pax8.
             </p>

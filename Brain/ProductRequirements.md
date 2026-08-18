@@ -1,4 +1,4 @@
-# On IT Portal — Product Requirements
+# On IT Portal - Product Requirements
 
 Living requirements as of **2026-08-10**. MVP shipped; this file tracks **current product truth** plus remaining stories.
 
@@ -37,7 +37,7 @@ MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisat
 - Customer self-registration without pre-provision
 - Per-client free SKU encyclopaedias
 - Global SuperOps SSO multitenant admin-consent product model
-- **usecure in production** until beta API keys + pilot map exist — plan: [UsecureIntegration.md](UsecureIntegration.md)
+- **usecure in production** until beta API keys + pilot map exist - plan: [UsecureIntegration.md](UsecureIntegration.md)
 
 ## User stories
 
@@ -70,7 +70,7 @@ Unchanged intent: multi-tenant Entra, pre-provision, inactive deny, SuperOps use
 
 - FR-SOPS-01: List/create tickets scoped by requester + client SuperOps account.
 - FR-SOPS-02: SSO launch to full SuperOps portal (requester vs technician paths).
-- FR-SOPS-03: Show opening description on ticket detail; **no requirement** to render comments/attachments in portal — CTA to SuperOps (ADR-022).
+- FR-SOPS-03: Show opening description on ticket detail; **no requirement** to render comments/attachments in portal - CTA to SuperOps (ADR-022).
 
 ### Organisation / systems (FR-ORG)
 
@@ -87,7 +87,7 @@ Unchanged intent: multi-tenant Entra, pre-provision, inactive deny, SuperOps use
 
 ### Admin CMS (FR-ADMIN)
 
-Clients, users, links, content, settings, activity logs — as today.
+Clients, users, links, content, settings, activity logs - as today.
 
 ## Non-functional
 
@@ -98,4 +98,4 @@ Clients, users, links, content, settings, activity logs — as today.
 
 ## Backlog stories
 
-See [Roadmap.md](Roadmap.md) Near-term backlog. usecure is **later / optional** only ([UsecureIntegration.md](UsecureIntegration.md)) — not a current delivery priority.
+See [Roadmap.md](Roadmap.md) Near-term backlog. usecure is **later / optional** only ([UsecureIntegration.md](UsecureIntegration.md)) - not a current delivery priority.

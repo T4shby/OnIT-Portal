@@ -24,7 +24,7 @@
                 <li>Entra app <strong class="text-white/90">{{ $ssoAppLabel }}</strong> created (Connect Microsoft)</li>
                 <li>App role User + portal group assignment where licence allows</li>
                 @if($ssoWired)
-                    <li>SAML wired for this customer — Login URL + certificate ready below</li>
+                    <li>SAML wired for this customer - Login URL + certificate ready below</li>
                 @endif
             </ul>
         </div>
@@ -39,13 +39,13 @@
                 @endif
                 You only need the form below if you are wiring a <strong class="text-white/90">new</strong> SuperOps Client SSO config or re-running after a failure.
                 @if($ssoStepDone && $ssoWired)
-                    Entity ID / Consumer URL inputs stay empty on purpose — those values live in Entra and SuperOps now.
+                    Entity ID / Consumer URL inputs stay empty on purpose - those values live in Entra and SuperOps now.
                 @endif
             </p>
         @else
             <p class="portal-label mb-2">Still needs you (about 2 minutes)</p>
             <p class="mb-4 text-sm leading-relaxed text-white/75">
-                SuperOps does not hand Entity ID / ACS to us over API — you copy two URLs from SuperOps,
+                SuperOps does not hand Entity ID / ACS to us over API - you copy two URLs from SuperOps,
                 the portal pushes them into Entra, then you paste Login URL + certificate back into SuperOps Step 3.
             </p>
         @endif

@@ -79,7 +79,7 @@
         @if(!empty($guide['recovery']))
             <details class="onboarding-manual__recovery mt-4 border border-white/10 bg-white/[0.02] px-4 py-3" @if($openRecovery) open @endif>
                 <summary class="cursor-pointer select-none text-sm font-condensed uppercase tracking-wide text-onit">
-                    Only if something failed — open recovery steps
+                    Only if something failed - open recovery steps
                 </summary>
                 <div class="mt-4 space-y-4">
                     @foreach($guide['recovery'] as $section)

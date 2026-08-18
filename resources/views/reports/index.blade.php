@@ -51,9 +51,9 @@
 @endphp
 
 {{--
-  1c report — full-width shell (not a narrow card), CSS Grid only.
+  1c report - full-width shell (not a narrow card), CSS Grid only.
   No Tailwind layout utilities: production CSS purge broke flex rail/main earlier.
-  Brand is already in the portal header — rail starts at “Prepared for”.
+  Brand is already in the portal header - rail starts at “Prepared for”.
 --}}
 <x-app-layout title="Reports" content-class="max-w-none">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -388,7 +388,7 @@
                         @foreach($monthCompare['value_deltas'] as $delta)
                             <div style="font-size:12.5px;color:#64748B">
                                 <strong style="color:#011926">{{ $delta['label'] }}</strong>
-                                now {{ $delta['current'] ?? '—' }} · then {{ $delta['previous'] ?? '—' }}
+                                now {{ $delta['current'] ?? '-' }} · then {{ $delta['previous'] ?? '-' }}
                             </div>
                         @endforeach
                     </div>
@@ -397,7 +397,7 @@
                 <div class="rp-card rp-stats">
                     @foreach($statCards as $stat)
                         <div>
-                            <div class="rp-stats-v" style="{{ ($stat['value'] ?? null) === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $stat['value'] ?? '—' }}</div>
+                            <div class="rp-stats-v" style="{{ ($stat['value'] ?? null) === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $stat['value'] ?? '-' }}</div>
                             <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $stat['label'] }}</div>
                         </div>
                     @endforeach
@@ -413,7 +413,7 @@
                                     'not_sold' => 'Not on plan',
                                     'setup_needed' => 'Setup needed',
                                     'loading' => 'Loading',
-                                    default => '—',
+                                    default => '-',
                                 };
                             $why = $col['status_reason'] ?? $col['message'] ?? null;
                             $pillBg = match ($tone) {
@@ -478,7 +478,7 @@
                                     @php $missing = $h['v'] === null; @endphp
                                     <div style="min-width:0">
                                         <div style="font-size:clamp(15px,3.5vw,17px);font-weight:700;line-height:1.1;{{ $missing ? 'color:rgba(0,0,0,.28)' : '' }}">
-                                            {{ $missing ? '—' : $h['v'] }}
+                                            {{ $missing ? '-' : $h['v'] }}
                                         </div>
                                         <div class="rp-muted" style="font-size:11px;margin-top:2px">{{ $h['l'] }}</div>
                                     </div>

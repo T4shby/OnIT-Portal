@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
  * Keep client dashboard caches filled so metrics exist before anyone opens the page.
  *
  * Critical feeds (SuperOps) always queue when due.
- * Optional feeds when the jobs table is under capacity — **except cold sold feeds**,
+ * Optional feeds when the jobs table is under capacity - **except cold sold feeds**,
  * which still queue so entitled products never stay “Never loaded” under backlog.
  *
  * @see App\Contracts\DashboardFeed
@@ -85,7 +85,7 @@ class PrewarmClientDashboardsCommand extends Command
             "Dashboard prewarm: {$criticalQueued} critical, {$optionalQueued} optional"
             ." ({$coldOptionalQueued} cold),"
             ." across {$clientsProcessed} active client(s)"
-            .($queueDeep ? ' (queue deep — warm optional skipped).' : '.')
+            .($queueDeep ? ' (queue deep - warm optional skipped).' : '.')
         );
 
         if ($queueDeep) {

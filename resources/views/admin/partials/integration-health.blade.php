@@ -37,7 +37,7 @@
     data-cfg-end="{{ $configured['work_end'] ?? '19:00' }}"
     data-cfg-tz="{{ $configured['timezone'] ?? 'Europe/London' }}"
 >
-    {{-- Status summary — accent line, not a plate --}}
+    {{-- Status summary - accent line, not a plate --}}
     <div class="mb-10 border-l-2 {{ $severity === 'critical' ? 'border-rose-400' : ($severity === 'warning' ? 'border-amber-400' : ($severity === 'info' ? 'border-sky-400' : 'border-onit')) }} py-1 pl-5 sm:pl-6">
         <p class="portal-label mb-3">What is going on</p>
         <p class="font-condensed text-lg font-bold leading-snug text-white sm:text-xl">{{ $headline }}</p>
@@ -45,7 +45,7 @@
             <span id="ih-current-target">
                 Auto-refresh targets every {{ $fmtMin($freshInterval) }} minutes
                 @if($freshLabel)
-                    — {{ $freshLabel }}@if($customerSessions !== null) · {{ $customerSessions }} customer session(s)@endif.
+                    - {{ $freshLabel }}@if($customerSessions !== null) · {{ $customerSessions }} customer session(s)@endif.
                 @else
                     .
                 @endif
@@ -57,7 +57,7 @@
             · Idle business {{ $fmtMin($configured['work_idle_minutes'] ?? 60) }}m
             · Idle outside {{ $fmtMin($configured['off_hours_idle_minutes'] ?? 60) }}m
             · Active session {{ $fmtMin($configured['presence_minutes'] ?? 15) }}m
-            · Hours {{ $configured['work_start'] ?? '07:00' }}–{{ $configured['work_end'] ?? '19:00' }}
+            · Hours {{ $configured['work_start'] ?? '07:00' }}-{{ $configured['work_end'] ?? '19:00' }}
             {{ $configured['timezone'] ?? 'Europe/London' }}
         </p>
         <p class="mt-3 max-w-3xl text-sm font-light leading-relaxed text-white/50">
@@ -96,7 +96,7 @@
                     @if(($prewarm['cold_optional_queued'] ?? 0) > 0)
                         ({{ $prewarm['cold_optional_queued'] }} first load)
                     @endif
-                    — not the current queue depth
+                    - not the current queue depth
                     @if(! empty($prewarm['queue_deep']))
                         · warm other feeds were skipped (queue busy)
                     @endif
@@ -159,7 +159,7 @@
                                     <span class="text-white/35">#{{ $job['client_id'] }}</span>
                                 @endif
                             @else
-                                Client #{{ $job['client_id'] ?? '—' }}
+                                Client #{{ $job['client_id'] ?? '-' }}
                             @endif
                             · {{ $job['queue'] }}
                             · <span class="{{ ! empty($job['reserved']) ? 'text-onit' : 'text-sky-300' }}">
@@ -195,7 +195,7 @@
                                     @elseif(! empty($job['client_id']))
                                         #{{ $job['client_id'] }}
                                     @else
-                                        —
+                                        -
                                     @endif
                                 </td>
                                 <td class="px-4 py-2">{{ $job['queue'] }}</td>
@@ -226,7 +226,7 @@
                         @if($fail['failed_at'])
                             · {{ $fail['failed_at']->timezone('Europe/London')->format('d M H:i') }} UK
                         @endif
-                        — {{ $fail['error'] }}
+                        - {{ $fail['error'] }}
                     </li>
                 @endforeach
             </ul>
@@ -312,7 +312,7 @@
                 @endforeach
             </div>
 
-            {{-- Desktop: table — columns from IntegrationHealthService::FEED_COLUMNS --}}
+            {{-- Desktop: table - columns from IntegrationHealthService::FEED_COLUMNS --}}
             <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-[80rem] w-full text-sm">
                     <thead>
@@ -343,7 +343,7 @@
                                 @foreach(array_keys($feedKeys) as $key)
                                     @php $cell = $byKey[$key] ?? null; @endphp
                                     @if(! $cell)
-                                        <td class="align-top text-white/30">—</td>
+                                        <td class="align-top text-white/30">-</td>
                                     @else
                                     <td class="align-top {{ $statusClass[$cell['status']] ?? 'text-white/60' }} max-w-[14rem]">
                                         <div class="font-medium">{{ $cell['status_label'] ?? strtoupper($cell['status']) }}</div>

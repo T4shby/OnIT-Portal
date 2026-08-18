@@ -21,19 +21,19 @@ Portal **does not** rename SuperOps requesters on Connect or Apply SCIM alone.
 
 **Required path (standard for every client):**
 
-1. SCIM mapping **`name.familyName` Direct ← `extensionAttribute1` only** — **no** default `[surname]`, **no** expression inventing a last name when the attribute is empty
+1. SCIM mapping **`name.familyName` Direct ← `extensionAttribute1` only** - **no** default `[surname]`, **no** expression inventing a last name when the attribute is empty
 2. Portal **Sync now** writes surname + `(User Mailbox)` / `(Shared Mailbox)` into `extensionAttribute1` (cloud-only) **or** SuperOps API first/last names (hybrid when Graph cannot write the attribute)
 3. Entra provisioning pushes that into SuperOps
 
-**Portal Apply SCIM** should do (1) via Graph schema update (waits/polls until the SCIM job schema is readable — first Apply on a brand-new app often 404s for 10–40s), (2) by queuing Sync when tenant + **group ID** exist, then start provisioning. **Checklist step 07 stays Pending** until both (1) name mappings and (2) Sync queue succeed — credentials-only Apply is **not** Done. Missing group ID blocks Sync queue; mapping failures become an amber flash and Do not ignore copy.
+**Portal Apply SCIM** should do (1) via Graph schema update (waits/polls until the SCIM job schema is readable - first Apply on a brand-new app often 404s for 10-40s), (2) by queuing Sync when tenant + **group ID** exist, then start provisioning. **Checklist step 07 stays Pending** until both (1) name mappings and (2) Sync queue succeed - credentials-only Apply is **not** Done. Missing group ID blocks Sync queue; mapping failures become an amber flash and Do not ignore copy.
 
-**Re-Apply / “already exists”:** Apply reuses the existing Entra SCIM job. There is **no multi-hour portal install** to stop. If Graph returns *job already exists* without an id yet, Apply waits up to ~90s for the id, then continues or errors — after an error, **nothing is running in the portal**. Check **live progress** via: (a) the browser button (“Applying…” only while the request is in flight), (b) step 07 Done / flash after redirect, (c) customer Entra → Enterprise apps → SuperOps app → **Provisioning** On/Off + logs, (d) portal **Last synced** / Integration Health after Sync is queued. Do not create a second Provisioning job in Azure.
+**Re-Apply / “already exists”:** Apply reuses the existing Entra SCIM job. There is **no multi-hour portal install** to stop. If Graph returns *job already exists* without an id yet, Apply waits up to ~90s for the id, then continues or errors - after an error, **nothing is running in the portal**. Check **live progress** via: (a) the browser button (“Applying…” only while the request is in flight), (b) step 07 Done / flash after redirect, (c) customer Entra → Enterprise apps → SuperOps app → **Provisioning** On/Off + logs, (d) portal **Last synced** / Integration Health after Sync is queued. Do not create a second Provisioning job in Azure.
 
 **SuperOps already full of requesters:** SCIM renames only Entra-scoped people the portal Sync sees. Onboarding steps **07** and **09** show a **Do not ignore** warning when SuperOps requester count greatly exceeds portal Entra users (common after CSV import). Extra SuperOps rows stay plain until those people exist in customer Entra and enter the security group / SCIM scope.
 
 If the schema update fails after that wait, fix mapping in Entra Provisioning or re-run **Apply SCIM** and run **Sync now**.
 
-**Timing:** SuperOps Requester names update only after background Sync writes `extensionAttribute1` **and** Entra SCIM completes Updates — usually a few minutes. Refresh SuperOps; do not expect instant renames after Apply.
+**Timing:** SuperOps Requester names update only after background Sync writes `extensionAttribute1` **and** Entra SCIM completes Updates - usually a few minutes. Refresh SuperOps; do not expect instant renames after Apply.
 
 ---
 
@@ -56,50 +56,50 @@ Customer M365 tenant
 
 ## Per-client setup
 
-> **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05–07 (SCIM)** and **08 (Client SSO)** contain the full install-manual instructions. This doc is the reference copy.
+> **In-app wizard:** **Admin → Clients → Edit** → checklist steps **05-07 (SCIM)** and **08 (Client SSO)** contain the full install-manual instructions. This doc is the reference copy.
 
 ### 1. Create the security group in customer Entra
 
-Used for **SuperOps SCIM** (and Portal group visibility) — portal sync **maintains membership** when `entra_group_id` is saved on the client. Requester **login** is the separate customer Client SSO app from checklist **08** — not SAML on this SCIM app.
+Used for **SuperOps SCIM** (and Portal group visibility) - portal sync **maintains membership** when `entra_group_id` is saved on the client. Requester **login** is the separate customer Client SSO app from checklist **08** - not SAML on this SCIM app.
 
 1. Customer tenant → **Entra ID → Manage → Groups**
-2. Create security group: `On IT Portal - {Company}` — type **Security**, membership **Assigned**
-3. **Leave the group empty** — `portal:sync-entra-users` adds licensed users and shared mailboxes via Microsoft Graph (same scope as portal users)
+2. Create security group: `On IT Portal - {Company}` - type **Security**, membership **Assigned**
+3. **Leave the group empty** - `portal:sync-entra-users` adds licensed users and shared mailboxes via Microsoft Graph (same scope as portal users)
 4. Copy **Object ID** → **Entra group ID** on the portal client record
-5. **Entra ID P1 only:** assign this group to the SuperOps Entra **SCIM** app once. **Entra ID Free:** do **not** assign the group in Azure — paste **SuperOps Application (client) ID** on the portal (checklist step 07).
+5. **Entra ID P1 only:** assign this group to the SuperOps Entra **SCIM** app once. **Entra ID Free:** do **not** assign the group in Azure - paste **SuperOps Application (client) ID** on the portal (checklist step 07).
 
-### 1b — Legacy / optional alternatives
+### 1b - Legacy / optional alternatives
 
 You no longer need PowerShell bulk-add or dynamic groups for most clients. The portal writes group membership on each sync.
 
 | Situation | What to do |
 |---|---|
-| **Default** | Empty Assigned group + `entra_group_id` — automatic |
-| **Client already has requesters in SuperOps** | Leave them. SCIM **matches by email** — no duplicates. |
+| **Default** | Empty Assigned group + `entra_group_id` - automatic |
+| **Client already has requesters in SuperOps** | Leave them. SCIM **matches by email** - no duplicates. |
 | **Entra ID P1+ dynamic group** | Set `ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=false` on the server if you prefer a dynamic rule instead |
-| **Greenfield, few users** | Still use an empty group — first sync adds everyone |
+| **Greenfield, few users** | Still use an empty group - first sync adds everyone |
 
 **Does not work:** putting only one admin in the group and expecting SCIM to provision everyone else. SCIM syncs **group members only**.
 
 **SuperOps Import** (Clients → Requesters → Import) is fine for a **one-time** CSV load; SCIM + automatic group membership handles **ongoing** joiners/leavers.
 
-### 2–3. One Entra app: SCIM only
+### 2-3. One Entra app: SCIM only
 
 **Default per customer:** one non-gallery enterprise app (e.g. `SuperOps - {Company}`) with **Provisioning**. Assign the security group **once** when on P1.
 
-#### 2a. SuperOps — SCIM credentials
+#### 2a. SuperOps - SCIM credentials
 
 1. SuperOps MSP console → **Integrations → Microsoft Entra ID**
 2. **Generate Tokens** → select the SuperOps client for this customer
 3. Copy **Tenant URL** and **Auth Token**
 
-#### 2b. Customer Entra — create app and SCIM
+#### 2b. Customer Entra - create app and SCIM
 
 **Preferred (portal):** After Connect Microsoft / **Retry Graph setup** saves SuperOps Application (client) ID, open **Admin → Clients → Edit {Company}** → step 07 → paste SuperOps Tenant URL + Secret Token → **Apply SCIM credentials + start**. Portal **queues** `ApplySuperOpsScimJob` on **`high`** (encrypted payload). Worker uses Graph (`Synchronization.ReadWrite.All`) to write secrets, set name mappings, start the job, and queue portal Sync. Secret is **not** stored after the job finishes.
 
-**How the SCIM Entra app is created (critical):** Connect / Retry Graph creates `SuperOps - {Company}` via Entra **non-gallery application template instantiate** — **not** bare `POST /applications`. Bare create yields **0 SCIM templates** and Sync 1 never works. See [troubleshooting — zero templates](#scim-job-missing--portal-sync-looks-fine-but-superops-has-gaps).
+**How the SCIM Entra app is created (critical):** Connect / Retry Graph creates `SuperOps - {Company}` via Entra **non-gallery application template instantiate** - **not** bare `POST /applications`. Bare create yields **0 SCIM templates** and Sync 1 never works. See [troubleshooting - zero templates](#scim-job-missing--portal-sync-looks-fine-but-superops-has-gaps).
 
-**504 Gateway Time-out (fixed):** an older inline path kept the HTTP request open for Graph schema / AlreadyExists polling (~60–180s) → nginx 504 on `…/apply-scim`. Now the POST returns immediately; refresh step 07 until Done / last result banner.
+**504 Gateway Time-out (fixed):** an older inline path kept the HTTP request open for Graph schema / AlreadyExists polling (~60-180s) → nginx 504 on `…/apply-scim`. Now the POST returns immediately; refresh step 07 until Done / last result banner.
 
 **Apply form:** while status shows “running”, fields stay **readonly** (not `disabled`). Disabled inputs are dropped from the POST. After a successful Apply, paste fields stay empty on purpose (secret not stored); green banner confirms credentials in Entra.
 
@@ -108,14 +108,14 @@ You no longer need PowerShell bulk-add or dynamic groups for most clients. The p
 1. **Entra ID → Enterprise applications → New application**
 2. Non-gallery: `SuperOps - {Company}` → Create
 3. **Provisioning** → Automatic
-4. **Admin credentials:** Authentication method = **Bearer authentication** (default — do not change). **Tenant URL** = from SuperOps. **Secret token** = SuperOps Auth Token → **Test connection** → Save
-5. **App role (Entra ID Free — required for portal sync to assign users):** **App registrations** → SuperOps app → **App roles** → **Create app role** if none exists: Display name `User`, Users/Groups, **Value** `User`, **Description** `Default access for SCIM users`, Enable → Save. Skip if an enabled User role already exists.
+4. **Admin credentials:** Authentication method = **Bearer authentication** (default - do not change). **Tenant URL** = from SuperOps. **Secret token** = SuperOps Auth Token → **Test connection** → Save
+5. **App role (Entra ID Free - required for portal sync to assign users):** **App registrations** → SuperOps app → **App roles** → **Create app role** if none exists: Display name `User`, Users/Groups, **Value** `User`, **Description** `Default access for SCIM users`, Enable → Save. Skip if an enabled User role already exists.
 6. **Users and groups:**
    - **Entra ID P1:** assign security group `On IT Portal - {Company}` once (portal sync keeps it filled)
    - **Entra ID Free:** copy **Application (client) ID** from App registrations → SuperOps → Overview → portal field; portal sync assigns licensed users automatically
 7. Start provisioning
 
-#### 2c. Requester login — Client SSO (separate from the customer SCIM app)
+#### 2c. Requester login - Client SSO (separate from the customer SCIM app)
 
 On IT uses **Client SSO** ([SuperOps article](https://support.superops.com/en/articles/11583025-setting-up-requester-sso-in-superops)). An On IT technician configures it through SuperOps and GDAP:
 
@@ -145,7 +145,7 @@ Only if the single-app setup fails validation: `SuperOps Provisioning - {Company
 
 **Requester name format:** Portal writes the full **Last name** to `extensionAttribute1` (e.g. `Smith (User Mailbox)`). Entra SCIM maps it **Direct** to `name.familyName`. First name stays plain via `givenName`.
 
-Existing requesters in SuperOps are matched and updated by SCIM — not duplicated.
+Existing requesters in SuperOps are matched and updated by SCIM - not duplicated.
 
 ---
 
@@ -159,25 +159,25 @@ Existing requesters in SuperOps are matched and updated by SCIM — not duplicat
 |---|---|---|
 | 1 | **Portal** | `formatSuperOpsFamilyName()` → e.g. `Smith (User Mailbox)` or `Accounts (Shared Mailbox)` |
 | 2 | **Portal** (Graph) | Writes that string to `extensionAttribute1` when Graph allows (cloud-only users) |
-| 2b | **Portal** (SuperOps API) | **Hybrid only (authoritative write to SuperOps):** if Graph rejects on-prem mastered users, portal `updateClientUser` sets firstName + lastName (with suffix). This is **not** SCIM inventing a name — Entra still uses Direct `extensionAttribute1` with **null** default |
+| 2b | **Portal** (SuperOps API) | **Hybrid only (authoritative write to SuperOps):** if Graph rejects on-prem mastered users, portal `updateClientUser` sets firstName + lastName (with suffix). This is **not** SCIM inventing a name - Entra still uses Direct `extensionAttribute1` with **null** default |
 | 3 | **Entra SCIM** | `name.familyName` **Direct** ← `extensionAttribute1` only. Empty attribute does **not** fall back to surname |
 
 **No SCIM fallbacks:** never map familyName to bare `[surname]` when extensionAttribute1 is empty (that produced `email Palmer` junk). If Graph cannot write the attribute, SuperOps names are set via SuperOps API; SCIM must not guess.
 
-**Why other customers worked first time and YorPower struggled:** cloud-only Entra allows Graph → `extensionAttribute1` → SCIM → SuperOps. Hybrid AD-synced users reject Graph extensionAttribute writes — SCIM with a **surname default** then looked “half working”. Joe Pearce style `(User Mailbox)` on another ticket is the **full** path when the attribute (or SuperOps API) actually holds the full string.
+**Why other customers worked first time and YorPower struggled:** cloud-only Entra allows Graph → `extensionAttribute1` → SCIM → SuperOps. Hybrid AD-synced users reject Graph extensionAttribute writes - SCIM with a **surname default** then looked “half working”. Joe Pearce style `(User Mailbox)` on another ticket is the **full** path when the attribute (or SuperOps API) actually holds the full string.
 | 4 | **SuperOps** | First name plain; last name includes mailbox type when mapped |
 
-### Entra SCIM attribute mapping — Direct only (no Expression)
+### Entra SCIM attribute mapping - Direct only (no Expression)
 
 | Target | Mapping type | Source | Default if null |
 |---|---|---|---|
-| `name.givenName` | Direct | `givenName` | — |
-| `name.familyName` | Direct | `extensionAttribute1` | *(none — empty stays empty)* |
-| `name.formatted` | Direct | `displayName` | — |
+| `name.givenName` | Direct | `givenName` | - |
+| `name.familyName` | Direct | `extensionAttribute1` | *(none - empty stays empty)* |
+| `name.formatted` | Direct | `displayName` | - |
 
-**Remove** any Expression on `name.familyName` — portal already sends the full last name.
+**Remove** any Expression on `name.familyName` - portal already sends the full last name.
 
-**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provision requested for N changed user(s)`). Portal writes `extensionAttribute1` only when the SuperOps last-name hint changed, then queues Entra **provision on demand** for those changed users (and newly assigned SCIM users) via `ProvisionSuperOpsScimUsersJob` — not every user on every hourly run. Check **Provisioning logs** for each Update. While the main sync job runs, the button shows **Syncing…**; SCIM provision continues in the queue worker.
+**Save** → **Sync now** (`SuperOps last names updated N; SuperOps SCIM provision requested for N changed user(s)`). Portal writes `extensionAttribute1` only when the SuperOps last-name hint changed, then queues Entra **provision on demand** for those changed users (and newly assigned SCIM users) via `ProvisionSuperOpsScimUsersJob` - not every user on every hourly run. Check **Provisioning logs** for each Update. While the main sync job runs, the button shows **Syncing…**; SCIM provision continues in the queue worker.
 
 ### Graph permissions required (portal OAuth app)
 
@@ -195,14 +195,14 @@ Re-consent in **each customer tenant** after adding permissions.
 
 | Field | Purpose |
 |---|---|
-| `entra_group_id` | Security group Object ID — portal auto-fills members |
-| `entra_superops_app_id` | SuperOps **Application (client) ID** from App registrations → Overview — **not** the Object ID on that page. Required on **Entra ID Free**. |
+| `entra_group_id` | Security group Object ID - portal auto-fills members |
+| `entra_superops_app_id` | SuperOps **Application (client) ID** from App registrations → Overview - **not** the Object ID on that page. Required on **Entra ID Free**. |
 
 ### Server `.env`
 
 ```env
-ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1   # default — extensionAttribute1
-ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND=true     # default — trigger SCIM after sync
+ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1   # default - extensionAttribute1
+ENTRA_SYNC_SUPEROPS_PROVISION_ON_DEMAND=true     # default - trigger SCIM after sync
 ENTRA_SYNC_SUPEROPS_PROVISION_DELAY_SECONDS=3  # wait after writing extensionAttribute1 (Entra replication)
 ENTRA_SYNC_SUPEROPS_PROVISION_BATCH_SIZE=1       # one user per provision-on-demand call (matches Entra UI)
 ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US=1500000  # 1.5s between calls (~35s for 22 users)
@@ -237,17 +237,17 @@ Then configure SCIM attribute mapping above and run **Sync now** so extension at
 
 | System | Handled by |
 |---|---|
-| **On IT Portal** users | Portal sync — [EntraGroupSync.md](EntraGroupSync.md) |
-| **Portal login** (OAuth) | On IT Portal app — separate from SCIM app |
-| **SuperOps SSO login** (SAML) | Customer **Client SSO** app — not the SCIM app |
+| **On IT Portal** users | Portal sync - [EntraGroupSync.md](EntraGroupSync.md) |
+| **Portal login** (OAuth) | On IT Portal app - separate from SCIM app |
+| **SuperOps SSO login** (SAML) | Customer **Client SSO** app - not the SCIM app |
 
 You have separate Entra enterprise apps in the customer tenant:
 
 | App | Purpose |
 |---|---|
 | **SuperOps - {Company}** | SCIM provisioning only |
-| **SuperOps Requester SSO - {Company}** | Created in checklist **08** — P1 assign Portal group; Free Sync assigns active licensed users using saved SSO app ID |
-| On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` — consented in customer tenant (step 04) |
+| **SuperOps Requester SSO - {Company}** | Created in checklist **08** - P1 assign Portal group; Free Sync assigns active licensed users using saved SSO app ID |
+| On IT Portal (multi-tenant OAuth + Graph sync) | Microsoft login to `app.onit.ltd` - consented in customer tenant (step 04) |
 
 Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester login still uses the separate Client SSO app.
 
@@ -260,11 +260,11 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 | ☐ | Security group `On IT Portal - {Company}` in customer Entra |
 | ☐ | SuperOps → Generate Tokens for this client |
 | ☐ | Entra enterprise app → SCIM provisioning → Test connection |
-| ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) — **Entra ID Free** |
+| ☐ | App registrations → SuperOps app → **App roles** → User role (Value `User`) - **Entra ID Free** |
 | ☐ | Provisioning → **name.givenName** Direct; **name.familyName** Direct from extensionAttribute1 |
 | ☐ | Assign security group to SCIM app **or** SuperOps Application (client) ID on portal (Entra ID Free) |
-| ☐ | Checklist **08** — Client SSO configured; P1 group assigned / Free SSO Application ID saved for automatic assignment |
-| ☐ | Portal client record + Entra sync enabled — [EntraGroupSync.md](EntraGroupSync.md) |
+| ☐ | Checklist **08** - Client SSO configured; P1 group assigned / Free SSO Application ID saved for automatic assignment |
+| ☐ | Portal client record + Entra sync enabled - [EntraGroupSync.md](EntraGroupSync.md) |
 | ☐ | Test: add user to group → appears in SuperOps + portal after sync |
 
 ---
@@ -277,20 +277,20 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 | Requester not in portal | Portal sync (`portal:sync-entra-users`); client Entra fields |
 | Duplicate requesters | Only one SCIM app per SuperOps client; do not also API-provision |
 | SCIM test connection fails | Tenant URL and token from correct SuperOps client row; auth method must be **Bearer authentication** |
-| Provisioning is **Off** | Turn **ON** under Provisioning — SCIM does not run while off |
+| Provisioning is **Off** | Turn **ON** under Provisioning - SCIM does not run while off |
 | Requester last name plain | `name.familyName` not Direct from extensionAttribute1 | Direct map; Sync now |
-| `extensionAttribute1` set but SuperOps name still plain | Entra **Provisioning logs** — if user has no **Update** entry, SCIM did not run for them. Portal **Sync now** triggers provision-on-demand **one user per call** (same as Entra UI). Manual test: **Provision on demand** → pick user → confirm `name.familyName` exports. |
-| Sync banner says provision requested for N but logs show fewer Updates | Normal until Entra finishes — wait 1–2 min and refresh logs; re-run **Sync now** if needed |
-| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** — SuperOps Application (client) ID on portal + App role + re-consent |
+| `extensionAttribute1` set but SuperOps name still plain | Entra **Provisioning logs** - if user has no **Update** entry, SCIM did not run for them. Portal **Sync now** triggers provision-on-demand **one user per call** (same as Entra UI). Manual test: **Provision on demand** → pick user → confirm `name.familyName` exports. |
+| Sync banner says provision requested for N but logs show fewer Updates | Normal until Entra finishes - wait 1-2 min and refresh logs; re-run **Sync now** if needed |
+| “Groups are not available for assignment due to your Active Directory plan level” | **Entra ID Free** - SuperOps Application (client) ID on portal + App role + re-consent |
 | `Permission being assigned was not found` | App role missing or **Value** blank | App registrations → App roles → User, Value `User`, Enable |
 
-### SCIM job missing — portal Sync looks fine but SuperOps has gaps
+### SCIM job missing - portal Sync looks fine but SuperOps has gaps
 
 **Symptom:** User is in M365, portal **Users**, and (on P1) the SCIM security group, but **not** in SuperOps requesters. Portal **Sync now** succeeds; last result may show many **SuperOps unmatched**. Graph `GET …/synchronization/jobs` returns **`value: []`**. Integration Health **SuperOps SCIM** = Export stopped / Setup needed. Checklist step **07** shows **Failed** (not Done).
 
 **Why this is not “SCIM changed in the portal”:** Sync **2** (portal Entra sync) and Sync **1** (Entra → SuperOps SCIM export) are separate. Portal can keep assigning users to the enterprise app and updating the portal DB while the **Entra provisioning job** is off, deleted, or never started.
 
-#### Root cause that broke some clients (Aug 2026) — never regress
+#### Root cause that broke some clients (Aug 2026) - never regress
 
 | Bad path | Good path |
 |----------|-----------|
@@ -299,22 +299,22 @@ Legacy fallback: separate SCIM apps if single-app SCIM setup fails. Requester lo
 | Apply SCIM may save BaseAddress but cannot create a real job (`scim.{hash}.{uuid}`) | Apply creates job `scim.{tenantHash}.{appId}` and can start export |
 | **Retry SCIM export** / re-paste alone **cannot** fix 0 templates | **Retry Graph setup** deletes + recreates via template instantiate, then **Apply SCIM** |
 
-Healthy clients (e.g. already-working tenants) already had template-capable apps. Broken ones looked “half done”: credentials in Entra, portal Sync green, step 07 wrongly **Done** from stale checklist flags — while Sync 1 was dead.
+Healthy clients (e.g. already-working tenants) already had template-capable apps. Broken ones looked “half done”: credentials in Entra, portal Sync green, step 07 wrongly **Done** from stale checklist flags - while Sync 1 was dead.
 
 **Code rules (do not regress):**
 
 1. `MicrosoftGraphClient::createNonGalleryApplication(..., forScimProvisioning: true)` → **template instantiate only** for SuperOps SCIM shells.
 2. `CustomerEntraBootstrapService` Connect / **Retry Graph setup**: if `superOpsScimEnterpriseAppNeedsRecreate()` (0 templates, phantom 2-segment job ids, or unresolvable SP) → `recreateNamedEnterpriseApplication()` (delete by id + display name, wait until gone, create fresh via template). **Never** `ensureNamed` reuse of a half-deleted app.
 3. Checklist step **07** `complete` only when live Graph health is OK (or not yet started); credentials + stopped export → **`failed`** badge.
-4. Secret never stored in portal DB — technician must **Apply SCIM** after any app recreate.
+4. Secret never stored in portal DB - technician must **Apply SCIM** after any app recreate.
 5. Usable job ids only: `scim.{hex}.{uuid}` (3 segments). Reject phantom `scim.{tenantId}` / `customappssoOutDelta.*`.
 
-**Technician recovery (portal only — no Azure UI):**
+**Technician recovery (portal only - no Azure UI):**
 
-1. Edit Client → **Retry Graph setup** (or ops SSH bootstrap — same service).
+1. Edit Client → **Retry Graph setup** (or ops SSH bootstrap - same service).
 2. Confirm warning: SCIM app was reset; left column **SuperOps Application (client) ID** is a **new** GUID.
 3. SuperOps → Generate Tokens (or reuse if still valid) → step **07** → **Apply SCIM**.
-4. Wait ~1–2 min → Integration Health **SuperOps SCIM** = Export active / OK → optional **Sync now**.
+4. Wait ~1-2 min → Integration Health **SuperOps SCIM** = Export active / OK → optional **Sync now**.
 
 **Repair when templates already exist (credentials in Entra, job stopped):**
 
@@ -323,8 +323,8 @@ php artisan portal:repair-superops-scim --client={id} --check
 php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 ```
 
-- **`--check`** — job count, BaseAddress, warnings only.
-- **Repair without re-paste** — only when Entra still has BaseAddress **and** templates exist.
+- **`--check`** - job count, BaseAddress, warnings only.
+- **Repair without re-paste** - only when Entra still has BaseAddress **and** templates exist.
 - If `--check` / Apply says **zero SCIM provisioning templates** → do **not** spam Retry SCIM export; use **Retry Graph setup** then Apply.
 
 **Staff UI:**
@@ -333,12 +333,12 @@ php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 |---------|-----------|
 | Checklist step **07** | **Failed** (red) when live export unhealthy; auto-opens; summary line |
 | SCIM panel | Red alert + single **Retry SCIM export**; green “Credentials saved in Entra” when BaseAddress exists (paste form collapsed) |
-| Integration Health | **SuperOps SCIM** column — failed/setup in KPI + Needs attention |
+| Integration Health | **SuperOps SCIM** column - failed/setup in KPI + Needs attention |
 | Apply / Repair jobs | Longer timeouts; clear checklist Done only when health OK |
 
 **After healthy Apply:** Entra Provisioning logs show **Create**/**Update**; **Sync now** binds `superops_user_id`.
 
-**Same email twice in SuperOps UI:** Often one requester on **two Sites**, not two SCIM rows. Fix site membership in SuperOps — not portal dedupe.
+**Same email twice in SuperOps UI:** Often one requester on **two Sites**, not two SCIM rows. Fix site membership in SuperOps - not portal dedupe.
 
 ---
 
@@ -350,7 +350,7 @@ php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 | 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SCIM Entra app (0 templates); technician only re-Applies SCIM tokens |
 | 2026-08-13 | SuperOps SCIM Entra apps created via non-gallery **template instantiate** (not POST /applications) so Graph exposes SCIM templates |
 | 2026-08-13 | Checklist step **07** **Failed** badge when live export unhealthy (not stale Done); Apply/Repair sync checklist to Graph health |
-| 2026-08-13 | **Retry SCIM export** on Edit Client (no secret re-paste) + auto-retry after partial Apply SCIM — `portal:repair-superops-scim` |
+| 2026-08-13 | **Retry SCIM export** on Edit Client (no secret re-paste) + auto-retry after partial Apply SCIM - `portal:repair-superops-scim` |
 | 2026-08-07 | Checklist step 07 Done only with name mappings + Sync queued; SuperOps bulk vs Entra scope Do not ignore warning |
 | 2026-08-04 | Scrub real customer names from examples (use `{Company}` / `Smith` placeholders); SuperOps names update after background Sync + SCIM (minutes) |
 | 2026-07-17 | SCIM provision-on-demand kept; only changed name hints + newly assigned users; runs via queue job so hourly sync no longer hangs |
@@ -360,7 +360,7 @@ php artisan portal:repair-superops-scim --client={id} --provision-missing --sync
 | 2026-07-14 | Client SSO is step **08**; live guide uses multi-block Where paths |
 | 2026-06-25 | Sync now: provision-on-demand **one user per API call** + delay after `extensionAttribute1`; spinner/status banner on Edit client |
 | 2026-06-25 | Portal writes full SCIM name to `extensionAttribute1`; Direct `name.familyName` mapping; provision-on-demand on Sync now |
-| 2026-06-25 | Requester display names: `(User Mailbox)` / `(Shared Mailbox)` — not via Entra `displayName` |
+| 2026-06-25 | Requester display names: `(User Mailbox)` / `(Shared Mailbox)` - not via Entra `displayName` |
 | 2026-06-25 | Entra ID Free: portal auto-assigns users via `entra_superops_app_id` + `AppRoleAssignment.ReadWrite.All` |
 | 2026-06-25 | Bearer authentication on SCIM admin credentials |
 | 2026-06-19 | Auto-maintain group; single app SCIM+SAML default; link to [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) |

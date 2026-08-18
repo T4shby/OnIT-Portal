@@ -540,7 +540,7 @@ class EntraGroupSyncService
             return [0, []];
         }
 
-        // PHPUnit uses QUEUE_CONNECTION=sync — keep provision inline so tests assert counts.
+        // PHPUnit uses QUEUE_CONNECTION=sync - keep provision inline so tests assert counts.
         if (config('queue.default') === 'sync') {
             return $this->triggerSuperOpsScimProvision($client, $userIds);
         }
@@ -872,12 +872,12 @@ class EntraGroupSyncService
 
         foreach ($shadows as $shadow) {
             if ((int) $shadow->client_id !== (int) $client->id) {
-                $errors[] = "Entra object {$objectId} is also on user #{$shadow->id} (other client) — resolve manually.";
+                $errors[] = "Entra object {$objectId} is also on user #{$shadow->id} (other client) - resolve manually.";
 
                 return false;
             }
             if ($shadow->provisioned_by === UserProvisionSource::Manual) {
-                $errors[] = "Manual user #{$shadow->id} shares Entra object {$objectId} with #{$keeper->id} — resolve manually.";
+                $errors[] = "Manual user #{$shadow->id} shares Entra object {$objectId} with #{$keeper->id} - resolve manually.";
 
                 return false;
             }
@@ -904,7 +904,7 @@ class EntraGroupSyncService
         }
 
         if ($emailOwner->provisioned_by === UserProvisionSource::Manual) {
-            $errors[] = "Email {$newEmail} belongs to manual user #{$emailOwner->id} — resolve manually.";
+            $errors[] = "Email {$newEmail} belongs to manual user #{$emailOwner->id} - resolve manually.";
 
             return false;
         }
@@ -971,7 +971,7 @@ class EntraGroupSyncService
 
     /**
      * Deactivate Entra-synced users no longer in tenant scope.
-     * Object id is authoritative — email change alone must not deactivate.
+     * Object id is authoritative - email change alone must not deactivate.
      *
      * @param  list<string>  $activeObjectIds
      * @param  list<string>  $activeEmails

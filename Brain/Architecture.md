@@ -1,4 +1,4 @@
-# On IT Portal — Architecture
+# On IT Portal - Architecture
 
 Laravel 11 monolith: Blade + Tailwind + Alpine.js. Deployed to Plesk on Ubuntu.
 
@@ -19,7 +19,7 @@ Database (MySQL / SQLite local)
 |---|---|---|
 | Dashboard | `GET /dashboard` | `ExternalServicesService` |
 | Support | `GET /support` | `SuperOpsTicketService` |
-| SSO launch | `GET /integrations/superops/launch` | `SuperOpsSsoService::launchUrlFor()` — redirects to `/#/requester/login` + `login_hint` |
+| SSO launch | `GET /integrations/superops/launch` | `SuperOpsSsoService::launchUrlFor()` - redirects to `/#/requester/login` + `login_hint` |
 | Entra callback | `GET /auth/microsoft/callback` | Socialite + user sync |
 
 ## Directory
@@ -39,7 +39,7 @@ Brain/          ← source of truth
 
 ## Caching
 
-`portal_links.client.{id}` — 5 minutes.
+`portal_links.client.{id}` - 5 minutes.
 
 ## External Services
 

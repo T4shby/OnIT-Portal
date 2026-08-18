@@ -1,4 +1,4 @@
-{{-- Dropsuite backups — DashboardFeed key: dropsuite --}}
+{{-- Dropsuite backups - DashboardFeed key: dropsuite --}}
 @php
     $d = $dropsuiteSummary;
     $viewerIsTechnician = $viewerIsTechnician ?? (auth()->user()?->isTeamMember() ?? false);
@@ -49,18 +49,18 @@
                 $warn = $failCount > 0 || $d->lastBackupStatus === 'warning';
             @endphp
             <p class="org-hero-num {{ $warn ? 'org-warn' : 'org-accent' }}" style="margin:8px 0 0">
-                {{ $d->protectedMailboxes === null ? '—' : number_format($d->protectedMailboxes) }}
+                {{ $d->protectedMailboxes === null ? '-' : number_format($d->protectedMailboxes) }}
             </p>
             <p class="org-muted" style="margin:4px 0 0;font-size:12px">mailboxes protected</p>
             <div class="org-stack">
                 <div class="org-metric">
                     <span class="org-metric-l">Succeeded (24h)</span>
-                    <span class="org-metric-v">{{ $ok24 === null ? '—' : number_format($ok24) }}</span>
+                    <span class="org-metric-v">{{ $ok24 === null ? '-' : number_format($ok24) }}</span>
                 </div>
                 <div class="org-metric">
                     <span class="org-metric-l">With issues</span>
                     <span class="org-metric-v" style="{{ ($failCount ?? 0) > 0 ? 'color:#FACC15' : '' }}">
-                        {{ $failCount === null ? '—' : number_format($failCount) }}
+                        {{ $failCount === null ? '-' : number_format($failCount) }}
                     </span>
                 </div>
                 @if(($d->onedriveCount ?? 0) > 0 || ($d->sharepointCount ?? 0) > 0)

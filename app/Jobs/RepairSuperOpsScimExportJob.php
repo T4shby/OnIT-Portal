@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Retry Entra SCIM export (Sync 1) without re-pasting SuperOps secret — for half-failed Apply SCIM.
+ * Retry Entra SCIM export (Sync 1) without re-pasting SuperOps secret - for half-failed Apply SCIM.
  */
 class RepairSuperOpsScimExportJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncrypted
 {

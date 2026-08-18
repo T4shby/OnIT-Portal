@@ -125,7 +125,7 @@ php artisan portal:purge-demo-data --force
 
 ## Project Documentation
 
-**Start at [`Brain/README.md`](Brain/README.md)** — source of truth for all design and implementation.
+**Start at [`Brain/README.md`](Brain/README.md)** - source of truth for all design and implementation.
 
 SuperOps: [`Brain/SuperOpsIntegration.md`](Brain/SuperOpsIntegration.md)
 
@@ -149,4 +149,4 @@ php artisan optimize
 
 ## License
 
-Proprietary — On IT Technology Partners LTD
+Proprietary - On IT Technology Partners LTD

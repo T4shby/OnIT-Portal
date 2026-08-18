@@ -1,4 +1,4 @@
-# On IT Portal — Portal Links
+# On IT Portal - Portal Links
 
 See [SuperOpsIntegration.md](SuperOpsIntegration.md) for SuperOps detail.
 
@@ -7,7 +7,7 @@ See [SuperOpsIntegration.md](SuperOpsIntegration.md) for SuperOps detail.
 | Type | Behaviour |
 |---|---|
 | `external` | Opens URL (new tab optional) |
-| `superops_embedded` | `/support` — embedded tickets |
+| `superops_embedded` | `/support` - embedded tickets |
 | `superops_sso` | SSO launch to full SuperOps portal |
 | `pax8_sso` | SSO launch to Pax8 (partner or company view) |
 
@@ -21,12 +21,12 @@ See [Pax8Integration.md](Pax8Integration.md) for Pax8 detail.
 
 ## Admin
 
-- `/admin/portal-links` — link type selector, `required_role`, client scope
+- `/admin/portal-links` - link type selector, `required_role`, client scope
 - SuperOps types auto-set URL via `PortalLink::urlForType()`
 
 ## Default Dashboard Links (MVP)
 
-The seeded global links are intentionally minimal — two portals only:
+The seeded global links are intentionally minimal - two portals only:
 
 | Name | Type | Target |
 |---|---|---|

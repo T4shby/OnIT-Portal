@@ -15,7 +15,7 @@
   <x-card class="mb-6">
     <p class="text-sm portal-body-muted leading-relaxed">
       The portal shows your ticket list and opening description only.
-      Replies, comments, and files stay in SuperOps — use <strong class="text-white/80">Open SuperOps</strong> for the full conversation.
+      Replies, comments, and files stay in SuperOps - use <strong class="text-white/80">Open SuperOps</strong> for the full conversation.
     </p>
   </x-card>
 

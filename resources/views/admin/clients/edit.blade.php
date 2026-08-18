@@ -1,9 +1,9 @@
 <x-admin-layout>
-    @include('admin.partials.header', ['title' => 'Edit Client — '.$client->name])
+    @include('admin.partials.header', ['title' => 'Edit Client - '.$client->name])
 
     @if($errors->any())
         <x-alert type="error" class="mb-6">
-            <p class="font-semibold">Could not complete — fix the following:</p>
+            <p class="font-semibold">Could not complete - fix the following:</p>
             <ul class="mt-2 list-disc pl-5">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -52,7 +52,7 @@
                         </a>
                     @elseif($client->isProductEntitled('huntress') && config('services.huntress.enabled'))
                         <p class="portal-body-muted text-xs self-center max-w-sm">
-                            Huntress is sold — paste Organization ID above and Save to open the security dashboard.
+                            Huntress is sold - paste Organization ID above and Save to open the security dashboard.
                         </p>
                     @endif
                     @if($client->isProductEntitled('dropsuite') && filled($client->dropsuite_organization_id) && config('services.dropsuite.enabled'))
@@ -61,7 +61,7 @@
                         </a>
                     @elseif($client->isProductEntitled('dropsuite') && config('services.dropsuite.enabled'))
                         <p class="portal-body-muted text-xs self-center max-w-sm">
-                            Dropsuite is sold — paste Organization ID above and Save to open backup metrics.
+                            Dropsuite is sold - paste Organization ID above and Save to open backup metrics.
                         </p>
                     @elseif($client->isProductEntitled('dropsuite') && ! config('services.dropsuite.enabled'))
                         <p class="portal-body-muted text-xs self-center max-w-sm">

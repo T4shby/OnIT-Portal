@@ -135,9 +135,9 @@
                     ' · Idle business ' + fmtMin(cfg.workIdle) + 'm' +
                     ' · Idle outside ' + fmtMin(cfg.offIdle) + 'm' +
                     ' · Active session ' + fmtMin(cfg.presence) + 'm' +
-                    ' · Hours ' + cfg.start + '–' + cfg.end +
+                    ' · Hours ' + cfg.start + '-' + cfg.end +
                     ' ' + cfg.tz +
-                    (formDirty ? ' (unsaved — save to apply)' : '');
+                    (formDirty ? ' (unsaved - save to apply)' : '');
             }
 
             function applyQueueFrom(el) {

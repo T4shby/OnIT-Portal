@@ -1,12 +1,12 @@
-# usecure (Human Risk) — integration plan
+# usecure (Human Risk) - integration plan
 
-**Status (2026-08-10): Design only — not implemented. Not near-term roadmap work.**  
+**Status (2026-08-10): Design only - not implemented. Not near-term roadmap work.**  
 Parked under Roadmap **Later / optional**. Build only when keys exist **and** the work is deliberately scheduled. Do not treat this doc as the next engineering step.
 
 Blocked on vendor **beta GraphQL** credentials. Resume implementation only after On IT has a partner API key + GraphQL URL and one pilot company id.
 
-Product: [usecure.io](https://usecure.io/) — MSP human risk (training, phishing, risk scoring).  
-Partner multi-tenant admin: **uService** (all On IT customers under the On IT partner tenant — same idea as Huntress).
+Product: [usecure.io](https://usecure.io/) - MSP human risk (training, phishing, risk scoring).  
+Partner multi-tenant admin: **uService** (all On IT customers under the On IT partner tenant - same idea as Huntress).
 
 ---
 
@@ -16,7 +16,7 @@ Partner multi-tenant admin: **uService** (all On IT customers under the On IT pa
 |------|----------------------------------|
 | On IT sells usecure to **some** clients only | `product_entitlements.usecure.entitled` true/false |
 | All customer companies live under **On IT’s** usecure partner tenant | One MSP API key + one GraphQL base URL in `.env` |
-| Per customer identity in usecure | Mapping column on `clients` (planned name below) — not a second partner login per client |
+| Per customer identity in usecure | Mapping column on `clients` (planned name below) - not a second partner login per client |
 | Buyers get the same experience as other sold products | System health tile + cache/prewarm + Integration Health column |
 | Non-buyers | No reports/tiles (requesters); Client Admin may see not-sold upsell copy only |
 | Staff | Set sold + map company id; Integration Health like Huntress |
@@ -25,7 +25,7 @@ Partner multi-tenant admin: **uService** (all On IT customers under the On IT pa
 
 ---
 
-## Getting API access (ops — before any code enablement)
+## Getting API access (ops - before any code enablement)
 
 Public partner guidance is explicit: API is **beta**; keys are **not** self-serve in a documented “generate key” screen.
 
@@ -37,7 +37,7 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
    - Support paths advertised on [usecure.io](https://usecure.io/).
 3. Request something like:
 
-   > On IT Technology Partners — MSP partner. Please enable **beta GraphQL API** for our partner tenant. We need: **API key**, **API URL** ending in `/graphql`, auth method (header name / body), rate limits, any schema or sample queries to **list companies** and **read per-company** risk / training / phishing stats (and user-level if available). Use case: read-only data in our own multi-tenant customer portal; we map companies to clients (like Huntress org ids).
+   > On IT Technology Partners - MSP partner. Please enable **beta GraphQL API** for our partner tenant. We need: **API key**, **API URL** ending in `/graphql`, auth method (header name / body), rate limits, any schema or sample queries to **list companies** and **read per-company** risk / training / phishing stats (and user-level if available). Use case: read-only data in our own multi-tenant customer portal; we map companies to clients (like Huntress org ids).
 
 4. Store key + URL in the team password vault only. Never commit. Later: production `.env` only.
 
@@ -47,9 +47,9 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 |------|-----|
 | API key | Auth for all GraphQL calls under the partner |
 | API URL (`…/graphql`) | Endpoint; must suffix `/graphql` per [Gradient](https://support.meetgradient.com/usecure) |
-| Auth shape | Header (`Authorization: Bearer …` vs custom) — lock when sample response arrives |
+| Auth shape | Header (`Authorization: Bearer …` vs custom) - lock when sample response arrives |
 | List companies query | Discovers mapping candidates under the On IT tenant |
-| Company summary fields | Risk score, training %, phishing, breaches — lock DTOs |
+| Company summary fields | Risk score, training %, phishing, breaches - lock DTOs |
 | Optional: user-level fields | Only if requesters get personal tiles later |
 | Console deep-link pattern | Optional “Open usecure” CTA |
 | Rate limits | Prewarm budget |
@@ -58,11 +58,11 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 
 | Claim | Source |
 |-------|--------|
-| Need API Key + API URL; beta; contact usecure Support | [Gradient — uSecure](https://support.meetgradient.com/usecure) |
+| Need API Key + API URL; beta; contact usecure Support | [Gradient - uSecure](https://support.meetgradient.com/usecure) |
 | URL must end with `/graphql` | Same page |
 | uService is partner platform; support via chat | [usecure Partner Agreement](https://usecure.io/legal/partner-agreement) (uService + chat support) |
 | Multi-tenant MSP platform / sold to some clients | Product positioning + On IT commercial model |
-| Portal architecture (feeds, IH, entitlements) | This repo — clone Huntress/Dropsuite |
+| Portal architecture (feeds, IH, entitlements) | This repo - clone Huntress/Dropsuite |
 
 ---
 
@@ -70,8 +70,8 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 
 | Condition | Decision |
 |-----------|----------|
-| Support issues key + GraphQL URL + list companies works | **Go** — implement Phase 1–2 below |
-| API refused / delayed / no company filter | **Hold** — do not stub production code; keep this doc only |
+| Support issues key + GraphQL URL + list companies works | **Go** - implement Phase 1-2 below |
+| API refused / delayed / no company filter | **Hold** - do not stub production code; keep this doc only |
 | API is login redirect only (no data) | **No-go** for metrics feed; optional external link tile only |
 
 ---
@@ -84,35 +84,35 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 |-------|----------------|
 | Product key | `usecure` |
 | Entitlement JSON | `product_entitlements.usecure.entitled` |
-| Mapping column | `clients.usecure_company_id` (name may change if vendor uses `account_id` / UUID — rename once sample payload exists) |
+| Mapping column | `clients.usecure_company_id` (name may change if vendor uses `account_id` / UUID - rename once sample payload exists) |
 | Platform config | `config/services.php` → `services.usecure` |
 | Env | `USECURE_API_URL`, `USECURE_API_KEY`, `USECURE_ENABLED=false` until pilot green |
 
-### Code surfaces (build checklist — Dropsuite/Huntress pattern)
+### Code surfaces (build checklist - Dropsuite/Huntress pattern)
 
-Implement in this order when unblocked. Full generic checklist: [ClientAdminDashboard.md — Feed checklist](ClientAdminDashboard.md#feed-checklist-add-a-new-vendor).
+Implement in this order when unblocked. Full generic checklist: [ClientAdminDashboard.md - Feed checklist](ClientAdminDashboard.md#feed-checklist-add-a-new-vendor).
 
-1. **Migration** — `usecure_company_id` on `clients`; `Client` fillable.
-2. **Config** — `services.usecure` + `.env.example` stubs (no secrets).
-3. **Entitlements** — `ClientProductService::KEY_USECURE`, `catalog()`, `isMapped`, `isPlatformReady`, `hasRecentFailure` prefix.
-4. **API** — `App\Services\Usecure\UsecureApiClient` (GraphQL POST; partner token).
-5. **Metrics** — `UsecureClientMetricsService`: `summaryForClient`, `queueRefresh`, `needsBackgroundRefresh`, `refreshAndStore`, **public `cacheKey($clientId)`** e.g. `client:{id}:usecure:v1`.
-6. **Job** — `RefreshUsecureMetricsJob` on `high`, unique per client; flags `usecure_metrics.refresh_*` / `last_result`.
-7. **Feed** — `UsecureDashboardFeed` (`key=usecure`, `prewarmPriority=optional`, overview partial).
-8. **Register** — `AppServiceProvider` feed list; `PrewarmClientDashboardsCommand::isFeedCold` match; registry only needs a hard match if personal scoping is non-default.
-9. **Admin UI** — `admin/clients/products/_usecure.blade.php`; validation on store/update client; products matrix via catalog.
-10. **Client UI** — `client-admin/feeds/_usecure.blade.php` (org risk/training summary).
-11. **Integration Health** — `FEED_COLUMNS`, `JOB_CLASS_HINT`, private `usecure()` builder in `clientRow()` using **only** `cacheKey()`.
-12. **Visibility** — org-wide via `canViewOrganisationWide`; v1 **Client Admin + staff only** unless user-level API is confirmed.
-13. **Probe** — extend `portal:probe-security-apis` or `portal:probe-usecure` with company id.
-14. **Tests** — registry keys, metrics HTTP/GraphQL fake, IH not-sold/cold/live, product save feature.
-15. **Brain** — mark this file **Shipped** + changelog; update Deployment env table.
+1. **Migration** - `usecure_company_id` on `clients`; `Client` fillable.
+2. **Config** - `services.usecure` + `.env.example` stubs (no secrets).
+3. **Entitlements** - `ClientProductService::KEY_USECURE`, `catalog()`, `isMapped`, `isPlatformReady`, `hasRecentFailure` prefix.
+4. **API** - `App\Services\Usecure\UsecureApiClient` (GraphQL POST; partner token).
+5. **Metrics** - `UsecureClientMetricsService`: `summaryForClient`, `queueRefresh`, `needsBackgroundRefresh`, `refreshAndStore`, **public `cacheKey($clientId)`** e.g. `client:{id}:usecure:v1`.
+6. **Job** - `RefreshUsecureMetricsJob` on `high`, unique per client; flags `usecure_metrics.refresh_*` / `last_result`.
+7. **Feed** - `UsecureDashboardFeed` (`key=usecure`, `prewarmPriority=optional`, overview partial).
+8. **Register** - `AppServiceProvider` feed list; `PrewarmClientDashboardsCommand::isFeedCold` match; registry only needs a hard match if personal scoping is non-default.
+9. **Admin UI** - `admin/clients/products/_usecure.blade.php`; validation on store/update client; products matrix via catalog.
+10. **Client UI** - `client-admin/feeds/_usecure.blade.php` (org risk/training summary).
+11. **Integration Health** - `FEED_COLUMNS`, `JOB_CLASS_HINT`, private `usecure()` builder in `clientRow()` using **only** `cacheKey()`.
+12. **Visibility** - org-wide via `canViewOrganisationWide`; v1 **Client Admin + staff only** unless user-level API is confirmed.
+13. **Probe** - extend `portal:probe-security-apis` or `portal:probe-usecure` with company id.
+14. **Tests** - registry keys, metrics HTTP/GraphQL fake, IH not-sold/cold/live, product save feature.
+15. **Brain** - mark this file **Shipped** + changelog; update Deployment env table.
 
-**Hard rule:** Integration Health and prewarm cold never hardcode legacy cache key versions — always `app(UsecureClientMetricsService::class)->cacheKey($id)`.
+**Hard rule:** Integration Health and prewarm cold never hardcode legacy cache key versions - always `app(UsecureClientMetricsService::class)->cacheKey($id)`.
 
 ### Suggested v1 tile KPIs (confirm against real schema)
 
-Pick 3–5 stable numbers only (not a full usecure UI):
+Pick 3-5 stable numbers only (not a full usecure UI):
 
 - Human risk score / band  
 - Training completion %  
@@ -135,25 +135,25 @@ Detail inventory page: **out of scope for v1** unless schema is trivially listab
 
 ## Implementation phases
 
-### Phase 0 — Credentials & schema (ops + engineer probe)
+### Phase 0 - Credentials & schema (ops + engineer probe)
 
 - Request keys (above).
 - Local probe only under `tmp/` (gitignored): one GraphQL call, document response shape into this file.
 - Lock final mapping column name + `cacheKey` payload fields.
 
-### Phase 1 — Platform skeleton (feature-flagged)
+### Phase 1 - Platform skeleton (feature-flagged)
 
 - Entitlements + map column + metrics job + feed + **Integration Health column**.
 - `USECURE_ENABLED=false` on production until probe passes.
 - Pilot: one sold client with known company id → cell progresses **Never loaded → Up to date**.
 
-### Phase 2 — Paying customers
+### Phase 2 - Paying customers
 
 - System health partial + admin product form live.
 - Prewarm optional + cold-first under queue pressure (existing prewarm policy).
 - Sold coverage KPI automatically includes feed once IH builder exists.
 
-### Phase 3 — Optional later
+### Phase 3 - Optional later
 
 - Staff “View usecure” page  
 - “Open usecure” console link  
@@ -189,7 +189,7 @@ When keys exist:
 
 1. Read this file + Dropsuite/Huntress implementations as templates.  
 2. Probe GraphQL; paste sanitized field names into “Suggested v1 tile KPIs” section.  
-3. Implement Phases 1–2 with `USECURE_ENABLED` off until pilot green.  
+3. Implement Phases 1-2 with `USECURE_ENABLED` off until pilot green.  
 4. Mark **Status: Shipped** here and add README changelog row.
 
 ---

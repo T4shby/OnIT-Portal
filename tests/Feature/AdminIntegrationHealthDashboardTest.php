@@ -47,7 +47,7 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('Acme Ltd', false);
         $response->assertSee('Stuck', false);
         $response->assertSee('Timing settings:', false);
-        // Labels go through Blade e() so & becomes &amp; — assertSeeText decodes.
+        // Labels go through Blade e() so & becomes &amp; - assertSeeText decodes.
         $response->assertSeeText('Devices & tickets');
         $response->assertSeeText('Huntress');
         $response->assertSeeText('Dropsuite');
@@ -73,7 +73,7 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('Idle business 45m', false);
         $response->assertSee('Idle outside 90m', false);
         $response->assertSee('Active session 12m', false);
-        $response->assertSee('Hours 08:00–18:00', false);
+        $response->assertSee('Hours 08:00-18:00', false);
         $response->assertSee('Europe/London', false);
         $response->assertSee('value="3.5"', false);
         $response->assertSee('value="45"', false);
@@ -106,7 +106,7 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response->assertSee('Idle business 55m', false);
         $response->assertSee('Idle outside 75m', false);
         $response->assertSee('Active session 20m', false);
-        $response->assertSee('Hours 06:30–17:00', false);
+        $response->assertSee('Hours 06:30-17:00', false);
     }
 
     public function test_admin_dashboard_links_to_integration_health_tab(): void

@@ -1,4 +1,4 @@
-# On IT Portal — Authentication
+# On IT Portal - Authentication
 
 ## Strategy
 
@@ -6,11 +6,11 @@ Authentication is handled exclusively through **Microsoft Entra ID** using OpenI
 
 ## App Registration
 
-This is **app #1** (OAuth) for the On IT Portal only. SuperOps requester SSO uses a **separate SAML enterprise app** — see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
+This is **app #1** (OAuth) for the On IT Portal only. SuperOps requester SSO uses a **separate SAML enterprise app** - see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md).
 
 | Setting | Value |
 |---|---|
-| Supported account types | Multitenant — any organisational directory |
+| Supported account types | Multitenant - any organisational directory |
 | Authority | `https://login.microsoftonline.com/organizations` |
 | Redirect URI | `https://{domain}/auth/microsoft/callback` |
 | API permissions | `openid`, `profile`, `email`, `User.Read` |
@@ -64,7 +64,7 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 Users are provisioned by **Entra sync** (preferred) or manually. Access is not self-serve.
 
 On login:
-- Prefer match on `entra_object_id` (stable across primary-email changes — [DomainEmailChange.md](DomainEmailChange.md))
+- Prefer match on `entra_object_id` (stable across primary-email changes - [DomainEmailChange.md](DomainEmailChange.md))
 - Else match email from Entra against `users.email`
 - Refresh primary email on the matched row when unique
 - If neither matches, access is denied
@@ -119,7 +119,7 @@ Summary:
 | User not provisioned | "Your account has not been set up. Please contact your administrator." | Admin creates user record before first login |
 | User inactive | "Your account has been deactivated. Please contact your administrator." | Admin reactivates user |
 | Redirect URI mismatch (AADSTS50011) | Microsoft error page before callback | Entra redirect URI must match `MICROSOFT_REDIRECT_URI` exactly |
-| cURL error 60 / SSL certificate (local Windows) | "Authentication failed: cURL error 60… unable to get local issuer certificate" | Configure `curl.cainfo` and `openssl.cafile` in `php.ini` — [LocalDevelopment.md](LocalDevelopment.md) |
+| cURL error 60 / SSL certificate (local Windows) | "Authentication failed: cURL error 60… unable to get local issuer certificate" | Configure `curl.cainfo` and `openssl.cafile` in `php.ini` - [LocalDevelopment.md](LocalDevelopment.md) |
 | Microsoft auth failure | Detailed message when `APP_DEBUG=true` | Check `storage/logs/laravel.log` |
 | Token exchange failure | Generic or detailed auth failed message | Verify client secret not expired; verify SSL/CA on Windows |
 | Empty client_id in OAuth URL | Broken Microsoft login redirect | Set `MICROSOFT_CLIENT_ID` in `.env`; run `php artisan config:clear` |

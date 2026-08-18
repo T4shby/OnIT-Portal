@@ -1,5 +1,5 @@
 @if($adminContext)
-<x-admin-layout :title="'Microsoft 365 — '.$client->name">
+<x-admin-layout :title="'Microsoft 365 - '.$client->name">
     @include('admin.partials.header', [
         'title' => 'Microsoft 365 Directory',
         'action' => '<a href="'.route('admin.clients.edit', $client).'" class="cta-btn-ghost text-sm px-6 py-3">Back to client</a>',

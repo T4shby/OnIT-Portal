@@ -255,10 +255,10 @@ class MicrosoftLicenseSkuNames
             if ($needle === '') {
                 continue;
             }
-            // Avoid matching ordinary product names that merely end with "E" then something —
+            // Avoid matching ordinary product names that merely end with "E" then something -
             // fragments are deliberate free/trial keywords.
             if (str_contains($key, $needle)) {
-                // "_IW" alone is short — require end or _IW_ form.
+                // "_IW" alone is short - require end or _IW_ form.
                 if ($needle === '_IW') {
                     if (str_ends_with($key, '_IW') || str_contains($key, '_IW_')) {
                         return true;

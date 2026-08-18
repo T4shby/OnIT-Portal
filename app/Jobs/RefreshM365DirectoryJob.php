@@ -49,7 +49,7 @@ class RefreshM365DirectoryJob implements ShouldQueue, ShouldBeUnique
         $lock = Cache::lock($lockKey, (int) config('services.entra_sync.directory_refresh_lock_seconds', 600));
 
         if (! $lock->get()) {
-            // Another worker already owns this client — clear "queued" so UI does not spin forever.
+            // Another worker already owns this client - clear "queued" so UI does not spin forever.
             Cache::forget('m365_directory.refresh_queued.'.$client->id);
             Cache::forget('m365_directory.refresh_started.'.$client->id);
 

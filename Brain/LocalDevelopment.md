@@ -1,4 +1,4 @@
-# On IT Portal — Local Development (Windows)
+# On IT Portal - Local Development (Windows)
 
 Guide for developers running the portal on a Windows workstation. Production deployment is documented in [Deployment.md](Deployment.md).
 
@@ -47,7 +47,7 @@ copy .env.example .env
 php artisan key:generate
 ```
 
-### Database (SQLite — recommended for local)
+### Database (SQLite - recommended for local)
 
 SQLite avoids installing MySQL locally. Edit `.env`:
 
@@ -97,7 +97,7 @@ Set your work email so the seeder creates your admin account:
 SUPER_ADMIN_EMAIL=you@onit.ltd
 ```
 
-After seeding, sign in with Microsoft — first login binds your Entra object ID to the seeded user.
+After seeding, sign in with Microsoft - first login binds your Entra object ID to the seeded user.
 
 ### SuperOps (optional locally)
 
@@ -113,7 +113,7 @@ SUPEROPS_SSO_ENABLED=true
 
 Technicians (`super_admin`, `account_manager`) see the SuperOps card when `SUPEROPS_SUBDOMAIN` or `SUPEROPS_REQUESTER_PORTAL_URL` is set (technician launch uses the same host + `/#/technician/login`). Client users need `superops_sso_enabled` on their client.
 
-## PHP SSL Certificates (Windows — required)
+## PHP SSL Certificates (Windows - required)
 
 ### Symptom
 
@@ -135,9 +135,9 @@ This has **nothing to do with Firefox, Edge, or Chrome**.
 | Your browser (Edge, Chrome, Firefox) | The browser | Windows certificate store and/or the browser's own roots |
 | Laravel / PHP / cURL (server-side) | PHP when exchanging the OAuth token | `php.ini` → `curl.cainfo` / `openssl.cafile` |
 
-When you click "Sign in with Microsoft", the **browser** talks to Microsoft fine — that's why you see the Microsoft login page. After you sign in, **PHP** makes a background HTTPS request to `login.microsoftonline.com` to swap the auth code for tokens. That request is made by cURL inside PHP, not by your browser.
+When you click "Sign in with Microsoft", the **browser** talks to Microsoft fine - that's why you see the Microsoft login page. After you sign in, **PHP** makes a background HTTPS request to `login.microsoftonline.com` to swap the auth code for tokens. That request is made by cURL inside PHP, not by your browser.
 
-PHP does not use Edge's or Chrome's certificate store. It needs its own list of trusted Certificate Authorities (CAs). The file at [curl.se/ca/cacert.pem](https://curl.se/ca/cacert.pem) is a standard bundle of public root CA certificates maintained by Mozilla for the curl project. The name is historical — it is used by PHP, curl, Git, and many tools on all platforms, regardless of which browser anyone uses.
+PHP does not use Edge's or Chrome's certificate store. It needs its own list of trusted Certificate Authorities (CAs). The file at [curl.se/ca/cacert.pem](https://curl.se/ca/cacert.pem) is a standard bundle of public root CA certificates maintained by Mozilla for the curl project. The name is historical - it is used by PHP, curl, Git, and many tools on all platforms, regardless of which browser anyone uses.
 
 On Ubuntu/Plesk production, the OS usually provides this automatically. WinGet PHP on Windows often does not, so we configure it manually.
 
@@ -156,7 +156,7 @@ On Ubuntu/Plesk production, the OS usually provides this automatically. WinGet P
    Invoke-WebRequest -Uri "https://curl.se/ca/cacert.pem" -OutFile "$phpDir\cacert.pem"
    ```
 
-3. Edit `php.ini` — uncomment and set both directives (use your actual path):
+3. Edit `php.ini` - uncomment and set both directives (use your actual path):
 
    ```ini
    [curl]
@@ -203,7 +203,7 @@ If you change `.env`, run:
 php artisan config:clear
 ```
 
-The dev server auto-restarts on `.env` changes, but **not** on `php.ini` changes — restart manually.
+The dev server auto-restarts on `.env` changes, but **not** on `php.ini` changes - restart manually.
 
 ## Common Local Errors
 
@@ -236,7 +236,7 @@ php artisan tinker               # REPL for debugging
 |---|---|---|
 | `APP_ENV` | `local` | `production` |
 | `APP_DEBUG` | `true` | `false` |
-| `APP_URL` | `http://localhost:8000` | `https://app.onit.ltd` (Laravel app — not `portal.onit.ltd`) |
+| `APP_URL` | `http://localhost:8000` | `https://app.onit.ltd` (Laravel app - not `portal.onit.ltd`) |
 | Database | SQLite | MySQL/MariaDB |
 | `SESSION_SECURE_COOKIE` | `false` (HTTP) | `true` (HTTPS) |
 | PHP CA bundle | Manual on Windows | OS-managed on Ubuntu/Plesk |
@@ -244,6 +244,6 @@ php artisan tinker               # REPL for debugging
 
 ## Related Docs
 
-- [Authentication.md](Authentication.md) — login flow and Entra configuration
-- [Deployment.md](Deployment.md) — Plesk production setup
-- [README.md](README.md) — Brain index and change protocol
+- [Authentication.md](Authentication.md) - login flow and Entra configuration
+- [Deployment.md](Deployment.md) - Plesk production setup
+- [README.md](README.md) - Brain index and change protocol

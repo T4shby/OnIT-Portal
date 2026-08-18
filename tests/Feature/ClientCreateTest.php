@@ -84,7 +84,7 @@ class ClientCreateTest extends TestCase
             ->get(route('admin.clients.edit', $client));
 
         $response->assertOk();
-        $response->assertSee('Edit Client — Acme Ltd', false);
+        $response->assertSee('Edit Client - Acme Ltd', false);
         $response->assertSee('Save client', false);
         $response->assertDontSee('Create client', false);
     }

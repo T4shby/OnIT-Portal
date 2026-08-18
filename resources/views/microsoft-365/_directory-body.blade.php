@@ -18,12 +18,12 @@
         </div>
         <p class="portal-body-muted max-w-2xl">
             Read-only view of licensed users, shared mailboxes, and groups in <strong class="text-white/80">{{ $client->name }}</strong>
-            — without signing into the Microsoft 365 admin centre.
+            - without signing into the Microsoft 365 admin centre.
         </p>
     </section>
 @else
     <p class="portal-body-muted mb-8 max-w-2xl">
-        Read-only directory for <strong class="text-white/80">{{ $client->name }}</strong> — licensed users, shared mailboxes, and groups.
+        Read-only directory for <strong class="text-white/80">{{ $client->name }}</strong> - licensed users, shared mailboxes, and groups.
     </p>
 @endif
 

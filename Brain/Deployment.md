@@ -1,4 +1,4 @@
-# On IT Portal — Deployment
+# On IT Portal - Deployment
 
 Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDevelopment.md](LocalDevelopment.md).
 
@@ -26,8 +26,8 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 
 ### 1. Create Domain/Subdomain
 
-> **On IT production URL:** `https://app.onit.ltd` — the Laravel On IT Portal.  
-> **`portal.onit.ltd`** is the SuperOps requester portal (CNAME to SuperOps) — do not host Laravel there.
+> **On IT production URL:** `https://app.onit.ltd` - the Laravel On IT Portal.  
+> **`portal.onit.ltd`** is the SuperOps requester portal (CNAME to SuperOps) - do not host Laravel there.
 
 1. Log in to Plesk
 2. Add Subdomain **`app.onit.ltd`**
@@ -56,7 +56,7 @@ Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDev
 |---|---|
 | GitHub remote | `git@github.com:T4shby/OnIT-Portal.git` |
 | Plesk Git bare mirror | `/var/www/vhosts/onit.ltd/git/laravel_af3fd1` |
-| Live site (deploy path) | `/var/www/vhosts/onit.ltd/app.onit.ltd` — **no** `.git` (Plesk copies files here) |
+| Live site (deploy path) | `/var/www/vhosts/onit.ltd/app.onit.ltd` - **no** `.git` (Plesk copies files here) |
 | Subscription deploy key | `/var/www/vhosts/onit.ltd/.ssh/id_rsa` (wired to GitHub for this vhost) |
 | Branch | **`main` only** for production |
 
@@ -70,7 +70,7 @@ Laptop → git push origin main → GitHub
 
 **Plesk UI:** Domains → **app.onit.ltd** → **Git** (repo `laravel_af3fd1`) → branch **main** → **Pull Updates** → **Deploy**.
 
-**Wrong / emergency-only:** `scp` or unzip straight into `app.onit.ltd` without updating the Plesk bare mirror. That made code “live but not on GitHub” and “live without a Plesk deploy record” — avoid it. Hotfix only if GitHub is unreachable; then still push and re-deploy via Plesk path the same day.
+**Wrong / emergency-only:** `scp` or unzip straight into `app.onit.ltd` without updating the Plesk bare mirror. That made code “live but not on GitHub” and “live without a Plesk deploy record” - avoid it. Hotfix only if GitHub is unreachable; then still push and re-deploy via Plesk path the same day.
 
 **Option B: SFTP (bootstrap only)**
 
@@ -176,7 +176,7 @@ chmod -R 775 storage bootstrap/cache
 ### 9. Optimise for Production
 
 ```bash
-npm ci && npm run build   # if not built locally — uploads public/build
+npm ci && npm run build   # if not built locally - uploads public/build
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -193,7 +193,7 @@ That is Plesk’s jailed task runner, not Laravel. Do **not** rely on the Plesk 
 
 #### Preferred: systemd timers (live on app.onit.ltd)
 
-On this host, minute **root cron sometimes skipped 5–10 minutes** while `cron` RSS ballooned (~900MB; healthy is a few MB). Many **orphan FTP crontabs** also spam reloads. Primary path is **systemd timers** (still use Plesk PHP binary, app path only):
+On this host, minute **root cron sometimes skipped 5-10 minutes** while `cron` RSS ballooned (~900MB; healthy is a few MB). Many **orphan FTP crontabs** also spam reloads. Primary path is **systemd timers** (still use Plesk PHP binary, app path only):
 
 | Unit | When | Command |
 |---|---|---|
@@ -203,7 +203,7 @@ On this host, minute **root cron sometimes skipped 5–10 minutes** while `cron`
 
 Files: `/etc/systemd/system/onit-portal-{schedule,queue,queue-b}.{service,timer}`. Enable with `systemctl enable --now onit-portal-schedule.timer onit-portal-queue.timer onit-portal-queue-b.timer`. Check: `systemctl list-timers 'onit-portal*'` and Integration Health **Scheduler** tick age.
 
-If `cron` RSS is huge again: `systemctl restart cron` (safe; does not touch other vhosts). Clean orphan FTP crontabs separately under Plesk when someone has time — they thrash the cron daemon, not the portal app code.
+If `cron` RSS is huge again: `systemctl restart cron` (safe; does not touch other vhosts). Clean orphan FTP crontabs separately under Plesk when someone has time - they thrash the cron daemon, not the portal app code.
 
 #### Root crontab (belt-and-suspenders; keep alongside timers)
 
@@ -217,15 +217,15 @@ Use **absolute** log paths. Relative `>> storage/logs/...` only works if `cd` su
 
 **Do not use `onOneServer()`** for scheduled commands on this single host with `CACHE_STORE=database`. A stuck row in `cache_locks` can skip `portal:prewarm-client-dashboards` for tens of minutes (data ages with empty queue). Prewarm clears expired / absurdly long schedule locks on each run.
 
-Hourly **`portal:sync-entra-users`** (Entra “Extra Sync” on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead — not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
+Hourly **`portal:sync-entra-users`** (Entra “Extra Sync” on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead - not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
 
 Two concurrent workers so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
 
-`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). **`--max-time=55`** so each minute worker exits before the next minute spawns another (do **not** use 300 with minute cron — that stacks overlapping workers). Long Entra jobs may span workers; that is intentional. The scheduler queues work; the workers process it.
+`--queue=high,default` runs SuperOps / M365 directory / M365 insights (`high`) **before** Entra/SCIM (`default`). **`--max-time=55`** so each minute worker exits before the next minute spawns another (do **not** use 300 with minute cron - that stacks overlapping workers). Long Entra jobs may span workers; that is intentional. The scheduler queues work; the workers process it.
 
 ### 11. Run the queue worker
 
-Background work (M365 directory refresh, SuperOps dashboard metrics, admin Entra sync) uses Laravel's **database queue** — not `dispatch()->afterResponse()`. Jobs are written to the `jobs` table when `QUEUE_CONNECTION=database`.
+Background work (M365 directory refresh, SuperOps dashboard metrics, admin Entra sync) uses Laravel's **database queue** - not `dispatch()->afterResponse()`. Jobs are written to the `jobs` table when `QUEUE_CONNECTION=database`.
 
 **Required `.env`:**
 
@@ -243,12 +243,12 @@ PHPUnit sets `QUEUE_CONNECTION=sync` in `phpunit.xml` so tests still run jobs in
 php artisan queue:work database --queue=high,default --sleep=1 --tries=3
 ```
 
-Run this **continuously** — choose one:
+Run this **continuously** - choose one:
 
 | Option | When to use |
 |---|---|
-| **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts — set **`numprocs=2`** for parallel clients |
-| **systemd timers** | Live on app.onit.ltd — `onit-portal-queue` / `onit-portal-queue-b` (see §10) |
+| **Supervisor** (recommended) | SSH/root access; keeps worker alive across restarts - set **`numprocs=2`** for parallel clients |
+| **systemd timers** | Live on app.onit.ltd - `onit-portal-queue` / `onit-portal-queue-b` (see §10) |
 | **Plesk / root crontab** | Two `queue:work --stop-when-empty` lines each minute (see §10) |
 
 **Supervisor example** (`/etc/supervisor/conf.d/onit-portal-queue.conf`):
@@ -300,12 +300,12 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 2. New registration:
    - Name: **OnIT Portal for Portals**
    - Supported account types: "Accounts in any organizational directory"
-   - Redirect URI: Web → `https://app.onit.ltd/auth/microsoft/callback` (your Laravel subdomain — **not** `portal.onit.ltd`)
+   - Redirect URI: Web → `https://app.onit.ltd/auth/microsoft/callback` (your Laravel subdomain - **not** `portal.onit.ltd`)
 3. Note the Application (client) ID
 4. Certificates & secrets → New client secret → note the value
 5. API permissions → Add:
    - **Delegated:** `Microsoft Graph` → `openid`, `profile`, `email`, `User.Read` (portal login)
-   - **Application:** `Microsoft Graph` → all **fourteen** Application permissions below (Entra sync + Connect bootstrap + Secure Score/MFA — full list in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0):
+   - **Application:** `Microsoft Graph` → all **fourteen** Application permissions below (Entra sync + Connect bootstrap + Secure Score/MFA - full list in [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0):
      - `User.Read.All`
      - `User.ReadWrite.All`
      - `LicenseAssignment.Read.All`
@@ -321,7 +321,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
      - `AuditLog.Read.All`
      - `Reports.Read.All`
 6. Grant admin consent in the On IT home tenant
-7. Customer tenants: checklist orange **Connect Microsoft tenant** (or **re-consent** after adding permissions — never delete the client)
+7. Customer tenants: checklist orange **Connect Microsoft tenant** (or **re-consent** after adding permissions - never delete the client)
 
 ## Post-Deployment Verification
 
@@ -331,7 +331,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 - [ ] Admin area accessible for admin roles
 - [ ] Dashboard **SuperOps** and **Pax8** tiles redirect via launch routes (same tab)
 - [ ] Technician Pax8 → partner portal; client with `pax8_company_id` → company view
-- [ ] `APP_DEBUG=false` — no stack traces on errors
+- [ ] `APP_DEBUG=false` - no stack traces on errors
 - [ ] SSL certificate valid and HTTP redirects to HTTPS
 - [ ] Queue worker running (`QUEUE_CONNECTION=database`; `jobs` table draining)
 
@@ -343,7 +343,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 |---|---|
 | GitHub remote | `git@github.com:T4shby/OnIT-Portal.git` |
 | Plesk bare mirror | `/var/www/vhosts/onit.ltd/git/laravel_af3fd1` (repo name in Plesk: **laravel_af3fd1**) |
-| Live Laravel tree | `/var/www/vhosts/onit.ltd/app.onit.ltd` — **no** `.git` |
+| Live Laravel tree | `/var/www/vhosts/onit.ltd/app.onit.ltd` - **no** `.git` |
 | Deploy key / known_hosts | `/var/www/vhosts/onit.ltd/.ssh/id_rsa`, `…/git_known_hosts` |
 | Site owner | `onit.ltd_1hfwweogk0mj:psaserv` (critical after extract) |
 | Plesk Git DB | `/opt/psa/var/modules/git/git_db.db` (`Repositories.branch` must be **`main`**) |
@@ -351,7 +351,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 
 **Normal release path:** push `main` on GitHub → **Plesk UI Pull + Deploy**, *or* SSH pipeline below → then **post-deploy artisan block**.
 
-Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding` — wrong for live).
+Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding` - wrong for live).
 
 ### SSH: pull GitHub + deploy via Plesk bare mirror
 
@@ -383,7 +383,7 @@ echo "$SHORT" | tee "$GIT_DIR/DEPLOYED_SHA" "$APP/.deployed-commit"
 echo "$FULL" > "$GIT_DIR/DEPLOYED_SHA_FULL"
 chown "$OWNER" "$APP/.deployed-commit"
 
-# 4) Keep Plesk UI in sync (branch + last deploy) — optional but recommended
+# 4) Keep Plesk UI in sync (branch + last deploy) - optional but recommended
 sqlite3 /opt/psa/var/modules/git/git_db.db \
   "UPDATE Repositories SET branch='main' WHERE name='laravel_af3fd1';"
 # Update RepositoryDeploymentInfo hashes/message from `git log -1 main` if you care about UI accuracy
@@ -391,13 +391,13 @@ sqlite3 /opt/psa/var/modules/git/git_db.db \
 # 5) Post-deploy artisan block (next section)
 ```
 
-After **every** deploy, run **all** of the artisan steps below — not “just fetch”.
+After **every** deploy, run **all** of the artisan steps below - not “just fetch”.
 
-**Plesk PHP:** `php` is not on the root shell `PATH`. List installed versions and use the one set on the domain (Plesk → Domains → **app.onit.ltd** → **PHP Settings** — must be **8.2+** for Laravel 11):
+**Plesk PHP:** `php` is not on the root shell `PATH`. List installed versions and use the one set on the domain (Plesk → Domains → **app.onit.ltd** → **PHP Settings** - must be **8.2+** for Laravel 11):
 
 ```bash
 ls /opt/plesk/php/*/bin/php
-PHP=/opt/plesk/php/8.3/bin/php    # example — use 8.2 or 8.3, not 8.1
+PHP=/opt/plesk/php/8.3/bin/php    # example - use 8.2 or 8.3, not 8.1
 $PHP -v
 ```
 
@@ -408,7 +408,7 @@ $PHP -v
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
 
-# php is NOT on root PATH — composer and artisan both need Plesk's PHP
+# php is NOT on root PATH - composer and artisan both need Plesk's PHP
 export PATH="/opt/plesk/php/8.3/bin:$PATH"    # match Plesk PHP Settings for app.onit.ltd
 export COMPOSER_ALLOW_SUPERUSER=1              # skip "Continue as root?" prompt on Plesk SSH
 php -v
@@ -423,7 +423,7 @@ php artisan route:clear
 php artisan config:clear
 php artisan view:clear
 
-# Prefer NOT `php artisan cache:clear` on routine deploys — it wipes M365 directory
+# Prefer NOT `php artisan cache:clear` on routine deploys - it wipes M365 directory
 # snapshots (`m365_directory.client.*`) and Client Admin metric caches, forcing cold
 # “synchronising” empty states until background jobs rebuild them.
 
@@ -437,13 +437,13 @@ chmod -R ug+rwX storage bootstrap/cache
 ```
 
 > **`cache:clear`:** wipes application cache store (directory snapshots, SuperOps/M365 insights, Entra health flags). Only use when intentionally resetting caches; otherwise clear route/config/view only.
-> **`/usr/bin/env: 'php': No such file or directory`** — caused by plain `composer install` without Plesk PHP on `PATH`. Use `export PATH=...` above, or `$PHP $(command -v composer) install ...`.
+> **`/usr/bin/env: 'php': No such file or directory`** - caused by plain `composer install` without Plesk PHP on `PATH`. Use `export PATH=...` above, or `$PHP $(command -v composer) install ...`.
 
 > **Why `route:clear` before `optimize`?** New routes (e.g. Team, Pax8 launch) are referenced in views. Stale route cache causes **500 on `/admin`** with `Route [...] not defined` in `storage/logs/laravel.log`.
 
 > **Why `PortalLinkSeeder`?** Upserts dashboard links to `superops_sso` and `pax8_sso` launch routes. Safe to re-run.
 
-> **Why `rm -f public/hot`?** A leftover Vite dev file makes production load CSS from `localhost:5173` — unstyled pages. See [CSS not loading](#css-not-loading-unstyled-html).
+> **Why `rm -f public/hot`?** A leftover Vite dev file makes production load CSS from `localhost:5173` - unstyled pages. See [CSS not loading](#css-not-loading-unstyled-html).
 
 > **500 Permission denied on `storage/framework/views`:** Post-deploy `php artisan optimize` (or archive) ran as **root** and left `storage/` root-owned. Fix: `chown -R onit.ltd_1hfwweogk0mj:psaserv storage bootstrap/cache` (always run after artisan as root).
 
@@ -482,14 +482,14 @@ Then run the deploy block above. Set **Pax8 company ID** per client in Admin →
 | Session not persisting / Socialite InvalidStateException | Verify `sessions` table exists (`php artisan tinker --execute="echo Schema::hasTable('sessions') ? 'yes' : 'no';"`), `SESSION_DRIVER=database`, and do not set `SESSION_DOMAIN=null` (leave blank or unset). After deploy, set `MICROSOFT_OAUTH_STATELESS=true` in `.env` and `php artisan config:clear` if login still fails with session-lost message. |
 | CSS not loading / unstyled page | See **CSS not loading** below |
 | Permission denied | `chmod -R 775 storage bootstrap/cache` |
-| M365 directory / SuperOps dashboard never updates | Confirm `QUEUE_CONNECTION=database` in `.env`, `jobs` table exists (`php artisan migrate`), and queue worker is running — see [Run the queue worker](#11-run-the-queue-worker) |
-| cURL SSL error on **local Windows only** | Not a production issue — see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |
+| M365 directory / SuperOps dashboard never updates | Confirm `QUEUE_CONNECTION=database` in `.env`, `jobs` table exists (`php artisan migrate`), and queue worker is running - see [Run the queue worker](#11-run-the-queue-worker) |
+| cURL SSL error on **local Windows only** | Not a production issue - see [LocalDevelopment.md](LocalDevelopment.md#php-ssl-certificates-windows--required) |
 
 ### CSS not loading (unstyled HTML)
 
 The portal loads CSS via Laravel Vite from `public/build/` (committed in git). A plain white page with blue links means those assets did not load.
 
-**Browser asked to “allow” local network / localhost?** Almost always a stray **`public/hot`** file on the server — left over if someone ran `npm run dev` on production. That file tells Laravel to load CSS from `http://127.0.0.1:5173` instead of `public/build`. Remove it:
+**Browser asked to “allow” local network / localhost?** Almost always a stray **`public/hot`** file on the server - left over if someone ran `npm run dev` on production. That file tells Laravel to load CSS from `http://127.0.0.1:5173` instead of `public/build`. Remove it:
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
@@ -530,9 +530,9 @@ $PHP artisan optimize
 
 If you see `app-XXXX.css` in `public/build/assets/` but page source references a **different** hash, `manifest.json` and the CSS file are out of sync. On a **git** checkout: `git checkout HEAD -- public/build/`. On **Plesk deploy** (no `.git`): run `npm ci && npm run build` in the app directory to regenerate both files, then `$PHP artisan view:clear && $PHP artisan optimize`.
 
-Repo on GitHub may use a different hash (e.g. `app-BPNDoNek.css`) than the server (`app-CWxgn93d.css`) — that is fine **as long as `manifest.json` and the file in `assets/` match on the same machine**.
+Repo on GitHub may use a different hash (e.g. `app-BPNDoNek.css`) than the server (`app-CWxgn93d.css`) - that is fine **as long as `manifest.json` and the file in `assets/` match on the same machine**.
 
-**Never run `npm run dev` on production** — local dev only ([LocalDevelopment.md](LocalDevelopment.md)).
+**Never run `npm run dev` on production** - local dev only ([LocalDevelopment.md](LocalDevelopment.md)).
 
 ## Local vs Production
 

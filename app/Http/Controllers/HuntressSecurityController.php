@@ -120,7 +120,7 @@ class HuntressSecurityController extends Controller
     {
         $user = $request->user();
         $viewer = $adminContext ? null : $user;
-        // Admin context: staff already authorized for client — full access to any case for that org.
+        // Admin context: staff already authorized for client - full access to any case for that org.
         if ($adminContext) {
             $case = $this->incidents->findForClient($client, $incidentId, null);
         } else {

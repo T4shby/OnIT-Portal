@@ -51,7 +51,7 @@ class M365DirectoryService
 
         $isStale = $this->isStale($meta);
 
-        // Do not auto-queue on every stale page view — prewarm / Refresh now owns that.
+        // Do not auto-queue on every stale page view - prewarm / Refresh now owns that.
         // Auto-queue was re-setting "in progress" forever when jobs lagged.
 
         return $this->buildDisplayResult($client, snapshot: $snapshot, isStale: $isStale);
@@ -87,7 +87,7 @@ class M365DirectoryService
     }
 
     /**
-     * Cold (no snapshot) or past directory requeue threshold — used by prewarm.
+     * Cold (no snapshot) or past directory requeue threshold - used by prewarm.
      * Requeues at directory_refresh_after_minutes (default 2.5) with the shared prewarm cadence.
      */
     public function needsBackgroundRefresh(Client $client): bool

@@ -8,14 +8,14 @@
     <p class="mb-3 text-sm leading-relaxed text-white/75">
         Prefer <strong class="text-white/90">Connect / Retry Graph setup</strong> over pasting.
         After Connect, <strong class="text-white/90">reload this page</strong> so fields match what was saved
-        (do not Save client from a stale form — it can overwrite P1 with Free).
+        (do not Save client from a stale form - it can overwrite P1 with Free).
     </p>
     @if(filled($client->entra_tenant_id) && ! filled($client->entra_group_id))
         <p class="mb-5 border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-100/90">
             Tenant is linked (tier: <strong>{{ ($client->entra_license_tier ?? 'free') === 'p1' ? 'P1 or higher' : 'Free' }}</strong>)
             but <strong>group ID is empty</strong>. Graph needs
             <strong>Group.ReadWrite.All</strong> on OnIT Portal for Portals, re-consent in the customer tenant,
-            then <strong>Retry Graph setup</strong> — or paste the security group Object ID below.
+            then <strong>Retry Graph setup</strong> - or paste the security group Object ID below.
         </p>
     @endif
 
@@ -27,7 +27,7 @@
             @endif
         </div>
         @php
-            // Use session old only after a validation error on this form — not a stale open tab.
+            // Use session old only after a validation error on this form - not a stale open tab.
             $tierValue = $errors->has('entra_license_tier')
                 ? old('entra_license_tier', $client->entra_license_tier ?? 'free')
                 : ($client->entra_license_tier ?? 'free');

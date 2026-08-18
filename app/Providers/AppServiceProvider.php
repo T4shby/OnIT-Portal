@@ -19,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Services\Portal\Feeds\HuntressDashboardFeed::class),
                 $app->make(\App\Services\Portal\Feeds\DropsuiteDashboardFeed::class),
                 $app->make(\App\Services\Portal\Feeds\M365InsightsDashboardFeed::class),
-                // Prewarm-only (no overview tile — own Microsoft 365 page).
+                // Prewarm-only (no overview tile - own Microsoft 365 page).
                 $app->make(\App\Services\Portal\Feeds\M365DirectoryDashboardFeed::class),
             ]);
         });

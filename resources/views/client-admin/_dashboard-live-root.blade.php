@@ -17,7 +17,7 @@
         @if($viewerIsTechnician)
             <x-alert type="info" class="mb-6">
                 Background refresh running for dashboard feeds that were queued.
-                Cache stays on screen; live partial updates every 5s — no full-page reload.
+                Cache stays on screen; live partial updates every 5s - no full-page reload.
             </x-alert>
             <p class="portal-body-muted text-xs mb-4" data-live-poll-notice>Polling metrics every 5s while jobs run…</p>
         @else

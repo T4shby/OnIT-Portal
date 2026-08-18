@@ -29,7 +29,7 @@ class EntraSyncDisplayName
     }
 
     /**
-     * SuperOps SCIM last name — e.g. Smith (User Mailbox) or Accounts (Shared Mailbox).
+     * SuperOps SCIM last name - e.g. Smith (User Mailbox) or Accounts (Shared Mailbox).
      */
     public static function formatSuperOpsFamilyName(
         ?string $surname,

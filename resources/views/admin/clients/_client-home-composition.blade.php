@@ -1,6 +1,6 @@
 {{--
   Technician guide: this client’s portal home is product-shaped.
-  Data: ClientHomeOverviewService::staffHomeComposition() — Brain/UIOverhaul.md
+  Data: ClientHomeOverviewService::staffHomeComposition() - Brain/UIOverhaul.md
 --}}
 @php
     $home = $clientHomeComposition ?? null;

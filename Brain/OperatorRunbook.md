@@ -1,4 +1,4 @@
-# On IT Portal — Operator Runbook
+# On IT Portal - Operator Runbook
 
 Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you go.
 
@@ -8,13 +8,13 @@ Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you g
 
 ---
 
-## Phase A0 — SuperOps Technician SSO (On IT staff)
+## Phase A0 - SuperOps Technician SSO (On IT staff)
 
-**Full guide:** [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) — copy requester setup, different values.
+**Full guide:** [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md) - copy requester setup, different values.
 
 **Why two Entra apps?** Requester Reply URL = `portal.onit.ltd/...` · Technician Reply URL = `usauth.superops.ai/...` · Different Entity IDs. See comparison table in guide.
 
-### T1. SuperOps — Technician Login SSO
+### T1. SuperOps - Technician Login SSO
 
 1. **Settings → Technician Login → SSO** tab (not Requester Login)
 2. **Global SSO Configurations** → ON
@@ -24,9 +24,9 @@ Action checklist for Tom / On IT admins. Work top to bottom. Tick items as you g
 https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448
 ```
 
-4. Leave Step 2 empty until T2 complete — then paste IDP Login URL + certificate → **Save**
+4. Leave Step 2 empty until T2 complete - then paste IDP Login URL + certificate → **Save**
 
-### T2. Entra — create Technician SAML app
+### T2. Entra - create Technician SAML app
 
 **You are here if creating the app:**
 
@@ -41,7 +41,7 @@ https://usauth.superops.ai/api/federated_auth/saml/response/5684471812792168448
 7. **Users and groups** → assign **`SuperOps Technicians`** group (On IT staff only)
 8. Copy **Login URL** + download **Certificate (Base64)**
 
-### T3. SuperOps — finish Step 2
+### T3. SuperOps - finish Step 2
 
 1. **Technician Login → SSO** → paste **IDP Login URL** + **Certificate** (no BEGIN/END lines)
 2. **Save** → reload page → confirm fields not blank
@@ -66,7 +66,7 @@ SUPEROPS_SSO_ENABLED=true
 
 ---
 
-## Phase A — SuperOps requester Client SSO rollout
+## Phase A - SuperOps requester Client SSO rollout
 
 Global requester SSO is retired. Roll out Client SSO customer by customer:
 
@@ -81,13 +81,13 @@ Full click path: [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) an
 
 ---
 
-## Phase A2 — Pax8 SSO launch (production)
+## Phase A2 - Pax8 SSO launch (production)
 
 Detail: [Pax8Integration.md](Pax8Integration.md) · **Full setup:** [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md)
 
-### P1. Pax8 Enterprise SSO (On IT technicians) — Primary Partner Admin
+### P1. Pax8 Enterprise SSO (On IT technicians) - Primary Partner Admin
 
-1. **Before SSO:** Pax8 → **Users** — each technician is an **app user**; UPN must match Microsoft (e.g. `tom.ashby@onit.ltd`)
+1. **Before SSO:** Pax8 → **Users** - each technician is an **app user**; UPN must match Microsoft (e.g. `tom.ashby@onit.ltd`)
 2. **Admin → My Partner Profile → Enterprise SSO → Azure AD**
 3. **Email Domain:** `onit.ltd` (+ domain aliases if any)
 4. **Create** → add DNS **TXT** at registrar → **Verify Domain** → **Finalize**
@@ -106,16 +106,16 @@ PAX8_COMPANY_URL_TEMPLATE=https://app.pax8.com/companies/{companyId}
 PAX8_LOGIN_HINT_ENABLED=true
 ```
 
-> **`login_hint` pre-fills email only.** Technician Microsoft SSO requires Pax8 Enterprise SSO (P1). After setup: identifier page → **Continue** → Microsoft → Pax8. See [Pax8Integration.md — Troubleshooting](Pax8Integration.md#troubleshooting).
+> **`login_hint` pre-fills email only.** Technician Microsoft SSO requires Pax8 Enterprise SSO (P1). After setup: identifier page → **Continue** → Microsoft → Pax8. See [Pax8Integration.md - Troubleshooting](Pax8Integration.md#troubleshooting).
 
 ### P3. Deploy on server
 
-After Plesk Git pull, run the full block in [Deployment.md — Updating the Application](Deployment.md#updating-the-application) (includes `migrate`, `PortalLinkSeeder`, `optimize`).
+After Plesk Git pull, run the full block in [Deployment.md - Updating the Application](Deployment.md#updating-the-application) (includes `migrate`, `PortalLinkSeeder`, `optimize`).
 
 ### P4. Per client
 
 1. **Admin → Clients → Edit** → **Pax8 company ID** + **Pax8 access enabled** (from Pax8 → Companies)
-2. Pax8 → company → **Users** — matching emails ([Pax8CustomerAccess.md](Pax8CustomerAccess.md))
+2. Pax8 → company → **Users** - matching emails ([Pax8CustomerAccess.md](Pax8CustomerAccess.md))
 3. Client users need a Pax8 company user (Pax8 customer Microsoft SSO not available yet)
 
 ### P5. Test
@@ -127,7 +127,7 @@ After Plesk Git pull, run the full block in [Deployment.md — Updating the Appl
 
 ---
 
-## Phase B — Day-to-day: new client employee (MVP)
+## Phase B - Day-to-day: new client employee (MVP)
 
 Use this every time someone new needs the portal.
 
@@ -155,13 +155,13 @@ Use this every time someone new needs the portal.
 1. They go to portal URL → **Sign in with Microsoft**
 2. Dashboard → **SuperOps** or **Pax8**
 
-**With Entra sync enabled:** add the user to the M365 security group — portal and SuperOps update automatically (see [AccessAndSync.md](AccessAndSync.md)). Without sync, portal users are added manually in Admin → Users.
+**With Entra sync enabled:** add the user to the M365 security group - portal and SuperOps update automatically (see [AccessAndSync.md](AccessAndSync.md)). Without sync, portal users are added manually in Admin → Users.
 
 ---
 
-## Phase C — Real clients on their own M365 (canonical)
+## Phase C - Real clients on their own M365 (canonical)
 
-For a 50–500 person client on **their** Microsoft tenant:
+For a 50-500 person client on **their** Microsoft tenant:
 
 1. **SuperOps** → **Requester Login** → **Client SSO** → **+ Configuration** for that client
 2. On IT technician uses GDAP to create the customer's Entra SAML app with the client-specific Entity ID / Consumer URL from SuperOps
@@ -172,7 +172,7 @@ Document each client’s SSO in your internal wiki when Client SSO is live.
 
 ---
 
-## Phase D — Optional enhancements
+## Phase D - Optional enhancements
 
 ### D1. SuperOps API (embedded support + email sync on login)
 
@@ -186,7 +186,7 @@ SUPEROPS_REGION=us
 ```
 
 3. `php artisan config:clear`
-4. Links existing SuperOps requester by email on login — does **not** create new requesters
+4. Links existing SuperOps requester by email on login - does **not** create new requesters
 
 ### D2. Production (Plesk)
 
@@ -206,20 +206,20 @@ Follow [Deployment.md](Deployment.md):
 
 ---
 
-## Quick reference — On IT values
+## Quick reference - On IT values
 
 | Item | Value |
 |---|---|
 | Portal (local) | http://localhost:8000/login |
 | Portal (production) | https://app.onit.ltd/login |
 | Portal Entra OAuth redirect | `https://app.onit.ltd/auth/microsoft/callback` |
-| Portal Entra app | OAuth — `MICROSOFT_CLIENT_ID` in `.env` |
+| Portal Entra app | OAuth - `MICROSOFT_CLIENT_ID` in `.env` |
 | SuperOps requester portal | https://portal.onit.ltd |
 | SuperOps SAML app name | `SuperOps Requester SSO - {Company}` in customer tenant |
 | SAML values | Client-specific Entity ID / Consumer URL from SuperOps; Login URL / certificate from customer Azure |
 | Pax8 launch route | `/integrations/pax8/launch` (dashboard tile, same tab) |
 | Pax8 partner URL | `https://app.pax8.com/login` (`PAX8_PARTNER_PORTAL_URL` + `PAX8_PARTNER_LOGIN_PATH`) |
-| Pax8 company URL | `https://app.pax8.com/companies/{companyId}` — set per client in Admin |
+| Pax8 company URL | `https://app.pax8.com/companies/{companyId}` - set per client in Admin |
 
 ---
 
@@ -227,16 +227,16 @@ Follow [Deployment.md](Deployment.md):
 
 | Item | Reason |
 |---|---|
-| Technician SSO Entra app | **Required** for one-click technician SSO — see [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). Portal launches `portal.onit.ltd/#/technician/login`; SuperOps Technician Login SSO completes SAML. |
+| Technician SSO Entra app | **Required** for one-click technician SSO - see [SuperOpsTechnicianSsoSetup.md](SuperOpsTechnicianSsoSetup.md). Portal launches `portal.onit.ltd/#/technician/login`; SuperOps Technician Login SSO completes SAML. |
 | Assigning Tom to Requester SSO | You are MSP technician |
 | Per-user Entra SAML assignment | Use groups instead |
 | `SUPEROPS_API_TOKEN` | Only needed for `/support` embed, not SSO launch |
 
 ---
 
-## Phase E — Production (Plesk)
+## Phase E - Production (Plesk)
 
-Deploy the **Laravel app** to **`app.onit.ltd`**. **`portal.onit.ltd` stays SuperOps** — do not host Laravel there.
+Deploy the **Laravel app** to **`app.onit.ltd`**. **`portal.onit.ltd` stays SuperOps** - do not host Laravel there.
 
 Full steps: [Deployment.md](Deployment.md)
 

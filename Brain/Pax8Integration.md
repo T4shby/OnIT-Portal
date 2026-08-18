@@ -1,8 +1,8 @@
-# On IT Portal — Pax8 Integration
+# On IT Portal - Pax8 Integration
 
 **Status:** Implemented (SSO launch route). Pax8 **API** automation remains Phase 3 ([Roadmap.md](Roadmap.md)).
 
-**Operator setup:** [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) — full Enterprise SSO checklist (Primary Partner Admin, DNS, Finalize).
+**Operator setup:** [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) - full Enterprise SSO checklist (Primary Partner Admin, DNS, Finalize).
 
 ## User experience
 
@@ -19,7 +19,7 @@ No new dashboard or page. The existing **Pax8 tile** on `/dashboard` works like 
 
 If a client user's organisation has no **Pax8 company ID** or **Pax8 access** is disabled, the Pax8 tile is hidden on the dashboard. A direct hit to the launch URL redirects back with an error flash.
 
-**Customer Microsoft SSO:** not offered by Pax8 for company users — see [Pax8CustomerAccess.md](Pax8CustomerAccess.md). For SuperOps + portal login, see [CustomerPortalSso.md](CustomerPortalSso.md).
+**Customer Microsoft SSO:** not offered by Pax8 for company users - see [Pax8CustomerAccess.md](Pax8CustomerAccess.md). For SuperOps + portal login, see [CustomerPortalSso.md](CustomerPortalSso.md).
 
 ## Architecture
 
@@ -64,7 +64,7 @@ PAX8_LOGIN_HINT_ENABLED=true
 
 `PAX8_PORTAL_URL` is legacy fallback for `PAX8_PARTNER_PORTAL_URL` in `config/services.php`.
 
-Technicians always launch to **`https://app.pax8.com`** — required for Enterprise SSO. If `.env` points at `mycommandconsole.com`, the service falls back to `app.pax8.com` (custom URLs do not support federation per Pax8 docs).
+Technicians always launch to **`https://app.pax8.com`** - required for Enterprise SSO. If `.env` points at `mycommandconsole.com`, the service falls back to `app.pax8.com` (custom URLs do not support federation per Pax8 docs).
 
 After deploy, run `php artisan db:seed --class=PortalLinkSeeder --force` so the dashboard Pax8 link uses `pax8_sso` (not a static external URL).
 
@@ -76,7 +76,7 @@ The portal passes `login_hint` so Pax8/Auth0 pre-fills the user's email on the i
 
 Unlike SuperOps requester SAML (portal → Microsoft → SuperOps in one hop), Pax8 uses **Auth0 Universal Login** with **Enterprise SSO (Azure AD)** configured inside Pax8. After federation: identifier → **Continue** → Microsoft → Pax8.
 
-### Partner Enterprise SSO (technicians) — required
+### Partner Enterprise SSO (technicians) - required
 
 Full steps: **[Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md)**
 
@@ -88,18 +88,18 @@ Summary:
 | Entra role | **Global Admin** for first consent only |
 | Domains | Primary domain + optional aliases in Pax8 → DNS TXT → Verify → **Finalize** |
 | Users | Pax8 **app user** per technician; UPN must match Microsoft exactly |
-| Launch URL | **`https://app.pax8.com` only** — not `mycommandconsole.com` |
+| Launch URL | **`https://app.pax8.com` only** - not `mycommandconsole.com` |
 | MFA | Microsoft only after federation (no Pax8 MFA for new federated users) |
 
 Official reference: [Enterprise SSO PDF](https://www.pax8nebula.com/m/10eadb52f582df44/original/Enterprise-SSO.pdf)
 
 ### Customer SSO
 
-Pax8 docs — self-service customer IdP SSO is **not** available yet. Customer launch relies on `login_hint` + per-company URL (`/companies/{companyId}`). Customer must exist as Pax8 user for that company.
+Pax8 docs - self-service customer IdP SSO is **not** available yet. Customer launch relies on `login_hint` + per-company URL (`/companies/{companyId}`). Customer must exist as Pax8 user for that company.
 
 ### API
 
-OAuth 2.0 ([devx.pax8.com](https://devx.pax8.com/docs/authentication)) — Phase 3 only. The `login.pax8.com/authorize` endpoint is for **third-party OAuth integrations**, not portal SSO launch.
+OAuth 2.0 ([devx.pax8.com](https://devx.pax8.com/docs/authentication)) - Phase 3 only. The `login.pax8.com/authorize` endpoint is for **third-party OAuth integrations**, not portal SSO launch.
 
 ## Operator setup (one-time + per client)
 
@@ -138,13 +138,13 @@ In a private/incognito window (no existing Pax8 session):
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| No Enterprise SSO tab in Pax8 | Not Primary Partner Admin | Use Primary Partner Admin — see [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) |
+| No Enterprise SSO tab in Pax8 | Not Primary Partner Admin | Use Primary Partner Admin - see [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) |
 | Lands on identifier with email pre-filled, stops there | Expected before Finalize; or must click Continue | Complete Enterprise SSO; click **Continue** |
 | No Microsoft redirect after Continue | Domain not verified/finalized, or not Pax8 app user | Re-check domains; create matching app user |
 | Login fails after SSO enabled | UPN ≠ Pax8 username | Align Entra UPN, Pax8 user, portal `users.email` |
 | SSO on app.pax8.com but not custom URL | Pax8 limitation | Portal always launches `app.pax8.com` |
 | Pax8 password/MFA instead of Microsoft | Federation not active | Verify Finalize; check domain list |
-| Client user — Pax8 tile missing | No `pax8_company_id` on client | Set company ID in Admin → Clients → Edit |
+| Client user - Pax8 tile missing | No `pax8_company_id` on client | Set company ID in Admin → Clients → Edit |
 | Customer expects Microsoft SSO | Not supported by Pax8 yet | Company deep link only |
 
 ## Testing checklist
@@ -158,11 +158,11 @@ In a private/incognito window (no existing Pax8 session):
 
 ## Production deploy
 
-See [Deployment.md — Updating the Application](Deployment.md#updating-the-application) for the full SSH block after Plesk Git pull.
+See [Deployment.md - Updating the Application](Deployment.md#updating-the-application) for the full SSH block after Plesk Git pull.
 
 ## Related
 
-- [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) — **step-by-step Enterprise SSO**
-- [SuperOpsIntegration.md](SuperOpsIntegration.md) — launch pattern
-- [AccessAndSync.md](AccessAndSync.md) — identity model
-- [OperatorRunbook.md](OperatorRunbook.md) — day-to-day ops
+- [Pax8EnterpriseSsoSetup.md](Pax8EnterpriseSsoSetup.md) - **step-by-step Enterprise SSO**
+- [SuperOpsIntegration.md](SuperOpsIntegration.md) - launch pattern
+- [AccessAndSync.md](AccessAndSync.md) - identity model
+- [OperatorRunbook.md](OperatorRunbook.md) - day-to-day ops

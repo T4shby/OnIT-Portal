@@ -325,7 +325,7 @@ class MicrosoftGraphClient
 
         $response = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/groups', [
             'displayName' => $displayName,
-            'description' => $description ?? 'Managed by On IT Portal — membership filled by sync.',
+            'description' => $description ?? 'Managed by On IT Portal - membership filled by sync.',
             'mailEnabled' => false,
             'mailNickname' => $mailNickname,
             'securityEnabled' => true,
@@ -373,7 +373,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot list applications — Application.Read.All missing or not consented for this tenant.'
+                'Microsoft Graph cannot list applications - Application.Read.All missing or not consented for this tenant.'
             );
         }
 
@@ -407,7 +407,7 @@ class MicrosoftGraphClient
     /**
      * Non-gallery app registration + enterprise service principal.
      *
-     * For SuperOps SCIM apps, prefer applicationTemplates instantiate — POST /applications
+     * For SuperOps SCIM apps, prefer applicationTemplates instantiate - POST /applications
      * creates shells with zero synchronization templates (Apply SCIM cannot start export).
      *
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
@@ -439,7 +439,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot create enterprise apps — add Application.ReadWrite.All '
+                'Microsoft Graph cannot create enterprise apps - add Application.ReadWrite.All '
                 .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
             );
         }
@@ -484,7 +484,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot create enterprise apps — add Application.ReadWrite.All '
+                'Microsoft Graph cannot create enterprise apps - add Application.ReadWrite.All '
                 .'to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry Connect.'
             );
         }
@@ -511,7 +511,7 @@ class MicrosoftGraphClient
             throw new RuntimeException('Microsoft Graph create app returned incomplete application payload.');
         }
 
-        // Prefer resolve-by-appId after create — instantiate can return SP ids not yet GET-able.
+        // Prefer resolve-by-appId after create - instantiate can return SP ids not yet GET-able.
         $servicePrincipalId = $this->waitForServicePrincipalForAppId($tenantId, $appId, $servicePrincipalId);
 
         $resolved = $this->waitForApplicationByAppId($tenantId, $appId, $applicationObjectId);
@@ -543,7 +543,7 @@ class MicrosoftGraphClient
             return (string) $create->json('id');
         }
 
-        // Concurrent create or eventual consistency — resolve again.
+        // Concurrent create or eventual consistency - resolve again.
         return $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
     }
 
@@ -575,7 +575,7 @@ class MicrosoftGraphClient
                     return (string) $probe->json('id');
                 }
 
-                // Hint/SP id was stale — re-resolve via appId alias (more reliable post-create).
+                // Hint/SP id was stale - re-resolve via appId alias (more reliable post-create).
                 $byAppId = $this->graphGet(
                     $tenantId,
                     "https://graph.microsoft.com/v1.0/servicePrincipals(appId='{$appId}')",
@@ -664,7 +664,7 @@ class MicrosoftGraphClient
      * Non-gallery app by display name, or resolve an already-saved Application (client) ID first.
      *
      * Partial onboarding: clients often already have SCIM/SSO app IDs; name search can miss and
-     * create then 403s even when the apps already exist — that must not look like “consent failed”.
+     * create then 403s even when the apps already exist - that must not look like “consent failed”.
      *
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
      */
@@ -708,7 +708,7 @@ class MicrosoftGraphClient
                 $existing['applicationObjectId'],
             );
 
-            // Always re-resolve SP by appId — never trust a cached SP object id that Graph 404s on.
+            // Always re-resolve SP by appId - never trust a cached SP object id that Graph 404s on.
             $servicePrincipalId = $this->waitForServicePrincipalForAppId(
                 $tenantId,
                 $resolved['appId'],
@@ -781,7 +781,7 @@ class MicrosoftGraphClient
 
         if ($patch->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot update app roles — add Application.ReadWrite.All, re-consent, retry Connect.'
+                'Microsoft Graph cannot update app roles - add Application.ReadWrite.All, re-consent, retry Connect.'
             );
         }
 
@@ -853,7 +853,7 @@ class MicrosoftGraphClient
                     continue;
                 }
 
-                // Role patch on Application often lags SP — re-pick assignable role each few tries.
+                // Role patch on Application often lags SP - re-pick assignable role each few tries.
                 if ($attempt === 1 || $attempt % 3 === 0) {
                     try {
                         $resolved = $this->resolveAssignableAppRoleId($tenantId, $spId, $appId);
@@ -887,11 +887,11 @@ class MicrosoftGraphClient
 
                 if ($response->status() === 403) {
                     throw new RuntimeException(
-                        'Microsoft Graph cannot assign group to app — AppRoleAssignment.ReadWrite.All missing or not consented.'
+                        'Microsoft Graph cannot assign group to app - AppRoleAssignment.ReadWrite.All missing or not consented.'
                     );
                 }
 
-                // Wrong role / lag on this SP — try next candidate role, then outer backoff.
+                // Wrong role / lag on this SP - try next candidate role, then outer backoff.
                 if ($response->status() === 404 || $response->status() === 400) {
                     continue;
                 }
@@ -908,7 +908,7 @@ class MicrosoftGraphClient
                 break;
             }
 
-            // Stale SP id — force re-lookup by appId next loop.
+            // Stale SP id - force re-lookup by appId next loop.
             $spId = '';
             usleep(min(3_000_000, 800_000 * $attempt));
         }
@@ -1090,7 +1090,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * @deprecated Use listSyncEligibleUsers() — group scope retained for SCIM reference only.
+     * @deprecated Use listSyncEligibleUsers() - group scope retained for SCIM reference only.
      *
      * @return list<array{id: string, mail: ?string, userPrincipalName: ?string, displayName: ?string, accountEnabled: bool}>
      */
@@ -1242,7 +1242,7 @@ class MicrosoftGraphClient
 
         if ($byAppIdResponse->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot resolve SuperOps app by Application (client) ID — Application.Read.All is missing or not consented. '
+                'Microsoft Graph cannot resolve SuperOps app by Application (client) ID - Application.Read.All is missing or not consented. '
                 .'Add Application.Read.All to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant (checklist step 04), then php artisan cache:clear and sync again.'
             );
         }
@@ -1290,7 +1290,7 @@ class MicrosoftGraphClient
                 if ($response->status() === 403) {
                     throw new RuntimeException(
                         'Microsoft Graph app role assignments request failed: 403. '
-                        .'Paste the SuperOps Application (client) ID from App registrations → Overview — not the Object ID on that page. '
+                        .'Paste the SuperOps Application (client) ID from App registrations → Overview - not the Object ID on that page. '
                         .'Also confirm AppRoleAssignment.ReadWrite.All is granted for the customer tenant on OnIT Portal for Portals.'
                     );
                 }
@@ -1348,7 +1348,7 @@ class MicrosoftGraphClient
                     return $selectedRoleId;
                 }
 
-                // SP replicated but roles lag the Application patch — fall through to application roles.
+                // SP replicated but roles lag the Application patch - fall through to application roles.
                 if (filled($appId)) {
                     $fromApp = $this->resolveAssignableAppRoleIdFromApplication($tenantId, $appId);
                     if ($fromApp !== null) {
@@ -1489,7 +1489,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 400 && str_contains($response->body(), 'Permission being assigned was not found on application')) {
             throw new RuntimeException(
-                'Microsoft Graph assign user to enterprise app failed: 400 — no matching app role on the SuperOps app. '
+                'Microsoft Graph assign user to enterprise app failed: 400 - no matching app role on the SuperOps app. '
                 .'Create an app role on App registrations → SuperOps → App roles (Display name User, Users/Groups), then sync again.'
             );
         }
@@ -1561,7 +1561,7 @@ class MicrosoftGraphClient
 
             if ($jobsResponse->status() === 403) {
                 throw new RuntimeException(
-                    'Microsoft Graph cannot read SuperOps provisioning jobs — Synchronization.ReadWrite.All is missing or not consented. '
+                    'Microsoft Graph cannot read SuperOps provisioning jobs - Synchronization.ReadWrite.All is missing or not consented. '
                     .'Add Synchronization.ReadWrite.All to OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant (checklist step 04), then php artisan cache:clear and sync again.'
                 );
             }
@@ -1736,7 +1736,7 @@ class MicrosoftGraphClient
         try {
             $servicePrincipalId = $this->resolveEnterpriseServicePrincipalId($tenantId, $appId);
         } catch (Throwable) {
-            // Orphaned Application (client) ID or deleted enterprise SP — must recreate.
+            // Orphaned Application (client) ID or deleted enterprise SP - must recreate.
             return true;
         }
 
@@ -1756,7 +1756,7 @@ class MicrosoftGraphClient
 
     /**
      * Delete any existing SuperOps SCIM shell (by id and/or display name), wait for Graph,
-     * then create a brand-new non-gallery app — never reuse a half-deleted registration.
+     * then create a brand-new non-gallery app - never reuse a half-deleted registration.
      *
      * @return array{appId: string, applicationObjectId: string, servicePrincipalId: string}
      */
@@ -1937,13 +1937,13 @@ class MicrosoftGraphClient
         $hasProvisioningJob = $jobId !== '';
 
         if ($jobCount === 0) {
-            $warnings[] = 'No SCIM provisioning job in Entra — Sync 1 (SuperOps export) is stopped even if portal Sync 2 still assigns users to the app.';
+            $warnings[] = 'No SCIM provisioning job in Entra - Sync 1 (SuperOps export) is stopped even if portal Sync 2 still assigns users to the app.';
         } elseif ($jobCount > 1) {
-            $warnings[] = 'Multiple SCIM provisioning jobs found — portal reuses one; avoid creating extra jobs in the Entra UI.';
+            $warnings[] = 'Multiple SCIM provisioning jobs found - portal reuses one; avoid creating extra jobs in the Entra UI.';
         }
 
         if (! $hasScimSecrets) {
-            $warnings[] = 'SuperOps SCIM Tenant URL is not stored in Entra — Apply SCIM with Tenant URL + Secret Token from SuperOps step 05.';
+            $warnings[] = 'SuperOps SCIM Tenant URL is not stored in Entra - Apply SCIM with Tenant URL + Secret Token from SuperOps step 05.';
         }
 
         $needsApplyScim = ! $hasScimSecrets;
@@ -2035,13 +2035,13 @@ class MicrosoftGraphClient
                 'error' => $e->getMessage(),
             ]);
             $warnings[] = 'Name attribute mapping not auto-applied: '.$e->getMessage()
-                .' — re-run repair after schema is ready, or set name.familyName Direct ← extensionAttribute1 in Entra.';
+                .' - re-run repair after schema is ready, or set name.familyName Direct ← extensionAttribute1 in Entra.';
         }
 
         $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
         $details[] = $started
             ? 'Start provisioning requested'
-            : 'Job exists — Start provisioning may already be running (check Entra Provisioning logs)';
+            : 'Job exists - Start provisioning may already be running (check Entra Provisioning logs)';
 
         $this->clearSuperOpsScimProvisioningContextCache($tenantId, $servicePrincipalId);
 
@@ -2103,7 +2103,7 @@ class MicrosoftGraphClient
 
         $nameMappingsConfigured = false;
         try {
-            // Brand-new non-gallery apps often return ProvisioningTaskNotFound for schema for ~10–30s.
+            // Brand-new non-gallery apps often return ProvisioningTaskNotFound for schema for ~10-30s.
             $waited = $this->waitUntilScimSchemaReady($tenantId, $servicePrincipalId, $jobId);
             if ($waited['probes'] > 1) {
                 $details[] = 'Waited for SCIM schema ('.$waited['probes'].' probes)';
@@ -2119,13 +2119,13 @@ class MicrosoftGraphClient
                 'error' => $e->getMessage(),
             ]);
             $warnings[] = 'Name attribute mapping not auto-applied after wait: '.$e->getMessage()
-                .' — re-run Apply SCIM once more, or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.';
+                .' - re-run Apply SCIM once more, or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.';
         }
 
         $started = $this->startScimSynchronizationJob($tenantId, $servicePrincipalId, $jobId);
         $details[] = $started
             ? 'Start provisioning requested'
-            : 'Job credentials saved — Start provisioning may already be running (check Entra if needed)';
+            : 'Job credentials saved - Start provisioning may already be running (check Entra if needed)';
 
         $this->clearSuperOpsScimProvisioningContextCache($tenantId, $servicePrincipalId);
 
@@ -2154,7 +2154,7 @@ class MicrosoftGraphClient
         $lastError = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            // Refresh job id from Graph — create can return an id before the task is fully registered.
+            // Refresh job id from Graph - create can return an id before the task is fully registered.
             try {
                 $resolved = $this->resolveCurrentScimJobId($tenantId, $servicePrincipalId);
                 if ($resolved !== '') {
@@ -2185,7 +2185,7 @@ class MicrosoftGraphClient
             }
 
             if ($attempt < $maxAttempts) {
-                // ~2s, 2.5s, … capped at 3s — typically 15–40s total for first Apply on a new app.
+                // ~2s, 2.5s, … capped at 3s - typically 15-40s total for first Apply on a new app.
                 usleep(min(3_000_000, 1_500_000 + (250_000 * $attempt)));
             }
         }
@@ -2241,7 +2241,7 @@ class MicrosoftGraphClient
         }
 
         $desired = [
-            // Direct only — no expression and no default [surname]. Empty extensionAttribute1
+            // Direct only - no expression and no default [surname]. Empty extensionAttribute1
             // must not invent plain surnames (that produced SuperOps "email Palmer").
             // Hybrid users get SuperOps names via SuperOps API when Graph cannot write this attribute.
             'familyname' => [
@@ -2315,7 +2315,7 @@ class MicrosoftGraphClient
                     }
 
                     if ($desiredKey === null || $targetName === '') {
-                        // Graph rejects unknown properties on write — keep original mapping only.
+                        // Graph rejects unknown properties on write - keep original mapping only.
                         $attributeMappings[$attrIndex] = $this->sanitizeAttributeMappingForWrite($attributeMapping);
 
                         continue;
@@ -2339,7 +2339,7 @@ class MicrosoftGraphClient
                     $needsDefault = ($want['defaultValue'] ?? null) !== null
                         && $currentDefault !== (string) $want['defaultValue'];
 
-                    // Strip Entra default [surname] / expressions for familyName — no inventing last names.
+                    // Strip Entra default [surname] / expressions for familyName - no inventing last names.
                     $mustClearDefault = ! empty($want['clearDefault'])
                         && $currentDefault !== ''
                         && ($want['defaultValue'] ?? null) === null;
@@ -2410,7 +2410,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Graph attributeMapping has no mappingType — only defaultValue, flowBehavior, flowType, source, targetAttributeName, …
+     * Graph attributeMapping has no mappingType - only defaultValue, flowBehavior, flowType, source, targetAttributeName, …
      *
      * @param  array<string, mixed>  $mapping
      * @return array<string, mixed>
@@ -2504,7 +2504,7 @@ class MicrosoftGraphClient
         if ($this->countScimSynchronizationTemplates($tenantId, $servicePrincipalId) === 0) {
             throw new RuntimeException(
                 'Microsoft Graph returned zero SCIM provisioning templates for this Entra app. '
-                .'Use **Retry Graph setup** on Edit Client — the portal deletes and recreates the SCIM app automatically, '
+                .'Use **Retry Graph setup** on Edit Client - the portal deletes and recreates the SCIM app automatically, '
                 .'then **Apply SCIM** with SuperOps Tenant URL + Secret Token.'
             );
         }
@@ -2537,7 +2537,7 @@ class MicrosoftGraphClient
 
         if ($create->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot create a SCIM provisioning job — Synchronization.ReadWrite.All missing or not consented.'
+                'Microsoft Graph cannot create a SCIM provisioning job - Synchronization.ReadWrite.All missing or not consented.'
             );
         }
 
@@ -2746,7 +2746,7 @@ class MicrosoftGraphClient
     {
         $jobId = strtolower(trim($jobId));
 
-        // Healthy jobs look like scim.{hash}.{uuid} — two-segment ids are phantom Graph responses.
+        // Healthy jobs look like scim.{hash}.{uuid} - two-segment ids are phantom Graph responses.
         return (bool) preg_match(
             '/^scim\.[0-9a-f]{8,}\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
             $jobId,
@@ -2754,7 +2754,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Try v1.0 then beta list — Graph sometimes lags one surface after job create.
+     * Try v1.0 then beta list - Graph sometimes lags one surface after job create.
      */
     private function listScimSynchronizationJobId(string $tenantId, string $servicePrincipalId): string
     {
@@ -2766,7 +2766,7 @@ class MicrosoftGraphClient
 
             if ($jobsResponse->status() === 403 && $version === 'v1.0') {
                 throw new RuntimeException(
-                    'Microsoft Graph cannot manage Entra provisioning — add Synchronization.ReadWrite.All '
+                    'Microsoft Graph cannot manage Entra provisioning - add Synchronization.ReadWrite.All '
                     .'on OnIT Portal for Portals in the On IT tenant, re-consent in the customer tenant, then retry.'
                 );
             }
@@ -3011,7 +3011,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot write SCIM secrets — Synchronization.ReadWrite.All missing or not consented in this customer tenant.'
+                'Microsoft Graph cannot write SCIM secrets - Synchronization.ReadWrite.All missing or not consented in this customer tenant.'
             );
         }
 
@@ -3043,7 +3043,7 @@ class MicrosoftGraphClient
 
         if ($response->status() === 403) {
             throw new RuntimeException(
-                'Microsoft Graph cannot start SCIM provisioning — Synchronization.ReadWrite.All missing or not consented.'
+                'Microsoft Graph cannot start SCIM provisioning - Synchronization.ReadWrite.All missing or not consented.'
             );
         }
 
@@ -3134,7 +3134,7 @@ class MicrosoftGraphClient
             $details[] = 'SAML claims email/firstname/lastname policy assigned (or already present)';
         } catch (Throwable $e) {
             // Claims are required for clean SuperOps login; main SAML wire still succeeded above.
-            // Do not shrug this as "optional meh" — surface as warning with remediation after retries.
+            // Do not shrug this as "optional meh" - surface as warning with remediation after retries.
             $warnings[] = 'SAML claims policy NOT applied (after Graph retries): '.$e->getMessage();
             Log::warning('Client SSO SAML claims mapping failed after retries', [
                 'tenant_id' => $tenantId,
@@ -3295,7 +3295,7 @@ class MicrosoftGraphClient
                 }
             }
 
-            // 400 often means already assigned under another name or conflict — re-check list.
+            // 400 often means already assigned under another name or conflict - re-check list.
             if ($assign->status() === 400) {
                 usleep(500_000);
                 if ($this->servicePrincipalHasClaimsPolicyNamed($tenantId, $servicePrincipalId, $policyName)) {
@@ -3303,7 +3303,7 @@ class MicrosoftGraphClient
                 }
             }
 
-            // 404 / 429 / 5xx: directory replication or throttle — wait and retry.
+            // 404 / 429 / 5xx: directory replication or throttle - wait and retry.
             if (in_array($assign->status(), [404, 408, 409, 429, 500, 502, 503, 504], true)
                 || $assign->failed()) {
                 usleep(min(2_000_000, 250_000 * $attempt * $attempt));
@@ -3377,7 +3377,7 @@ class MicrosoftGraphClient
 
         if ($create->status() === 403) {
             throw new RuntimeException(
-                'Policy.ReadWrite.ApplicationConfiguration missing — add it to OnIT Portal for Portals (Application permission), Grant admin consent in the On IT tenant, re-consent the **customer** tenant (Connect / Accept again), then Retry Wire; or set Attributes & Claims manually in Azure for this Client SSO app.'
+                'Policy.ReadWrite.ApplicationConfiguration missing - add it to OnIT Portal for Portals (Application permission), Grant admin consent in the On IT tenant, re-consent the **customer** tenant (Connect / Accept again), then Retry Wire; or set Attributes & Claims manually in Azure for this Client SSO app.'
             );
         }
 
@@ -3430,7 +3430,7 @@ class MicrosoftGraphClient
         }
 
         throw new RuntimeException(
-            "Claims mapping policy {$policyId} not readable in Graph after create (directory not ready). Re-run Wire in 1–2 minutes."
+            "Claims mapping policy {$policyId} not readable in Graph after create (directory not ready). Re-run Wire in 1-2 minutes."
         );
     }
 
@@ -3561,7 +3561,7 @@ class MicrosoftGraphClient
     }
 
     /**
-     * After admin consent, app-only Graph often 401/403 for seconds–minutes
+     * After admin consent, app-only Graph often 401/403 for seconds-minutes
      * (IdentityNotFound / permissions not live). Poll until organization reads
      * or attempts are exhausted so Connect bootstrap can continue.
      *
@@ -3797,8 +3797,8 @@ class MicrosoftGraphClient
     }
 
     /**
-     * Latest Microsoft Secure Score percentage (0–100), if Graph grants SecurityEvents.Read.All.
-     * Returns null when the call is forbidden or unconfigured — never throws for 403.
+     * Latest Microsoft Secure Score percentage (0-100), if Graph grants SecurityEvents.Read.All.
+     * Returns null when the call is forbidden or unconfigured - never throws for 403.
      *
      * @return array{score: ?float, max: ?float, percentage: ?float, available: bool, reason: ?string}
      */
@@ -3914,7 +3914,7 @@ class MicrosoftGraphClient
                     if (! is_array($row)) {
                         continue;
                     }
-                    // Member users only — skip guests when Graph marks them.
+                    // Member users only - skip guests when Graph marks them.
                     $type = strtolower((string) ($row['userType'] ?? 'member'));
                     if ($type !== '' && $type !== 'member') {
                         continue;

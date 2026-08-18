@@ -100,7 +100,7 @@
                     <x-card>
                         <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
                             <p class="text-xs text-white/50"
-                               x-text="'Showing ' + Math.min(rows.length, (page - 1) * perPage + 1) + '–' + Math.min(page * perPage, rows.length) + ' of ' + rows.length"></p>
+                               x-text="'Showing ' + Math.min(rows.length, (page - 1) * perPage + 1) + '-' + Math.min(page * perPage, rows.length) + ' of ' + rows.length"></p>
                             <div class="flex items-center gap-2" x-show="rows.length > perPage">
                                 <button type="button"
                                         class="text-xs border border-white/15 px-3 py-1 uppercase font-condensed tracking-wide disabled:opacity-30"

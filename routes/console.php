@@ -19,7 +19,7 @@ $intervalDue = static function (string $heartbeatKey): bool {
     return app(PortalFreshnessService::class)->isIntervalDue($heartbeatKey);
 };
 
-// Entra portal user sync — same adaptive cadence as prewarm.
+// Entra portal user sync - same adaptive cadence as prewarm.
 Schedule::command('portal:sync-entra-users')
     ->everyMinute()
     ->when(fn () => (bool) config('services.entra_sync.enabled')
@@ -27,7 +27,7 @@ Schedule::command('portal:sync-entra-users')
     ->withoutOverlapping(8);
 
 // SuperOps + M365 + Huntress/Dropsuite when due.
-// Single-server: do NOT use onOneServer() — stuck cache_locks can block for hours.
+// Single-server: do NOT use onOneServer() - stuck cache_locks can block for hours.
 Schedule::command('portal:prewarm-client-dashboards')
     ->everyMinute()
     ->when(fn () => $intervalDue(IntegrationHealthService::PREWARM_CACHE_KEY))

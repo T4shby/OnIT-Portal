@@ -33,13 +33,13 @@
         <div>
             <p class="portal-body-muted text-xs mb-1">Opened</p>
             <p class="text-white/90">
-                {{ $case->sentAt ? $case->sentAt->timezone('Europe/London')->format('d M Y H:i').' UK' : '—' }}
+                {{ $case->sentAt ? $case->sentAt->timezone('Europe/London')->format('d M Y H:i').' UK' : '-' }}
             </p>
         </div>
         <div>
             <p class="portal-body-muted text-xs mb-1">Closed</p>
             <p class="text-white/90">
-                {{ $case->closedAt ? $case->closedAt->timezone('Europe/London')->format('d M Y H:i').' UK' : '—' }}
+                {{ $case->closedAt ? $case->closedAt->timezone('Europe/London')->format('d M Y H:i').' UK' : '-' }}
             </p>
         </div>
         <div>

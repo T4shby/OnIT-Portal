@@ -9,8 +9,8 @@
 --surface: #0a2536;   /* Slightly lighter surface (rare) */
  
 /* Card surfaces */
---card-bg:     #071f2e;   /* Solid card background — never transparent */
---card-border: #0f3048;   /* Solid card border — never rgba */
+--card-bg:     #071f2e;   /* Solid card background - never transparent */
+--card-border: #0f3048;   /* Solid card border - never rgba */
  
 /* Section dividers */
 --border: #1F2933;
@@ -24,7 +24,7 @@
 **Colour rules:**
 - Orange = action and emphasis only. Never paragraph text.
 - Navy `#011926` = default section background. Not `#000` or `#111`.
-- Cards are always **solid** — `#071f2e` background, `#0f3048` border. The grid must not bleed through.
+- Cards are always **solid** - `#071f2e` background, `#0f3048` border. The grid must not bleed through.
 - Body text is always white-based (`rgba(255,255,255,...)`). Never `#aaa`, `#999`, or Tailwind grey classes without overriding.
 - No new colours may be introduced to the palette.
 ---
@@ -40,15 +40,15 @@
  
 | Element | Font | Weight | Transform | Size |
 |---------|------|--------|-----------|------|
-| Hero heading | Barlow Condensed | 900 | Uppercase | `4rem` desktop / `2.4rem` mobile — use `hero-heading` class |
+| Hero heading | Barlow Condensed | 900 | Uppercase | `4rem` desktop / `2.4rem` mobile - use `hero-heading` class |
 | Section heading | Barlow Condensed | 800 | Uppercase | `2.1rem` |
-| Agenda number | Barlow Condensed | 800 | — | `2rem`, colour `#ff7000` |
+| Agenda number | Barlow Condensed | 800 | - | `2rem`, colour `#ff7000` |
 | Card title | Barlow Condensed | 700 | Uppercase | `1rem`, `letter-spacing: 0.04em` |
 | Agenda title | Barlow Condensed | 600 | Uppercase | `1.05rem`, `letter-spacing: 0.03em` |
 | FAQ question | Barlow Condensed | 700 | Uppercase | `1rem`, `letter-spacing: 0.04em` |
 | CTA button | Barlow Condensed | 700 | Uppercase | `letter-spacing: 0.04em` |
 | Badge / label | Barlow Condensed | 700 | Uppercase | `0.75rem`, `letter-spacing: 0.1em` |
-| Body / paragraph | Barlow | 300 | None | `0.875rem`–`1.05rem`, `rgba(255,255,255,0.82)` |
+| Body / paragraph | Barlow | 300 | None | `0.875rem`-`1.05rem`, `rgba(255,255,255,0.82)` |
 | Muted body | Barlow | 300 | None | `0.875rem`, `rgba(255,255,255,0.62)` |
 | SLA table header | Barlow Condensed | 700 | Uppercase | `0.75rem`, colour `#ff7000` |
 | SLA table body | Barlow | 300 | None | `0.875rem` |
@@ -113,7 +113,7 @@ The core On IT heading pattern. Lines stack flush, always left-aligned, never ce
  
 **Rules:**
 - White-bg line always comes first. Orange-bg line always last.
-- Can be 2 or 3 lines — split thoughtfully at natural phrase breaks.
+- Can be 2 or 3 lines - split thoughtfully at natural phrase breaks.
 - Never centre the heading stack. Always left-aligned.
 - Always precede with `.orange-rule`.
 ---
@@ -187,7 +187,7 @@ See SKILL.md for the complete CSS and JS. Summary of classes to apply:
 | `animate-in delay-4` | Hero CTA button row |
 | `reveal` | Agenda items, FAQ items, SLA table, intro paragraphs |
 | `card-reveal` | Every `.benefit-card` (JS adds stagger delay automatically) |
-| `wipe-heading` | Every `.white-bg` heading — both `.hero-heading` and `.section-heading` |
-| `wipe-heading wipe-delay` | Every `.orange-bg` heading — both `.hero-heading` and `.section-heading` |
+| `wipe-heading` | Every `.white-bg` heading - both `.hero-heading` and `.section-heading` |
+| `wipe-heading wipe-delay` | Every `.orange-bg` heading - both `.hero-heading` and `.section-heading` |
  
-All animations **replay on scroll up and down** — observers remove classes when elements leave viewport.
+All animations **replay on scroll up and down** - observers remove classes when elements leave viewport.

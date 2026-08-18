@@ -28,7 +28,7 @@ class CaptureClientMetricSnapshotsCommand extends Command
             try {
                 $user = $this->pickSnapshotUser($client);
                 if ($user === null) {
-                    $this->warn("Client #{$client->id}: no suitable user for org snapshot — skipped");
+                    $this->warn("Client #{$client->id}: no suitable user for org snapshot - skipped");
 
                     return;
                 }

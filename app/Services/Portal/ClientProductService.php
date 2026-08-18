@@ -101,7 +101,7 @@ class ClientProductService
                 'toggle_label' => 'Sold to this client',
                 'form_partial' => 'admin.clients.products._dropsuite',
             ],
-            // Licence vendors — not MSP “products”; where the client buys cloud licences.
+            // Licence vendors - not MSP “products”; where the client buys cloud licences.
             self::KEY_PAX8 => [
                 'kind' => self::KIND_LICENCE_VENDOR,
                 'label' => 'Pax8',
@@ -249,7 +249,7 @@ class ClientProductService
     {
         $key = $this->normalizeKey($key);
 
-        // Licence vendors are assignment only — not dashboard feed prewarm.
+        // Licence vendors are assignment only - not dashboard feed prewarm.
         if ($this->isLicenceVendor($key)) {
             return false;
         }

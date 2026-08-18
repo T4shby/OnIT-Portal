@@ -1,12 +1,12 @@
 ---
 name: onit-website
 description: >
-  Build, edit, or create any web page or landing page for On IT (onit.ltd) — an MSP/IT services brand.
+  Build, edit, or create any web page or landing page for On IT (onit.ltd) - an MSP/IT services brand.
   Use this skill whenever the user mentions building a website, landing page, campaign page, webinar page,
   service page, or any HTML/Next.js file for On IT. Also trigger when the user says "make it On IT branded",
   "use our design system", "match the website style", or pastes/references existing On IT pages.
   This skill enforces brand consistency: correct colours, typography, components, deployment targets,
-  and code patterns. Do NOT skip this skill for "quick" pages — brand consistency matters on every output.
+  and code patterns. Do NOT skip this skill for "quick" pages - brand consistency matters on every output.
 ---
 
 ## Portal application (`app.onit.ltd`)
@@ -28,7 +28,7 @@ This skill applies to the **On IT Portal** Laravel app as well as marketing page
 # On IT Website Skill
  
 On IT is a dark-first, security-led MSP brand targeting SME decision-makers.
-The visual tone is **bold, technical, and assured** — never playful or decorative.
+The visual tone is **bold, technical, and assured** - never playful or decorative.
  
 Before writing any code, read this file fully. Then load `design-system.md` and `components.md` in this folder.
  
@@ -38,8 +38,8 @@ Before writing any code, read this file fully. Then load `design-system.md` and 
  
 | File | When to load |
 |------|-------------|
-| `design-system.md` | Always — colours, fonts, spacing, backgrounds, animations |
-| `components.md` | Always — cards, CTAs, headings, agenda items, tables, FAQs, image sections |
+| `design-system.md` | Always - colours, fonts, spacing, backgrounds, animations |
+| `components.md` | Always - cards, CTAs, headings, agenda items, tables, FAQs, image sections |
  
 ---
  
@@ -51,7 +51,7 @@ On IT pages are built as **standalone HTML** unless the user explicitly requests
 - Tailwind CSS via CDN: `https://cdn.tailwindcss.com/3.4.17`
 - Lucide icons via CDN: `https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js`
 - Google Fonts: `Barlow Condensed` + `Barlow` loaded via `<link>` tag
-- Pages are embedded into GoHighLevel (GHL) — **no nav, no footer** unless explicitly requested
+- Pages are embedded into GoHighLevel (GHL) - **no nav, no footer** unless explicitly requested
 - Always call `lucide.createIcons()` in the script block
 ---
  
@@ -61,17 +61,17 @@ These apply to every page, no exceptions:
  
 1. **Background**: `#011926` for all major sections. Never black or generic dark greys.
 2. **Accent**: `#FF7000` for CTAs, icons, rules, hover states, priority badges. Never for paragraph text.
-3. **Fonts**: `Barlow Condensed` (900/800/700, uppercase) for headings. `Barlow` (300–500) for body.
-4. **Heading stack**: Always `.heading-stack` — white-bg block first, orange-bg block last. Always left-aligned. Never centred except when explicitly asked.
+3. **Fonts**: `Barlow Condensed` (900/800/700, uppercase) for headings. `Barlow` (300-500) for body.
+4. **Heading stack**: Always `.heading-stack` - white-bg block first, orange-bg block last. Always left-aligned. Never centred except when explicitly asked.
 5. **Orange rule**: Every section heading is preceded by a `40px × 3px` orange rule div. No exceptions.
 6. **CTA buttons**: Square corners only (`border-radius: 0`). Primary = orange fill. Secondary = ghost with orange border. Both uppercase Barlow Condensed.
-7. **Cards**: Solid opaque background `#071f2e`, border `#0f3048`. Never transparent/glassy — the grid must not bleed through cards.
+7. **Cards**: Solid opaque background `#071f2e`, border `#0f3048`. Never transparent/glassy - the grid must not bleed through cards.
 8. **No decorative flourishes**: No rounded cards, no pastel accents, no gradients on text, no emoji, no shadows on cards.
 9. **No stats sections** unless the numbers are pulled live from an API. Do not invent static stats.
-10. **No nav or footer** — pages are embedded in GHL. Only add these if the user explicitly requests them.
+10. **No nav or footer** - pages are embedded in GHL. Only add these if the user explicitly requests them.
 11. **Paragraph text**: Use `rgba(255,255,255,0.82)` for main body copy. Use `rgba(255,255,255,0.62)` for supporting/muted text. Never `#aaa` or Tailwind's `text-gray-500` without overriding to white-based values.
-12. **No em dashes** (`—`) in copy. Use a hyphen (`-`) or repunctuate as a new sentence.
-13. **Image CDN**: On IT images live at `assets.cdn.filesafe.space/p7B8DyydXAOYUpefU8Ql/media/...`. Never invent image URLs — ask the user.
+12. **No em dashes** (`-`) in copy. Use a hyphen (`-`) or repunctuate as a new sentence.
+13. **Image CDN**: On IT images live at `assets.cdn.filesafe.space/p7B8DyydXAOYUpefU8Ql/media/...`. Never invent image URLs - ask the user.
 ---
  
 ## Page Structure (standard service/landing page)
@@ -79,14 +79,14 @@ These apply to every page, no exceptions:
 Every On IT page follows this pattern unless the brief says otherwise:
  
 ```
-1. Hero            — full-bleed bg image, gradient overlay, heading-stack, subtext, dual CTAs
-2. How It Works    — numbered agenda items (01/02/03), left-border hover
-3. What We Cover   — 3-column benefit cards, icon boxes
-4. Details/Table   — SLA table, pricing, specs, or comparison (opaque surface)
-5. Differentiators — 3-column benefit cards (second set, different angle)
-6. Reporting/Trust — optional 3-column cards with evidence or social proof
-7. FAQs            — accordion, left orange border
-8. CTA             — left-aligned, heading stack, dual buttons
+1. Hero            - full-bleed bg image, gradient overlay, heading-stack, subtext, dual CTAs
+2. How It Works    - numbered agenda items (01/02/03), left-border hover
+3. What We Cover   - 3-column benefit cards, icon boxes
+4. Details/Table   - SLA table, pricing, specs, or comparison (opaque surface)
+5. Differentiators - 3-column benefit cards (second set, different angle)
+6. Reporting/Trust - optional 3-column cards with evidence or social proof
+7. FAQs            - accordion, left orange border
+8. CTA             - left-aligned, heading stack, dual buttons
 ```
  
 Sections alternate between standard dark background (`#011926`) and slightly darkened (`rgba(0,0,0,0.15)` overlay). Image sections break this rhythm where relevant.
@@ -103,7 +103,7 @@ SLA/Table     → rgba(0,0,0,0.15) overlay
 Differentiators → plain dark
 Reporting     → bg image with overlay (if image provided), else rgba(0,0,0,0.15)
 FAQs          → plain dark
-CTA           → bg image with overlay (0.92 / 0.78 / 0.5) — always a bg image section, never plain dark
+CTA           → bg image with overlay (0.92 / 0.78 / 0.5) - always a bg image section, never plain dark
 ```
  
 ---
@@ -135,11 +135,11 @@ When a background image is provided for a section:
 </section>
 ```
  
-**Overlay values by context** — use these exact values, do not mix them:
-- **Hero section**: `0.88 / 0.65 / 0.3` — image is decorative, slightly darker on the left where text sits
-- **CTA section**: `0.92 / 0.78 / 0.5` — much darker because a form and bullets must be readable over the image
+**Overlay values by context** - use these exact values, do not mix them:
+- **Hero section**: `0.88 / 0.65 / 0.3` - image is decorative, slightly darker on the left where text sits
+- **CTA section**: `0.92 / 0.78 / 0.5` - much darker because a form and bullets must be readable over the image
  
-**No parallax** — the user has determined parallax is not wanted. Images are static.
+**No parallax** - the user has determined parallax is not wanted. Images are static.
  
 ---
  
@@ -189,8 +189,8 @@ Apply `.reveal` to: agenda items, FAQ items, SLA table wrapper, section intro pa
 .wipe-heading.wipe-visible.wipe-delay { animation-delay: 0.2s; }
 ```
  
-- Add `wipe-heading` to **every** `.white-bg` heading — both `.hero-heading.white-bg` and `.section-heading.white-bg`
-- Add `wipe-heading wipe-delay` to **every** `.orange-bg` heading — both `.hero-heading.orange-bg` and `.section-heading.orange-bg`
+- Add `wipe-heading` to **every** `.white-bg` heading - both `.hero-heading.white-bg` and `.section-heading.white-bg`
+- Add `wipe-heading wipe-delay` to **every** `.orange-bg` heading - both `.hero-heading.orange-bg` and `.section-heading.orange-bg`
 - White line wipes first, orange follows 200ms later
 ### Card stagger
 ```css
@@ -214,7 +214,7 @@ document.querySelectorAll('.faq-item').forEach(item => {
   });
 });
  
-// Scroll reveal — replays on scroll up and down
+// Scroll reveal - replays on scroll up and down
 const revealObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -227,14 +227,14 @@ const revealObserver = new IntersectionObserver((entries) => {
  
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
  
-// Card stagger — sequential delay per position in grid
+// Card stagger - sequential delay per position in grid
 document.querySelectorAll('.card-reveal').forEach(card => {
   const siblings = Array.from(card.parentElement.querySelectorAll('.card-reveal'));
   card.style.transitionDelay = (siblings.indexOf(card) * 0.12) + 's';
   revealObserver.observe(card);
 });
  
-// Heading wipe — replays on scroll up and down
+// Heading wipe - replays on scroll up and down
 const wipeObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const stack = entry.target.closest('.mb-14') || entry.target.closest('.mb-8') || entry.target.parentElement;
@@ -296,20 +296,20 @@ All `<section>` elements need `position: relative; z-index: 1;` to sit above the
  
 - GHL forms are embedded via `<iframe>` pointing to `links.growably.com`
 - Always include `<script src="https://links.growably.com/js/form_embed.js">` after the iframe
-- Always ask the user for the GHL Form ID — never invent one
+- Always ask the user for the GHL Form ID - never invent one
 ---
  
 ## What NOT to Do
  
-- ❌ No `rounded-lg` or `rounded-xl` on any card or button — sharp edges only
+- ❌ No `rounded-lg` or `rounded-xl` on any card or button - sharp edges only
 - ❌ No colours outside the palette (no blues, teals, purples, greens)
-- ❌ No transparent/glassy cards — use solid `#071f2e` so the grid doesn't bleed through
+- ❌ No transparent/glassy cards - use solid `#071f2e` so the grid doesn't bleed through
 - ❌ No parallax effects
-- ❌ No static stats sections — only use live/API-driven numbers
+- ❌ No static stats sections - only use live/API-driven numbers
 - ❌ No nav or footer (pages are embedded in GHL)
-- ❌ No em dashes (`—`) — use hyphens or repunctuate
-- ❌ No centred section headings — always left-aligned
+- ❌ No em dashes (`-`) - use hyphens or repunctuate
+- ❌ No centred section headings - always left-aligned
 - ❌ No `text-gray-500` for body copy without overriding to white-based `rgba(255,255,255,...)` values
-- ❌ No invented image URLs — ask the user or use their CDN path
+- ❌ No invented image URLs - ask the user or use their CDN path
 - ❌ No box shadows on cards
 - ❌ No `<form>` without confirming the GHL form ID

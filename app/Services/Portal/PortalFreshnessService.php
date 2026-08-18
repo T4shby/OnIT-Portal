@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  * - Otherwise outside business hours → off-hours interval (default 60m).
  *
  * Staff (super_admin / account_manager) sessions do not count as customers.
- * Tunables live in `settings` (Integration Health UI only — not .env).
+ * Tunables live in `settings` (Integration Health UI only - not .env).
  */
 class PortalFreshnessService
 {
@@ -34,7 +34,7 @@ class PortalFreshnessService
             'suffix' => 'min',
         ],
         'freshness.work_idle_minutes' => [
-            'label' => 'Idle — business hours',
+            'label' => 'Idle - business hours',
             'type' => 'number',
             'default' => 60,
             'help' => 'When nobody is online during the daytime window.',
@@ -42,7 +42,7 @@ class PortalFreshnessService
             'suffix' => 'min',
         ],
         'freshness.off_hours_idle_minutes' => [
-            'label' => 'Idle — outside hours',
+            'label' => 'Idle - outside hours',
             'type' => 'number',
             'default' => 60,
             'help' => 'When nobody is online overnight / weekends of that window.',
@@ -171,11 +171,11 @@ class PortalFreshnessService
         } elseif ($inBusinessHours) {
             $mode = 'business_hours_idle';
             $interval = $configured['work_idle_minutes'];
-            $label = 'No customers online in business hours → using Idle — business hours';
+            $label = 'No customers online in business hours → using Idle - business hours';
         } else {
             $mode = 'off_hours_idle';
             $interval = $configured['off_hours_idle_minutes'];
-            $label = 'Outside business hours, no customers → using Idle — outside hours';
+            $label = 'Outside business hours, no customers → using Idle - outside hours';
         }
 
         $interval = max(0.5, $interval);

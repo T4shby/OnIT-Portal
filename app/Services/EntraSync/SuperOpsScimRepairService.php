@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Retry Sync 1 (Entra SCIM export) when Apply SCIM stopped mid-flight — no secret re-paste.
+ * Retry Sync 1 (Entra SCIM export) when Apply SCIM stopped mid-flight - no secret re-paste.
  */
 class SuperOpsScimRepairService
 {
@@ -41,7 +41,7 @@ class SuperOpsScimRepairService
         }
 
         if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_app_id)) {
-            return $this->result(false, 'Connect Microsoft first — missing tenant or SuperOps SCIM app ID.', blockers: [
+            return $this->result(false, 'Connect Microsoft first - missing tenant or SuperOps SCIM app ID.', blockers: [
                 'Run Connect Microsoft / Retry Graph setup before retrying SCIM export.',
             ]);
         }
@@ -56,9 +56,9 @@ class SuperOpsScimRepairService
         if ($health['needsApplyScim'] ?? false) {
             return $this->result(
                 false,
-                'SuperOps SCIM credentials are not in Entra yet — use Apply SCIM once with Tenant URL + Secret Token.',
+                'SuperOps SCIM credentials are not in Entra yet - use Apply SCIM once with Tenant URL + Secret Token.',
                 $health,
-                blockers: ['Apply SCIM required — no stored BaseAddress in Entra.'],
+                blockers: ['Apply SCIM required - no stored BaseAddress in Entra.'],
             );
         }
 
@@ -111,7 +111,7 @@ class SuperOpsScimRepairService
         }
 
         if (! ($health['ok'] ?? false) && ! ($health['hasProvisioningJob'] ?? false)) {
-            $blockers[] = 'Graph still reports no listable SCIM job — portal will auto-retry; if this persists, re-Apply SCIM with the same tokens.';
+            $blockers[] = 'Graph still reports no listable SCIM job - portal will auto-retry; if this persists, re-Apply SCIM with the same tokens.';
 
             return $this->result(
                 false,
@@ -133,14 +133,14 @@ class SuperOpsScimRepairService
 
         $mappingOk = (bool) ($repair['nameMappingsConfigured'] ?? false);
         if (! $mappingOk) {
-            $blockers[] = 'Name mappings not confirmed — retry once more or re-Apply SCIM.';
+            $blockers[] = 'Name mappings not confirmed - retry once more or re-Apply SCIM.';
         }
 
         return $this->result(
             ($health['ok'] ?? false) && $mappingOk,
             ($health['ok'] ?? false)
                 ? 'SCIM export restarted.'.($queueSync ? ' Portal sync queued.' : '')
-                : 'SCIM job recreated — waiting for Entra to mark export active.',
+                : 'SCIM job recreated - waiting for Entra to mark export active.',
             $health,
             $repair,
             provisioned: $provisioned,

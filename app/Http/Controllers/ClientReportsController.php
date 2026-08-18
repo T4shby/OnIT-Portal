@@ -10,7 +10,7 @@ use Illuminate\View\View;
 /**
  * Monthly / service review presentation for Client Admins (and org-wide viewers).
  *
- * Several mockup metrics are explicitly marked pipeline/setup — never omitted silently.
+ * Several mockup metrics are explicitly marked pipeline/setup - never omitted silently.
  */
 class ClientReportsController extends Controller
 {

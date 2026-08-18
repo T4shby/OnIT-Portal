@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Push SuperOps SCIM tokens + name mappings to Entra off the HTTP request.
- * Browser POST only validates and queues (avoids nginx 504 while Graph lags ~1–3 min).
+ * Browser POST only validates and queues (avoids nginx 504 while Graph lags ~1-3 min).
  */
 class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncrypted
 {
@@ -94,7 +94,7 @@ class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncry
         if (! config('services.entra_sync.enabled')) {
             $syncBlockReason = 'Platform Entra sync is disabled (ENTRA_SYNC_ENABLED).';
         } elseif (! filled($client->entra_group_id)) {
-            $syncBlockReason = 'Entra group ID is empty — save the security group Object ID, then re-Apply SCIM.';
+            $syncBlockReason = 'Entra group ID is empty - save the security group Object ID, then re-Apply SCIM.';
         } else {
             if (! $client->entra_sync_enabled) {
                 $client->update(['entra_sync_enabled' => true]);
@@ -168,10 +168,10 @@ class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncry
 
         $blockers = array_values(array_filter([
             ! $nameMappingsOk
-                ? 'Step 07 stays Pending: name attribute mapping failed — re-Apply SCIM or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.'
+                ? 'Step 07 stays Pending: name attribute mapping failed - re-Apply SCIM or set name.familyName Direct ← extensionAttribute1 in Entra Provisioning.'
                 : null,
             ! $syncQueued
-                ? 'Step 07 stays Pending: Sync not queued'.($syncBlockReason ? ' — '.$syncBlockReason : '.')
+                ? 'Step 07 stays Pending: Sync not queued'.($syncBlockReason ? ' - '.$syncBlockReason : '.')
                 : null,
         ]));
         $blockers = array_merge($blockers, array_slice($result['warnings'] ?? [], 0, 3));

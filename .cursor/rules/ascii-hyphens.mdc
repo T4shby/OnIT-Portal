@@ -1,0 +1,22 @@
+---
+description: Never use em dashes or en dashes; use ASCII hyphen-minus only
+alwaysApply: true
+---
+
+# ASCII hyphens only (On IT Portal)
+
+Never insert Unicode dashes. That includes em dash (U+2014), en dash (U+2013), figure dash (U+2012), and horizontal bar (U+2015).
+
+Always use ASCII hyphen-minus (`-`) for ranges, asides, titles, and empty placeholders.
+
+```
+# Bad (unicode dashes)
+Hours 08:00 to 18:00 written with an en dash
+Edit Client written with an em dash then Acme
+
+# Good
+Hours 08:00-18:00
+Edit Client - Acme
+Wait 1-2 minutes
+Empty value: -
+```

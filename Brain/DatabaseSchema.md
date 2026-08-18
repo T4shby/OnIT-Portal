@@ -1,12 +1,12 @@
-# On IT Portal — Database Schema
+# On IT Portal - Database Schema
 
 ## Core Tables
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** — Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** — Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: entitled flags per catalog key — services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
+`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** - Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** - Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: entitled flags per catalog key - services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
 
-**Planned (not migrated):** `usecure_company_id` — see [UsecureIntegration.md](UsecureIntegration.md).
+**Planned (not migrated):** `usecure_company_id` - see [UsecureIntegration.md](UsecureIntegration.md).
 
 ### users
 

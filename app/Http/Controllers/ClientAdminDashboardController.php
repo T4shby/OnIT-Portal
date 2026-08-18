@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Organisation overview — metrics from DashboardFeedRegistry,
+ * Organisation overview - metrics from DashboardFeedRegistry,
  * scoped by ClientVisibilityService (admin = org-wide, user = personal).
  */
 class ClientAdminDashboardController extends Controller
@@ -57,7 +57,7 @@ class ClientAdminDashboardController extends Controller
             ->with(
                 $queued ? 'success' : 'error',
                 $queued
-                    ? 'Dashboard refresh queued. Numbers on this page update when ready — no full reload.'
+                    ? 'Dashboard refresh queued. Numbers on this page update when ready - no full reload.'
                     : 'Please wait before refreshing again.',
             );
     }

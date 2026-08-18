@@ -1,4 +1,4 @@
-# On IT Portal — Project Vision
+# On IT Portal - Project Vision
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Customer → Entra ID → On IT Portal
                         └── External launches (Pax8, M365, …)
 ```
 
-SuperOps remains source of truth for tickets. The portal embeds and SSO-launches — it does not replace SuperOps.
+SuperOps remains source of truth for tickets. The portal embeds and SSO-launches - it does not replace SuperOps.
 
 ## Success Metrics (MVP)
 
@@ -24,4 +24,4 @@ SuperOps remains source of truth for tickets. The portal embeds and SSO-launches
 
 ## Long-Term
 
-Evolve into customer success platform — see [Roadmap.md](Roadmap.md).
+Evolve into customer success platform - see [Roadmap.md](Roadmap.md).

@@ -92,7 +92,7 @@ class SuperOpsClientMetricsService
         $cacheKey = $this->cacheKey($client->id);
         $cached = Cache::get($cacheKey);
 
-        // Always serve stored metrics when present. Stale refresh is prewarm/manual only —
+        // Always serve stored metrics when present. Stale refresh is prewarm/manual only -
         // page views must not stampede the queue (requeue = PortalFreshnessService adaptive minutes).
         if (is_array($cached) && ! $manualRefresh) {
             return $this->scopeSummaryForViewer(
@@ -879,7 +879,7 @@ class SuperOpsClientMetricsService
 
     /**
      * Drop phantom "in progress" when flag is set but no matching job row exists.
-     * (Workers died, unique discard, or deploy mid-flight — blocked prewarm for 40+ minutes.)
+     * (Workers died, unique discard, or deploy mid-flight - blocked prewarm for 40+ minutes.)
      */
     private function clearOrphanedRefreshFlags(int $clientId): void
     {

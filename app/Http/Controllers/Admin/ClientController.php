@@ -53,7 +53,7 @@ class ClientController extends Controller
 
     /**
      * Staff batch: admin-consent Accept links for every client tenant with Graph linked.
-     * Microsoft still requires a human Accept per tenant under GDAP — this only lists the URLs.
+     * Microsoft still requires a human Accept per tenant under GDAP - this only lists the URLs.
      */
     public function graphReconsent(Request $request): View
     {
@@ -214,7 +214,7 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.updated', $client, clientId: $client->id);
 
-        // Keep SuperOps dashboard filled once the client is linked — no need for a first visit.
+        // Keep SuperOps dashboard filled once the client is linked - no need for a first visit.
         if ($this->superOpsMetrics->needsColdPrewarm($client)) {
             $this->superOpsMetrics->queueRefresh($client);
         }
@@ -222,10 +222,10 @@ class ClientController extends Controller
         $message = 'Client updated successfully.';
 
         if ($client->entra_license_tier === ClientOnboardingService::ENTRA_LICENSE_P1 && filled($client->entra_group_id)) {
-            $message .= ' Step 03 is complete — Entra tenant ID and group ID are saved.';
+            $message .= ' Step 03 is complete - Entra tenant ID and group ID are saved.';
         } elseif (($client->entra_license_tier ?? ClientOnboardingService::ENTRA_LICENSE_FREE) === ClientOnboardingService::ENTRA_LICENSE_FREE
             && filled($client->entra_tenant_id) && filled($client->entra_group_id)) {
-            $message .= ' Step 03 is complete — Entra tenant ID and group ID are saved.';
+            $message .= ' Step 03 is complete - Entra tenant ID and group ID are saved.';
         }
 
         return redirect()->route('admin.clients.edit', $client)
@@ -247,7 +247,7 @@ class ClientController extends Controller
 
             return back()->with(
                 'success',
-                'Dry run started in the background. This Admin Dashboard updates live — Last synced appears when the job finishes.',
+                'Dry run started in the background. This Admin Dashboard updates live - Last synced appears when the job finishes.',
             );
         }
 
@@ -259,7 +259,7 @@ class ClientController extends Controller
         if (! $lock->get()) {
             return back()->with(
                 'error',
-                'Entra sync is already running for this client. Wait 1–2 minutes and refresh, or run: php artisan portal:release-entra-sync-lock '.$client->id,
+                'Entra sync is already running for this client. Wait 1-2 minutes and refresh, or run: php artisan portal:release-entra-sync-lock '.$client->id,
             );
         }
 
@@ -269,7 +269,7 @@ class ClientController extends Controller
 
         return back()->with(
             'success',
-            'Entra sync started in the background. Open Admin → Dashboard — Integration Health updates live while it runs.',
+            'Entra sync started in the background. Open Admin → Dashboard - Integration Health updates live while it runs.',
         );
     }
 
@@ -378,7 +378,7 @@ class ClientController extends Controller
                 ->with('error', 'Connect Microsoft first so Tenant ID and SuperOps SCIM Application (client) ID are saved.');
         }
 
-        // Graph waits (schema / already-exists) can exceed nginx's 60s gateway — never do that inline.
+        // Graph waits (schema / already-exists) can exceed nginx's 60s gateway - never do that inline.
         ApplySuperOpsScimJob::markQueued($client->id);
         ApplySuperOpsScimJob::dispatch(
             $client->id,
@@ -399,7 +399,7 @@ class ClientController extends Controller
             ->with(
                 'success',
                 'Apply SCIM is running in the background (usually under 2 minutes). '
-                .'You can leave this page — refresh step 07 until Done, or check the banner under Apply SCIM. '
+                .'You can leave this page - refresh step 07 until Done, or check the banner under Apply SCIM. '
                 .'This avoids the previous 504 Gateway Time-out when Graph is slow.'
             );
     }
@@ -422,7 +422,7 @@ class ClientController extends Controller
             ->with(
                 'success',
                 'Retry SCIM export is running in the background (recreates Entra job, mappings, start, missing users, Sync). '
-                .'Refresh in about a minute — Integration Health SuperOps SCIM should show Export active.'
+                .'Refresh in about a minute - Integration Health SuperOps SCIM should show Export active.'
             );
     }
 

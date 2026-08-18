@@ -61,7 +61,7 @@
     @endif
 </div>
 
-{{-- System health — dense equal grid (no full-width empty cards) --}}
+{{-- System health - dense equal grid (no full-width empty cards) --}}
 <section style="margin-bottom:1.75rem">
     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px">
         <h2 class="org-label" style="margin:0">
@@ -112,7 +112,7 @@
             <div class="org-card org-card-pad">
                 <p class="org-label" style="margin:0 0 8px">Open tickets</p>
                 <p class="org-hero-num org-accent" style="margin:0">
-                    {{ $summary->openTicketsTotal === null ? '—' : number_format($summary->openTicketsTotal) }}
+                    {{ $summary->openTicketsTotal === null ? '-' : number_format($summary->openTicketsTotal) }}
                 </p>
                 @if($summary->openTicketsByPriority !== [])
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
@@ -126,7 +126,7 @@
             <div class="org-card org-card-pad">
                 <p class="org-label" style="margin:0 0 8px">SLA performance</p>
                 <p class="org-hero-num" style="margin:0">
-                    {{ $summary->slaMetPercent === null ? '—' : $summary->slaMetPercent.'%' }}
+                    {{ $summary->slaMetPercent === null ? '-' : $summary->slaMetPercent.'%' }}
                 </p>
                 <p class="org-muted" style="margin:8px 0 0;font-size:12px;line-height:1.4">
                     Tickets answered on time (last 30 days)
@@ -154,14 +154,14 @@
                             <p class="org-muted" style="margin:0 0 4px;font-size:11px">Logged</p>
                             <p style="margin:0;font-size:1.35rem;font-weight:700">
                                 @php $logged = $summary->ticketsCreated[$key] ?? null; @endphp
-                                {{ $logged === null ? '—' : number_format($logged) }}
+                                {{ $logged === null ? '-' : number_format($logged) }}
                             </p>
                         </div>
                         <div>
                             <p class="org-muted" style="margin:0 0 4px;font-size:11px">Closed</p>
                             <p style="margin:0;font-size:1.35rem;font-weight:700">
                                 @php $closed = $summary->ticketsClosed[$key] ?? null; @endphp
-                                {{ $closed === null ? '—' : number_format($closed) }}
+                                {{ $closed === null ? '-' : number_format($closed) }}
                             </p>
                         </div>
                     </div>
@@ -188,13 +188,13 @@
                                 <tr>
                                     <td style="color:#FF7000;font-family:ui-monospace,monospace;font-size:12px;white-space:nowrap">{{ $ticket['displayId'] }}</td>
                                     <td style="color:rgba(255,255,255,.9);min-width:10rem">{{ $ticket['subject'] }}</td>
-                                    <td class="org-muted" style="white-space:nowrap">{{ $ticket['priority'] ?: '—' }}</td>
+                                    <td class="org-muted" style="white-space:nowrap">{{ $ticket['priority'] ?: '-' }}</td>
                                     <td class="org-muted" style="white-space:nowrap">{{ $ticket['status'] }}</td>
                                     <td class="org-muted" style="font-size:12px;white-space:nowrap">
                                         @if(filled($ticket['createdTime']))
                                             {{ \Carbon\Carbon::parse($ticket['createdTime'])->timezone('Europe/London')->format('d M Y') }}
                                         @else
-                                            —
+                                            -
                                         @endif
                                     </td>
                                 </tr>
@@ -242,14 +242,14 @@
                 <div>
                     <p class="org-muted" style="margin:0 0 4px;font-size:11px">Licensed users</p>
                     <p style="margin:0;font-size:1.35rem;font-weight:700">
-                        {{ $m365Insights->licensedUserCount === null ? '—' : number_format($m365Insights->licensedUserCount) }}
+                        {{ $m365Insights->licensedUserCount === null ? '-' : number_format($m365Insights->licensedUserCount) }}
                     </p>
                     <p class="org-muted" style="margin:4px 0 0;font-size:11px">User mailboxes only</p>
                 </div>
                 <div>
                     <p class="org-muted" style="margin:0 0 4px;font-size:11px">Paid seats assigned</p>
                     <p style="margin:0;font-size:1.35rem;font-weight:700">
-                        {{ $m365Insights->totalSeatsAssigned === null ? '—' : number_format($m365Insights->totalSeatsAssigned) }}
+                        {{ $m365Insights->totalSeatsAssigned === null ? '-' : number_format($m365Insights->totalSeatsAssigned) }}
                         @if($m365Insights->totalSeatsPurchased !== null)
                             <span class="org-muted" style="font-size:1rem;font-weight:500">/ {{ number_format($m365Insights->totalSeatsPurchased) }}</span>
                         @endif
@@ -258,7 +258,7 @@
                 <div>
                     <p class="org-muted" style="margin:0 0 4px;font-size:11px">Paid utilisation</p>
                     <p class="org-hero-num org-accent" style="margin:0;font-size:1.35rem">
-                        {{ $m365Insights->overallUtilizationPct === null ? '—' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
+                        {{ $m365Insights->overallUtilizationPct === null ? '-' : number_format($m365Insights->overallUtilizationPct, 0).'%' }}
                     </p>
                 </div>
             </div>
