@@ -351,7 +351,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 
 **Normal release path:** push `main` on GitHub → **Plesk UI Pull + Deploy**, *or* SSH pipeline below → then **post-deploy artisan block**.
 
-Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding` - wrong for live).
+Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding`, then **`UIOverhaul`** until **2026-08-18**). **`UIOverhaul` is merged to `main`** - deploy **`main`** only.
 
 ### SSH: pull GitHub + deploy via Plesk bare mirror
 

@@ -18,21 +18,21 @@ Status as of **2026-08-18**. Shipped work is live product; backlog is ordered by
 | Technician Integration Health | Live pipeline, cold (Never loaded), stuck/due/aging; adaptive idle vs hot; **reads current feed `cacheKey()` only** |
 | Staff Admin dashboard | Clients / users / notices stats + **Sold product coverage** KPI matrix |
 | Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
-| Client home / Reports (branch) | Glance + Reports on **`UIOverhaul`** (live on prod via that branch); last-month needs nightly history - [UIOverhaul.md](UIOverhaul.md) |
+| Client home / Reports | Glance + Reports on **`main`**; last-month needs nightly history - [UIOverhaul.md](UIOverhaul.md) |
 | Client portal mobile | Bottom tab nav, slide-up menu, ticket cards, glance scroll strips - [UIOverhaul.md](UIOverhaul.md) |
-| Deploy | GitHub → Plesk archive; feature often **`UIOverhaul`** until merge; see [Deployment.md](Deployment.md) |
+| Deploy | GitHub → Plesk archive; production branch **`main`** - [Deployment.md](Deployment.md) |
 
 Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **cold optional** feeds when the jobs table is deep (≥40); warm optional refresh is skipped under pressure.
 
 ## Near-term backlog (next value)
 
-1. **Sign off client UI overhaul** - merge `UIOverhaul` → `main` when accepted; last-month unlocks after first full month of snapshots - [UIOverhaul.md](UIOverhaul.md).
+1. **Last-month compare** - unlocks after first full month of nightly snapshots - [UIOverhaul.md](UIOverhaul.md).
 2. **Portfolio reporting polish** - export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
 3. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API).
 4. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
 5. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
 6. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
-7. **UI pipeline metrics** - **mostly closed on UIOverhaul** (activity, MTD threats, MoM snapshots, Secure Score/MFA soft-fail, last-month locked hint). Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
+7. **UI pipeline metrics** - activity, MTD threats, MoM snapshots, Secure Score/MFA soft-fail, last-month locked hint are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
 8. **Optional SuperOps calendar-month ticket history** - not required for MoM; full multi-service last month stays nightly snapshots.
 
 ## Later / optional

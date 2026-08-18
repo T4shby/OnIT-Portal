@@ -45,7 +45,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
 | [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
-| [UIOverhaul.md](UIOverhaul.md) | **UI overhaul (`UIOverhaul` branch)** - glance + Reports live on prod via that branch; merge to main when signed off |
+| [UIOverhaul.md](UIOverhaul.md) | Client glance + Reports UI (merged to `main` 2026-08-18) |
 | [UsecureIntegration.md](UsecureIntegration.md) | **usecure - design only for later** (not near-term; blocked on beta API keys) |
 
 ## Implementation Map
@@ -83,7 +83,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-18 | ASCII hyphens only (no em/en dashes); onboarding HTML always escaped; unused Breeze layouts + `_service-column` removed. Plesk `git archive` does not delete removed files - [UIUX.md](UIUX.md), [Deployment.md](Deployment.md) |
+| 2026-08-18 | **Merged `UIOverhaul` → `main`.** Production deploys `main` again - [UIOverhaul.md](UIOverhaul.md), [Deployment.md](Deployment.md) |
 | 2026-08-18 | M365 directory: friendly licence names + wrapping chips; names no longer duplicate mailbox type - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up menu, glance/org ticket cards, scroll strips - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-13 | **Incident + fix:** SCIM Entra apps must use non-gallery **template instantiate** (not POST /applications); 0 templates → Retry Graph auto-recreate; step 07 **Failed**; IH SuperOps SCIM column; YorPower OK / MXVI ready for Apply - [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |

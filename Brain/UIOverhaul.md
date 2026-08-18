@@ -1,6 +1,6 @@
-# Client portal UI overhaul (`UIOverhaul` branch)
+# Client portal UI overhaul
 
-**Status (2026-08-18):** Live on production **via deploy of branch `UIOverhaul`** (not yet merged to `main`). Accept/sign-off still opens merge.  
+**Status (2026-08-18):** Merged to **`main`** (`UIOverhaul` → `main`). Production deploys **`main`**.  
 **Canonical mockup:** `Customer dashboard UI mockups.zip` → `Client Dashboard Mockups.dc.html`
 
 | Mockup ID | Portal page | Notes |
@@ -128,6 +128,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-08-18 | **Merged `UIOverhaul` → `main`.** Production branch is `main` again. |
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |
 | 2026-08-11 | **Last month locked UX:** padlock segment + always-visible hint under toggle (glance + Reports); no finicky hover tooltip. |
