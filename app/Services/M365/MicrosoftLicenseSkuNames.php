@@ -92,6 +92,8 @@ class MicrosoftLicenseSkuNames
         'WINDOWS_STORE' => 'Windows Store for Business',
         'CCIBOTS_PRIVPREV_VIRAL' => 'Power Virtual Agents Viral Trial',
         'Microsoft_365_Copilot' => 'Microsoft 365 Copilot',
+        'Microsoft_365_Copilot_for_Business' => 'Microsoft 365 Copilot',
+        'BUSINESS_PREMIUM_AND_MICROSOFT_365_COPILOT_FOR_BUSINESS' => 'Business Premium + Copilot',
         'Microsoft_365_F3' => 'Microsoft 365 F3',
         'Microsoft_365_E3' => 'Microsoft 365 E3',
         'Microsoft_365_E5' => 'Microsoft 365 E5',
@@ -171,6 +173,36 @@ class MicrosoftLicenseSkuNames
         }
 
         return self::humanizePartNumber($key);
+    }
+
+    /**
+     * @param  list<string>|array<int, string>  $skuPartNumbers
+     * @return list<string>
+     */
+    public static function displayNames(array $skuPartNumbers): array
+    {
+        return array_column(self::labelledSkus($skuPartNumbers), 'label');
+    }
+
+    /**
+     * @param  list<string>|array<int, string>  $skuPartNumbers
+     * @return list<array{sku: string, label: string}>
+     */
+    public static function labelledSkus(array $skuPartNumbers): array
+    {
+        $rows = [];
+        $seen = [];
+        foreach ($skuPartNumbers as $sku) {
+            $part = (string) $sku;
+            $label = self::displayName($part);
+            if ($label === '' || isset($seen[$label])) {
+                continue;
+            }
+            $seen[$label] = true;
+            $rows[] = ['sku' => $part, 'label' => $label];
+        }
+
+        return $rows;
     }
 
     /**

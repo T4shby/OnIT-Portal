@@ -107,7 +107,51 @@
             @if($directory->people->isEmpty())
                 <x-card><x-empty-state title="No people found" description="No licensed users or shared mailboxes were returned from Graph." /></x-card>
             @else
-                <div class="admin-table-wrap">
+                @php
+                    $peopleRows = $directory->people->map(function (array $person) {
+                        $skus = $person['licenses'] ?? [];
+
+                        return [
+                            'person' => $person,
+                            'name' => \App\Services\EntraSync\EntraSyncDisplayName::stripSuffix($person['displayName'] ?? ''),
+                            'licences' => \App\Services\M365\MicrosoftLicenseSkuNames::labelledSkus($skus),
+                        ];
+                    });
+                @endphp
+
+                <div class="m365-people-cards sm:hidden">
+                    @foreach($peopleRows as $row)
+                        @php $person = $row['person']; @endphp
+                        <article class="portal-ticket-card" x-show="peopleFilter === 'all' || peopleFilter === '{{ $person['type'] }}'">
+                            <div class="portal-ticket-card__top">
+                                <span class="text-sm font-medium text-white leading-snug">{{ $row['name'] !== '' ? $row['name'] : $person['displayName'] }}</span>
+                                <x-badge :variant="$person['accountEnabled'] ? 'success' : 'danger'">
+                                    {{ $person['accountEnabled'] ? 'Enabled' : 'Disabled' }}
+                                </x-badge>
+                            </div>
+                            <p class="mt-1 text-xs text-white/55 break-all">{{ $person['email'] ?? '—' }}</p>
+                            <div class="portal-ticket-card__meta">
+                                <x-badge variant="info">{{ $person['typeLabel'] }}</x-badge>
+                                @if($person['portalLogin'])
+                                    <x-badge variant="success">Portal allowed</x-badge>
+                                @else
+                                    <x-badge variant="default">No portal login</x-badge>
+                                @endif
+                            </div>
+                            @if($row['licences'])
+                                <div class="m365-licence-chips mt-3">
+                                    @foreach($row['licences'] as $licence)
+                                        <span class="m365-licence-chip" title="{{ $licence['sku'] }}">{{ $licence['label'] }}</span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="mt-3 text-xs text-white/40">No licences</p>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+
+                <div class="admin-table-wrap hidden sm:block">
                     <table class="min-w-full">
                         <thead>
                             <tr>
@@ -120,9 +164,10 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($directory->people as $person)
+                            @foreach($peopleRows as $row)
+                                @php $person = $row['person']; @endphp
                                 <tr x-show="peopleFilter === 'all' || peopleFilter === '{{ $person['type'] }}'">
-                                    <td>{{ $person['displayName'] }}</td>
+                                    <td>{{ $row['name'] !== '' ? $row['name'] : $person['displayName'] }}</td>
                                     <td class="text-white/70">{{ $person['email'] ?? '—' }}</td>
                                     <td><x-badge variant="info">{{ $person['typeLabel'] }}</x-badge></td>
                                     <td>
@@ -130,9 +175,13 @@
                                             {{ $person['accountEnabled'] ? 'Enabled' : 'Disabled' }}
                                         </x-badge>
                                     </td>
-                                    <td class="text-white/70 text-sm max-w-xs">
-                                        @if($person['licenses'])
-                                            {{ implode(', ', $person['licenses']) }}
+                                    <td class="text-white/70 text-sm">
+                                        @if($row['licences'])
+                                            <div class="m365-licence-chips">
+                                                @foreach($row['licences'] as $licence)
+                                                    <span class="m365-licence-chip" title="{{ $licence['sku'] }}">{{ $licence['label'] }}</span>
+                                                @endforeach
+                                            </div>
                                         @else
                                             —
                                         @endif

@@ -72,7 +72,10 @@ class M365DirectoryTest extends TestCase
         $response = $this->actingAs($admin)->get(route('microsoft-365.directory'));
 
         $response->assertOk();
-        $response->assertSee('Jane Smith (User Mailbox)');
+        $response->assertSee('Jane Smith');
+        $response->assertDontSee('Jane Smith (User Mailbox)');
+        $response->assertSee('Microsoft 365 Business Premium');
+        $response->assertDontSee('>O365_BUSINESS_PREMIUM<', false);
         $response->assertSee('All Staff');
         $response->assertSee('Distribution list');
         $response->assertDontSee('Updating automatically every 8 seconds', false);
@@ -107,7 +110,9 @@ class M365DirectoryTest extends TestCase
         $this->actingAs($admin)
             ->get(route('microsoft-365.directory.live'))
             ->assertOk()
-            ->assertSee('Jane Smith (User Mailbox)')
+            ->assertSee('Jane Smith')
+            ->assertDontSee('Jane Smith (User Mailbox)')
+            ->assertSee('Microsoft 365 Business Premium')
             ->assertSee('m365-directory-live', false);
     }
 

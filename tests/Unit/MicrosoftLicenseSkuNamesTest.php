@@ -42,4 +42,19 @@ class MicrosoftLicenseSkuNamesTest extends TestCase
             MicrosoftLicenseSkuNames::displayName('PROJECT_MADEIRA_PREVIEW_IW_SKU'),
         );
     }
+
+    public function test_directory_skus_use_marketing_names(): void
+    {
+        $this->assertSame('Microsoft Teams Phone', MicrosoftLicenseSkuNames::displayName('MCOEV'));
+        $this->assertSame('Teams Phone Resource Account', MicrosoftLicenseSkuNames::displayName('PHONESYSTEM_VIRTUALUSER'));
+        $this->assertSame('Power BI Free', MicrosoftLicenseSkuNames::displayName('POWER_BI_STANDARD'));
+        $this->assertSame(
+            'Business Premium + Copilot',
+            MicrosoftLicenseSkuNames::displayName('BUSINESS_PREMIUM_AND_MICROSOFT_365_COPILOT_FOR_BUSINESS'),
+        );
+        $this->assertSame(
+            ['Microsoft 365 Business Premium', 'Microsoft Teams Phone'],
+            MicrosoftLicenseSkuNames::displayNames(['O365_BUSINESS_PREMIUM', 'MCOEV', 'O365_BUSINESS_PREMIUM']),
+        );
+    }
 }

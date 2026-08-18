@@ -852,6 +852,32 @@
         @apply mt-3 flex flex-wrap items-center gap-2 text-xs text-white/50;
     }
 
+    .m365-people-cards {
+        @apply flex flex-col gap-3;
+    }
+
+    .m365-licence-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 22rem;
+    }
+
+    .m365-licence-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        padding: 3px 8px;
+        border: 1px solid rgb(255 255 255 / 0.12);
+        background: rgb(255 255 255 / 0.04);
+        color: rgb(255 255 255 / 0.82);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     @media (max-width: 639px) {
         .portal-footer {
             @apply hidden;

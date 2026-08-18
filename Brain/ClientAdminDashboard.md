@@ -433,6 +433,7 @@ Service: `App\Services\M365\M365DirectoryService`
 - Background refresh: `RefreshM365DirectoryJob` with lock `m365_directory.refresh.{id}` — queued (not `afterResponse()`). Same queue worker requirement as SuperOps metrics; see [Deployment.md](Deployment.md#11-run-the-queue-worker).
 - Client Admin manual refresh: `POST /microsoft-365/directory/refresh` (cooldown `ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS`, default 60).
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
+- **Directory people table** shows marketing licence names via `MicrosoftLicenseSkuNames` (same map as Organisation insights) as wrapping chips — not raw `skuPartNumber` (`O365_BUSINESS_PREMIUM`). Hover still shows the Graph SKU. Names are the Entra display name only; **(User Mailbox)** suffix is SuperOps-only (Type column covers mailbox kind). Phone: people rows as cards.
 - Mailbox type detection still reads each user's `mailboxSettings` serially. A future optimisation can use Graph `$batch` in chunks of 20; this remains separate to keep shared-mailbox classification and its per-user error handling unchanged.
 - **Live UI (not full-page reload):** directory chrome stays put; only the data panel polls `GET /microsoft-365/directory/live` (or admin `…/microsoft-365/live`) every **5 seconds** while cold or refreshing. Cached tables stay visible during refresh. Large tenants can take several minutes (mailboxSettings per user) — the panel says so; it does not imply an 8-second finish.
 - **Client Admin overview** (`/client-admin`): metrics panel polls `GET /client-admin/live` while any refresh is in progress (no full-page reload).
@@ -574,6 +575,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress — no live API calls. To verify in 
 
 | Date | Change |
 |------|--------|
+| 2026-08-18 | M365 directory: friendly licence chips (same SKU map as Organisation), no SuperOps mailbox suffix on names, wrapping + phone cards |
 | 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |
 | 2026-08-13 | Integration Health **SuperOps SCIM** column — Entra export health (Sync 1) beside Devices & tickets; failed counts in KPI + notices |
 | 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |

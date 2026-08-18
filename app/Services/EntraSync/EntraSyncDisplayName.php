@@ -22,7 +22,7 @@ class EntraSyncDisplayName
         return $emailFallback !== null ? (string) str($emailFallback)->before('@') : 'Unknown';
     }
 
-    /** Portal / M365 directory label — does not write to Entra displayName. */
+    /** Combined SuperOps-style label. Directory table uses baseName() + a Type column instead. */
     public static function format(?string $displayName, EntraIdentityType $identityType, ?string $emailFallback = null): string
     {
         return self::baseName($displayName, $emailFallback).' ('.$identityType->displaySuffix().')';

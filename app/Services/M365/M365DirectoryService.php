@@ -197,9 +197,8 @@ class M365DirectoryService
                 $identityType = $user['identityType'];
 
                 return [
-                    'displayName' => EntraSyncDisplayName::format(
+                    'displayName' => EntraSyncDisplayName::baseName(
                         $user['displayName'],
-                        $identityType,
                         $email ?: null,
                     ),
                     'email' => $email ?: null,
