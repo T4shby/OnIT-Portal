@@ -172,7 +172,7 @@
         @if($summary->openTicketsTable !== [])
             <div class="org-card org-card-pad" style="padding-top:1rem;padding-bottom:.5rem">
                 <p class="org-label" style="margin:0 0 10px">Open tickets</p>
-                <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                <div class="hidden sm:block" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
                     <table class="org-table">
                         <thead>
                             <tr>
@@ -201,6 +201,25 @@
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="portal-ticket-cards sm:hidden">
+                    @foreach($summary->openTicketsTable as $ticket)
+                        <div class="portal-ticket-card">
+                            <div class="portal-ticket-card__top">
+                                <span class="portal-ticket-card__id">{{ $ticket['displayId'] }}</span>
+                                <span class="org-chip">{{ $ticket['status'] }}</span>
+                            </div>
+                            <p class="portal-ticket-card__subject">{{ $ticket['subject'] }}</p>
+                            <div class="portal-ticket-card__meta">
+                                @if(filled($ticket['priority']))
+                                    <span>{{ $ticket['priority'] }}</span>
+                                @endif
+                                @if(filled($ticket['createdTime']))
+                                    <span>Opened {{ \Carbon\Carbon::parse($ticket['createdTime'])->timezone('Europe/London')->format('d M Y') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         @endif

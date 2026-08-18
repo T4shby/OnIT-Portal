@@ -762,4 +762,107 @@
     .field-help__steps {
         @apply list-decimal space-y-1.5 pl-4 text-xs font-light leading-relaxed text-white/70;
     }
+
+    /* ── Client portal mobile (2026-08-18) ───────────────────────────── */
+    .portal-shell {
+        overflow-x: clip;
+    }
+
+    .portal-main {
+        @apply flex-1 relative z-[1] min-w-0;
+    }
+
+    .portal-main-inner {
+        @apply mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-12;
+        padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (min-width: 640px) {
+        .portal-main-inner {
+            padding-bottom: 3rem;
+        }
+    }
+
+    .portal-header {
+        @apply sticky top-0 z-30;
+    }
+
+    .portal-bottom-nav {
+        @apply fixed inset-x-0 bottom-0 z-40 flex border-t border-onit-border bg-onit-ink/95 backdrop-blur-md;
+        padding-top: 6px;
+    }
+
+    .portal-bottom-nav__item {
+        @apply flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-1 px-1 py-2 font-condensed text-[10px] font-semibold uppercase tracking-wide text-white/55 transition-colors touch-manipulation;
+    }
+
+    .portal-bottom-nav__item:hover,
+    .portal-bottom-nav__item.is-active {
+        @apply text-onit;
+    }
+
+    .portal-bottom-nav__icon {
+        @apply h-5 w-5 shrink-0;
+    }
+
+    .portal-scroll-strip {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+
+    .portal-scroll-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .portal-scroll-strip > * {
+        flex: none;
+    }
+
+    .portal-ticket-cards {
+        @apply flex flex-col gap-3;
+    }
+
+    .portal-ticket-card {
+        @apply block border border-onit-border bg-onit-surface p-4 no-underline transition-colors touch-manipulation;
+    }
+
+    .portal-ticket-card:hover,
+    .portal-ticket-card:focus-visible {
+        @apply border-onit/50 bg-onit-surface-hover;
+    }
+
+    .portal-ticket-card__top {
+        @apply flex items-start justify-between gap-3;
+    }
+
+    .portal-ticket-card__id {
+        @apply font-condensed text-sm font-bold text-onit;
+    }
+
+    .portal-ticket-card__subject {
+        @apply mt-2 text-sm font-medium leading-snug text-white;
+    }
+
+    .portal-ticket-card__meta {
+        @apply mt-3 flex flex-wrap items-center gap-2 text-xs text-white/50;
+    }
+
+    @media (max-width: 639px) {
+        .portal-footer {
+            @apply hidden;
+        }
+
+        .portal-mobile-menu {
+            @apply fixed inset-x-0 bottom-0 z-[60] max-h-[min(78vh,32rem)] overflow-y-auto border-t border-onit-border bg-onit-ink px-4 pb-6 pt-4 safe-bottom;
+        }
+
+        .portal-mobile-menu__backdrop {
+            @apply fixed inset-0 z-50 bg-black/60;
+        }
+    }
 }

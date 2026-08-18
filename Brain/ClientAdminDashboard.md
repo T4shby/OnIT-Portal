@@ -1,6 +1,6 @@
 # Client Admin dashboard
 
-**Nav / layout (2026-08-10):** Organisation overview restyled to match glance: Poppins + dense `#0a2537` cards, **equal CSS grid** (1 / 2 / 4 columns) so System health never stretches one orphan tile full-width. Feed partials use metric rows; device offline is informational (“not checking in”) with a short offline-by-design note.
+**Nav / layout (2026-08-18):** Organisation overview restyled to match glance: Poppins + dense `#0a2537` cards, **equal CSS grid** (1 / 2 / 4 columns) so System health never stretches one orphan tile full-width. Feed partials use metric rows; device offline is informational (“not checking in”) with a short offline-by-design note. **Mobile:** open tickets render as tap cards below `sm`; Refresh CTA full width on phone.
 
 | Role | Nav label | Page |
 |------|-----------|------|

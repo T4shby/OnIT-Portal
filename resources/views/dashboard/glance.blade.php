@@ -169,6 +169,28 @@
         .glance-toggle { width: 100%; }
         .glance-toggle > span:first-child { flex: 1; text-align: center; justify-content: center; }
         .glance-period-locked { flex: 1; justify-content: center; }
+        .glance-value-grid { grid-template-columns: 1fr !important; }
+        .glance-columns { grid-template-columns: 1fr !important; padding-top: 1.25rem !important; }
+        .glance-portals { grid-template-columns: 1fr !important; }
+        .glance-services-bar {
+            margin-left: -1rem !important;
+            margin-right: -1rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        .glance-activity-row {
+            grid-template-columns: 1fr !important;
+            gap: 6px !important;
+        }
+        .glance-activity-meta {
+            text-align: left !important;
+            white-space: normal !important;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 10px;
+        }
+        .glance-link { min-height: 44px; display: inline-flex; align-items: center; }
     }
 </style>
 <div class="glance" style="padding-bottom:1rem">
@@ -231,7 +253,7 @@
             </div>
         @endif
 
-        <div style="margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:10px">
+        <div class="portal-scroll-strip" style="margin-top:1.75rem">
             @foreach($cols as $col)
                 @php
                     $dot = match ($col['tone'] ?? 'neutral') {
@@ -261,7 +283,7 @@
             @endforeach
         </div>
 
-        <div style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem">
+        <div class="glance-value-grid" style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem">
             @foreach($valueStrip as $stat)
                 <div class="glance-card" style="padding:1.25rem 1.5rem">
                     <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase" class="glance-muted">{{ $stat['label'] }}</div>
@@ -280,9 +302,9 @@
         </div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #1F2933;background:#01131d;margin:0 -1rem;padding:14px 1rem">
+    <div class="glance-services-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #1F2933;background:#01131d;margin:0 -1rem;padding:14px 1rem">
         <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;flex:none" class="glance-muted">Your services · managed plan</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div class="portal-scroll-strip" style="gap:8px">
             @foreach($cols as $col)
                 @php
                     $d = match ($col['tone'] ?? 'neutral') {
@@ -300,7 +322,7 @@
         </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;padding:1.75rem 0">
+    <div class="glance-columns" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;padding:1.75rem 0">
         @foreach($cols as $col)
             @include('dashboard.partials._glance-column', ['col' => $col])
         @endforeach
@@ -325,7 +347,7 @@
                                 default => 'Update',
                             };
                         @endphp
-                        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:start">
+                        <div class="glance-activity-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:start">
                             <div style="min-width:0">
                                 <div style="font-size:13px;font-weight:600;line-height:1.3">
                                     {{ $item['title'] ?? $sourceLabel }}
@@ -334,7 +356,7 @@
                                     {{ $item['text'] ?? '' }}
                                 </div>
                             </div>
-                            <div style="text-align:right;font-size:11px;white-space:nowrap" class="glance-muted">
+                            <div class="glance-activity-meta glance-muted" style="text-align:right;font-size:11px;white-space:nowrap">
                                 @if($at){{ $at }}@endif
                                 <div style="margin-top:2px;font-weight:500;letter-spacing:.04em;text-transform:uppercase">{{ $sourceLabel }}</div>
                             </div>
@@ -352,7 +374,7 @@
     @if(isset($portalLinks) && $portalLinks->isNotEmpty())
         <div style="padding-bottom:2rem">
             <div class="glance-label" style="margin-bottom:12px">Your portals</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+            <div class="glance-portals" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
                 @foreach($portalLinks as $link)
                     <x-service-card :link="$link" />
                 @endforeach

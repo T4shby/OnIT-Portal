@@ -1,6 +1,6 @@
 # Client portal UI overhaul (`UIOverhaul` branch)
 
-**Status (2026-08-11):** Live on production **via deploy of branch `UIOverhaul`** (not yet merged to `main`). Accept/sign-off still opens merge.  
+**Status (2026-08-18):** Live on production **via deploy of branch `UIOverhaul`** (not yet merged to `main`). Accept/sign-off still opens merge.  
 **Canonical mockup:** `Customer dashboard UI mockups.zip` → `Client Dashboard Mockups.dc.html`
 
 | Mockup ID | Portal page | Notes |
@@ -86,6 +86,24 @@ Support (SuperOps) remains the protection signal for support-only orgs.
 
 Technicians: if a customer asks “why no threats stopped?”, check Huntress sold. Grey H = by design. Do not treat support-led homes as broken MDR.
 
+## Mobile (2026-08-18)
+
+Client portal pages use a **mobile-first shell** (not Staff Admin — that already had a drawer).
+
+| Area | Behaviour |
+|------|-----------|
+| **Bottom tab bar** | Phone only: Home, Organisation/My systems, Reports (or Security/M365 fallback), **More** |
+| **More menu** | Slide-up sheet with full nav (Security, M365, Staff Admin, etc.) |
+| **Header** | Sticky; compact height on small screens |
+| **Glance** | Status pills + services strip horizontal scroll; value/column grids single column; activity timestamps stack |
+| **Organisation** | Open tickets → card list on phone; Refresh CTA full width |
+| **Support** | Ticket table → tap cards on phone |
+| **Reports** | Existing stack layout + extra bottom padding for tab bar |
+
+CSS: `resources/css/app.css` (`.portal-bottom-nav`, `.portal-ticket-card`, `.portal-scroll-strip`). Component: `resources/views/components/portal-bottom-nav.blade.php`.
+
+Still optional later: PWA install, offline shell.
+
 ## Reports layout (critical)
 
 Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main split on production. Purged CSS left `display:flex` (row) + full-width rail, which pushed the light main panel into a thin strip off the right edge.
@@ -110,6 +128,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |
 | 2026-08-11 | **Last month locked UX:** padlock segment + always-visible hint under toggle (glance + Reports); no finicky hover tooltip. |
 | 2026-08-11 | **Last month hover (superseded):** client-facing title tooltip — replaced by always-visible hint. |
 | 2026-08-11 | **Reports 500:** Blade rejected nested `month@if` (open tag not compiled); last-month optional date uses separate `@if` lines. |

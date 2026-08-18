@@ -248,6 +248,11 @@
             .rp-back { min-height: 0; margin-top: 14px; font-size: 12px; }
         }
 
+        /* Reports: extra bottom space for mobile bottom nav */
+        @media (max-width: 639px) {
+            .rp { padding-bottom: 4.5rem; }
+        }
+
         .rp-toggle {
             display: inline-flex;
             border: 1px solid #E5E7EB;

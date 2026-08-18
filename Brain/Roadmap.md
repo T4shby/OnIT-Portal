@@ -1,6 +1,6 @@
 # On IT Portal — Roadmap
 
-Status as of **2026-08-11**. Shipped work is live product; backlog is ordered by real ops value.
+Status as of **2026-08-18**. Shipped work is live product; backlog is ordered by real ops value.
 
 ## Shipped (do not re-plan as open work)
 
@@ -19,6 +19,7 @@ Status as of **2026-08-11**. Shipped work is live product; backlog is ordered by
 | Staff Admin dashboard | Clients / users / notices stats + **Sold product coverage** KPI matrix |
 | Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
 | Client home / Reports (branch) | Glance + Reports on **`UIOverhaul`** (live on prod via that branch); last-month needs nightly history — [UIOverhaul.md](UIOverhaul.md) |
+| Client portal mobile | Bottom tab nav, slide-up menu, ticket cards, glance scroll strips — [UIOverhaul.md](UIOverhaul.md) |
 | Deploy | GitHub → Plesk archive; feature often **`UIOverhaul`** until merge; see [Deployment.md](Deployment.md) |
 
 Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **cold optional** feeds when the jobs table is deep (≥40); warm optional refresh is skipped under pressure.
@@ -37,7 +38,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 ## Later / optional
 
 - **usecure human-risk feed** — full design parked for later; **not** near-term work. Unblocks when On IT has beta GraphQL API keys from usecure Support (ops request in own time). Build plan: [UsecureIntegration.md](UsecureIntegration.md).
-- PWA / mobile polish
+- PWA install prompt / offline shell (mobile nav shipped 2026-08-18)
 - Public API for AM tools
 - Marketplace-style third-party tiles
 - Self-service user invites (only if product deliberately leaves pre-provision model)

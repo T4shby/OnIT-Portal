@@ -86,8 +86,13 @@
     .org-range-btn {
         padding: 5px 10px; font-size: 11px; border: 1px solid #1F2933; border-radius: 4px;
         color: rgba(255,255,255,.55); background: transparent; cursor: pointer;
+        min-height: 40px; min-width: 44px;
     }
     .org-range-btn.is-on { border-color: #FF7000; color: #FF7000; }
+    .org-cta { width: 100%; }
+    @media (min-width: 640px) {
+        .org-cta { width: auto; }
+    }
 </style>
 
 <div class="org" style="padding-bottom:1rem">

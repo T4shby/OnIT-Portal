@@ -20,7 +20,7 @@
 
         <header class="portal-header safe-top">
             <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between min-h-[4rem] py-4 gap-4">
+                <div class="flex items-center justify-between min-h-[3.5rem] py-3 sm:min-h-[4rem] sm:py-4 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 shrink">
                         <x-portal-logo size="sm" />
                         <span class="font-condensed font-bold uppercase tracking-wide text-white truncate hidden sm:inline">On IT Portal</span>
@@ -67,14 +67,6 @@
                     </nav>
 
                     <div class="flex items-center gap-3 shrink-0">
-                        <button type="button"
-                                @click="menuOpen = !menuOpen; userOpen = false"
-                                class="sm:hidden portal-nav-link touch-target px-2"
-                                aria-label="Open menu"
-                                :aria-expanded="menuOpen">
-                            <span x-text="menuOpen ? 'Close' : 'Menu'"></span>
-                        </button>
-
                         <span class="hidden md:inline portal-body-muted text-xs truncate max-w-[10rem]">{{ auth()->user()->name }}</span>
 
                         <div class="relative">
@@ -101,67 +93,76 @@
                     </div>
                 </div>
 
-                <nav x-show="menuOpen"
-                     x-cloak
-                     x-transition
-                     class="sm:hidden border-t border-white/10 pb-4 pt-3 flex flex-col gap-3">
+            </div>
+        </header>
+
+        <div x-show="menuOpen" x-cloak class="sm:hidden">
+            <div class="portal-mobile-menu__backdrop" @click="menuOpen = false" aria-hidden="true"></div>
+            <nav class="portal-mobile-menu" aria-label="More navigation">
+                <div class="mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                    <span class="portal-card-title text-sm">Menu</span>
+                    <button type="button" @click="menuOpen = false" class="touch-target text-white/70" aria-label="Close menu">&times;</button>
+                </div>
+                <div class="flex flex-col gap-1">
                     <a href="{{ route('dashboard') }}"
                        @click="menuOpen = false"
-                       class="portal-nav-link touch-target {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
+                       class="portal-nav-link touch-target py-3 {{ request()->routeIs('dashboard') ? 'portal-nav-link-active' : '' }}">
                         Dashboard
                     </a>
                     @can('view-organisation-wide')
                         <a href="{{ route('reports.index') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
                             Reports
                         </a>
                         <a href="{{ route('client-admin.dashboard') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                             Organisation
                         </a>
                     @elsecan('view-my-systems')
                         <a href="{{ route('client-admin.dashboard') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
                             My Systems
                         </a>
                     @endcan
                     @can('view-huntress-security')
                         <a href="{{ route('security.huntress.index') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
                             Security
                         </a>
                     @endcan
                     @can('view-m365-directory')
                         <a href="{{ route('microsoft-365.directory') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
                             Microsoft 365
                         </a>
                     @endcan
                     @can('access-admin')
                         <a href="{{ route('admin.dashboard') }}"
                            @click="menuOpen = false"
-                           class="portal-nav-link touch-target {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
                             Staff Admin
                         </a>
                     @endcan
-                </nav>
-            </div>
-        </header>
+                </div>
+            </nav>
+        </div>
 
-        <main class="flex-1 relative z-[1]">
-            <div class="{{ $contentClass }} mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 safe-bottom">
+        <x-portal-bottom-nav />
+
+        <main class="portal-main">
+            <div class="{{ $contentClass }} portal-main-inner">
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}
             </div>
         </main>
 
-        <footer class="relative z-[1] mt-auto border-t border-onit-border py-8 safe-bottom">
+        <footer class="portal-footer relative z-[1] mt-auto border-t border-onit-border py-8 safe-bottom">
             <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 portal-body-muted text-xs text-center sm:text-left">
                 <p>&copy; {{ date('Y') }} On IT Technology Partners</p>
                 <p class="text-onit font-condensed font-bold uppercase tracking-wide">Simplicity &amp; Value</p>

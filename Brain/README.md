@@ -83,6 +83,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up menu, glance/org ticket cards, scroll strips — [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-13 | **Incident + fix:** SCIM Entra apps must use non-gallery **template instantiate** (not POST /applications); 0 templates → Retry Graph auto-recreate; step 07 **Failed**; IH SuperOps SCIM column; YorPower OK / MXVI ready for Apply — [SuperOpsEntraSync.md](SuperOpsEntraSync.md) |
 | 2026-08-13 | Docs: M365/Entra automation in portal only; SuperOps console for tokens + SSO paste — [ClientOnboarding.md](ClientOnboarding.md) |
 | 2026-08-13 | **Retry Graph setup** auto-deletes/recreates broken SuperOps SCIM Entra app (0 templates) — then Apply SCIM only — [ClientOnboarding.md](ClientOnboarding.md) |
