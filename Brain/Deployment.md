@@ -376,6 +376,10 @@ sudo -u "$VHOST_USER" git --git-dir="$GIT_DIR" archive main | tar -x -C "$APP"
 chown -R "$OWNER" "$APP/app" "$APP/Brain" "$APP/bootstrap" "$APP/config" \
   "$APP/database" "$APP/public" "$APP/resources" "$APP/routes" || true
 
+# `git archive | tar -x` only adds/overwrites. Files **deleted in git stay on disk**.
+# After a deploy that removes Blade/PHP/CSS, `rm` those paths on the live tree (2026-08-18:
+# leftover `resources/views/layouts/{app,admin}.blade.php` and `_service-column.blade.php`).
+
 # 3) Record deployed SHA
 SHORT=$(git --git-dir="$GIT_DIR" rev-parse --short main)
 FULL=$(git --git-dir="$GIT_DIR" rev-parse main)
