@@ -6,12 +6,14 @@
         background: #0a2537;
         border: 1px solid #1F2933;
         border-radius: 8px;
-        height: 100%;
+        min-height: 100%;
+        height: auto;
         display: flex;
         flex-direction: column;
         min-width: 0;
+        overflow: visible;
     }
-    .org-card-pad { padding: 1.15rem 1.25rem; }
+    .org-card-pad { padding: 1.15rem 1.25rem; box-sizing: border-box; }
     .org-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -68,6 +70,8 @@
         color: rgba(255,255,255,.55); background: transparent; cursor: pointer;
         min-height: 40px; min-width: 44px;
     }
+    .org-pager { margin-top: 4px; }
+    .org-pager__name { margin: 6px 0 0; font-size: 12px; }
     .org-range-btn.is-on { border-color: #FF7000; color: #FF7000; }
     .org-range-btn:disabled { opacity: .35; cursor: default; }
     .org-pager__nav {
