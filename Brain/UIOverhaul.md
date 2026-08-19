@@ -9,7 +9,7 @@
 | **1b** Light | Not implemented (dark site palette preferred) | Same content model as 1a |
 | **1c** Value report | `/reports` (`reports/index.blade.php`) | Navy services rail + light main + stacked rows + activity |
 
-Organisation / Security / M365 routes stay as drill-downs (“Details →”).
+Organisation / Security / M365 routes stay as drill-downs from Dashboard. **Organisation nav is gone (2026-08-19).** Use **Services** → Security, Microsoft 365, Support & Devices.
 
 ## First pass mistake
 
@@ -27,7 +27,7 @@ Pill label is **Healthy / Issues / Critical**. Each column also exposes **`statu
 |---------|---------|--------|----------|
 | **Support & Devices** (SuperOps) | SLA ≥ 95% (or no SLA sample) and open tickets &lt; 10 | SLA &lt; 95%, or open tickets ≥ 10 | SLA &lt; 90%, or open tickets ≥ 25 |
 | **Microsoft 365** | not over-assigned | seats assigned &gt; purchased | assigned &gt; 110% of purchased |
-| **Detection & Response** (Huntress) | open incidents = 0 and no unresponsive agents | any open incident, or any unresponsive agents | open incidents ≥ 3, or unresponsive ≥ 5 **and** ≥ 20% of agents |
+| **Security** (Huntress) | open incidents = 0 and no unresponsive agents | any open incident, or any unresponsive agents | open incidents ≥ 3, or unresponsive ≥ 5 **and** ≥ 20% of agents |
 | **Backup** (Dropsuite) | no failed/retrying last 24h | - | any failed/retrying in last 24h feed |
 
 **SuperOps deliberately ignores device online/offline.** Many customers have kit that is offline by design (field engineers, plant, night power-off). Traffic lights here are about **SLA and ticket backlog**, not RMM presence. Device counts can still appear as informatics on the card.
@@ -52,14 +52,14 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 
 | Field | Source | Notes |
 |-------|--------|--------|
-| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v3` |
+| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v4` |
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
 | **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until prior-month row exists: **Last month** shows locked (padlock) + **always-visible** orange/amber hint under the toggle - not browser `title` tooltip |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
-| **Device patch / need updates** | - | **Not shipped** - SuperOps asset payload has no patch posture fields yet |
+| **Device patch / need updates** | SuperOps `patchStatus` on asset list (Support & Devices) | Restart uses 14+ day `sysUptime`; RAM/disk still not in the list feed |
 | **Restore retention days** | - | **Not shipped** - not in Dropsuite summary payload |
 
 ### Not sold vs unprotected (client-facing)
@@ -74,7 +74,7 @@ Support (SuperOps) remains the protection signal for support-only orgs.
 
 ### Product mix → different client homes (source of truth)
 
-| Huntress sold? | Value strip (hero) | Detection & Response tile | Technician notes |
+| Huntress sold? | Value strip (hero) | Security tile | Technician notes |
 |----------------|--------------------|---------------------------|------------------|
 | **No** | Tickets resolved · Open tickets · SLA met | **Add-on** + support-still-helps copy | **Support-led home** - grey H chip is expected, not a fault |
 | **Yes**, feed live | Threats stopped · Tickets resolved · SLA | Traffic lights from incidents/agents | MDR metrics are real Huntress feed only |
@@ -92,12 +92,12 @@ Client portal pages use a **mobile-first shell** (not Staff Admin - that already
 
 | Area | Behaviour |
 |------|-----------|
-| **Bottom tab bar** | Phone only: Home, Organisation/My systems, Reports (or Security/M365 fallback), **More** |
-| **More menu** | Slide-up sheet with full nav (Security, M365, Staff Admin, etc.) |
-| **Header** | Sticky; compact height on small screens |
+| **Bottom tab bar** | Phone only: Home, Support, Reports (or Security/M365 fallback), **More** |
+| **More menu** | Slide-up sheet with full nav including **Services** (Security, M365, Support & Devices), Staff Admin |
+| **Header** | Sticky; compact height on small screens; **Services** dropdown on desktop |
 | **Glance** | Status pills + services strip horizontal scroll; value/column grids single column; activity timestamps stack |
-| **Organisation** | Open tickets → card list on phone; Refresh CTA full width |
-| **Support** | Ticket table → tap cards on phone |
+| **Support & Devices** | Open/closed tickets → card list on phone; Refresh CTA full width |
+| **Support** (legacy ticket list) | Ticket table → tap cards on phone |
 | **Reports** | Existing stack layout + extra bottom padding for tab bar |
 
 CSS: `resources/css/app.css` (`.portal-bottom-nav`, `.portal-ticket-card`, `.portal-scroll-strip`). Component: `resources/views/components/portal-bottom-nav.blade.php`.
@@ -126,9 +126,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 ## Changelog
 
-| Date | Note |
-|------|------|
-| 2026-08-18 | **Merged `UIOverhaul` → `main`.** Production branch is `main` again. |
+| 2026-08-19 | Dashboard Huntress card title is **Security** (was Detection & Response). |
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |
 | 2026-08-11 | **Last month locked UX:** padlock segment + always-visible hint under toggle (glance + Reports); no finicky hover tooltip. |

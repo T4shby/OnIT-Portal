@@ -10,7 +10,10 @@ class ClientOperationsSummary
      * @param  array<string, int|null>  $ticketsCreated
      * @param  array<string, int|null>  $ticketsClosed
      * @param  array<string, int>  $openTicketsByPriority
-     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string}>  $openTicketsTable
+     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, category?: string}>  $openTicketsTable
+     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, resolutionTime: ?string, category?: string}>  $closedTicketsTable
+     * @param  array<string, int>  $ticketsByCategory
+     * @param  array<string, mixed>  $deviceInsights
      */
     public function __construct(
         public readonly ?int $assetsTotal,
@@ -28,6 +31,9 @@ class ClientOperationsSummary
         public readonly bool $refreshInProgress,
         public readonly ?string $unavailableReason = null,
         public readonly ?int $waitingOnClientTotal = null,
+        public readonly array $closedTicketsTable = [],
+        public readonly array $ticketsByCategory = [],
+        public readonly array $deviceInsights = [],
     ) {}
 
     public function hasData(): bool

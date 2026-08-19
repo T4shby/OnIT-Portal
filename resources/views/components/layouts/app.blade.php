@@ -15,7 +15,7 @@
     <style>[x-cloak] { display: none !important; }</style>
 </head>
 <body>
-    <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false">
+    <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false, servicesOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false; servicesOpen = false">
         <div class="grid-overlay" aria-hidden="true"></div>
 
         <header class="portal-header safe-top">
@@ -36,28 +36,8 @@
                                class="portal-nav-link {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
                                 Reports
                             </a>
-                            <a href="{{ route('client-admin.dashboard') }}"
-                               class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                                Organisation
-                            </a>
-                        @elsecan('view-my-systems')
-                            <a href="{{ route('client-admin.dashboard') }}"
-                               class="portal-nav-link {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                                My Systems
-                            </a>
                         @endcan
-                        @can('view-huntress-security')
-                            <a href="{{ route('security.huntress.index') }}"
-                               class="portal-nav-link {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
-                                Security
-                            </a>
-                        @endcan
-                        @can('view-m365-directory')
-                            <a href="{{ route('microsoft-365.directory') }}"
-                               class="portal-nav-link {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
-                                Microsoft 365
-                            </a>
-                        @endcan
+                        <x-portal-services-nav />
                         @can('access-admin')
                             <a href="{{ route('admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
@@ -115,32 +95,8 @@
                            class="portal-nav-link touch-target py-3 {{ request()->routeIs('reports.*') ? 'portal-nav-link-active' : '' }}">
                             Reports
                         </a>
-                        <a href="{{ route('client-admin.dashboard') }}"
-                           @click="menuOpen = false"
-                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                            Organisation
-                        </a>
-                    @elsecan('view-my-systems')
-                        <a href="{{ route('client-admin.dashboard') }}"
-                           @click="menuOpen = false"
-                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('client-admin.*') ? 'portal-nav-link-active' : '' }}">
-                            My Systems
-                        </a>
                     @endcan
-                    @can('view-huntress-security')
-                        <a href="{{ route('security.huntress.index') }}"
-                           @click="menuOpen = false"
-                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('security.huntress.*') ? 'portal-nav-link-active' : '' }}">
-                            Security
-                        </a>
-                    @endcan
-                    @can('view-m365-directory')
-                        <a href="{{ route('microsoft-365.directory') }}"
-                           @click="menuOpen = false"
-                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
-                            Microsoft 365
-                        </a>
-                    @endcan
+                    <x-portal-services-nav :mobile="true" />
                     @can('access-admin')
                         <a href="{{ route('admin.dashboard') }}"
                            @click="menuOpen = false"

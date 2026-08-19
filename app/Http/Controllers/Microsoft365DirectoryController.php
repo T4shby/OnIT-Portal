@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\M365\M365DirectoryDisplayResult;
 use App\Services\M365\M365DirectoryService;
 use App\Services\M365\M365DirectorySnapshot;
+use App\Services\M365\M365InsightsService;
 use App\Services\Portal\ClientVisibilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class Microsoft365DirectoryController extends Controller
     public function __construct(
         protected M365DirectoryService $directory,
         protected ClientVisibilityService $visibility,
+        protected M365InsightsService $insights,
     ) {}
 
     public function index(Request $request): View
@@ -119,6 +121,7 @@ class Microsoft365DirectoryController extends Controller
             'adminContext' => $adminContext,
             'organisationWide' => $orgWide,
             'pollSeconds' => 5,
+            'm365Insights' => $orgWide ? $this->insights->summaryForClient($client) : null,
         ];
     }
 

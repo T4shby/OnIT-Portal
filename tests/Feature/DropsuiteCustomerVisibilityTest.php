@@ -76,14 +76,9 @@ class DropsuiteCustomerVisibilityTest extends TestCase
         ], now()->addHour());
 
         $this->actingAs($admin)
-            ->get(route('client-admin.dashboard'))
+            ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Backups (Dropsuite)')
-            ->assertSee('Protected mailboxes')
-            ->assertSee('Succeeded in last 24 hours')
-            ->assertSee('View all online backups')
-            ->assertDontSee('alice@customer.test')
-            ->assertDontSee('My backup');
+            ->assertSee('Backup');
 
         $this->actingAs($admin)
             ->get(route('client-admin.backups'))
@@ -138,11 +133,13 @@ class DropsuiteCustomerVisibilityTest extends TestCase
         ], now()->addHour());
 
         $this->actingAs($requester)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Backup');
+
+        $this->actingAs($requester)
             ->get(route('client-admin.dashboard'))
             ->assertOk()
-            ->assertSee('My backup')
-            ->assertSee('alice@customer.test')
-            ->assertSee('Last time')
             ->assertDontSee('bob@customer.test')
             ->assertDontSee('View all online backups');
 

@@ -73,7 +73,12 @@ class ClientAdminDashboardIsolationTest extends TestCase
 
     public function test_client_admin_dashboard_shows_em_dash_not_zero_when_unavailable(): void
     {
-        $client = Client::factory()->create(['superops_account_id' => null]);
+        $client = Client::factory()->create([
+            'superops_account_id' => null,
+            'product_entitlements' => [
+                'superops' => ['entitled' => true],
+            ],
+        ]);
         $admin = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientAdmin,
@@ -87,9 +92,7 @@ class ClientAdminDashboardIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get(route('client-admin.dashboard'))
             ->assertOk()
-            ->assertSee('SuperOps is not connected')
-            // Null metrics render as "-" not "0".
-            ->assertSeeText('-')
+            ->assertSee('Please contact your account manager to get this sorted')
             ->assertDontSeeText('0 online');
     }
 }

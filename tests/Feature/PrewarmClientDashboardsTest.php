@@ -76,7 +76,7 @@ class PrewarmClientDashboardsTest extends TestCase
             'superops_account_id' => 'superops-client',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 5,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -143,7 +143,7 @@ class PrewarmClientDashboardsTest extends TestCase
             'superops_account_id' => 'superops-client',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 5,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],

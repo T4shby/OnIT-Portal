@@ -65,9 +65,9 @@ enum UserRole: string
 
     public function canViewClientAdminDashboard(): bool
     {
-        // /client-admin path for all client-facing roles.
-        // Client Admin → Organisation Overview (org-wide).
-        // Requester / billing → My Systems (personal, live products only).
+        // /services/support-devices for all client-facing roles.
+        // Client Admin → org-wide SuperOps tickets and devices.
+        // Requester / billing → personal tickets only.
         return $this->isClientFacing();
     }
 

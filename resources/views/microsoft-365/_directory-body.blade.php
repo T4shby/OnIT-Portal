@@ -21,10 +21,12 @@
             - without signing into the Microsoft 365 admin centre.
         </p>
     </section>
+    @include('microsoft-365._licences')
 @else
     <p class="portal-body-muted mb-8 max-w-2xl">
         Read-only directory for <strong class="text-white/80">{{ $client->name }}</strong> - licensed users, shared mailboxes, and groups.
     </p>
+    @include('microsoft-365._licences')
 @endif
 
 <div

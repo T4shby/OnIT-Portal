@@ -9,7 +9,7 @@ Status as of **2026-08-18**. Shipped work is live product; backlog is ordered by
 | Auth | Multi-tenant Entra OIDC; pre-provision + optional Entra group sync; **object-id identity** + domain email update |
 | Domain / email cutover | Portal + SuperOps email align on Entra Sync - [DomainEmailChange.md](DomainEmailChange.md) |
 | Roles | `super_admin`, `account_manager`, `client_admin`, `client_requester`, `client_billing_admin` |
-| Organisation vs My Systems | Client Admin: org-wide System health; requesters/billing: personal **My Systems** only |
+| Portal IA | **Dashboard** home; **Services** dropdown (Security, Microsoft 365, Support & Devices). Organisation page removed |
 | SuperOps | Dashboard metrics, ticket list/create API, SSO launch; **threads/comments live in SuperOps** (not portal-embedded conversation) |
 | Huntress | Org security tile + cases; staff board; Integration Health column |
 | Dropsuite | Org backup summary (24h success / open issues); full Online backups inventory for Client Admin; IH column |

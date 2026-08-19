@@ -38,7 +38,7 @@ class ClientRoleAccessTest extends TestCase
             'email' => 'jane@example.test',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 50,
             'open_tickets_total' => 9,
             'open_tickets_table' => [
@@ -75,8 +75,7 @@ class ClientRoleAccessTest extends TestCase
             ->assertSee('Jane ticket')
             ->assertDontSee('Bob ticket')
             ->assertSeeText('only see items linked to you')
-            ->assertSeeText('My')
-            ->assertSeeText('Systems')
+            ->assertSeeText('Support & Devices')
             ->assertDontSee('>Organisation</a>', false);
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
     }
@@ -98,8 +97,7 @@ class ClientRoleAccessTest extends TestCase
         $this->actingAs($user)->get(route('dashboard'))->assertOk();
         $this->actingAs($user)->get(route('client-admin.dashboard'))
             ->assertOk()
-            ->assertSeeText('My')
-            ->assertSeeText('Systems');
+            ->assertSeeText('Support & Devices');
         $this->actingAs($user)->get(route('microsoft-365.directory'))->assertOk();
         $this->actingAs($user)->post(route('client-admin.refresh'))->assertForbidden();
     }
@@ -112,7 +110,7 @@ class ClientRoleAccessTest extends TestCase
             'role' => UserRole::ClientAdmin,
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 5,
             'open_tickets_total' => 2,
             'open_tickets_table' => [
@@ -135,8 +133,7 @@ class ClientRoleAccessTest extends TestCase
         $this->actingAs($user)->get(route('client-admin.dashboard'))
             ->assertOk()
             ->assertSee('Anyone ticket')
-            ->assertSeeText('Organisation')
-            ->assertSeeText('Overview')
+            ->assertSeeText('Support & Devices')
             ->assertDontSeeText('My Systems');
         $this->assertTrue($user->can('view-organisation-wide'));
         $this->assertFalse($user->can('view-my-systems'));
@@ -153,7 +150,7 @@ class ClientRoleAccessTest extends TestCase
             'role' => UserRole::ClientAdmin,
         ]);
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v2", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v4", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],

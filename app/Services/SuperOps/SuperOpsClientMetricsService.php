@@ -66,7 +66,13 @@ class SuperOpsClientMetricsService
 
     private const PAGE_SIZE = 100;
 
-    private const OPEN_TICKET_TABLE_LIMIT = 10;
+    private const OPEN_TICKET_TABLE_LIMIT = 20;
+
+    private const CLOSED_TICKET_TABLE_LIMIT = 10;
+
+    private const DEVICE_NAME_SAMPLE = 8;
+
+    private const RESTART_AFTER_DAYS = 14;
 
     public function __construct(private SuperOpsApiClient $api) {}
 
@@ -162,21 +168,11 @@ class SuperOpsClientMetricsService
 
         $mine = array_values(array_filter(
             $summary->openTicketsTable,
-            function (array $row) use ($visibility, $viewer): bool {
-                if ($visibility->matchesEmail($row['requesterEmail'] ?? null, $viewer)) {
-                    return true;
-                }
-                if (filled($viewer->superops_user_id)
-                    && (string) ($row['requesterUserId'] ?? '') === (string) $viewer->superops_user_id) {
-                    return true;
-                }
-
-                return $visibility->matchesPerson($viewer, [
-                    $row['requesterEmail'] ?? null,
-                    $row['requesterName'] ?? null,
-                    $row['subject'] ?? null,
-                ]);
-            },
+            fn (array $row): bool => $this->ticketMatchesViewer($row, $viewer, $visibility),
+        ));
+        $mineClosed = array_values(array_filter(
+            $summary->closedTicketsTable,
+            fn (array $row): bool => $this->ticketMatchesViewer($row, $viewer, $visibility),
         ));
 
         $byPriority = [];
@@ -191,6 +187,13 @@ class SuperOpsClientMetricsService
                 $waiting++;
             }
         }
+
+        $categories = [];
+        foreach (array_merge($mine, $mineClosed) as $row) {
+            $category = filled($row['category'] ?? null) ? (string) $row['category'] : 'Unspecified';
+            $categories[$category] = ($categories[$category] ?? 0) + 1;
+        }
+        arsort($categories);
 
         return new ClientOperationsSummary(
             assetsTotal: null,
@@ -208,7 +211,30 @@ class SuperOpsClientMetricsService
             refreshInProgress: $summary->refreshInProgress,
             unavailableReason: $summary->unavailableReason,
             waitingOnClientTotal: $waiting,
+            closedTicketsTable: $mineClosed,
+            ticketsByCategory: $categories,
+            deviceInsights: [],
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function ticketMatchesViewer(array $row, \App\Models\User $viewer, \App\Services\Portal\ClientVisibilityService $visibility): bool
+    {
+        if ($visibility->matchesEmail($row['requesterEmail'] ?? null, $viewer)) {
+            return true;
+        }
+        if (filled($viewer->superops_user_id)
+            && (string) ($row['requesterUserId'] ?? '') === (string) $viewer->superops_user_id) {
+            return true;
+        }
+
+        return $visibility->matchesPerson($viewer, [
+            $row['requesterEmail'] ?? null,
+            $row['requesterName'] ?? null,
+            $row['subject'] ?? null,
+        ]);
     }
 
     /**
@@ -315,10 +341,13 @@ class SuperOpsClientMetricsService
                 'assets_total' => $assetHealth['total'],
                 'assets_online' => $assetHealth['online'],
                 'assets_offline' => $assetHealth['offline'],
+                'device_insights' => $assetHealth['insights'],
                 'open_tickets_total' => $this->countOpenTickets($tickets),
                 'waiting_on_client_total' => $this->countWaitingOnClient($tickets),
                 'open_tickets_by_priority' => $this->openTicketsByPriority($tickets),
                 'open_tickets_table' => $this->openTicketsTable($tickets),
+                'closed_tickets_table' => $this->closedTicketsTable($tickets),
+                'tickets_by_category' => $this->ticketsByCategory($tickets),
                 'sla_met_percent' => $this->slaMetPercent($tickets),
                 'sla_sample_size' => $this->slaSampleSize($tickets),
                 'tickets_created' => $this->countTicketsCreated($tickets),
@@ -353,22 +382,35 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * @return array{total: ?int, online: ?int, offline: ?int}
+     * @return array{total: ?int, online: ?int, offline: ?int, insights: array<string, mixed>}
      */
     private function summariseClientAssetHealth(string $accountId): array
     {
+        $emptyInsights = $this->emptyDeviceInsights();
+
         try {
             $online = 0;
             $offline = 0;
             $total = null;
             $page = 1;
             $maxPages = (int) config('services.superops.dashboard_max_pages', 10);
+            $assets = [];
 
             do {
                 $pageData = $this->api->query(<<<'GQL'
                     query getAssetList($input: ListInfoInput!) {
                         getAssetList(input: $input) {
-                            assets { assetId status }
+                            assets {
+                                assetId
+                                name
+                                status
+                                platform
+                                lastCommunicatedTime
+                                lastReportedTime
+                                sysUptime
+                                patchStatus
+                                purchasedDate
+                            }
                             listInfo { totalCount hasMore }
                         }
                     }
@@ -383,7 +425,7 @@ class SuperOpsClientMetricsService
                 if ($page === 1 && isset($pageData['getAssetList']['listInfo']['totalCount'])) {
                     $total = (int) $pageData['getAssetList']['listInfo']['totalCount'];
                     if ($total === 0) {
-                        return ['total' => 0, 'online' => 0, 'offline' => 0];
+                        return ['total' => 0, 'online' => 0, 'offline' => 0, 'insights' => $emptyInsights];
                     }
                 }
 
@@ -391,6 +433,7 @@ class SuperOpsClientMetricsService
                 $hasMore = (bool) ($pageData['getAssetList']['listInfo']['hasMore'] ?? false);
 
                 foreach ($batch as $asset) {
+                    $assets[] = is_array($asset) ? $asset : [];
                     if (strtoupper((string) ($asset['status'] ?? '')) === 'ONLINE') {
                         $online++;
                     } else {
@@ -405,14 +448,19 @@ class SuperOpsClientMetricsService
                 $total = $online + $offline;
             }
 
-            return ['total' => $total, 'online' => $online, 'offline' => $offline];
+            return [
+                'total' => $total,
+                'online' => $online,
+                'offline' => $offline,
+                'insights' => $this->deviceInsightsFromAssets($assets),
+            ];
         } catch (Throwable $e) {
             Log::warning('SuperOps dashboard asset health unavailable', [
                 'account_id' => $accountId,
                 'error' => $e->getMessage(),
             ]);
 
-            return ['total' => null, 'online' => null, 'offline' => null];
+            return ['total' => null, 'online' => null, 'offline' => null, 'insights' => $emptyInsights];
         }
     }
 
@@ -446,6 +494,7 @@ class SuperOpsClientMetricsService
                             resolutionTime
                             resolutionViolated
                             requester
+                            category
                         }
                         listInfo { totalCount hasMore }
                     }
@@ -480,6 +529,7 @@ class SuperOpsClientMetricsService
                     'displayId' => (string) ($ticket['displayId'] ?? ''),
                     'subject' => (string) ($ticket['subject'] ?? ''),
                     'priority' => $this->priorityName($ticket['priority'] ?? null),
+                    'category' => $this->categoryName($ticket['category'] ?? null),
                     'resolutionViolated' => isset($ticket['resolutionViolated'])
                         ? (bool) $ticket['resolutionViolated']
                         : null,
@@ -598,18 +648,75 @@ class SuperOpsClientMetricsService
         });
 
         return array_map(
-            fn (array $ticket): array => [
-                'displayId' => $ticket['displayId'],
-                'subject' => $ticket['subject'],
-                'priority' => $ticket['priority'],
-                'status' => $ticket['status'],
-                'createdTime' => $ticket['createdTime'],
-                'requesterEmail' => (string) ($ticket['requesterEmail'] ?? ''),
-                'requesterName' => (string) ($ticket['requesterName'] ?? ''),
-                'requesterUserId' => (string) ($ticket['requesterUserId'] ?? ''),
-            ],
+            fn (array $ticket): array => $this->ticketTableRow($ticket),
             array_slice($open, 0, self::OPEN_TICKET_TABLE_LIMIT),
         );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     * @return list<array<string, mixed>>
+     */
+    private function closedTicketsTable(array $tickets): array
+    {
+        $closed = array_values(array_filter(
+            $tickets,
+            fn (array $ticket): bool => $this->classifyStatus($ticket['status']) === 'closed',
+        ));
+
+        usort($closed, function (array $a, array $b): int {
+            $resolvedA = $this->parseTimestamp($a['resolutionTime'] ?? null)?->timestamp
+                ?? $this->parseTimestamp($a['createdTime'] ?? null)?->timestamp
+                ?? 0;
+            $resolvedB = $this->parseTimestamp($b['resolutionTime'] ?? null)?->timestamp
+                ?? $this->parseTimestamp($b['createdTime'] ?? null)?->timestamp
+                ?? 0;
+
+            return $resolvedB <=> $resolvedA;
+        });
+
+        return array_map(
+            fn (array $ticket): array => $this->ticketTableRow($ticket),
+            array_slice($closed, 0, self::CLOSED_TICKET_TABLE_LIMIT),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticket
+     * @return array<string, mixed>
+     */
+    private function ticketTableRow(array $ticket): array
+    {
+        return [
+            'displayId' => $ticket['displayId'],
+            'subject' => $ticket['subject'],
+            'priority' => $ticket['priority'],
+            'status' => $ticket['status'],
+            'createdTime' => $ticket['createdTime'],
+            'resolutionTime' => $ticket['resolutionTime'] ?? null,
+            'category' => (string) ($ticket['category'] ?? ''),
+            'requesterEmail' => (string) ($ticket['requesterEmail'] ?? ''),
+            'requesterName' => (string) ($ticket['requesterName'] ?? ''),
+            'requesterUserId' => (string) ($ticket['requesterUserId'] ?? ''),
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     * @return array<string, int>
+     */
+    private function ticketsByCategory(array $tickets): array
+    {
+        $counts = [];
+
+        foreach ($tickets as $ticket) {
+            $category = filled($ticket['category'] ?? null) ? (string) $ticket['category'] : 'Unspecified';
+            $counts[$category] = ($counts[$category] ?? 0) + 1;
+        }
+
+        arsort($counts);
+
+        return $counts;
     }
 
     /**
@@ -783,6 +890,20 @@ class SuperOpsClientMetricsService
         return (string) ($priority ?? '');
     }
 
+    private function categoryName(mixed $category): string
+    {
+        if (is_array($category)) {
+            return (string) ($category['name'] ?? $category['id'] ?? '');
+        }
+
+        $normalized = $this->normalizeJsonObject($category);
+        if ($normalized !== []) {
+            return (string) ($normalized['name'] ?? $normalized['id'] ?? '');
+        }
+
+        return is_string($category) ? $category : '';
+    }
+
     private function parseTimestamp(?string $value): ?Carbon
     {
         if (! filled($value)) {
@@ -840,6 +961,11 @@ class SuperOpsClientMetricsService
             isStale: $isStale,
             refreshInProgress: $refreshInProgress || Cache::has('superops_dashboard.refresh_queued.'.$clientId),
             waitingOnClientTotal: is_numeric($waiting) ? (int) $waiting : null,
+            closedTicketsTable: $payload['closed_tickets_table'] ?? [],
+            ticketsByCategory: $payload['tickets_by_category'] ?? [],
+            deviceInsights: is_array($payload['device_insights'] ?? null)
+                ? $payload['device_insights']
+                : $this->emptyDeviceInsights(),
         );
     }
 
@@ -872,9 +998,105 @@ class SuperOpsClientMetricsService
         return ['7' => null, '14' => null, '30' => null, 'all' => null];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyDeviceInsights(): array
+    {
+        return [
+            'offline_30d' => ['count' => 0, 'names' => []],
+            'needs_restart' => ['count' => 0, 'names' => []],
+            'patch' => ['fully' => 0, 'not_fully' => 0, 'unknown' => 0],
+            'edition' => ['home' => 0, 'pro' => 0, 'server' => 0, 'other' => 0],
+            'age' => ['under_3' => 0, '3_to_5' => 0, 'over_5' => 0, 'unknown' => 0],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $assets
+     * @return array<string, mixed>
+     */
+    private function deviceInsightsFromAssets(array $assets): array
+    {
+        $insights = $this->emptyDeviceInsights();
+        $offlineNames = [];
+        $restartNames = [];
+        $cutoff = now()->subDays(30);
+
+        foreach ($assets as $asset) {
+            $name = (string) ($asset['name'] ?? $asset['hostName'] ?? $asset['assetId'] ?? 'Device');
+            $lastSeen = $this->parseTimestamp($asset['lastCommunicatedTime'] ?? null)
+                ?? $this->parseTimestamp($asset['lastReportedTime'] ?? null);
+            $isOffline = strtoupper((string) ($asset['status'] ?? '')) !== 'ONLINE';
+
+            if ($isOffline && $lastSeen !== null && $lastSeen->lte($cutoff)) {
+                $insights['offline_30d']['count']++;
+                $offlineNames[] = $name;
+            }
+
+            $uptimeDays = $this->uptimeDays($asset['sysUptime'] ?? null);
+            if ($uptimeDays !== null && $uptimeDays >= self::RESTART_AFTER_DAYS) {
+                $insights['needs_restart']['count']++;
+                $restartNames[] = $name;
+            }
+
+            $patch = strtolower(trim((string) ($asset['patchStatus'] ?? '')));
+            if ($patch === '') {
+                $insights['patch']['unknown']++;
+            } elseif (str_contains($patch, 'fully') || $patch === 'patched' || str_contains($patch, 'up to date')) {
+                $insights['patch']['fully']++;
+            } else {
+                $insights['patch']['not_fully']++;
+            }
+
+            $platform = strtolower((string) ($asset['platform'] ?? ''));
+            if (str_contains($platform, 'server')) {
+                $insights['edition']['server']++;
+            } elseif (preg_match('/\bhome\b/', $platform)) {
+                $insights['edition']['home']++;
+            } elseif (preg_match('/\bpro\b/', $platform) || str_contains($platform, 'professional')) {
+                $insights['edition']['pro']++;
+            } else {
+                $insights['edition']['other']++;
+            }
+
+            $purchased = $this->parseTimestamp($asset['purchasedDate'] ?? null);
+            if ($purchased === null || $purchased->isFuture()) {
+                $insights['age']['unknown']++;
+            } else {
+                $years = $purchased->diffInYears(now());
+                if ($years < 3) {
+                    $insights['age']['under_3']++;
+                } elseif ($years < 5) {
+                    $insights['age']['3_to_5']++;
+                } else {
+                    $insights['age']['over_5']++;
+                }
+            }
+        }
+
+        $insights['offline_30d']['names'] = array_slice($offlineNames, 0, self::DEVICE_NAME_SAMPLE);
+        $insights['needs_restart']['names'] = array_slice($restartNames, 0, self::DEVICE_NAME_SAMPLE);
+
+        return $insights;
+    }
+
+    private function uptimeDays(?string $uptime): ?int
+    {
+        if (! filled($uptime)) {
+            return null;
+        }
+
+        if (preg_match('/(\d+)\s*day/i', $uptime, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return 0;
+    }
+
     public function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:superops-dashboard:v3";
+        return "client:{$clientId}:superops-dashboard:v4";
     }
 
     /**

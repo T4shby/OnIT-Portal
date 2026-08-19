@@ -176,7 +176,7 @@ You do **not** need to delete clients, wipe SCIM, or redo SuperOps Client SSO.
 
    Do **not** use **Retry Graph setup** unless app IDs are missing.
 
-3. After Accept, wait a few minutes for Graph; force M365 insights refresh (prewarm / visit Organisation). Secure Score and MFA appear only when consent includes the three security report permissions.
+3. After Accept, wait a few minutes for Graph; force M365 insights refresh (prewarm / visit Microsoft 365). Secure Score and MFA appear only when consent includes the three security report permissions.
 4. Licence util and SuperOps keep working without re-consent; only posture metrics stay hidden.
 
 ### 0.4 If consent fails with `GroupMember.ReadWrite.All does not exist in RequiredResourceAccess`

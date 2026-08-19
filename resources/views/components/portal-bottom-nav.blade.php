@@ -1,7 +1,5 @@
 @php
-    $orgLabel = auth()->user()->can('view-organisation-wide') ? 'Organisation' : 'My systems';
-    $orgRoute = route('client-admin.dashboard');
-    $orgActive = request()->routeIs('client-admin.*');
+    $supportActive = request()->routeIs('client-admin.dashboard') || request()->routeIs('client-admin.live');
 
     $third = null;
     if (auth()->user()->can('view-organisation-wide')) {
@@ -37,13 +35,13 @@
         <span>Home</span>
     </a>
 
-    @if(auth()->user()->can('view-organisation-wide') || auth()->user()->can('view-my-systems'))
-        <a href="{{ $orgRoute }}"
-           class="portal-bottom-nav__item {{ $orgActive ? 'is-active' : '' }}">
+    @if(auth()->user()->can('view-client-admin-dashboard'))
+        <a href="{{ route('client-admin.dashboard') }}"
+           class="portal-bottom-nav__item {{ $supportActive ? 'is-active' : '' }}">
             <svg class="portal-bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6.5h16M4 12h16M4 17.5h10"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
-            <span>{{ $orgLabel }}</span>
+            <span>Support</span>
         </a>
     @endif
 

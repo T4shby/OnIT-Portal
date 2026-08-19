@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Services\Portal\ClientVisibilityService;
-use App\Services\Portal\DashboardFeedRegistry;
+use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Organisation overview - metrics from DashboardFeedRegistry,
- * scoped by ClientVisibilityService (admin = org-wide, user = personal).
+ * Support & Devices - SuperOps tickets and managed devices,
+ * scoped by ClientVisibilityService (admin = org-wide, user = personal tickets).
  */
 class ClientAdminDashboardController extends Controller
 {
     public function __construct(
-        private DashboardFeedRegistry $feeds,
+        private SuperOpsClientMetricsService $superOps,
         private ClientVisibilityService $visibility,
     ) {}
 
@@ -27,7 +27,7 @@ class ClientAdminDashboardController extends Controller
         $client = $user->client;
         abort_unless($client && $this->visibility->canAccessClientSystems($user, $client), 404);
 
-        return view('client-admin.dashboard', $this->dashboardData($request, $client));
+        return view('client-admin.dashboard', $this->pageData($request, $client));
     }
 
     public function live(Request $request): View
@@ -38,7 +38,7 @@ class ClientAdminDashboardController extends Controller
         $client = $user->client;
         abort_unless($client && $this->visibility->canAccessClientSystems($user, $client), 404);
 
-        return view('client-admin._dashboard-live-root', $this->dashboardData($request, $client));
+        return view('client-admin._dashboard-live-root', $this->pageData($request, $client));
     }
 
     public function refresh(Request $request): RedirectResponse
@@ -50,14 +50,14 @@ class ClientAdminDashboardController extends Controller
         abort_unless($client && $this->visibility->canAccessClientSystems($user, $client), 404);
         abort_unless($this->visibility->canViewOrganisationWide($user, $client), 403);
 
-        $queued = $this->feeds->queueOverviewRefresh($client, respectCooldown: true);
+        $queued = $this->superOps->queueRefresh($client, respectCooldown: true);
 
         return redirect()
             ->route('client-admin.dashboard')
             ->with(
                 $queued ? 'success' : 'error',
                 $queued
-                    ? 'Dashboard refresh queued. Numbers on this page update when ready - no full reload.'
+                    ? 'Support refresh queued. Numbers on this page update when ready - no full reload.'
                     : 'Please wait before refreshing again.',
             );
     }
@@ -65,20 +65,14 @@ class ClientAdminDashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function dashboardData(Request $request, \App\Models\Client $client): array
+    private function pageData(Request $request, \App\Models\Client $client): array
     {
         $user = $request->user();
-        $summaries = $this->feeds->summariesForClient($client, false, $user);
-        $orgWide = $this->visibility->canViewOrganisationWide($user, $client);
 
-        return array_merge(
-            [
-                'client' => $client,
-                'dashboardFeeds' => $this->feeds,
-                'feedSummaries' => $summaries['by_key'],
-                'organisationWide' => $orgWide,
-            ],
-            $summaries['view'],
-        );
+        return [
+            'client' => $client,
+            'summary' => $this->superOps->summaryForClient($client, false, $user),
+            'organisationWide' => $this->visibility->canViewOrganisationWide($user, $client),
+        ];
     }
 }

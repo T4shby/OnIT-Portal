@@ -94,8 +94,28 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                     'data' => [
                         'getAssetList' => [
                             'assets' => [
-                                ['assetId' => 'a1', 'status' => 'ONLINE'],
-                                ['assetId' => 'a2', 'status' => 'OFFLINE'],
+                                [
+                                    'assetId' => 'a1',
+                                    'name' => 'LAPTOP-PRO',
+                                    'status' => 'ONLINE',
+                                    'platform' => 'Microsoft Windows 11 Pro',
+                                    'lastCommunicatedTime' => now()->toIso8601String(),
+                                    'lastReportedTime' => now()->toIso8601String(),
+                                    'sysUptime' => '2 hours 10 minutes',
+                                    'patchStatus' => 'Fully Patched',
+                                    'purchasedDate' => now()->subYears(2)->toDateString(),
+                                ],
+                                [
+                                    'assetId' => 'a2',
+                                    'name' => 'DESKTOP-HOME',
+                                    'status' => 'OFFLINE',
+                                    'platform' => 'Microsoft Windows 10 Home Single Language',
+                                    'lastCommunicatedTime' => now()->subDays(40)->toIso8601String(),
+                                    'lastReportedTime' => now()->subDays(40)->toIso8601String(),
+                                    'sysUptime' => '20 days 1 hour',
+                                    'patchStatus' => 'Missing Patches',
+                                    'purchasedDate' => now()->subYears(6)->toDateString(),
+                                ],
                             ],
                             'listInfo' => ['totalCount' => 23, 'hasMore' => false],
                         ],
@@ -121,6 +141,16 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(1, $summary->ticketsClosed['14']);
         $this->assertSame(2, $summary->ticketsClosed['30']);
         $this->assertSame(2, $summary->ticketsClosed['all']);
+        $this->assertSame(1, $summary->deviceInsights['offline_30d']['count']);
+        $this->assertSame(['DESKTOP-HOME'], $summary->deviceInsights['offline_30d']['names']);
+        $this->assertSame(1, $summary->deviceInsights['needs_restart']['count']);
+        $this->assertSame(1, $summary->deviceInsights['edition']['home']);
+        $this->assertSame(1, $summary->deviceInsights['edition']['pro']);
+        $this->assertSame(1, $summary->deviceInsights['patch']['fully']);
+        $this->assertSame(1, $summary->deviceInsights['patch']['not_fully']);
+        $this->assertSame(1, $summary->deviceInsights['age']['under_3']);
+        $this->assertSame(1, $summary->deviceInsights['age']['over_5']);
+        $this->assertNotEmpty($summary->closedTicketsTable);
 
         Http::assertSent(function ($request) {
             $payload = $request->data();
@@ -152,7 +182,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $clientA = Client::factory()->create(['superops_account_id' => '111']);
         $clientB = Client::factory()->create(['superops_account_id' => '222']);
 
-        Cache::put("client:{$clientA->id}:superops-dashboard:v2", [
+        Cache::put("client:{$clientA->id}:superops-dashboard:v4", [
             'assets_total' => 10,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -160,7 +190,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v2", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v4", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],
@@ -181,7 +211,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -206,7 +236,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -224,25 +254,24 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     public function test_needs_background_refresh_uses_refresh_after_not_client_banner_ttl(): void
     {
         config([
-            'services.superops.dashboard_refresh_after_minutes' => 10,
-            'services.superops.dashboard_cache_minutes' => 15,
+            'services.superops.dashboard_cache_minutes' => 180,
         ]);
 
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
             'tickets_closed' => ['7' => 2, '14' => 6, '30' => 10, 'all' => 171],
-            'last_refreshed_at' => now()->subMinutes(11)->toIso8601String(),
+            'last_refreshed_at' => now()->subHours(2)->toIso8601String(),
         ], now()->addDay());
 
         $this->assertTrue($service->needsBackgroundRefresh($client));
         $this->assertFalse($service->summaryForClient($client)->isStale);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],

@@ -77,8 +77,7 @@ class ClientProductEntitlementsTest extends TestCase
             ->get(route('client-admin.dashboard'))
             ->assertOk()
             ->assertSee('Please contact your account manager to get this sorted')
-            ->assertSee('Managed devices')
-            ->assertSee('Security (Huntress)');
+            ->assertDontSee('Security (Huntress)');
     }
 
     public function test_requester_hides_entitled_but_unmapped(): void

@@ -26,7 +26,7 @@ class ClientAdminDashboardTest extends TestCase
 
         config(['services.superops.api_token' => 'token', 'services.superops.subdomain' => 'onitltd']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v2", [
+        Cache::put("client:{$client->id}:superops-dashboard:v4", [
             'assets_total' => 14,
             'assets_online' => 12,
             'assets_offline' => 2,
@@ -47,8 +47,9 @@ class ClientAdminDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('14');
         $response->assertSee('6');
-        $response->assertSee('System health');
+        $response->assertSee('Support &amp; Devices', false);
         $response->assertSee('Open tickets');
+        $response->assertDontSee('System health');
     }
 
     public function test_client_admin_sees_account_manager_prompt_when_integrations_not_linked(): void
@@ -84,10 +85,8 @@ class ClientAdminDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Please contact your account manager to get this sorted')
             ->assertDontSee('SuperOps is not connected')
-            ->assertSee('Managed devices')
-            ->assertSee('Security (Huntress)')
-            ->assertSee('Backups (Dropsuite)')
-            ->assertSee('Microsoft 365');
+            ->assertDontSee('Security (Huntress)')
+            ->assertDontSee('Backups (Dropsuite)');
     }
 
     public function test_requester_hides_unlinked_integration_tiles(): void
@@ -118,7 +117,6 @@ class ClientAdminDashboardTest extends TestCase
             ->assertDontSee('Security (Huntress)')
             ->assertDontSee('Backups (Dropsuite)')
             ->assertDontSee('Managed devices')
-            ->assertDontSee('Support &amp; SLA', false)
             ->assertDontSee('Please contact your account manager to get this sorted');
     }
 

@@ -288,7 +288,7 @@ class ClientProductService
     }
 
     /**
-     * System health tile visibility on Organisation Overview.
+     * System health tile visibility on Dashboard glance (legacy feed tiles).
      *
      * - Technician: all service tiles
      * - Client Admin: all service tiles (not sold → upsell placeholder)

@@ -12,8 +12,8 @@ MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisat
 |------|--------|
 | `super_admin` | All clients; settings; timing; full admin |
 | `account_manager` | Assigned clients; Integration Health + sold coverage for those clients |
-| `client_admin` | Own org: **Organisation** overview, all people/systems for that customer |
-| `client_requester` / `client_billing_admin` | Own org: **My Systems** personal tiles; tickets they own; no Organisation nav |
+| `client_admin` | Own org: Dashboard + Reports + Services (Support & Devices org-wide, Security, Microsoft 365) |
+| `client_requester` / `client_billing_admin` | Own org: Dashboard + Services (personal Support & Devices tickets; Security/M365 when entitled) |
 
 ## In scope (shipped)
 
@@ -21,7 +21,7 @@ MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisat
 |------|-------------|
 | Auth | Multi-tenant Entra; pre-provisioned users; capability gates |
 | SuperOps support | List + create tickets in portal; **open SuperOps for conversation** (not embed full thread UI) |
-| SuperOps metrics | Organisation (CA) / personal requester views from cached GraphQL metrics |
+| SuperOps metrics | Support & Devices (CA org-wide / requester personal) from cached GraphQL metrics |
 | M365 | Directory page + licence insights tiles; async refresh |
 | Huntress | Sold org security posture + cases (visibility rules) |
 | Dropsuite | Org backup health summary + CA full inventory page |

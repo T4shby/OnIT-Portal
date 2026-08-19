@@ -1,21 +1,28 @@
 # Client Admin dashboard
 
-**Nav / layout (2026-08-18):** Organisation overview restyled to match glance: Poppins + dense `#0a2537` cards, **equal CSS grid** (1 / 2 / 4 columns) so System health never stretches one orphan tile full-width. Feed partials use metric rows; device offline is informational (“not checking in”) with a short offline-by-design note. **Mobile:** open tickets render as tap cards below `sm`; Refresh CTA full width on phone.
+**Nav / layout (2026-08-19):** Organisation page is **removed**. Client home is **Dashboard**. Drill-downs sit under a **Services** dropdown: Security, Microsoft 365, Support & Devices. Huntress and Dropsuite stay on Dashboard glance (and their own pages). M365 licence utilisation lives on the **Microsoft 365** directory page.
 
-| Role | Nav label | Page |
-|------|-----------|------|
-| **Client Admin** | **Organisation** | Organisation Overview - org-wide people/systems |
-| **Requester / Billing** | **My Systems** | Personal summary - live products only, items linked to them |
+| Role | Nav | Page |
+|------|-----|------|
+| All client-facing | **Dashboard** | Glance (health + value) |
+| Client Admin | **Reports** | Value report |
+| Client-facing | **Services → Support & Devices** (`/services/support-devices`) | SuperOps tickets + devices (org-wide for Client Admin; personal tickets for requester/billing) |
+| If Huntress entitled | **Services → Security** | Huntress cases |
+| If M365 entitled | **Services → Microsoft 365** | Directory + licence utilisation |
+| Client Admin | **Online backups** (`/client-admin/backups`) from Dashboard Backup tile | Dropsuite inventory |
 
-Client Admins see organisation overview scoped to their own client. The page answers:
+Legacy `/client-admin` redirects to `/services/support-devices`. Named route remains `client-admin.dashboard`.
 
-1. **Are my systems healthy?** - modular **dashboard feeds** (SuperOps devices, Huntress, Dropsuite, M365 licences)
-2. **Are my issues being dealt with?** - open tickets (with priority breakdown and table), SLA %, ticket activity
-3. **What value am I getting from On IT?** - licence utilisation and coverage metrics
+Support & Devices answers:
+
+1. **Tickets** - open by priority, categories, SLA (30 days), activity 7/14/30/all, open table, recently closed
+2. **Devices** (Client Admin) - checking in / not, offline 30+ days, uptime 14+ days (restart), patch status, Home vs Pro vs Server, purchase-date age. RAM/HDD/SSD are **not** on the SuperOps asset list feed.
+
+Controller: `ClientAdminDashboardController` injects SuperOps metrics only (not the full feed registry). Glance still uses `DashboardFeedRegistry`.
 
 ## Dashboard feed contract (modular)
 
-All organisation overview integrations implement `App\Contracts\DashboardFeed` and are registered in `AppServiceProvider` → `DashboardFeedRegistry`.
+All **Dashboard glance** integrations implement `App\Contracts\DashboardFeed` and are registered in `AppServiceProvider` → `DashboardFeedRegistry`.
 
 | Concern | Where |
 |---------|--------|
@@ -24,7 +31,7 @@ All organisation overview integrations implement `App\Contracts\DashboardFeed` a
 | Feed adapters | `app/Services/Portal/Feeds/*DashboardFeed.php` |
 | Metrics engines | `app/Services/{SuperOps,Huntress,Dropsuite,M365}/…` |
 | System health tiles | `resources/views/client-admin/feeds/_*.blade.php` |
-| Controller | injects **registry only** - no hard-coded vendor DI |
+| Controller | Glance/prewarm: registry. Support & Devices: SuperOps service only |
 | Prewarm | loops critical vs optional feeds from registry |
 | Orphan queue flags | `ClearsOrphanedFeedRefreshFlags` trait |
 
@@ -91,7 +98,7 @@ Staff roles (`account_manager`, `super_admin`) are unchanged.
 
 | Scenario | What the **client** home shows | Why |
 |----------|--------------------------------|-----|
-| Support sold; **Huntress not sold** | Hero: tickets resolved · open · SLA. Detection & Response = **Add-on** (optional). No empty “Threats stopped -”. | Empty MDR would look like zero security. On IT still handles security via tickets; automated MDR metrics only when Huntress is sold. |
+| Support sold; **Huntress not sold** | Hero: tickets resolved · open · SLA. Security = **Add-on** (optional). No empty “Threats stopped -”. | Empty MDR would look like zero security. On IT still handles security via tickets; automated MDR metrics only when Huntress is sold. |
 | Huntress **sold** + mapped | Hero includes **Threats stopped** (from Huntress feed) + tickets + SLA | Real MDR numbers only - never invent from SuperOps tickets. |
 | Huntress sold but **not mapped / cold** | Threats may show `-` until IH live | Finish org ID + Integration Health; status Setup needed, not Add-on. |
 
@@ -119,7 +126,7 @@ Entra sync creates new users as `client_requester` only. Sync updates never chan
 **Who:** On IT `super_admin` / `account_manager` only - **Staff Admin → Integration Health** (`/admin/integration-health`).  
 **Not** shown on Client Organisation overview / requester portals.
 
-**Nav:** Own sidebar tab under Staff Admin (not buried on the dashboard). Dashboard shows a compact “Refresh pipeline” card linking to the tab. Portal top nav: **Organisation** (Client Admin only) / **My Systems** (requester & billing), **Microsoft 365**, **Staff Admin** (MSP).
+**Nav:** Own sidebar tab under Staff Admin (not buried on the dashboard). Dashboard shows a compact “Refresh pipeline” card linking to the tab. Portal top nav: **Dashboard**, **Reports** (Client Admin), **Services** dropdown (Security / Microsoft 365 / Support & Devices), **Staff Admin** (MSP).
 
 Service: `App\Services\Admin\IntegrationHealthService`  
 Controller: `App\Http\Controllers\Admin\IntegrationHealthController`
@@ -210,9 +217,15 @@ PHP is not multi-threaded inside one worker. Parallelism = **multiple queue work
 
 Service: `App\Services\SuperOps\SuperOpsClientMetricsService`
 
-Cache key: `client:{client_id}:superops-dashboard:v2`
+Cache key: `client:{client_id}:superops-dashboard:v4`
 
-Dashboard payload includes: asset totals with online/offline split, open ticket count with priority breakdown, open-ticket table (top 10), resolution SLA % (30 days), and ticket logged/closed ranges.
+Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, purchase age), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (30 days), and ticket logged/closed ranges.
+
+Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate`. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`).
+
+RAM and disk need `getAssetSummary` / `getAssetDiskDetails` **per asset** - not cached on this page.
+
+Restart heuristic: `sysUptime` contains 14+ days. Offline 30+ days uses last communicated/reported time, not raw ONLINE/OFFLINE (field kit can be offline by design).
 
 | Setting | Source | Default |
 |---------|--------|---------|
@@ -227,9 +240,9 @@ Dashboard payload includes: asset totals with online/offline split, open ticket 
 
 | Audience | Surface | Tone |
 |----------|---------|------|
-| **Client Admin** | `/client-admin` · nav **Organisation** | **All service tiles** always. Live → metrics. **Setup needed** → “Please contact your account manager to get this sorted.” **Not sold** → still shown: “Please contact your Account manager if you want this enabling”. Support & SLA only when SuperOps **entitled**. |
-| **Requester / Billing** | `/client-admin` · nav **My Systems** | Show tile only when product **live**. Unsold/setup-needed **hidden**. Section “Your services”; dynamic width (1/2/3 per row). No Organisation nav. |
-| Technician (`super_admin` / `account_manager`) | **No** shared `/client-admin` “view as” session | Staff use **Admin → Clients / Integration Health** + product tools. Per-client home layout: **Edit Client → What the client sees at home**. |
+| **Client Admin** | `/services/support-devices` · **Services → Support & Devices** | SuperOps tickets + devices. Setup needed → “Please contact your account manager to get this sorted.” Huntress/Dropsuite/M365 are **not** on this page. |
+| **Requester / Billing** | Same URL | Personal SuperOps tickets only. Device inventory hidden. |
+| Technician (`super_admin` / `account_manager`) | **No** shared Support & Devices “view as” session | Staff use **Admin → Clients / Integration Health** + product tools. Per-client home layout: **Edit Client → What the client sees at home**. |
 | Technician only | Admin → Integration refresh health | Ages, `OK` / **AGING**, Not sold / Setup needed; queue depths. |
 
 **System health layout** (`shouldShowOverviewTile` + `overviewTileWidthClass`): max **3 tiles per row**, flex + `gap-4`. Row of 1 = full width; 2 = 50/50; 3 = thirds. Orphans: 4→3+1, 5→3+2, 6→3+3, 7→3+3+1.
@@ -569,13 +582,13 @@ On IT staff (`account_manager`, `super_admin`) assign roles in **Admin → Clien
 
 ## Testing safely
 
-PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in staging, use a client with `superops_account_id` / `huntress_organization_id` and Entra tenant configured; open `/client-admin` as a `client_admin` user.
+PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in staging, use a client with `superops_account_id` / `huntress_organization_id` and Entra tenant configured; open `/services/support-devices` as a `client_admin` user.
 
 ## Change log
 
 | Date | Change |
 |------|--------|
-| 2026-08-18 | M365 directory: friendly licence chips (same SKU map as Organisation), no SuperOps mailbox suffix on names, wrapping + phone cards |
+| 2026-08-19 | Removed Organisation nav/page. **Services** dropdown: Security, Microsoft 365, Support & Devices. SuperOps tickets/devices on `/services/support-devices` (cache `v4`). Licence utilisation on Microsoft 365 page. |
 | 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |
 | 2026-08-13 | Integration Health **SuperOps SCIM** column - Entra export health (Sync 1) beside Devices & tickets; failed counts in KPI + notices |
 | 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |

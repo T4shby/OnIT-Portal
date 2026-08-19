@@ -17,8 +17,8 @@
             @endif
         </p>
         <div class="mt-4">
-            <a href="{{ route('client-admin.dashboard') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">
-                &larr; Organisation overview
+            <a href="{{ route('dashboard') }}" class="text-xs text-onit hover:text-white font-condensed uppercase tracking-wide">
+                &larr; Dashboard
             </a>
         </div>
     </section>

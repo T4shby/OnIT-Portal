@@ -72,17 +72,20 @@ Route::middleware('auth')->group(function () {
         ->middleware(['can:view-m365-directory', 'throttle:6,1'])
         ->name('microsoft-365.directory.refresh');
 
-    Route::get('/client-admin', [ClientAdminDashboardController::class, 'index'])
+    Route::get('/services/support-devices', [ClientAdminDashboardController::class, 'index'])
         ->middleware('can:view-client-admin-dashboard')
         ->name('client-admin.dashboard');
 
-    Route::get('/client-admin/live', [ClientAdminDashboardController::class, 'live'])
+    Route::get('/services/support-devices/live', [ClientAdminDashboardController::class, 'live'])
         ->middleware('can:view-client-admin-dashboard')
         ->name('client-admin.live');
 
-    Route::post('/client-admin/refresh', [ClientAdminDashboardController::class, 'refresh'])
+    Route::post('/services/support-devices/refresh', [ClientAdminDashboardController::class, 'refresh'])
         ->middleware(['can:view-client-admin-dashboard', 'throttle:6,1'])
         ->name('client-admin.refresh');
+
+    Route::redirect('/client-admin', '/services/support-devices');
+    Route::redirect('/client-admin/live', '/services/support-devices/live');
 
     Route::get('/client-admin/backups', [ClientBackupsController::class, 'index'])
         ->middleware('can:view-organisation-wide')

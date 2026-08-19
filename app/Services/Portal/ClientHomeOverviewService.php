@@ -123,7 +123,7 @@ class ClientHomeOverviewService
         $columnMeta = [
             'superops' => 'Support & Devices',
             'm365' => 'Microsoft 365',
-            'huntress' => 'Detection & Response',
+            'huntress' => 'Security',
             'dropsuite' => 'Backup',
         ];
 
@@ -171,7 +171,7 @@ class ClientHomeOverviewService
             $summary = 'Hero stats: Tickets resolved · Open tickets · SLA met. No “Threats stopped” tile.';
             $detail = 'This is intentional. Empty MDR metrics would look like “we stop no threats.” '
                 .'Support tickets and technicians remain how On IT handles security for this organisation. '
-                .'Detection & Response shows as an optional Add-on, not unprotected.';
+                .'Security shows as an optional Add-on, not unprotected.';
             $bullets = [
                 'Turning Huntress sold + mapping the org ID switches hero stats to include Threats stopped (via MDR).',
                 'Grey H on the Clients list means not sold - the client home stays support-led, not “broken AV.”',
@@ -631,8 +631,8 @@ class ClientHomeOverviewService
             title: 'Support & Devices',
             plan_label: 'Managed IT Support',
             source: 'SuperOps',
-            href: $orgWide ? route('client-admin.dashboard') : route('support.index'),
-            href_label: $orgWide ? 'Organisation detail →' : 'View tickets →',
+            href: route('client-admin.dashboard'),
+            href_label: $orgWide ? 'Support & Devices →' : 'Your tickets →',
             client: $client,
             user: $user,
         );
@@ -810,7 +810,7 @@ class ClientHomeOverviewService
     {
         $base = $this->baseColumn(
             key: 'huntress',
-            title: 'Detection & Response',
+            title: 'Security',
             plan_label: 'Managed Cybersecurity (MDR + ITDR)',
             source: 'Huntress',
             href: route('security.huntress.index'),
@@ -885,8 +885,8 @@ class ClientHomeOverviewService
             source: 'Dropsuite',
             href: $orgWide && $user->can('view-organisation-wide')
                 ? route('client-admin.backups')
-                : route('client-admin.dashboard'),
-            href_label: $orgWide ? 'Online backups →' : 'My systems →',
+                : route('dashboard'),
+            href_label: $orgWide ? 'Online backups →' : 'Dashboard →',
             client: $client,
             user: $user,
         );
