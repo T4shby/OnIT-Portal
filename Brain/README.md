@@ -83,6 +83,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-19 | Dashboard service cards (Support, M365, Security, Backup) are equal height - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-19 | Support & Devices restart pager stays inside the same card chrome as the other device tiles |
 | 2026-08-18 | M365 directory: friendly licence names + wrapping chips; names no longer duplicate mailbox type - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up menu, glance/org ticket cards, scroll strips - [UIOverhaul.md](UIOverhaul.md) |

@@ -20,7 +20,7 @@
         ->reject(fn ($m) => ($m['kind'] ?? '') === 'pipeline')
         ->values();
 @endphp
-<div class="glance-card" style="display:flex;flex-direction:column;gap:1rem;padding:1.35rem 1.4rem;height:100%">
+<div class="glance-card glance-card-service">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icon !!}</svg>
@@ -53,7 +53,7 @@
                 default => 'rgba(255,255,255,.7)',
             };
         @endphp
-        <div style="border-radius:4px;border:1px solid {{ $whyBorder }};background:{{ $whyBg }};padding:8px 10px">
+        <div class="glance-status" style="border-radius:4px;border:1px solid {{ $whyBorder }};background:{{ $whyBg }};padding:8px 10px">
             <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.04em;color:{{ $whyLabel }}">
                 {{ $col['status_label'] ?? 'Status' }}
             </p>
@@ -62,7 +62,7 @@
     @endif
 
     @if($metrics->isNotEmpty())
-        <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="glance-metrics">
             @foreach($metrics as $metric)
                 @php
                     $kind = $metric['kind'] ?? 'ok';
@@ -99,5 +99,7 @@
 
     @if(! empty($col['href']) && $state !== 'not_sold' && $state !== 'hidden')
         <a href="{{ $col['href'] }}" class="glance-link" style="margin-top:auto">{{ $col['href_label'] ?? 'Details →' }}</a>
+    @elseif($state === 'not_sold')
+        <span class="glance-link" style="margin-top:auto;visibility:hidden" aria-hidden="true">Details →</span>
     @endif
 </div>

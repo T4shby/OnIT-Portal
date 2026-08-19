@@ -112,6 +112,29 @@
     .glance-label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #FF7000; }
     .glance-muted { color: rgba(255,255,255,.65); }
     .glance-card { background: #0a2537; border: 1px solid #1F2933; border-radius: 8px; }
+    .glance-columns {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1.75rem 0;
+        align-items: stretch;
+    }
+    @media (min-width: 700px) {
+        .glance-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1100px) {
+        .glance-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    .glance-card-service {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.35rem 1.4rem;
+        box-sizing: border-box;
+        align-self: stretch;
+    }
+    .glance-status { min-height: 5.25rem; }
+    .glance-metrics { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; }
     .glance-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #0a2537; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; font-weight: 500; }
     .glance-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
     .glance-svc { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; }
@@ -322,7 +345,7 @@
         </div>
     </div>
 
-    <div class="glance-columns" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;padding:1.75rem 0">
+    <div class="glance-columns">
         @foreach($cols as $col)
             @include('dashboard.partials._glance-column', ['col' => $col])
         @endforeach

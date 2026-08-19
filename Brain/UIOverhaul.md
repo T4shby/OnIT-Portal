@@ -5,7 +5,7 @@
 
 | Mockup ID | Portal page | Notes |
 |-----------|-------------|--------|
-| **1a** Dark | `/dashboard` (`dashboard/glance.blade.php`) | Hero + traffic lights + value stats + services strip + 4 source columns + activity |
+| **1a** Dark | `/dashboard` (`dashboard/glance.blade.php`) | Hero + traffic lights + value stats + services strip + 4 equal-height source cards + activity |
 | **1b** Light | Not implemented (dark site palette preferred) | Same content model as 1a |
 | **1c** Value report | `/reports` (`reports/index.blade.php`) | Navy services rail + light main + stacked rows + activity |
 
@@ -126,6 +126,9 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 ## Changelog
 
+| Date | Note |
+|------|------|
+| 2026-08-19 | Dashboard service cards share one equal-height 4-column row. |
 | 2026-08-19 | Dashboard Huntress card title is **Security** (was Detection & Response). |
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |
