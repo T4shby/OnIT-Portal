@@ -38,7 +38,7 @@ class ClientRoleAccessTest extends TestCase
             'email' => 'jane@example.test',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 50,
             'open_tickets_total' => 9,
             'open_tickets_table' => [
@@ -110,7 +110,7 @@ class ClientRoleAccessTest extends TestCase
             'role' => UserRole::ClientAdmin,
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 5,
             'open_tickets_total' => 2,
             'open_tickets_table' => [
@@ -150,7 +150,7 @@ class ClientRoleAccessTest extends TestCase
             'role' => UserRole::ClientAdmin,
         ]);
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v4", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v5", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],

@@ -70,9 +70,9 @@ class SuperOpsClientMetricsService
 
     private const CLOSED_TICKET_TABLE_LIMIT = 10;
 
-    private const DEVICE_NAME_SAMPLE = 8;
+    private const DEVICE_NAME_LIMIT = 200;
 
-    private const RESTART_AFTER_DAYS = 14;
+    private const RESTART_AFTER_DAYS = 2;
 
     public function __construct(private SuperOpsApiClient $api) {}
 
@@ -1075,8 +1075,8 @@ class SuperOpsClientMetricsService
             }
         }
 
-        $insights['offline_30d']['names'] = array_slice($offlineNames, 0, self::DEVICE_NAME_SAMPLE);
-        $insights['needs_restart']['names'] = array_slice($restartNames, 0, self::DEVICE_NAME_SAMPLE);
+        $insights['offline_30d']['names'] = array_values(array_slice($offlineNames, 0, self::DEVICE_NAME_LIMIT));
+        $insights['needs_restart']['names'] = array_values(array_slice($restartNames, 0, self::DEVICE_NAME_LIMIT));
 
         return $insights;
     }
@@ -1096,7 +1096,7 @@ class SuperOpsClientMetricsService
 
     public function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:superops-dashboard:v4";
+        return "client:{$clientId}:superops-dashboard:v5";
     }
 
     /**

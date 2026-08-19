@@ -112,7 +112,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                     'platform' => 'Microsoft Windows 10 Home Single Language',
                                     'lastCommunicatedTime' => now()->subDays(40)->toIso8601String(),
                                     'lastReportedTime' => now()->subDays(40)->toIso8601String(),
-                                    'sysUptime' => '20 days 1 hour',
+                                    'sysUptime' => '2 days 1 hour',
                                     'patchStatus' => 'Missing Patches',
                                     'purchasedDate' => now()->subYears(6)->toDateString(),
                                 ],
@@ -144,6 +144,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(1, $summary->deviceInsights['offline_30d']['count']);
         $this->assertSame(['DESKTOP-HOME'], $summary->deviceInsights['offline_30d']['names']);
         $this->assertSame(1, $summary->deviceInsights['needs_restart']['count']);
+        $this->assertSame(['DESKTOP-HOME'], $summary->deviceInsights['needs_restart']['names']);
         $this->assertSame(1, $summary->deviceInsights['edition']['home']);
         $this->assertSame(1, $summary->deviceInsights['edition']['pro']);
         $this->assertSame(1, $summary->deviceInsights['patch']['fully']);
@@ -182,7 +183,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $clientA = Client::factory()->create(['superops_account_id' => '111']);
         $clientB = Client::factory()->create(['superops_account_id' => '222']);
 
-        Cache::put("client:{$clientA->id}:superops-dashboard:v4", [
+        Cache::put("client:{$clientA->id}:superops-dashboard:v5", [
             'assets_total' => 10,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -190,7 +191,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v4", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v5", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],
@@ -211,7 +212,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -236,7 +237,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -260,7 +261,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -271,7 +272,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertTrue($service->needsBackgroundRefresh($client));
         $this->assertFalse($service->summaryForClient($client)->isStale);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],

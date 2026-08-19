@@ -26,7 +26,7 @@ class ClientAdminDashboardTest extends TestCase
 
         config(['services.superops.api_token' => 'token', 'services.superops.subdomain' => 'onitltd']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 14,
             'assets_online' => 12,
             'assets_offline' => 2,

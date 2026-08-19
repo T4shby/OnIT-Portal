@@ -16,7 +16,7 @@ Legacy `/client-admin` redirects to `/services/support-devices`. Named route rem
 Support & Devices answers:
 
 1. **Tickets** - open by priority, categories, SLA (30 days), activity 7/14/30/all, open table, recently closed
-2. **Devices** (Client Admin) - checking in / not, offline 30+ days, uptime 14+ days (restart), patch status, Home vs Pro vs Server, purchase-date age. RAM/HDD/SSD are **not** on the SuperOps asset list feed.
+2. **Devices** (Client Admin) - checking in / not, offline 30+ days, uptime 2+ days (restart, names paginated 5 per page), patch status, Home vs Pro vs Server, purchase-date age. RAM/HDD/SSD is **not shown**.
 
 Controller: `ClientAdminDashboardController` injects SuperOps metrics only (not the full feed registry). Glance still uses `DashboardFeedRegistry`.
 
@@ -217,15 +217,13 @@ PHP is not multi-threaded inside one worker. Parallelism = **multiple queue work
 
 Service: `App\Services\SuperOps\SuperOpsClientMetricsService`
 
-Cache key: `client:{client_id}:superops-dashboard:v4`
+Cache key: `client:{client_id}:superops-dashboard:v5`
 
 Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, purchase age), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (30 days), and ticket logged/closed ranges.
 
 Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate`. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`).
 
-RAM and disk need `getAssetSummary` / `getAssetDiskDetails` **per asset** - not cached on this page.
-
-Restart heuristic: `sysUptime` contains 14+ days. Offline 30+ days uses last communicated/reported time, not raw ONLINE/OFFLINE (field kit can be offline by design).
+Restart heuristic: `sysUptime` contains **2+ days**. Device name lists paginate at 5 per page. Offline 30+ days uses last communicated/reported time. RAM/disk per-device pull is parked - no placeholder card.
 
 | Setting | Source | Default |
 |---------|--------|---------|
@@ -588,7 +586,8 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
-| 2026-08-19 | Removed Organisation nav/page. **Services** dropdown: Security, Microsoft 365, Support & Devices. SuperOps tickets/devices on `/services/support-devices` (cache `v4`). Licence utilisation on Microsoft 365 page. |
+| 2026-08-19 | Restart threshold 2+ days; paginated device names; RAM/disk card still hidden |
+| 2026-08-19 | Removed Organisation nav/page. **Services** dropdown: Security, Microsoft 365, Support & Devices. SuperOps tickets/devices on `/services/support-devices` (cache `v5`). Licence utilisation on Microsoft 365 page. |
 | 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |
 | 2026-08-13 | Integration Health **SuperOps SCIM** column - Entra export health (Sync 1) beside Devices & tickets; failed counts in KPI + notices |
 | 2026-08-10 | Organisation overview layout revolve: dense 4-col grid, glance cards, no full-width empty health tiles |

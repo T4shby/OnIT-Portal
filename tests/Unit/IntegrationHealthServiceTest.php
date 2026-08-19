@@ -73,7 +73,7 @@ class IntegrationHealthServiceTest extends TestCase
             'superops_account_id' => 'acc-1',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 3,
             // Past requeue (~9m for 10m interval) but under soft window (~11.5m)
             'last_refreshed_at' => now()->subMinutes(10)->subSeconds(30)->toIso8601String(),

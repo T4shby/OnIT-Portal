@@ -69,6 +69,10 @@
         min-height: 40px; min-width: 44px;
     }
     .org-range-btn.is-on { border-color: #FF7000; color: #FF7000; }
+    .org-range-btn:disabled { opacity: .35; cursor: default; }
+    .org-pager__nav {
+        display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+    }
     .org-cta { width: 100%; }
     @media (min-width: 640px) {
         .org-cta { width: auto; }

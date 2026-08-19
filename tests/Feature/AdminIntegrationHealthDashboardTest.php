@@ -25,7 +25,7 @@ class AdminIntegrationHealthDashboardTest extends TestCase
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
         ]);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v4", [
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
             'assets_total' => 3,
             'last_refreshed_at' => now()->subMinutes(12)->toIso8601String(),
         ], now()->addDay());

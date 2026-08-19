@@ -183,9 +183,7 @@
                             {{ number_format((int) ($offline30['count'] ?? 0)) }}
                         </p>
                         <p class="org-muted" style="margin:8px 0 0;font-size:12px">Last check-in older than 30 days</p>
-                        @foreach($offline30['names'] ?? [] as $name)
-                            <p class="org-muted" style="margin:6px 0 0;font-size:12px">{{ $name }}</p>
-                        @endforeach
+                        @include('client-admin._device-name-pager', ['names' => $offline30['names'] ?? []])
                     </div>
 
                     <div class="org-card org-card-pad">
@@ -193,10 +191,8 @@
                         <p class="org-hero-num" style="margin:8px 0 0">
                             {{ number_format((int) ($restart['count'] ?? 0)) }}
                         </p>
-                        <p class="org-muted" style="margin:8px 0 0;font-size:12px">Uptime of 14 days or more</p>
-                        @foreach($restart['names'] ?? [] as $name)
-                            <p class="org-muted" style="margin:6px 0 0;font-size:12px">{{ $name }}</p>
-                        @endforeach
+                        <p class="org-muted" style="margin:8px 0 0;font-size:12px">Uptime of 2 days or more</p>
+                        @include('client-admin._device-name-pager', ['names' => $restart['names'] ?? []])
                     </div>
 
                     <div class="org-card org-card-pad">
@@ -262,13 +258,6 @@
                                 <span class="org-metric-v">{{ number_format((int) ($age['unknown'] ?? 0)) }}</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="org-card org-card-pad">
-                        <p class="org-label" style="margin:0 0 8px">RAM / disk</p>
-                        <p class="org-muted" style="margin:0;font-size:13px;line-height:1.5">
-                            RAM and HDD/SSD size are not on the SuperOps asset list feed. Open SuperOps for per-device hardware, or we can add a slower per-device pull later.
-                        </p>
                     </div>
                 </div>
             </section>
