@@ -39,9 +39,9 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Put the ops diary and always-on Cursor rule on `main` and production |
 | Operator | agent |
-| SHA before -> after | `987a8c7` -> (this commit on `main`) |
+| SHA before -> after | `987a8c7` -> `f69dd6f` |
 | Steps | Commit rule + `Brain/ServerOpsLog.md` + README/Deployment/Roadmap index; `git push origin main`; fetch bare mirror; `git archive main \| tar -x` into live; post-deploy artisan block; chown storage |
-| Result | Pending until live verify - see end of this entry after deploy |
+| Result | Commit `f69dd6f` on `main`; live verify after archive deploy |
 | Rollback / watch | Redeploy `987a8c7` from bare mirror if this release misbehaves; confirm `Brain/ServerOpsLog.md` exists on live |
 
 ### 2026-08-21 - Server ops log + Cursor rule introduced (local)
