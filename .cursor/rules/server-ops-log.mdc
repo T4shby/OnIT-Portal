@@ -1,0 +1,41 @@
+---
+description: Log every production server / SSH / deploy action in Brain for recovery
+alwaysApply: true
+---
+
+# Server ops logging (On IT Portal)
+
+When you touch production (SSH, Plesk, live `app.onit.ltd`, bare git mirror, cron, queues, `.env`, artisan on the server, scp/rsync of live files), **document as you go** - not after something breaks.
+
+## Where
+
+Append a dated entry to `Brain/ServerOpsLog.md` in the **same turn** as the server work (or as soon as the session can write the repo). Also update `Brain/README.md` changelog when the log file or deploy procedure itself changes.
+
+Do **not** put secrets, tokens, passwords, or full `.env` values in the log.
+
+## What counts as "on the server"
+
+- `ssh` / `scp` to the production host
+- Plesk Git pull / `git archive` into live path
+- Post-deploy artisan / composer / chown on live
+- Editing live crontab, systemd, Supervisor, PHP settings
+- Clearing or seeding production caches/queues/DB from SSH
+- Hotfixes or probes that land on the live tree (prefer `tmp/` locally; never leave probes under `app/` or `storage/app/` - see temp-debug rule)
+
+Local Windows `php artisan` / local MySQL alone does **not** require a ServerOpsLog row.
+
+## Entry requirements (minimum)
+
+1. **When** (UTC or UK date/time) and **who** (agent session / operator)
+2. **Intent** - one line why
+3. **Commands or steps** - enough to replay or undo (paths, branch, SHA)
+4. **Result** - success SHA, errors, files touched on disk
+5. **Rollback / watch** - how to reverse or what to check if the site misbehaves
+
+If a deploy or change fails mid-way, still write the entry with what ran and what did not.
+
+## Hard constraints
+
+- Production branch is **`main` only** - see `Brain/Deployment.md`
+- Prefer documenting **before** risky steps when possible; always before claiming done
+- Temp probes: `tmp/` only, delete after use - never leave on production under `storage/app/`

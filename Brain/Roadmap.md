@@ -1,6 +1,6 @@
 # On IT Portal - Roadmap
 
-Status as of **2026-08-18**. Shipped work is live product; backlog is ordered by real ops value.
+Status as of **2026-08-21**. Shipped work is live product; backlog is ordered by real ops value.
 
 ## Shipped (do not re-plan as open work)
 

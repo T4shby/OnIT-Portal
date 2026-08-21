@@ -42,6 +42,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [UIUX.md](UIUX.md) | **Portal design system** (maps to marketing skill) |
 | [design/README.md](design/README.md) | Canonical copy of onit.ltd SKILL, design-system, components |
 | [Deployment.md](Deployment.md) | Plesk production, `.env`, Entra + SuperOps setup |
+| [ServerOpsLog.md](ServerOpsLog.md) | **Running diary of production SSH / deploy actions** (recovery trail) |
 | [Decisions.md](Decisions.md) | Architectural decision records |
 | [Roadmap.md](Roadmap.md) | Phased future work |
 | [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
@@ -83,6 +84,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-21 | Server ops log + Cursor rule: document every production SSH/deploy in [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-08-19 | Dashboard service cards (Support, M365, Security, Backup) are equal height - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-19 | Support & Devices restart pager stays inside the same card chrome as the other device tiles |
 | 2026-08-18 | M365 directory: friendly licence names + wrapping chips; names no longer duplicate mailbox type - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
