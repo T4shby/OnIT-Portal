@@ -41,8 +41,8 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 | Operator | agent |
 | SHA before -> after | n/a (read-only check; tip remains `b40dcef`) |
 | Steps | `git fetch origin`; compare local `main`, `origin/main`, live `.deployed-commit`, bare `main` |
-| Result | All three at `b40dcef` / `b40dcefb4f7ed68c7a1bc2bd1a94ebc59553f508`. Working tree clean. No code deploy required. |
-| Rollback / watch | None - no live files changed by this check |
+| Result | Check: all three at `b40dcef`. Then shipped this diary row: live `.deployed-commit` = `0d3a017` |
+| Rollback / watch | Redeploy `b40dcef` if needed; this change is docs only |
 
 ### 2026-08-21 - Deploy ServerOpsLog + Cursor rule to GitHub and live
 
