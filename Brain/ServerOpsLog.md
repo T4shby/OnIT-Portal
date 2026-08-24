@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Ship portal-wide Beta notice and M365 licences/users download for client demo |
 | Operator | agent |
-| SHA before -> after | `f4ab2dc` -> (pending push tip) |
-| Steps | Implement banner + `M365DirectoryExportService`; push `main`; fetch bare mirror; `git archive` to live; artisan migrate/clear/seed/optimize; chown storage; verify routes + sample export on server |
-| Result | Pending live verify |
-| Rollback / watch | Redeploy prior SHA; hard-refresh client portal; check `/microsoft-365/directory` download buttons |
+| SHA before -> after | `f4ab2dc` -> `fa9fd28` |
+| Steps | Push `main`; bare fetch + `git archive` to live; composer + migrate + route/config/view clear + PortalLinkSeeder + optimize; chown storage; live probe of `M365DirectoryExportService` for client 5 (Ductec); confirmed export route 302 when unauthenticated |
+| Result | Success. Live `.deployed-commit` = `fa9fd28`. Probe: 4 licences, 22 users, CSV sections ok, XLSX starts with `PK`. PHP zip extension present. |
+| Rollback / watch | Redeploy `f4ab2dc`; hard-refresh Dashboard (Beta banner) and Services → Microsoft 365 (Download Excel/CSV) |
 
 ### 2026-08-24 ~11:12 UK - Sync check before feature work
 
