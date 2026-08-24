@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Client Contact Support nav/hub (ticket, phone/hours, new starter → SuperOps); exclude technicians |
 | Operator | agent |
-| SHA before -> after | `0635f34` -> (pending) |
-| Steps | Push `main`; bare fetch + archive; post-deploy artisan; verify routes + page content on live |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; hard-refresh; check Contact Support nav for client login |
+| SHA before -> after | `0635f34` -> `6c87fad` |
+| Steps | Push `main`; bare fetch + archive; post-deploy artisan; route:list contact-support; config phone/email check; curl `/contact-support` → 302 (auth) |
+| Result | Success. Live `.deployed-commit` = `6c87fad`. Routes registered; nav markup present; config defaults live. |
+| Rollback / watch | Redeploy `0635f34`; hard-refresh client portal; Contact Support next to Services |
 
 ### 2026-08-24 - Deploy Beta banner + M365 Excel/CSV export
 
