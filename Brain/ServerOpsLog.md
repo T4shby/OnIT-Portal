@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Treat portal ticket create as one MSP contract for every client (not a named-customer fix); document the SuperOps validation failures; surface `extensions.clientError` in the GraphQL client |
 | Operator | agent |
-| SHA before -> after | `e03e4c4` -> (pending deploy) |
-| Steps | Tests with Http::fake (no live ticket create); SuperOpsApiClient treats clientError as failure; createTicket throws if no ticketId; Brain SuperOpsIntegration createTicket contract; push + archive deploy |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; any client Log a ticket / New starter |
+| SHA before -> after | `e03e4c4` -> `cda3ec1` |
+| Steps | Http::fake tests only (no live ticket create); SuperOpsApiClient treats `extensions.clientError` as failure; createTicket throws if no ticketId; Brain createTicket contract; `git fetch` + `git archive main` into live path; artisan migrate/route/config/view clear, PortalLinkSeeder, optimize |
+| Result | Success. Live `.deployed-commit` = `cda3ec1`. Verified live files contain `requestType` + `collectClientErrors`. |
+| Rollback / watch | Redeploy `e03e4c4`; any client Log a ticket / New starter; Laravel log should include SuperOps `clientError` if SuperOps rejects a field |
 
 ### 2026-08-24 - Fix SuperOps createTicket requestType (new starter)
 
