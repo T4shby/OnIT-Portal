@@ -33,16 +33,27 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Fix SuperOps createTicket requestType (new starter)
+
+| | |
+|---|---|
+| Intent | Unblock New starter / Log a ticket after INTEGRATION still failed (mandatory requestType) |
+| Operator | agent |
+| SHA before -> after | `9ce9a4c` -> (pending deploy) |
+| Steps | Live probe: Incident works; add requestType to createTicket + SUPEROPS_DEFAULT_REQUEST_TYPE; Brain; push + archive deploy; service-class probe |
+| Result | Pending |
+| Rollback / watch | Redeploy `9ce9a4c`; retry new starter on 3R Systems |
+
 ### 2026-08-24 - Fix SuperOps ticket create source for new starter
 
 | | |
 |---|---|
 | Intent | Unblock New starter / Log a ticket - SuperOps rejected source PORTAL |
 | Operator | agent |
-| SHA before -> after | `82c926a` -> (pending) |
+| SHA before -> after | `82c926a` -> `9ce9a4c` |
 | Steps | Change createTicket source to INTEGRATION + subSource On IT Portal; log failures; push + deploy; live probe |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; retry new starter form |
+| Result | Partial: PORTAL fixed, but create still failed - MSP requires requestType (see next entry) |
+| Rollback / watch | See requestType fix entry |
 
 ### 2026-08-24 - Widen Contact Support on desktop
 

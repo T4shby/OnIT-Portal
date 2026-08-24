@@ -38,7 +38,10 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 - Description: structured text (requester, org, starter fields, equipment, notes)
 - Uses `SuperOpsTicketService::createTicket` (same as normal portal tickets)
 - Requires SuperOps API configured + client `superops_account_id`
-- Ticket source must be a SuperOps `TicketSource` enum value (`INTEGRATION` + `subSource: On IT Portal`). **`PORTAL` is invalid** and causes GraphQL Internal Server Error (fixed 2026-08-24).
+- Ticket payload (live On IT MSP, verified 2026-08-24):
+  - `source`: `INTEGRATION` + `subSource: On IT Portal` (`PORTAL` is invalid → GraphQL Internal Server Error)
+  - `status`: `Open`
+  - `requestType`: `Incident` (mandatory on this tenant despite docs saying optional; override via `SUPEROPS_DEFAULT_REQUEST_TYPE`)
 
 ## Code map
 
@@ -53,6 +56,7 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | Fix createTicket: also send `requestType: Incident` (MSP mandatory_validation_failed without it). |
 | 2026-08-24 | Fix createTicket: SuperOps source `INTEGRATION` (not invalid `PORTAL`) so new starter / portal tickets succeed. |
 | 2026-08-24 | Contact Support hub uses the wide desktop content width (same as M365 / Support & Devices). |
 | 2026-08-24 | Hub + nav + custom new starter → SuperOps ticket; contact details from ops |

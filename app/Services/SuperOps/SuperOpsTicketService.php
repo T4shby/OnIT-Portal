@@ -66,6 +66,9 @@ class SuperOpsTicketService
             'source' => 'INTEGRATION',
             'subSource' => 'On IT Portal',
             'status' => 'Open',
+            // On IT MSP treats requestType as mandatory (docs mark it optional).
+            // Live-verified value: "Incident" (2026-08-24).
+            'requestType' => (string) config('services.superops.default_request_type', 'Incident'),
         ];
 
         if ($user->superops_user_id) {

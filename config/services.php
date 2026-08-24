@@ -87,6 +87,8 @@ return [
         'login_hint_enabled' => env('SUPEROPS_LOGIN_HINT_ENABLED', true),
         'sso_enabled' => env('SUPEROPS_SSO_ENABLED', true),
         'auto_open_after_login' => env('SUPEROPS_AUTO_OPEN_AFTER_LOGIN', false),
+        // Mandatory on On IT MSP createTicket (live validation). Override via env if SuperOps renames types.
+        'default_request_type' => env('SUPEROPS_DEFAULT_REQUEST_TYPE', 'Incident'),
         // When SuperOps last success is older than this, prewarm queues a new job (~2.5m cadence).
         'dashboard_refresh_after_minutes' => (float) env('SUPEROPS_DASHBOARD_REFRESH_AFTER_MINUTES', 2.5),
         // Client soft note window (slightly above requeue so one slow job doesn't flash "old").
