@@ -85,6 +85,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-24 | Fix portal ticket create: SuperOps `source` must be INTEGRATION (not PORTAL) - [ContactSupport.md](ContactSupport.md) |
 | 2026-08-24 | **Contact Support** hub for client users (nav next to Services): log ticket, phone/hours, new starter → SuperOps - [ContactSupport.md](ContactSupport.md) |
 | 2026-08-24 | Client portal **Beta** banner (link to Service Desk / support create); M365 **Excel + CSV** download (licences then users) - [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-24 | Confirmed laptop / GitHub / live all on `b40dcef` before feature work - [ServerOpsLog.md](ServerOpsLog.md) |

@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Fix SuperOps ticket create source for new starter
+
+| | |
+|---|---|
+| Intent | Unblock New starter / Log a ticket - SuperOps rejected source PORTAL |
+| Operator | agent |
+| SHA before -> after | `82c926a` -> (pending) |
+| Steps | Change createTicket source to INTEGRATION + subSource On IT Portal; log failures; push + deploy; live probe |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; retry new starter form |
+
 ### 2026-08-24 - Widen Contact Support on desktop
 
 | | |

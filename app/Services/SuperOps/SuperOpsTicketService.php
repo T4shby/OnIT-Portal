@@ -61,8 +61,11 @@ class SuperOpsTicketService
             'subject' => $subject,
             'description' => $description,
             'client' => ['accountId' => $accountId],
+            // SuperOps TicketSource enum: FORM | AGENT | EMAIL | AI | PHONE | INTEGRATION
+            // PORTAL is invalid and returns a GraphQL Internal Server Error.
+            'source' => 'INTEGRATION',
+            'subSource' => 'On IT Portal',
             'status' => 'Open',
-            'source' => 'PORTAL',
         ];
 
         if ($user->superops_user_id) {

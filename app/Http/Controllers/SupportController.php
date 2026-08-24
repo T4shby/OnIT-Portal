@@ -78,7 +78,13 @@ class SupportController extends Controller
                 $request->validated('subject'),
                 $request->validated('description'),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Support ticket create failed', [
+                'client_id' => $request->user()->client_id,
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with('error', 'Unable to submit support request. Please try again.');
         }
 

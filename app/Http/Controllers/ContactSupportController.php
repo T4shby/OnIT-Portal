@@ -64,7 +64,13 @@ class ContactSupportController extends Controller
 
         try {
             $ticket = $this->newStarters->submit($user, $request->validated());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('New starter ticket failed', [
+                'client_id' => $user->client_id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withInput()->with(
                 'error',
                 'Unable to submit the new starter request. Please try again or call the Service Desk.',
