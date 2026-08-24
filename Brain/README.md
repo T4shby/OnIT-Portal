@@ -62,7 +62,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Client onboarding wizard | `ClientOnboardingService`, `OnboardingManual` (automated / remaining / recovery), `admin/clients` forms + wire/Apply SCIM |
 | Shared client visibility | `ClientVisibilityService` - org-wide vs own person across SuperOps / M365 / Huntress |
 | Huntress cases + staff board | `HuntressSecurityController`, `ClientHuntressSecurityController`, `HuntressIncidentService` |
-| SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php` |
+| SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php`, `SuperOpsTicketService` createTicket contract - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
 | Pax8 SSO launch | `app/Services/Pax8/Pax8SsoService.php`, `Integrations/Pax8LaunchController.php` |
@@ -85,7 +85,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-08-24 | Fix portal ticket create: SuperOps `source` INTEGRATION + mandatory `requestType` Incident - [ContactSupport.md](ContactSupport.md) |
+| 2026-08-24 | Portal ticket create is MSP-wide: `source` INTEGRATION + mandatory `requestType` Incident; GraphQL client surfaces SuperOps `clientError` - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |
 | 2026-08-24 | **Contact Support** hub for client users (nav next to Services): log ticket, phone/hours, new starter → SuperOps - [ContactSupport.md](ContactSupport.md) |
 | 2026-08-24 | Client portal **Beta** banner (link to Service Desk / support create); M365 **Excel + CSV** download (licences then users) - [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-24 | Confirmed laptop / GitHub / live all on `b40dcef` before feature work - [ServerOpsLog.md](ServerOpsLog.md) |

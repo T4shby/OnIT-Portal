@@ -66,8 +66,9 @@ class SuperOpsTicketService
             'source' => 'INTEGRATION',
             'subSource' => 'On IT Portal',
             'status' => 'Open',
-            // On IT MSP treats requestType as mandatory (docs mark it optional).
-            // Live-verified value: "Incident" (2026-08-24).
+            // MSP-wide: SuperOps CreateTicketInput. See Brain/SuperOpsIntegration.md
+            // (createTicket contract). requestType is mandatory on this MSP even
+            // though vendor docs mark it optional.
             'requestType' => (string) config('services.superops.default_request_type', 'Incident'),
         ];
 
@@ -81,7 +82,13 @@ class SuperOpsTicketService
             }
         GQL, ['input' => $input]);
 
-        return $data['createTicket'] ?? [];
+        $created = $data['createTicket'] ?? null;
+
+        if (! is_array($created) || empty($created['ticketId'])) {
+            throw new \RuntimeException('SuperOps did not return a ticket id.');
+        }
+
+        return $created;
     }
 
     public function ticketBelongsToUser(array $ticket, User $user): bool

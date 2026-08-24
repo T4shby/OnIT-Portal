@@ -33,16 +33,27 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Document MSP-wide createTicket + GraphQL clientError handling
+
+| | |
+|---|---|
+| Intent | Treat portal ticket create as one MSP contract for every client (not a named-customer fix); document the SuperOps validation failures; surface `extensions.clientError` in the GraphQL client |
+| Operator | agent |
+| SHA before -> after | `e03e4c4` -> (pending deploy) |
+| Steps | Tests with Http::fake (no live ticket create); SuperOpsApiClient treats clientError as failure; createTicket throws if no ticketId; Brain SuperOpsIntegration createTicket contract; push + archive deploy |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; any client Log a ticket / New starter |
+
 ### 2026-08-24 - Fix SuperOps createTicket requestType (new starter)
 
 | | |
 |---|---|
-| Intent | Unblock New starter / Log a ticket after INTEGRATION still failed (mandatory requestType) |
+| Intent | Unblock portal createTicket for **all** SuperOps-linked clients (`requestType` mandatory on this MSP) |
 | Operator | agent |
-| SHA before -> after | `9ce9a4c` -> `45bcfe7` |
-| Steps | Live probe confirmed `requestType: Incident`; add to createTicket + `SUPEROPS_DEFAULT_REQUEST_TYPE`; Brain; push + archive deploy; `SuperOpsTicketService::createTicket` probe for 3R Systems |
-| Result | Success. Live `.deployed-commit` = `45bcfe7`. Probe ticket displayId **13758** (Open, INTEGRATION path). |
-| Rollback / watch | Redeploy `9ce9a4c`; retry new starter on 3R Systems; close probe tickets 13757/13758 if unwanted |
+| SHA before -> after | `9ce9a4c` -> `45bcfe7` (docs SHA `e03e4c4`) |
+| Steps | Diagnostic GraphQL probe (one linked account, then deleted from `/tmp`); add `requestType` to shared `createTicket`; `SUPEROPS_DEFAULT_REQUEST_TYPE`; Brain; push + archive deploy. Do **not** keep customer-specific payload. |
+| Result | Success. Live `.deployed-commit` reached `e03e4c4`. Probe tickets 13757/13758 were API checks only - close in SuperOps if unwanted. |
+| Rollback / watch | Any client New starter / Log a ticket; see createTicket contract in SuperOpsIntegration.md |
 
 ### 2026-08-24 - Fix SuperOps ticket create source for new starter
 

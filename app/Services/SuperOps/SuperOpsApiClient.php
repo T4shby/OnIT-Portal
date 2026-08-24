@@ -61,17 +61,75 @@ class SuperOpsApiClient
             throw new RuntimeException('SuperOps API returned a non-JSON response.');
         }
 
-        if (! empty($payload['errors'])) {
-            $messages = collect($payload['errors'])->pluck('message')->filter()->implode('; ');
+        $clientErrors = $this->collectClientErrors($payload);
+
+        if (! empty($payload['errors']) || $clientErrors !== []) {
+            $message = $this->formatFailureMessage($payload, $clientErrors);
 
             Log::error('SuperOps GraphQL errors', [
-                'errors' => $payload['errors'],
+                'errors' => $payload['errors'] ?? [],
+                'client_errors' => $clientErrors,
             ]);
 
-            throw new RuntimeException('SuperOps API error: '.$messages);
+            throw new RuntimeException('SuperOps API error: '.$message);
         }
 
         return $payload['data'] ?? [];
+    }
+
+    /**
+     * SuperOps often returns HTTP 200 with empty GraphQL `message` and the real
+     * reason in `extensions.clientError` (e.g. mandatory_validation_failed).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function collectClientErrors(array $payload): array
+    {
+        $found = [];
+
+        foreach ([$payload['extensions'] ?? null, $payload['data']['extensions'] ?? null] as $extensions) {
+            if (is_array($extensions) && isset($extensions['clientError']) && is_array($extensions['clientError'])) {
+                foreach ($extensions['clientError'] as $error) {
+                    if (is_array($error)) {
+                        $found[] = $error;
+                    }
+                }
+            }
+        }
+
+        foreach ($payload['errors'] ?? [] as $error) {
+            if (! is_array($error)) {
+                continue;
+            }
+
+            $nested = $error['extensions']['clientError'] ?? null;
+            if (is_array($nested)) {
+                foreach ($nested as $item) {
+                    if (is_array($item)) {
+                        $found[] = $item;
+                    }
+                }
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $clientErrors
+     */
+    private function formatFailureMessage(array $payload, array $clientErrors): string
+    {
+        $messages = collect($payload['errors'] ?? [])->pluck('message')->filter()->implode('; ');
+
+        if ($clientErrors !== []) {
+            $encoded = json_encode($clientErrors);
+            $messages = $messages === ''
+                ? 'clientError '.$encoded
+                : $messages.'; clientError '.$encoded;
+        }
+
+        return $messages !== '' ? $messages : 'unknown SuperOps error';
     }
 
     private function apiToken(): string

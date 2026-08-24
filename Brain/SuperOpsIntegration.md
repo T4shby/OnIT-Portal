@@ -21,6 +21,7 @@ Microsoft Entra ID → On IT Portal session
 - Tickets filtered by requester email / `users.superops_user_id`
 - UI copy: threads and attachments open in SuperOps - every support page surfaces **Open SuperOps**
 - Client Admin organisation metrics: [ClientAdminDashboard.md](ClientAdminDashboard.md#superops-graphql-request-shape)
+- **createTicket contract** (all clients): [below](#createticket-contract-all-clients)
 
 ### Pillar 2 - SSO launch
 
@@ -54,6 +55,8 @@ SUPEROPS_SUBDOMAIN=onitltd
 # Required for embedded /support tickets (optional if you only use SSO launch):
 SUPEROPS_API_TOKEN=
 SUPEROPS_REGION=us
+# createTicket requestType (MSP-wide; SuperOps treats this as mandatory)
+SUPEROPS_DEFAULT_REQUEST_TYPE=Incident
 
 # Requester Client SSO is configured in SuperOps per customer, not portal .env:
 # SUPEROPS_SSO_URL=   ← leave empty
@@ -111,6 +114,39 @@ Configure via `SUPEROPS_REQUESTER_LOGIN_PATH=/#/requester/login` (default).
 
 Summary: three Entra apps (portal OAuth + requester SAML + technician SAML). Entra Login URLs live in SuperOps admin only; portal redirects to `portal.onit.ltd` with role-specific SPA paths.
 
+## createTicket contract (all clients)
+
+Portal **Log a ticket** and **New starter** both call `SuperOpsTicketService::createTicket`. That is **one MSP GraphQL mutation** for every SuperOps-linked organisation. There is no per-customer payload and no customer-specific workaround.
+
+**Do not** diagnose or fix create failures by probing a named client on production. Change `SuperOpsTicketService` / `SuperOpsApiClient`, cover with `Http::fake` tests, then deploy.
+
+### Required `CreateTicketInput` (On IT MSP)
+
+Vendor docs mark several of these optional. **This MSP rejects the mutation without them** (HTTP 200 + `extensions.clientError`, often with an empty GraphQL `message`).
+
+| Field | Value | Notes |
+|---|---|---|
+| `subject` | string | Required by schema |
+| `description` | string | Portal ticket body / new-starter structured text |
+| `client.accountId` | `clients.superops_account_id` | Client must be linked |
+| `source` | `INTEGRATION` | SuperOps `TicketSource` enum: `FORM` \| `AGENT` \| `EMAIL` \| `AI` \| `PHONE` \| `INTEGRATION`. **`PORTAL` is not valid** and returns GraphQL Internal Server Error |
+| `subSource` | `On IT Portal` | Identifies the portal as the integration |
+| `status` | `Open` | |
+| `requestType` | `Incident` (`SUPEROPS_DEFAULT_REQUEST_TYPE`) | **Mandatory on this MSP.** Omission → `mandatory_validation_failed` on `requestType` |
+| `requester.userId` | `users.superops_user_id` | Included when the portal user is linked; omitted otherwise |
+
+### Symptom (any client)
+
+- UI: "Unable to submit the new starter request..." or "Unable to submit support request..."
+- SuperOps HTTP 200 with either:
+  - `errors` + `Internal Server Error` (`source: PORTAL`), or
+  - `extensions.clientError` `mandatory_validation_failed` / `attributes: ["requestType"]` (empty `message` is common)
+- Laravel used to log `SuperOps API error: ` with a blank message because it only read `errors[].message`
+
+`SuperOpsApiClient` must treat `extensions.clientError` as failure even when GraphQL `message` is empty. `createTicket` must throw if SuperOps does not return `ticketId` (do not flash success with no ticket).
+
+Override request type only if SuperOps renames types: `SUPEROPS_DEFAULT_REQUEST_TYPE` in `.env`.
+
 ## Client mapping
 
 | Column | Purpose |
@@ -133,6 +169,7 @@ Summary: three Entra apps (portal OAuth + requester SAML + technician SAML). Ent
 - `app/Services/SuperOps/SuperOpsUserSyncService.php`
 - `app/Services/SuperOps/SuperOpsSsoService.php`
 - `app/Http/Controllers/SupportController.php`
+- `app/Http/Controllers/ContactSupportController.php`
 - `app/Http/Controllers/Integrations/SuperOpsLaunchController.php`
 
 ## SuperOps admin setup
@@ -178,6 +215,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | SuperOps card missing for client | Client needs `superops_sso_enabled`; user must be `client_requester`, `client_billing_admin`, or `client_admin` |
 | **Error 1027** | Entra `email` claim missing - see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore - use portal or `/#/requester/login` flow (SP-initiated) |
+| New starter / Log a ticket fails for any client | Check createTicket contract: `source` INTEGRATION, `requestType` set; logs should include SuperOps `clientError` - [createTicket contract](#createticket-contract-all-clients) |
 | **Login with Email** on requester login | Client SSO is not enabled for that SuperOps client |
 | **Access denied** on `/#/client-home` | SAML OK - fix SuperOps requester provisioning / permissions |
 
