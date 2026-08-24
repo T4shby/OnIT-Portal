@@ -39,9 +39,9 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | MSP-wide: create succeeds then `/support/{id}` flashes Ticket not found because getTicket selected a non-existent `description` field |
 | Operator | agent |
-| SHA before -> after | `12826b0` -> (pending deploy) |
-| Steps | Stop selecting `description` on getTicket; load opening text from getTicketConversationList; log show failures; Http::fake tests; Brain; push + archive deploy. No live named-client probes. |
-| Result | Pending |
+| SHA before -> after | `12826b0` -> `cc77355` |
+| Steps | Stop selecting `description` on getTicket; load opening text from getTicketConversationList; log show failures; Http::fake tests; Brain; `git fetch` + `git archive main`; artisan migrate/route/config/view clear, PortalLinkSeeder, optimize. No live named-client probes. |
+| Result | Success. Live `.deployed-commit` = `cc77355`. |
 | Rollback / watch | Redeploy `12826b0`; open any ticket from Support list or after New starter |
 
 ### 2026-08-24 - Document MSP-wide createTicket + GraphQL clientError handling
