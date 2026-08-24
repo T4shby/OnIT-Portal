@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Unblock New starter / Log a ticket after INTEGRATION still failed (mandatory requestType) |
 | Operator | agent |
-| SHA before -> after | `9ce9a4c` -> (pending deploy) |
-| Steps | Live probe: Incident works; add requestType to createTicket + SUPEROPS_DEFAULT_REQUEST_TYPE; Brain; push + archive deploy; service-class probe |
-| Result | Pending |
-| Rollback / watch | Redeploy `9ce9a4c`; retry new starter on 3R Systems |
+| SHA before -> after | `9ce9a4c` -> `45bcfe7` |
+| Steps | Live probe confirmed `requestType: Incident`; add to createTicket + `SUPEROPS_DEFAULT_REQUEST_TYPE`; Brain; push + archive deploy; `SuperOpsTicketService::createTicket` probe for 3R Systems |
+| Result | Success. Live `.deployed-commit` = `45bcfe7`. Probe ticket displayId **13758** (Open, INTEGRATION path). |
+| Rollback / watch | Redeploy `9ce9a4c`; retry new starter on 3R Systems; close probe tickets 13757/13758 if unwanted |
 
 ### 2026-08-24 - Fix SuperOps ticket create source for new starter
 
