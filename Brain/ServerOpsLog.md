@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Beta banner above nav (centered)
+
+| | |
+|---|---|
+| Intent | Move Beta notice above the header and center the copy |
+| Operator | agent |
+| SHA before -> after | `d2b3106` -> (pending) |
+| Steps | Move banner out of main into strip above header; center text; push + archive deploy |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; hard-refresh |
+
 ### 2026-08-24 - Deploy Contact Support hub + new starter form
 
 | | |

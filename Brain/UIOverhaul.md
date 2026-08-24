@@ -128,6 +128,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | Beta banner sits above the nav as a slim centered strip. |
 | 2026-08-24 | **Contact Support** hub in nav (client users only): ticket + phone/hours + new starter form → SuperOps API. |
 | 2026-08-24 | Client portal Beta banner on all `x-app-layout` pages; contact Service Desk → `support.create`. |
 | 2026-08-24 | M365 directory: Download Excel + CSV (licences section then users with licences). |

@@ -15,16 +15,20 @@
     <style>
         [x-cloak] { display: none !important; }
         .portal-beta-banner {
-            border: 1px solid rgba(255, 112, 0, 0.35);
-            background: rgba(255, 112, 0, 0.08);
-            border-radius: 6px;
-            padding: 12px 14px;
+            position: relative;
+            z-index: 2;
+            border-bottom: 1px solid rgba(255, 112, 0, 0.35);
+            background: rgba(255, 112, 0, 0.1);
+            padding: 8px 16px;
+            text-align: center;
         }
         .portal-beta-banner-text {
-            margin: 0;
+            margin: 0 auto;
+            max-width: 56rem;
             font-size: 13px;
             line-height: 1.45;
             color: rgba(255, 255, 255, 0.82);
+            text-align: center;
         }
         .portal-beta-pill {
             display: inline-block;
@@ -52,7 +56,20 @@
     <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false, servicesOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false; servicesOpen = false">
         <div class="grid-overlay" aria-hidden="true"></div>
 
-        <header class="portal-header safe-top">
+        <div class="portal-beta-banner safe-top" role="status">
+            <p class="portal-beta-banner-text">
+                <span class="portal-beta-pill">Beta</span>
+                This portal is still in beta and figures may not be quite right.
+                If you notice something that does not look right, please
+                @can('contact-support')
+                    <a href="{{ route('contact-support.index') }}" class="portal-beta-link">contact the Service Desk</a>.
+                @else
+                    <a href="mailto:{{ config('onit_support.email') }}" class="portal-beta-link">email the Service Desk</a>.
+                @endcan
+            </p>
+        </div>
+
+        <header class="portal-header">
             <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between min-h-[3.5rem] py-3 sm:min-h-[4rem] sm:py-4 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 shrink">
@@ -159,18 +176,6 @@
 
         <main class="portal-main">
             <div class="{{ $contentClass }} portal-main-inner">
-                <div class="portal-beta-banner mb-6" role="status">
-                    <p class="portal-beta-banner-text">
-                        <span class="portal-beta-pill">Beta</span>
-                        This portal is still in beta and figures may not be quite right.
-                        If you notice something that does not look right, please
-                        @can('contact-support')
-                            <a href="{{ route('contact-support.index') }}" class="portal-beta-link">contact the Service Desk</a>.
-                        @else
-                            <a href="mailto:{{ config('onit_support.email') }}" class="portal-beta-link">email the Service Desk</a>.
-                        @endcan
-                    </p>
-                </div>
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}
