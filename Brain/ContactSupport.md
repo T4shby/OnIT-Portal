@@ -6,7 +6,7 @@ Customer-facing **Contact Support** hub for everyone except On IT technicians (`
 
 | Item | Detail |
 |------|--------|
-| Nav | Desktop + mobile More: **Contact Support** next to Services. Mobile bottom tab: **Contact** |
+| Nav | Desktop + mobile More: **Contact Support** next to Services. Mobile bottom tab: **Contact**. Hub uses the same wide content width as Microsoft 365 / Support & Devices (`max-w-[96rem]`). |
 | URL | `/contact-support` (`contact-support.index`) |
 | Gate | `contact-support` - client-facing role + `client_id` |
 | Audience | `client_admin`, `client_billing_admin`, `client_requester` (and legacy `client_user`) |
@@ -52,4 +52,5 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | Contact Support hub uses the wide desktop content width (same as M365 / Support & Devices). |
 | 2026-08-24 | Hub + nav + custom new starter → SuperOps ticket; contact details from ops |

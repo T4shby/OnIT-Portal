@@ -1,4 +1,4 @@
-<x-app-layout title="Contact Support">
+<x-app-layout title="Contact Support" content-class="max-w-[96rem]">
     <section class="mb-8 sm:mb-10">
         <div class="orange-rule"></div>
         <div class="heading-stack mb-4">
@@ -10,16 +10,16 @@
         </p>
     </section>
 
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-        <div class="portal-card p-5 flex flex-col gap-4">
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-10">
+        <div class="portal-card p-5 sm:p-7 flex flex-col gap-4 min-h-[16rem]">
             <p class="text-onit text-xs font-semibold uppercase tracking-wider">Online ticket</p>
             <h2 class="text-white text-lg font-semibold m-0">Log a ticket</h2>
             <p class="portal-body-muted text-sm leading-relaxed flex-1 m-0">
                 Tell us what you need help with. We will pick it up in SuperOps and keep the conversation there.
             </p>
             @if($apiConfigured && $clientLinked)
-                <a href="{{ route('support.create') }}" class="cta-btn text-sm text-center">Log a ticket online</a>
-                <a href="{{ route('support.index') }}" class="text-sm text-onit hover:text-white text-center">View my tickets</a>
+                <a href="{{ route('support.create') }}" class="cta-btn text-sm text-center self-start">Log a ticket online</a>
+                <a href="{{ route('support.index') }}" class="text-sm text-onit hover:text-white self-start">View my tickets</a>
             @else
                 <p class="text-amber-200/90 text-sm m-0">
                     Online ticketing is not available for your organisation yet. Please call or email us below.
@@ -27,7 +27,7 @@
             @endif
         </div>
 
-        <div class="portal-card p-5 flex flex-col gap-4">
+        <div class="portal-card p-5 sm:p-7 flex flex-col gap-4 min-h-[16rem]">
             <p class="text-onit text-xs font-semibold uppercase tracking-wider">Call or visit</p>
             <h2 class="text-white text-lg font-semibold m-0">Phone &amp; hours</h2>
             <div class="portal-body-muted text-sm leading-relaxed flex-1 space-y-3">
@@ -54,14 +54,14 @@
             </div>
         </div>
 
-        <div class="portal-card p-5 flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
+        <div class="portal-card p-5 sm:p-7 flex flex-col gap-4 min-h-[16rem] sm:col-span-2 xl:col-span-1">
             <p class="text-onit text-xs font-semibold uppercase tracking-wider">Joiners</p>
             <h2 class="text-white text-lg font-semibold m-0">New starter</h2>
             <p class="portal-body-muted text-sm leading-relaxed flex-1 m-0">
                 Request accounts, licences, and kit for someone joining your organisation. This opens a Service Desk ticket for On IT.
             </p>
             @if($apiConfigured && $clientLinked)
-                <a href="{{ route('contact-support.new-starter') }}" class="cta-btn text-sm text-center">New starter form</a>
+                <a href="{{ route('contact-support.new-starter') }}" class="cta-btn text-sm text-center self-start">New starter form</a>
             @else
                 <p class="text-amber-200/90 text-sm m-0">
                     Please email {{ $contact['email'] }} or call {{ $contact['phone'] }} for new starter requests.

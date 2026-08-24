@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Widen Contact Support on desktop
+
+| | |
+|---|---|
+| Intent | Use the extra browser width so Contact Support is not a narrow 64rem column |
+| Operator | agent |
+| SHA before -> after | `4f78627` -> (pending) |
+| Steps | Hub/new-starter/ticket pages + header/footer to `max-w-[96rem]`; push + archive deploy |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; hard-refresh `/contact-support` |
+
 ### 2026-08-24 - Beta banner above nav (centered)
 
 | | |

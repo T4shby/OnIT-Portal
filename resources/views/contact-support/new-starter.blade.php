@@ -1,4 +1,4 @@
-<x-app-layout title="New starter">
+<x-app-layout title="New starter" content-class="max-w-[96rem]">
     <div class="mb-6">
         <a href="{{ route('contact-support.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to Contact Support</a>
     </div>
@@ -16,7 +16,7 @@
     </section>
 
     <x-card class="w-full">
-        <form method="POST" action="{{ route('contact-support.new-starter.store') }}" class="admin-form-grid max-w-3xl">
+        <form method="POST" action="{{ route('contact-support.new-starter.store') }}" class="admin-form-grid max-w-4xl">
             @csrf
             @include('admin.partials.form-field', [
                 'label' => 'Starter full name',

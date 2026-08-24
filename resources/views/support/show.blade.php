@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout title="Ticket" content-class="max-w-[96rem]">
   <div class="mb-6"><a href="{{ route('support.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to support</a></div>
   <x-card>
     <p class="portal-body-muted text-sm">#{{ $ticket['displayId'] ?? $ticket['ticketId'] }}</p>

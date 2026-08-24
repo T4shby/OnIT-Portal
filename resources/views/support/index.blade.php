@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout title="Support" content-class="max-w-[96rem]">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
     <div>
       <h1 class="section-heading-white !text-2xl">Support</h1>

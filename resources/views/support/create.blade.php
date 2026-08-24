@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout title="New support request" content-class="max-w-[96rem]">
   <div class="mb-6"><a href="{{ route('contact-support.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to Contact Support</a></div>
   <x-card class="w-full">
     <h1 class="section-heading-white mb-6 !text-xl">New support request</h1>

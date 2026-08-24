@@ -70,7 +70,7 @@
         </div>
 
         <header class="portal-header">
-            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between min-h-[3.5rem] py-3 sm:min-h-[4rem] sm:py-4 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 shrink">
                         <x-portal-logo size="sm" />
@@ -183,7 +183,7 @@
         </main>
 
         <footer class="portal-footer relative z-[1] mt-auto border-t border-onit-border py-8 safe-bottom">
-            <div class="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 portal-body-muted text-xs text-center sm:text-left">
+            <div class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 portal-body-muted text-xs text-center sm:text-left">
                 <p>&copy; {{ date('Y') }} On IT Technology Partners</p>
                 <p class="text-onit font-condensed font-bold uppercase tracking-wide">Simplicity &amp; Value</p>
             </div>
