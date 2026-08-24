@@ -46,7 +46,13 @@ class SupportController extends Controller
 
         try {
             $ticket = $this->tickets->getTicket($ticketId);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Support ticket show failed', [
+                'ticket_id' => $ticketId,
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return redirect()->route('support.index')->with('error', 'Ticket not found.');
         }
 

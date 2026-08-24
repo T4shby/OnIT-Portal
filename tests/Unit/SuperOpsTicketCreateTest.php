@@ -132,4 +132,55 @@ class SuperOpsTicketCreateTest extends TestCase
 
         app(SuperOpsTicketService::class)->createTicket($user, 'Subject', 'Body');
     }
+
+    public function test_get_ticket_does_not_select_description_and_loads_opening_from_conversations(): void
+    {
+        Http::fake(function ($request) {
+            $query = (string) ($request->data()['query'] ?? '');
+
+            if (str_contains($query, 'getTicketConversationList')) {
+                return Http::response([
+                    'data' => [
+                        'getTicketConversationList' => [
+                            [
+                                'content' => 'NEW STARTER REQUEST (submitted via On IT Portal)',
+                                'time' => '2026-08-24T12:00:00.000',
+                                'type' => 'REQ_REPLY',
+                            ],
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return Http::response([
+                'data' => [
+                    'getTicket' => [
+                        'ticketId' => '4799638300707885056',
+                        'displayId' => '13761',
+                        'subject' => 'New starter request: TESTTEST',
+                        'status' => 'Open',
+                        'priority' => null,
+                        'createdTime' => '2026-08-24T12:00:00.000',
+                        'updatedTime' => '2026-08-24T12:00:00.000',
+                        'requester' => ['userId' => 'req-any', 'email' => 'jane@example.com'],
+                    ],
+                ],
+            ], 200);
+        });
+
+        $ticket = app(SuperOpsTicketService::class)->getTicket('4799638300707885056');
+
+        $this->assertSame('13761', $ticket['displayId']);
+        $this->assertSame('NEW STARTER REQUEST (submitted via On IT Portal)', $ticket['description']);
+
+        Http::assertSent(function ($request) {
+            $query = (string) ($request->data()['query'] ?? '');
+
+            if (! str_contains($query, 'query getTicket(')) {
+                return false;
+            }
+
+            return ! preg_match('/\bdescription\b/', $query);
+        });
+    }
 }

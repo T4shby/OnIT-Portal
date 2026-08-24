@@ -147,6 +147,14 @@ Vendor docs mark several of these optional. **This MSP rejects the mutation with
 
 Override request type only if SuperOps renames types: `SUPEROPS_DEFAULT_REQUEST_TYPE` in `.env`.
 
+## Ticket detail (`getTicket`)
+
+After create, the portal redirects to `GET /support/{ticketId}` (internal SuperOps `ticketId`, not the human `#displayId`).
+
+The SuperOps **Ticket** type has **no `description` field**. Selecting it returns a GraphQL error. `SupportController@show` used to catch that and flash **Ticket not found** while the list still showed the new ticket.
+
+Correct show query: `ticketId displayId subject status priority createdTime updatedTime requester` (leaf JSON). Opening body from `getTicketConversationList` (`content`). If conversation fetch fails, still render subject/status.
+
 ## Client mapping
 
 | Column | Purpose |
@@ -216,6 +224,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | **Error 1027** | Entra `email` claim missing - see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore - use portal or `/#/requester/login` flow (SP-initiated) |
 | New starter / Log a ticket fails for any client | Check createTicket contract: `source` INTEGRATION, `requestType` set; logs should include SuperOps `clientError` - [createTicket contract](#createticket-contract-all-clients) |
+| Ticket created but **Ticket not found** on `/support/{id}` | Do not select `description` on `getTicket` - [ticket detail](#ticket-detail-getticket) |
 | **Login with Email** on requester login | Client SSO is not enabled for that SuperOps client |
 | **Access denied** on `/#/client-home` | SAML OK - fix SuperOps requester provisioning / permissions |
 

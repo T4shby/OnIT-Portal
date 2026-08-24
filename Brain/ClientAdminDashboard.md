@@ -350,6 +350,7 @@ Hard SuperOps quirks (live-verified):
 3. Date-range ticket filters are unreliable; the dashboard pages the client’s tickets and computes 7/14/30/all in PHP from `createdTime` / `resolutionTime`.
 4. **`requester` and `client` on ticket/user list fields are leaf `JSON`**, not GraphQL objects. Selecting `requester { userId name email }` or `client { accountId }` fails with `SubSelectionNotAllowed` on the whole refresh - Integration Health freezes age on last success while M365 still looks fine. Select the leaf only and decode arrays/JSON strings in PHP (`normalizeJsonObject`). Same for embedded support (`SuperOpsTicketService`) and user link (`SuperOpsUserSyncService`).
 5. **`createTicket` is MSP-wide, not per client.** `source` must be a `TicketSource` enum value (`INTEGRATION` for the portal; `PORTAL` is invalid). `requestType` is mandatory here (`Incident` / `SUPEROPS_DEFAULT_REQUEST_TYPE`) even though vendor docs mark it optional. SuperOps often returns HTTP 200 with empty `errors[].message` and the real reason in `extensions.clientError`. Full contract: [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients).
+6. **`Ticket` has no `description` field.** Selecting `description` on `getTicket` fails GraphQL for every client; the portal then redirects to `/support` with "Ticket not found" even though `getTicketList` still shows the ticket. Opening text is `getTicketConversationList.content`. See [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket).
 
 Ticket query shape used by the dashboard:
 

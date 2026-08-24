@@ -53,6 +53,7 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | Ticket show: SuperOps Ticket has no `description`; load opening text from conversation list so create redirect is not "Ticket not found". |
 | 2026-08-24 | Document + harden MSP-wide createTicket (`INTEGRATION` + `requestType: Incident`); GraphQL client now surfaces SuperOps `clientError`. |
 | 2026-08-24 | Contact Support hub uses the wide desktop content width (same as M365 / Support & Devices). |
 | 2026-08-24 | Hub + nav + custom new starter → SuperOps ticket; contact details from ops |

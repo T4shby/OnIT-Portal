@@ -39,14 +39,25 @@ class SuperOpsTicketService
         $data = $this->api->query(<<<'GQL'
             query getTicket($input: TicketIdentifierInput!) {
                 getTicket(input: $input) {
-                    ticketId displayId subject description status priority
+                    ticketId displayId subject status priority
                     createdTime updatedTime
                     requester
                 }
             }
         GQL, ['input' => ['ticketId' => $ticketId]]);
 
-        return $data['getTicket'] ?? null;
+        $ticket = $data['getTicket'] ?? null;
+
+        if (! is_array($ticket)) {
+            return null;
+        }
+
+        $opening = $this->openingDescription($ticketId);
+        if ($opening !== null) {
+            $ticket['description'] = $opening;
+        }
+
+        return $ticket;
     }
 
     public function createTicket(User $user, string $subject, string $description): array
@@ -102,6 +113,50 @@ class SuperOpsTicketService
         }
 
         return $requesterEmail === strtolower($user->email);
+    }
+
+    /**
+     * SuperOps Ticket type has no `description` field. Opening text lives on
+     * the conversation list. Failure here must not hide the ticket.
+     */
+    private function openingDescription(string $ticketId): ?string
+    {
+        try {
+            $data = $this->api->query(<<<'GQL'
+                query getTicketConversationList($input: TicketIdentifierInput!) {
+                    getTicketConversationList(input: $input) {
+                        content
+                        time
+                        type
+                    }
+                }
+            GQL, ['input' => ['ticketId' => $ticketId]]);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $list = $data['getTicketConversationList'] ?? [];
+
+        if (is_array($list) && isset($list['content']) && ! array_is_list($list)) {
+            $list = [$list];
+        }
+
+        if (! is_array($list)) {
+            return null;
+        }
+
+        foreach ($list as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $content = trim((string) ($row['content'] ?? ''));
+            if ($content !== '') {
+                return $content;
+            }
+        }
+
+        return null;
     }
 
     private function requesterCondition(User $user): array
