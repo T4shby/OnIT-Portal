@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Move Beta notice above the header and center the copy |
 | Operator | agent |
-| SHA before -> after | `d2b3106` -> (pending) |
+| SHA before -> after | `d2b3106` -> `7b19095` |
 | Steps | Move banner out of main into strip above header; center text; push + archive deploy |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; hard-refresh |
+| Result | Success. Live `.deployed-commit` = `7b19095`. Banner markup sits above header. |
+| Rollback / watch | Redeploy `d2b3106`; hard-refresh |
 
 ### 2026-08-24 - Deploy Contact Support hub + new starter form
 
