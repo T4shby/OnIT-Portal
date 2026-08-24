@@ -97,5 +97,10 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('access-client-billing', function (User $user) {
             return $user->canAccessClientBilling();
         });
+
+        // Customer Contact Support hub - not On IT technicians (super_admin / account_manager).
+        Gate::define('contact-support', function (User $user) {
+            return $user->canUseClientSupport() && filled($user->client_id);
+        });
     }
 }

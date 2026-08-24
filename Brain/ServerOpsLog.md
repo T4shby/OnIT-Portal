@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Deploy Contact Support hub + new starter form
+
+| | |
+|---|---|
+| Intent | Client Contact Support nav/hub (ticket, phone/hours, new starter → SuperOps); exclude technicians |
+| Operator | agent |
+| SHA before -> after | `0635f34` -> (pending) |
+| Steps | Push `main`; bare fetch + archive; post-deploy artisan; verify routes + page content on live |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; hard-refresh; check Contact Support nav for client login |
+
 ### 2026-08-24 - Deploy Beta banner + M365 Excel/CSV export
 
 | | |

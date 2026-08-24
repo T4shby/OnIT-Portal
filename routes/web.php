@@ -23,6 +23,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
 use App\Http\Controllers\Integrations\SuperOpsLaunchController;
+use App\Http\Controllers\ContactSupportController;
 use App\Http\Controllers\SupportController;
 use App\Enums\UserRole;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports', [ClientReportsController::class, 'index'])
         ->middleware('can:view-organisation-wide')
         ->name('reports.index');
+
+    Route::prefix('contact-support')->name('contact-support.')->middleware('can:contact-support')->group(function () {
+        Route::get('/', [ContactSupportController::class, 'index'])->name('index');
+        Route::get('/new-starter', [ContactSupportController::class, 'createNewStarter'])->name('new-starter');
+        Route::post('/new-starter', [ContactSupportController::class, 'storeNewStarter'])
+            ->middleware('throttle:12,1')
+            ->name('new-starter.store');
+    });
 
     Route::prefix('support')->name('support.')->group(function () {
         Route::get('/', [SupportController::class, 'index'])->name('index');

@@ -1,5 +1,28 @@
 @php
-    $supportActive = request()->routeIs('client-admin.dashboard') || request()->routeIs('client-admin.live');
+    $contactSupport = auth()->user()->can('contact-support');
+    $supportDevices = auth()->user()->can('view-client-admin-dashboard');
+
+    // Prefer Contact Support hub on the bottom bar; Support & Devices stays under Services.
+    $second = null;
+    if ($contactSupport) {
+        $second = [
+            'href' => route('contact-support.index'),
+            'label' => 'Contact',
+            'active' => request()->routeIs('contact-support.*')
+                || request()->routeIs('support.create')
+                || request()->routeIs('support.store')
+                || request()->routeIs('support.show')
+                || request()->routeIs('support.index'),
+            'icon' => 'contact',
+        ];
+    } elseif ($supportDevices) {
+        $second = [
+            'href' => route('client-admin.dashboard'),
+            'label' => 'Support',
+            'active' => request()->routeIs('client-admin.dashboard') || request()->routeIs('client-admin.live'),
+            'icon' => 'devices',
+        ];
+    }
 
     $third = null;
     if (auth()->user()->can('view-organisation-wide')) {
@@ -35,13 +58,19 @@
         <span>Home</span>
     </a>
 
-    @if(auth()->user()->can('view-client-admin-dashboard'))
-        <a href="{{ route('client-admin.dashboard') }}"
-           class="portal-bottom-nav__item {{ $supportActive ? 'is-active' : '' }}">
-            <svg class="portal-bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-            </svg>
-            <span>Support</span>
+    @if($second)
+        <a href="{{ $second['href'] }}"
+           class="portal-bottom-nav__item {{ $second['active'] ? 'is-active' : '' }}">
+            @if($second['icon'] === 'contact')
+                <svg class="portal-bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293a1.125 1.125 0 01-1.21.38 12.035 12.035 0 01-7.143-7.143 1.125 1.125 0 01.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
+                </svg>
+            @else
+                <svg class="portal-bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            @endif
+            <span>{{ $second['label'] }}</span>
         </a>
     @endif
 

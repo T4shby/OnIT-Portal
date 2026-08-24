@@ -1,5 +1,5 @@
 <x-app-layout>
-  <div class="mb-6"><a href="{{ route('support.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to support</a></div>
+  <div class="mb-6"><a href="{{ route('contact-support.index') }}" class="portal-body-muted text-sm hover:text-onit">&larr; Back to Contact Support</a></div>
   <x-card class="w-full">
     <h1 class="section-heading-white mb-6 !text-xl">New support request</h1>
     <p class="portal-body-muted text-sm mb-6 leading-relaxed">

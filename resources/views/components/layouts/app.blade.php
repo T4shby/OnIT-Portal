@@ -72,6 +72,12 @@
                             </a>
                         @endcan
                         <x-portal-services-nav />
+                        @can('contact-support')
+                            <a href="{{ route('contact-support.index') }}"
+                               class="portal-nav-link {{ request()->routeIs('contact-support.*') ? 'portal-nav-link-active' : '' }}">
+                                Contact Support
+                            </a>
+                        @endcan
                         @can('access-admin')
                             <a href="{{ route('admin.dashboard') }}"
                                class="portal-nav-link {{ request()->routeIs('admin.*') ? 'portal-nav-link-active' : '' }}">
@@ -131,6 +137,13 @@
                         </a>
                     @endcan
                     <x-portal-services-nav :mobile="true" />
+                    @can('contact-support')
+                        <a href="{{ route('contact-support.index') }}"
+                           @click="menuOpen = false"
+                           class="portal-nav-link touch-target py-3 {{ request()->routeIs('contact-support.*') ? 'portal-nav-link-active' : '' }}">
+                            Contact Support
+                        </a>
+                    @endcan
                     @can('access-admin')
                         <a href="{{ route('admin.dashboard') }}"
                            @click="menuOpen = false"
@@ -151,7 +164,11 @@
                         <span class="portal-beta-pill">Beta</span>
                         This portal is still in beta and figures may not be quite right.
                         If you notice something that does not look right, please
-                        <a href="{{ route('support.create') }}" class="portal-beta-link">contact the Service Desk</a>.
+                        @can('contact-support')
+                            <a href="{{ route('contact-support.index') }}" class="portal-beta-link">contact the Service Desk</a>.
+                        @else
+                            <a href="mailto:{{ config('onit_support.email') }}" class="portal-beta-link">email the Service Desk</a>.
+                        @endcan
                     </p>
                 </div>
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
