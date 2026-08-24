@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Use the extra browser width so Contact Support is not a narrow 64rem column |
 | Operator | agent |
-| SHA before -> after | `4f78627` -> (pending) |
+| SHA before -> after | `4f78627` -> `0cb5641` |
 | Steps | Hub/new-starter/ticket pages + header/footer to `max-w-[96rem]`; push + archive deploy |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; hard-refresh `/contact-support` |
+| Result | Success. Live `.deployed-commit` = `0cb5641`. Contact Support uses same wide width as M365. |
+| Rollback / watch | Redeploy `4f78627`; hard-refresh `/contact-support` |
 
 ### 2026-08-24 - Beta banner above nav (centered)
 
