@@ -83,7 +83,10 @@ class ContactSupportTest extends TestCase
             ->withArgs(function (User $actor, string $subject, string $description) use ($user): bool {
                 return $actor->is($user)
                     && $subject === 'New starter request: Alex Joiner'
-                    && str_contains($description, 'NEW STARTER REQUEST')
+                    && str_contains($description, 'New starter request')
+                    && str_contains($description, '<ul>')
+                    && str_contains($description, 'Jane Admin (jane@acme.com)')
+                    && ! str_contains($description, '<jane@acme.com>')
                     && str_contains($description, 'Alex Joiner')
                     && str_contains($description, 'Acme Ltd')
                     && str_contains($description, 'Laptop and M365');

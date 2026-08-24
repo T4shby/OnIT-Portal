@@ -3,6 +3,7 @@
 namespace App\Services\SuperOps;
 
 use App\Models\User;
+use App\Support\SuperOpsHtml;
 
 class SuperOpsTicketService
 {
@@ -70,7 +71,7 @@ class SuperOpsTicketService
 
         $input = [
             'subject' => $subject,
-            'description' => $description,
+            'description' => SuperOpsHtml::fromPlainText($description),
             'client' => ['accountId' => $accountId],
             // SuperOps TicketSource enum: FORM | AGENT | EMAIL | AI | PHONE | INTEGRATION
             // PORTAL is invalid and returns a GraphQL Internal Server Error.

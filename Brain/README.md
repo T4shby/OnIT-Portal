@@ -85,6 +85,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-24 | SuperOps ticket bodies are HTML (new starter field list; plain tickets get line breaks) - [ContactSupport.md](ContactSupport.md) |
 | 2026-08-24 | Ticket show: do not select SuperOps `description` (field does not exist); opening text from conversation list - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |
 | 2026-08-24 | Portal ticket create is MSP-wide: `source` INTEGRATION + mandatory `requestType` Incident; GraphQL client surfaces SuperOps `clientError` - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |
 | 2026-08-24 | **Contact Support** hub for client users (nav next to Services): log ticket, phone/hours, new starter → SuperOps - [ContactSupport.md](ContactSupport.md) |

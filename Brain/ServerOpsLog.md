@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - SuperOps ticket body HTML formatting
+
+| | |
+|---|---|
+| Intent | MSP-wide: SuperOps collapses plain newlines in ticket HTML; new starter looked like one blob. Send HTML lists / br; never Name <email>. |
+| Operator | agent |
+| SHA before -> after | `2f8cc03` -> (pending deploy) |
+| Steps | NewStarterTicketService HTML body; createTicket nl2br for plain tickets; portal show sanitizes HTML; tests; Brain; push + archive deploy. No live ticket probes. |
+| Result | Pending |
+| Rollback / watch | Redeploy prior SHA; new tickets only (existing SuperOps conversations stay as stored) |
+
 ### 2026-08-24 - Fix getTicket show (Ticket has no description)
 
 | | |

@@ -127,7 +127,7 @@ Vendor docs mark several of these optional. **This MSP rejects the mutation with
 | Field | Value | Notes |
 |---|---|---|
 | `subject` | string | Required by schema |
-| `description` | string | Portal ticket body / new-starter structured text |
+| `description` | HTML string | SuperOps renders HTML; plain `\n` is collapsed. Portal sends `nl2br(e())` for Log a ticket, and a field list for New starter. Do not use `Name <email>` - SuperOps treats it as a tag. |
 | `client.accountId` | `clients.superops_account_id` | Client must be linked |
 | `source` | `INTEGRATION` | SuperOps `TicketSource` enum: `FORM` \| `AGENT` \| `EMAIL` \| `AI` \| `PHONE` \| `INTEGRATION`. **`PORTAL` is not valid** and returns GraphQL Internal Server Error |
 | `subSource` | `On IT Portal` | Identifies the portal as the integration |

@@ -49,7 +49,7 @@ class SuperOpsTicketCreateTest extends TestCase
             'superops_user_id' => 'req-any',
         ]);
 
-        $created = app(SuperOpsTicketService::class)->createTicket($user, 'Printer offline', 'Details');
+        $created = app(SuperOpsTicketService::class)->createTicket($user, 'Printer offline', "Line 1\nLine 2");
 
         $this->assertSame('t-1', $created['ticketId']);
 
@@ -61,6 +61,7 @@ class SuperOpsTicketCreateTest extends TestCase
                 && ($input['subSource'] ?? null) === 'On IT Portal'
                 && ($input['status'] ?? null) === 'Open'
                 && ($input['requestType'] ?? null) === 'Incident'
+                && ($input['description'] ?? null) === 'Line 1<br>'."\n".'Line 2'
                 && ($input['client']['accountId'] ?? null) === 'acc-any'
                 && ($input['requester']['userId'] ?? null) === 'req-any';
         });

@@ -34,41 +34,44 @@ class NewStarterTicketService
     }
 
     /**
+     * HTML for SuperOps (plain newlines are collapsed in the PSA). All values escaped.
+     *
      * @param  array<string, mixed>  $data
      */
     public function buildDescription(User $user, array $data): string
     {
-        $lines = [
-            'NEW STARTER REQUEST (submitted via On IT Portal)',
-            '',
-            'Requested by: '.$user->name.' <'.$user->email.'>',
-            'Organisation: '.($user->client?->name ?? '-'),
-            '',
-            'Starter name: '.trim((string) ($data['starter_name'] ?? '')),
-            'Job title: '.$this->dash($data['job_title'] ?? null),
-            'Start date: '.$this->dash($data['start_date'] ?? null),
-            'Department / team: '.$this->dash($data['department'] ?? null),
-            'Line manager: '.$this->dash($data['manager_name'] ?? null),
-            'Email to create (if known): '.$this->dash($data['starter_email'] ?? null),
-            '',
-            'Equipment / access needed:',
-            $this->block($data['equipment_access'] ?? null),
-            '',
-            'Additional notes:',
-            $this->block($data['notes'] ?? null),
+        $requestedBy = trim($user->name.' ('.$user->email.')');
+
+        $rows = [
+            $this->row('Requested by', $requestedBy),
+            $this->row('Organisation', (string) ($user->client?->name ?: '-')),
+            $this->row('Starter name', trim((string) ($data['starter_name'] ?? ''))),
+            $this->row('Job title', $this->dash($data['job_title'] ?? null)),
+            $this->row('Start date', $this->dash($data['start_date'] ?? null)),
+            $this->row('Department / team', $this->dash($data['department'] ?? null)),
+            $this->row('Line manager', $this->dash($data['manager_name'] ?? null)),
+            $this->row('Email to create (if known)', $this->dash($data['starter_email'] ?? null)),
         ];
 
-        return implode("\n", $lines);
+        return implode('', [
+            '<p><strong>New starter request</strong><br>Submitted via On IT Portal</p>',
+            '<ul>'.implode('', $rows).'</ul>',
+            $this->block('Equipment / access needed', $data['equipment_access'] ?? null),
+            $this->block('Additional notes', $data['notes'] ?? null),
+        ]);
+    }
+
+    private function row(string $label, string $value): string
+    {
+        return '<li><strong>'.e($label).':</strong> '.e($value).'</li>';
+    }
+
+    private function block(string $label, ?string $value): string
+    {
+        return '<p><strong>'.e($label).'</strong><br>'.nl2br(e($this->dash($value)), false).'</p>';
     }
 
     private function dash(?string $value): string
-    {
-        $value = trim((string) $value);
-
-        return $value !== '' ? $value : '-';
-    }
-
-    private function block(?string $value): string
     {
         $value = trim((string) $value);
 
