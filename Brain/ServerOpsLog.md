@@ -39,10 +39,10 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | MSP-wide: SuperOps collapses plain newlines in ticket HTML; new starter looked like one blob. Send HTML lists / br; never Name <email>. |
 | Operator | agent |
-| SHA before -> after | `2f8cc03` -> (pending deploy) |
-| Steps | NewStarterTicketService HTML body; createTicket nl2br for plain tickets; portal show sanitizes HTML; tests; Brain; push + archive deploy. No live ticket probes. |
-| Result | Pending |
-| Rollback / watch | Redeploy prior SHA; new tickets only (existing SuperOps conversations stay as stored) |
+| SHA before -> after | `2f8cc03` -> `9586fe0` |
+| Steps | NewStarterTicketService HTML body; createTicket nl2br for plain tickets; portal show sanitizes HTML; tests; Brain; `git fetch` + `git archive main`; artisan migrate/route/config/view clear, PortalLinkSeeder, optimize. No live ticket probes. |
+| Result | Success. Live `.deployed-commit` = `9586fe0`. Existing SuperOps conversations unchanged. |
+| Rollback / watch | Redeploy `2f8cc03`; submit a new starter to see the list layout |
 
 ### 2026-08-24 - Fix getTicket show (Ticket has no description)
 
