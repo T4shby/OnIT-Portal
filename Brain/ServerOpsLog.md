@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 - Deploy Beta banner + M365 Excel/CSV export
+
+| | |
+|---|---|
+| Intent | Ship portal-wide Beta notice and M365 licences/users download for client demo |
+| Operator | agent |
+| SHA before -> after | `f4ab2dc` -> (pending push tip) |
+| Steps | Implement banner + `M365DirectoryExportService`; push `main`; fetch bare mirror; `git archive` to live; artisan migrate/clear/seed/optimize; chown storage; verify routes + sample export on server |
+| Result | Pending live verify |
+| Rollback / watch | Redeploy prior SHA; hard-refresh client portal; check `/microsoft-365/directory` download buttons |
+
 ### 2026-08-24 ~11:12 UK - Sync check before feature work
 
 | | |

@@ -213,6 +213,7 @@ class M365InsightsService
                     ? round(($totalSeatsAssigned / $totalSeatsPurchased) * 100, 1)
                     : 0.0,
                 'top_skus' => array_slice($topSkus, 0, 8),
+                'all_skus' => $topSkus,
                 'secure_score_pct' => ($secure['available'] ?? false) ? $secure['percentage'] : null,
                 'mfa_registered_pct' => ($mfa['available'] ?? false) ? $mfa['registered_pct'] : null,
                 'mfa_user_sample' => ($mfa['available'] ?? false) ? $mfa['total_users'] : null,

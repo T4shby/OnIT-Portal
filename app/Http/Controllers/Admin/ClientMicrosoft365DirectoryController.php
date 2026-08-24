@@ -26,4 +26,16 @@ class ClientMicrosoft365DirectoryController extends Microsoft365DirectoryControl
 
         return $this->renderDirectoryLive($request, $client, adminContext: true);
     }
+
+    public function exportForClient(Request $request, Client $client)
+    {
+        $this->authorize('view', $client);
+
+        abort_unless($this->directory->isAvailableForClient($client), 404);
+
+        $format = strtolower((string) $request->query('format', 'xlsx'));
+        abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
+
+        return $this->streamExport($client, $format, null);
+    }
 }

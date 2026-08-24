@@ -84,6 +84,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-08-24 | Client portal **Beta** banner (link to Service Desk / support create); M365 **Excel + CSV** download (licences then users) - [ClientAdminDashboard.md](ClientAdminDashboard.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-24 | Confirmed laptop / GitHub / live all on `b40dcef` before feature work - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-08-21 | Server ops log + Cursor rule: document every production SSH/deploy in [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-08-19 | Dashboard service cards (Support, M365, Security, Backup) are equal height - [UIOverhaul.md](UIOverhaul.md) |

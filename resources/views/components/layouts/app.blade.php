@@ -12,7 +12,41 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>[x-cloak] { display: none !important; }</style>
+    <style>
+        [x-cloak] { display: none !important; }
+        .portal-beta-banner {
+            border: 1px solid rgba(255, 112, 0, 0.35);
+            background: rgba(255, 112, 0, 0.08);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+        .portal-beta-banner-text {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.82);
+        }
+        .portal-beta-pill {
+            display: inline-block;
+            margin-right: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #FF7000;
+            color: #0a0f14;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+        .portal-beta-link {
+            color: #FF7000;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .portal-beta-link:hover { color: #ff8a33; }
+    </style>
 </head>
 <body>
     <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false, servicesOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false; servicesOpen = false">
@@ -112,6 +146,14 @@
 
         <main class="portal-main">
             <div class="{{ $contentClass }} portal-main-inner">
+                <div class="portal-beta-banner mb-6" role="status">
+                    <p class="portal-beta-banner-text">
+                        <span class="portal-beta-pill">Beta</span>
+                        This portal is still in beta and figures may not be quite right.
+                        If you notice something that does not look right, please
+                        <a href="{{ route('support.create') }}" class="portal-beta-link">contact the Service Desk</a>.
+                    </p>
+                </div>
                 @if(session('success'))<x-alert type="success" class="mb-6">{{ session('success') }}</x-alert>@endif
                 @if(session('error'))<x-alert type="danger" class="mb-6">{{ session('error') }}</x-alert>@endif
                 {{ $slot }}

@@ -445,6 +445,7 @@ Service: `App\Services\M365\M365DirectoryService`
 - Client Admin manual refresh: `POST /microsoft-365/directory/refresh` (cooldown `ENTRA_DIRECTORY_REFRESH_COOLDOWN_SECONDS`, default 60).
 - Graph refresh reads `assignedLicenses` with the tenant user list and resolves display names with one `/subscribedSkus` request. The eligible-user result carries those SKU names into the directory snapshot, so it does not repeat per-user `licenseDetails` calls.
 - **Directory people table** shows marketing licence names via `MicrosoftLicenseSkuNames` (same map as Organisation insights) as wrapping chips - not raw `skuPartNumber` (`O365_BUSINESS_PREMIUM`). Hover still shows the Graph SKU. Names are the Entra display name only; **(User Mailbox)** suffix is SuperOps-only (Type column covers mailbox kind). Phone: people rows as cards.
+- **Export (2026-08-24):** Client Admins (org-wide) and staff on the client M365 page can **Download Excel** or **Download CSV**. File order: summary → **Licences** → **Users** (with licence names attached). Excel has sheets `Licences` and `Users`. Routes: `microsoft-365.directory.export?format=xlsx|csv` and `admin.clients.microsoft-365.export`. Service: `M365DirectoryExportService`. Insights cache may include `all_skus` (full inventory) for export; UI still shows top 8.
 - Mailbox type detection still reads each user's `mailboxSettings` serially. A future optimisation can use Graph `$batch` in chunks of 20; this remains separate to keep shared-mailbox classification and its per-user error handling unchanged.
 - **Live UI (not full-page reload):** directory chrome stays put; only the data panel polls `GET /microsoft-365/directory/live` (or admin `…/microsoft-365/live`) every **5 seconds** while cold or refreshing. Cached tables stay visible during refresh. Large tenants can take several minutes (mailboxSettings per user) - the panel says so; it does not imply an 8-second finish.
 - **Client Admin overview** (`/client-admin`): metrics panel polls `GET /client-admin/live` while any refresh is in progress (no full-page reload).
@@ -586,6 +587,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-08-24 | M365 Excel/CSV export (licences then users); portal Beta banner → Service Desk |
 | 2026-08-19 | Restart threshold 2+ days; paginated device names; RAM/disk card still hidden |
 | 2026-08-19 | Removed Organisation nav/page. **Services** dropdown: Security, Microsoft 365, Support & Devices. SuperOps tickets/devices on `/services/support-devices` (cache `v5`). Licence utilisation on Microsoft 365 page. |
 | 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\M365\M365DirectoryDisplayResult;
+use App\Services\M365\M365DirectoryExportService;
 use App\Services\M365\M365DirectoryService;
 use App\Services\M365\M365DirectorySnapshot;
 use App\Services\M365\M365InsightsService;
@@ -13,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class Microsoft365DirectoryController extends Controller
@@ -21,6 +23,7 @@ class Microsoft365DirectoryController extends Controller
         protected M365DirectoryService $directory,
         protected ClientVisibilityService $visibility,
         protected M365InsightsService $insights,
+        protected M365DirectoryExportService $export,
     ) {}
 
     public function index(Request $request): View
@@ -34,6 +37,25 @@ class Microsoft365DirectoryController extends Controller
         abort_unless($client && $this->directory->isAvailableForClient($client), 404);
 
         return $this->renderDirectory($request, $client, adminContext: false);
+    }
+
+    public function export(Request $request): StreamedResponse|RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->canViewMicrosoft365Directory(), 403);
+
+        $client = $user->client;
+
+        abort_unless($client && $this->directory->isAvailableForClient($client), 404);
+
+        $format = strtolower((string) $request->query('format', 'xlsx'));
+        abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
+
+        $orgWide = $this->visibility->canViewOrganisationWide($user, $client);
+        $scopedUser = $orgWide ? null : $user;
+
+        return $this->streamExport($client, $format, $scopedUser);
     }
 
     public function live(Request $request): View
@@ -122,7 +144,32 @@ class Microsoft365DirectoryController extends Controller
             'organisationWide' => $orgWide,
             'pollSeconds' => 5,
             'm365Insights' => $orgWide ? $this->insights->summaryForClient($client) : null,
+            'canExportDirectory' => $orgWide || $adminContext,
         ];
+    }
+
+    protected function streamExport(Client $client, string $format, ?User $scopedUser = null): StreamedResponse
+    {
+        $workbook = $this->export->buildWorkbook($client, $scopedUser);
+        $filename = $this->export->filename($client, $format);
+
+        if ($format === 'csv') {
+            $csv = $this->export->toCsv($workbook);
+
+            return response()->streamDownload(static function () use ($csv): void {
+                echo $csv;
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        $xlsx = $this->export->toXlsx($workbook);
+
+        return response()->streamDownload(static function () use ($xlsx): void {
+            echo $xlsx;
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     private function personalDirectory(M365DirectoryDisplayResult $display, User $user): M365DirectoryDisplayResult

@@ -128,7 +128,8 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
-| 2026-08-19 | Dashboard service cards share one equal-height 4-column row. |
+| 2026-08-24 | Client portal Beta banner on all `x-app-layout` pages; contact Service Desk → `support.create`. |
+| 2026-08-24 | M365 directory: Download Excel + CSV (licences section then users with licences). |
 | 2026-08-19 | Dashboard Huntress card title is **Security** (was Detection & Response). |
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |
 | 2026-08-18 | **Mobile overhaul:** bottom tab nav, slide-up More menu, glance scroll strips + single-column grids, support/org ticket cards on phone. |

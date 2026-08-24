@@ -3,6 +3,12 @@
     <section class="org mb-10">
         <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px">
             <h2 class="org-label" style="margin:0">Microsoft 365 licences</h2>
+            @if($canExportDirectory ?? false)
+                @include('microsoft-365._export-buttons', [
+                    'adminContext' => $adminContext ?? false,
+                    'client' => $client ?? null,
+                ])
+            @endif
         </div>
 
         <div class="org-card org-card-pad">

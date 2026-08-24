@@ -20,12 +20,28 @@
             Read-only view of licensed users, shared mailboxes, and groups in <strong class="text-white/80">{{ $client->name }}</strong>
             - without signing into the Microsoft 365 admin centre.
         </p>
+        @if(($canExportDirectory ?? false) && (! ($m365Insights?->hasData() && $m365Insights->topSkus !== [])))
+            <div class="mt-4">
+                @include('microsoft-365._export-buttons', [
+                    'adminContext' => $adminContext ?? false,
+                    'client' => $client,
+                ])
+            </div>
+        @endif
     </section>
     @include('microsoft-365._licences')
 @else
     <p class="portal-body-muted mb-8 max-w-2xl">
         Read-only directory for <strong class="text-white/80">{{ $client->name }}</strong> - licensed users, shared mailboxes, and groups.
     </p>
+    @if(($canExportDirectory ?? false) && (! ($m365Insights?->hasData() && $m365Insights->topSkus !== [])))
+        <div class="mb-6">
+            @include('microsoft-365._export-buttons', [
+                'adminContext' => $adminContext ?? false,
+                'client' => $client,
+            ])
+        </div>
+    @endif
     @include('microsoft-365._licences')
 @endif
 

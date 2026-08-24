@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:view-m365-directory')
         ->name('microsoft-365.directory');
 
+    Route::get('/microsoft-365/directory/export', [Microsoft365DirectoryController::class, 'export'])
+        ->middleware('can:view-m365-directory')
+        ->name('microsoft-365.directory.export');
+
     Route::get('/microsoft-365/directory/live', [Microsoft365DirectoryController::class, 'live'])
         ->middleware('can:view-m365-directory')
         ->name('microsoft-365.directory.live');
@@ -119,6 +123,8 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.microsoft-365');
             Route::get('clients/{client}/microsoft-365/live', [ClientMicrosoft365DirectoryController::class, 'liveForClient'])
                 ->name('clients.microsoft-365.live');
+            Route::get('clients/{client}/microsoft-365/export', [ClientMicrosoft365DirectoryController::class, 'exportForClient'])
+                ->name('clients.microsoft-365.export');
             Route::get('clients/{client}/security/huntress', [ClientHuntressSecurityController::class, 'showForClient'])
                 ->name('clients.security.huntress');
             Route::get('clients/{client}/security/huntress/cases/{incident}', [ClientHuntressSecurityController::class, 'incidentForClient'])
