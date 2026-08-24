@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-08-24 ~11:12 UK - Sync check before feature work
+
+| | |
+|---|---|
+| Intent | Confirm laptop / GitHub / live match before implementing features |
+| Operator | agent |
+| SHA before -> after | n/a (read-only check; tip remains `b40dcef`) |
+| Steps | `git fetch origin`; compare local `main`, `origin/main`, live `.deployed-commit`, bare `main` |
+| Result | All three at `b40dcef` / `b40dcefb4f7ed68c7a1bc2bd1a94ebc59553f508`. Working tree clean. No code deploy required. |
+| Rollback / watch | None - no live files changed by this check |
+
 ### 2026-08-21 - Deploy ServerOpsLog + Cursor rule to GitHub and live
 
 | | |
@@ -105,5 +116,6 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | Sync check: local = GitHub = live at `b40dcef` |
 | 2026-08-21 | File created; Cursor rule `server-ops-log.mdc`; backfilled 19 Aug deploys; shipped to GitHub + live |
 | 2026-08-19 | Deploy of `987a8c7` (logged retrospectively) |
