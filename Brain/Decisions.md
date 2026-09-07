@@ -143,18 +143,18 @@ Two sources of truth for URLs (env and database). Seeder populates from env on f
 
 ---
 
-## ADR-010
+## ADR-010 (updated 2026-09-07)
 
-Date: 2026-06-09
+Date: 2026-06-09 - updated 2026-09-07
 
 Decision:
-Use activity_logs table for audit trail instead of a third-party logging package.
+Use activity_logs table for audit trail instead of a third-party logging package. Keep rows for 90 days; do not omit loopback IPs.
 
 Reason:
-Simple, purpose-built audit log meets MVP requirements. Logs user actions on sensitive operations with subject polymorphism. No external dependency needed.
+Simple, purpose-built audit log meets MVP requirements. Logs user actions on sensitive operations with subject polymorphism. No external dependency needed. On Plesk, most rows historically showed `127.0.0.1` because nginx talks to PHP on loopback - those are real users, not junk. The table is small (~2 MB at 6k rows); unbounded growth is the only disk concern.
 
 Consequences:
-Nightly prune keeps rows for `ACTIVITY_LOG_RETAIN_DAYS` (default 90). Do **not** drop rows whose IP is `127.0.0.1` - on Plesk that is usually a real user action behind nginx, not local junk. No advanced log analytics.
+Nightly `model:prune` at 03:20 (`APP_TIMEZONE`) keeps rows for `ACTIVITY_LOG_RETAIN_DAYS` (default 90). `ActivityLogService` records the forwarded client IP when REMOTE_ADDR is loopback. No advanced log analytics. See [DatabaseSchema.md](DatabaseSchema.md).
 
 ---
 

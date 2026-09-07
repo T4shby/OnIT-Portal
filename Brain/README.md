@@ -71,6 +71,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Technician Integration Health | `IntegrationHealthController`, `/admin/integration-health` |
 | M365 directory (async) | `M365DirectoryService`, `RefreshM365DirectoryJob` |
 | M365 insights (async) | `M365InsightsService`, `RefreshM365InsightsJob` |
+| Activity logs | `ActivityLogService`, `ActivityLog` (`MassPrunable`), Admin `/admin/activity-logs`, nightly `model:prune` - [DatabaseSchema.md](DatabaseSchema.md) |
 | Client roles | `App\Enums\UserRole`, `User` capability helpers, gates in `AuthServiceProvider` |
 | usecure (planned) | Not implemented - [UsecureIntegration.md](UsecureIntegration.md); clone Huntress/Dropsuite when keys land |
 
@@ -85,7 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-09-07 | Activity logs: keep 90 days (nightly prune). Do not skip localhost IPs - those are usually real Plesk/nginx requests. ~2 MB at 6k rows. - [DatabaseSchema.md](DatabaseSchema.md) |
+| 2026-09-07 | Activity logs: keep 90 days (nightly prune at 03:20 `APP_TIMEZONE`). Do not skip localhost IPs. Docs aligned across schema, ADR-010, Architecture, Authentication, Deployment. - [DatabaseSchema.md](DatabaseSchema.md) |
 | 2026-09-04 | Server ops: one-off 3R SAM discovery export (local `3R task/` only; not a product feature) - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-08-24 | Ticket show: do not select SuperOps `description` (field does not exist); opening text from conversation list - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |
 | 2026-08-24 | Portal ticket create is MSP-wide: `source` INTEGRATION + mandatory `requestType` Incident; GraphQL client surfaces SuperOps `clientError` - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |

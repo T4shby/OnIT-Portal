@@ -51,7 +51,7 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
    b. SuperOpsUserSyncService links requester by email (if API configured)
    c. SuperOpsSsoService establishes SSO session flag
    d. Create Laravel session (database-backed, remember-me cookie via `remember_token`)
-   e. Log activity: user.login
+   e. Log activity: `user.login` (IP from `ActivityLogService` - prefer forwarded client IP on Plesk; never skip the row because IP is localhost)
    f. Redirect to /dashboard (or /support if SUPEROPS_AUTO_OPEN_AFTER_LOGIN)
 9. If user NOT found OR inactive:
    a. Redirect to /login with error message

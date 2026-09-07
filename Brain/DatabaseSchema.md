@@ -30,9 +30,9 @@ Audit table for Admin → Activity Logs (logins, SSO launch, role changes, etc.)
 
 | Rule | Detail |
 |------|--------|
-| Retention | Keep **90 days** (`ACTIVITY_LOG_RETAIN_DAYS`, default 90). Nightly `model:prune` at 03:20 UK/server time. |
-| Loopback IPs | **Do not skip** `127.0.0.1`. On Plesk, nginx often makes PHP see localhost even for real users. Skipping those rows would drop most of the audit trail. Prefer `X-Real-IP` / `X-Forwarded-For` when REMOTE_ADDR is loopback. |
-| Size | ~6k rows was ~2 MB (2026-09-07). Not a disk risk; prune is a cap so it cannot grow forever. |
+| Retention | Keep **90 days** (`ACTIVITY_LOG_RETAIN_DAYS`, default 90). Nightly `model:prune` at **03:20** in `APP_TIMEZONE` (production is UTC unless `.env` says otherwise). |
+| Loopback IPs | **Do not skip** `127.0.0.1` / `::1`. On Plesk, nginx often makes PHP see localhost even for real users. Skipping those rows would drop most of the audit trail. `ActivityLogService` prefers `X-Real-IP` / `X-Forwarded-For` when `Request::ip()` is loopback, but still writes the row if that is all we have. |
+| Size | ~6k rows was ~2.2 MB (2026-09-07). Not a disk risk; prune is a cap so it cannot grow forever. |
 
 Standard Laravel settings / sessions tables.
 

@@ -37,6 +37,10 @@ Brain/          ← source of truth
 
 `client_id` FK + policies + `User::canAccessClient()`.
 
+## Audit log
+
+Admin → Activity Logs (`activity_logs`). Written by `ActivityLogService` (login, SSO launch, role changes, CMS, etc.). Retain **90 days** then `model:prune` (scheduled 03:20). Do not drop localhost IPs. Details: [DatabaseSchema.md](DatabaseSchema.md), ADR-010 in [Decisions.md](Decisions.md).
+
 ## Caching
 
 `portal_links.client.{id}` - 5 minutes.

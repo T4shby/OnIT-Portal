@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-07 - Deploy ServerOpsLog SHA 6648d95
+
+| | |
+|---|---|
+| Intent | Align live tree with GitHub `main` after ops-log commit |
+| Operator | agent |
+| SHA before -> after | `a468ca9` -> `6648d95` |
+| Steps | `git fetch` on bare mirror; `git archive` into `/var/www/vhosts/onit.ltd/app.onit.ltd`; composer install --no-dev; artisan migrate (none), route/config/view clear, PortalLinkSeeder, optimize; chown storage. Removed `/tmp/deploy-prod.sh` after. |
+| Result | Success. Live `.deployed-commit` = `6648d95`. Docs-only vs previous live SHA (activity-log prune already live at `a468ca9`). |
+| Rollback / watch | Redeploy `a468ca9`. App behaviour unchanged. |
+
 ### 2026-09-07 - Deploy activity log 90-day prune (a468ca9)
 
 | | |

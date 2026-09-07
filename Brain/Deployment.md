@@ -114,6 +114,9 @@ SESSION_SECURE_COOKIE=true
 
 QUEUE_CONNECTION=database
 
+# Optional. Admin activity_logs retention (days). Default 90 if omitted.
+# ACTIVITY_LOG_RETAIN_DAYS=90
+
 MICROSOFT_CLIENT_ID=your-client-id
 MICROSOFT_CLIENT_SECRET=your-client-secret
 MICROSOFT_TENANT_ID=organizations
@@ -219,7 +222,7 @@ Use **absolute** log paths. Relative `>> storage/logs/...` only works if `cd` su
 
 Hourly **`portal:sync-entra-users`** (Entra Extra Sync on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead - not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
 
-Nightly: **`portal:capture-metric-snapshots`** at 02:15; **`model:prune` ActivityLog** at 03:20 (keep `ACTIVITY_LOG_RETAIN_DAYS`, default 90). Do not skip localhost IPs - see [DatabaseSchema.md](DatabaseSchema.md).
+Nightly: **`portal:capture-metric-snapshots`** at 02:15; **`model:prune` ActivityLog** at 03:20 **`APP_TIMEZONE`** (keep `ACTIVITY_LOG_RETAIN_DAYS`, default 90). Do not skip localhost IPs - see [DatabaseSchema.md](DatabaseSchema.md).
 
 Two concurrent workers so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
 
