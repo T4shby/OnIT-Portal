@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-07 - Deploy activity-log docs alignment (f44ca36)
+
+| | |
+|---|---|
+| Intent | Put retention/IP Brain docs on GitHub and live; confirm prune works |
+| Operator | agent |
+| SHA before -> after | `6648d95` -> `f44ca36` |
+| Steps | Commit Brain (schema, ADR-010, Architecture, Authentication, Deployment, README, prior 6648d95 ops row). Push `origin/main`. `git fetch` + `git archive` into live; composer/artisan post-deploy. SSH verify: schedule prune 03:20 UTC, `model:prune --pretend` (0 rows), table count 6029, login HTTP 200, `/admin/activity-logs` 302 to login. Removed `/tmp` deploy/verify scripts. |
+| Result | Success. Live `.deployed-commit` = `f44ca36`. `APP_TIMEZONE=UTC`. `ACTIVITY_LOG_RETAIN_DAYS` unset (default 90). Next prune due ~10 hours. No rows older than 90 days yet. |
+| Rollback / watch | Redeploy `6648d95`. Admin Activity Logs still lists recent actions. First real deletes after 16 Sep 2026. |
+
 ### 2026-09-07 - Deploy ServerOpsLog SHA 6648d95
 
 | | |
