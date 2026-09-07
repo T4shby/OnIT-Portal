@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-07 - Deploy activity log 90-day prune (a468ca9)
+
+| | |
+|---|---|
+| Intent | Stop unbounded activity_logs growth; keep real client IPs (do not drop 127.0.0.1) |
+| Operator | agent |
+| SHA before -> after | `66b0942` -> `a468ca9` |
+| Steps | `git fetch` on bare mirror; `git archive` into `/var/www/vhosts/onit.ltd/app.onit.ltd`; composer install --no-dev; artisan migrate (none), route/config/view clear, PortalLinkSeeder, optimize; chown storage. Confirmed crontab already runs `schedule:run` every minute. Nightly `model:prune` ActivityLog at 03:20. Removed `/tmp/deploy-prod.sh` after. |
+| Result | Success. Live `.deployed-commit` = `a468ca9`. Nothing to migrate. Schedule line present in `routes/console.php`. Existing ~6k rows stay until they age past 90 days (oldest currently 2026-06-16). |
+| Rollback / watch | Redeploy `66b0942`. Check Admin Activity Logs still lists recent logins. After 03:20, `storage/logs/scheduler.log` should mention prune when due. Table was ~2.2 MB; watch if it climbs into tens of MB. |
+
 ### 2026-09-07 - Check activity_logs size (retention, not skip localhost)
 
 | | |
