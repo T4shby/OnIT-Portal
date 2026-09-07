@@ -33,6 +33,28 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-07 - Check activity_logs size (retention, not skip localhost)
+
+| | |
+|---|---|
+| Intent | See if Admin Activity Logs is filling disk; whether localhost rows are junk |
+| Operator | agent |
+| SHA before -> after | n/a (read-only probe) |
+| Steps | SSH: one-off PHP under `/tmp` - `SHOW TABLE STATUS` + count localhost IPs; deleted probe after |
+| Result | ~6029 rows, **~2.2 MB** data+index. Oldest 2026-06-16. **5767 rows IP 127.0.0.1 / ::1** (real user actions behind nginx, not local junk). Skipping localhost would drop most of the audit trail. |
+| Rollback / watch | None |
+
+### 2026-09-04 - One-off 3R SAM discovery export (not a portal feature)
+
+| | |
+|---|---|
+| Intent | Gather SuperOps per-device software inventory + M365 licences + Huntress agents for 3R Systems SAM research; deliver under local `3R task/` folder |
+| Operator | agent |
+| SHA before -> after | n/a (no app deploy) |
+| Steps | SSH: run throwaway PHP under `/tmp` against live Laravel (list assets, `getAssetSoftwareList` per asset, M365 directory/insights, Huntress agents); tar to `/tmp/3r-sam-export.tgz`; scp to laptop; delete `/tmp` probes and server export; build markdown locally |
+| Result | Success. 23 devices, ~6949 software rows, 57 M365 people, 22 Huntress agents. Output only on laptop in `3R task/` (gitignored). |
+| Rollback / watch | None. Do not leave probes on production. Client data must not be committed. |
+
 ### 2026-08-24 - SuperOps ticket body HTML formatting
 
 | | |

@@ -24,4 +24,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Activity log audit trail (Admin → Activity Logs). Cap growth; do not skip loopback IPs
+    // (Plesk often records 127.0.0.1 for real user actions behind nginx).
+    'activity_log_retain_days' => max(1, (int) env('ACTIVITY_LOG_RETAIN_DAYS', 90)),
 ];

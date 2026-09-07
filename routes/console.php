@@ -46,3 +46,8 @@ Schedule::call(function () {
 Schedule::command('portal:capture-metric-snapshots')
     ->dailyAt('02:15')
     ->withoutOverlapping(120);
+
+// Drop activity_logs older than ACTIVITY_LOG_RETAIN_DAYS (default 90).
+Schedule::command('model:prune', ['--model' => [\App\Models\ActivityLog::class]])
+    ->dailyAt('03:20')
+    ->withoutOverlapping(30);

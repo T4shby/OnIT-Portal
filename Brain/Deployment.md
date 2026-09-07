@@ -217,7 +217,9 @@ Use **absolute** log paths. Relative `>> storage/logs/...` only works if `cd` su
 
 **Do not use `onOneServer()`** for scheduled commands on this single host with `CACHE_STORE=database`. A stuck row in `cache_locks` can skip `portal:prewarm-client-dashboards` for tens of minutes (data ages with empty queue). Prewarm clears expired / absurdly long schedule locks on each run.
 
-Hourly **`portal:sync-entra-users`** (Entra “Extra Sync” on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead - not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
+Hourly **`portal:sync-entra-users`** (Entra Extra Sync on Integration Health) only runs when `schedule:run` runs. Multi-day Entra ages usually mean the minute scheduler was dead - not SuperOps prewarm. Manual catch-up: `php artisan portal:sync-entra-users` then drain `queue:work … high,default`.
+
+Nightly: **`portal:capture-metric-snapshots`** at 02:15; **`model:prune` ActivityLog** at 03:20 (keep `ACTIVITY_LOG_RETAIN_DAYS`, default 90). Do not skip localhost IPs - see [DatabaseSchema.md](DatabaseSchema.md).
 
 Two concurrent workers so **one client's long M365/Entra job does not block every other client**. Laravel's database queue locks jobs; both workers are safe. Prefer Supervisor `numprocs=2` if available.
 

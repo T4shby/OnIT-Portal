@@ -154,7 +154,7 @@ Reason:
 Simple, purpose-built audit log meets MVP requirements. Logs user actions on sensitive operations with subject polymorphism. No external dependency needed.
 
 Consequences:
-Log retention and rotation must be managed manually or via scheduled task in future. No advanced log analytics in MVP.
+Nightly prune keeps rows for `ACTIVITY_LOG_RETAIN_DAYS` (default 90). Do **not** drop rows whose IP is `127.0.0.1` - on Plesk that is usually a real user action behind nginx, not local junk. No advanced log analytics.
 
 ---
 
