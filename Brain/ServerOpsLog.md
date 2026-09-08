@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-08 14:40 UK - Deploy activity feed + ticket-show 403 fix (388a809)
+
+| | |
+|---|---|
+| Intent | Ship readable Dashboard activity copy/badges and stop 403 on ticket confirmation after SuperOps create |
+| Operator | agent |
+| SHA before -> after | `ec5b4f1` -> `388a809` |
+| Steps | Commit and `git push origin main` (`388a809`). SSH: fetch Plesk bare `laravel_af3fd1`; `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`; composer/artisan post-deploy (migrate none, route/config/view clear, PortalLinkSeeder, optimize, not `cache:clear`); `rm public/hot`; chown storage. Removed `/tmp/deploy-prod.sh` after. First archive attempt used `origin/main` (bare repo has `main` only) and failed before extract. |
+| Result | Success. Live `.deployed-commit` = `388a809`. Live Blade has `glance-activity-badge`; `userCanViewTicket` present. Login HTTP 200. |
+| Rollback / watch | Redeploy `ec5b4f1`. Hard-refresh Dashboard activity; log a ticket and confirm `/support/{id}` is not 403. |
+
 ### 2026-09-08 - Deploy instant filter chips (ec5b4f1)
 
 | | |

@@ -86,6 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-09-08 | Deployed activity feed badges/action copy + ticket confirmation 403 fix (`388a809`). - [ServerOpsLog.md](ServerOpsLog.md), [UIOverhaul.md](UIOverhaul.md), [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | 2026-09-08 | After Log a ticket / New starter, `/support/{id}` 403ed even when SuperOps had the ticket (INTEGRATION requester mismatch). Show now allows the creating organisation. - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |
 | 2026-09-08 | Dashboard activity: readable status badges + “what we did” copy from ticket/security status (not conversation log). - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-08 | Filter chips (M365 + Huntress) are instant CSS - not a new page load. - [UIOverhaul.md](UIOverhaul.md) |
