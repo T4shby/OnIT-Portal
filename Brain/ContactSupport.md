@@ -36,7 +36,7 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 - Service: `App\Services\Support\NewStarterTicketService`
 - Subject: `New starter request: {name}`
 - Description: HTML for SuperOps (plain newlines collapse in the PSA). List of fields plus equipment/notes. Requester shown as `Name (email)` - never `Name <email>` (SuperOps treats that as an HTML tag). User input is escaped.
-- Uses **the same** `SuperOpsTicketService::createTicket` as **Log a ticket** (every SuperOps-linked client, one MSP payload)
+- Redirects to `/support/{ticketId}` on success. A 403 on that page while SuperOps has the ticket is the INTEGRATION requester mismatch - [ticket detail](SuperOpsIntegration.md#ticket-detail-getticket).
 - Requires SuperOps API configured + client `superops_account_id`
 - Contract, required fields, and 2026-08-24 outage notes: [SuperOpsIntegration.md - createTicket contract](SuperOpsIntegration.md#createticket-contract-all-clients)
 
@@ -53,6 +53,7 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 
 | Date | Note |
 |------|------|
+| 2026-09-08 | Create still lands in SuperOps; confirmation `/support/{id}` 403 is requester mismatch, not a failed create. |
 | 2026-08-24 | New starter / Log a ticket bodies sent as HTML so SuperOps shows line breaks (not one blob). |
 | 2026-08-24 | Ticket show: SuperOps Ticket has no `description`; load opening text from conversation list so create redirect is not "Ticket not found". |
 | 2026-08-24 | Document + harden MSP-wide createTicket (`INTEGRATION` + `requestType: Incident`); GraphQL client now surfaces SuperOps `clientError`. |

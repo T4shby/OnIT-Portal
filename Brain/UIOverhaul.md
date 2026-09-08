@@ -56,7 +56,7 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v5` |
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
-| **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
+| **Activity feed** | SuperOps open + recently closed tickets, Huntress cases/remediations, Dropsuite mailbox errors | Action headlines + high-contrast badge. Not a conversation log (no internal notes / per-reply). See below. |
 | **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control (do not show a locked toggle). |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
@@ -72,6 +72,36 @@ For **Huntress** / **Dropsuite** when entitlement is not sold:
 - **Value strip / report hero stats:** if MDR not sold, show **tickets resolved · open tickets · SLA** - do **not** lead with Threats stopped `-` (reads as zero protection).
 
 Support (SuperOps) remains the protection signal for support-only orgs.
+
+### Activity feed ("What we have done for you")
+
+Glance and Reports share `ClientActivityFeedService` + `ClientActivityCopy`.
+
+**Layout:** action headline → ticket/case subject (muted) → **status badge** (orange border, white text on glance; navy text on Reports). Ticket id sits on the right, not in the grey sentence.
+
+**Support copy from SuperOps status only** (dashboard cache has subject/status/times, not conversations):
+
+| SuperOps status | Headline | Badge |
+|---|---|---|
+| Waiting on Client / Customer | We sent an update and are waiting on you | Waiting on you |
+| In Progress | A technician is working on this | In progress |
+| Open | This is in our support queue | Open |
+| On Hold | We have paused this ticket | On hold |
+| Pending | We are lining up the next step | Pending |
+| Waiting on Vendor | We are waiting on a supplier | Waiting on supplier |
+| Reopened | We have reopened this ticket | Reopened |
+| Closed / Resolved | We closed this ticket | Closed |
+| Closed (no response) | We closed this after no reply | Closed |
+
+Also in the mapper: scheduled, waiting for update, escalated, cancelled. Closed tickets are included so the list is not only open work.
+
+**Not claimed:** technician internal notes, or a specific reply timestamp. SuperOps conversation list is not fetched for this feed.
+
+**Security:** open/closed case headlines; remediations map isolate / credentials / contain plus unapproved → Needs your approval vs completed.
+
+**Backup:** failed/retrying mailbox attention.
+
+Times prefer SuperOps `updatedTime`, then resolution, then created. Cache key stays `superops-dashboard:v5`; refresh to pick up `updatedTime`.
 
 ### Product mix → different client homes (source of truth)
 
@@ -117,6 +147,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 |------|------|
 | `app/Services/Portal/ClientHomeOverviewService.php` | Column/metric assembly; **`staffHomeComposition()`** for technicians |
 | `app/Services/Portal/ClientActivityFeedService.php` | Composed “what we’ve done” list |
+| `app/Services/Portal/ClientActivityCopy.php` | Status → client action headline + badge |
 | `app/Services/Portal/ClientMetricSnapshotService.php` | Daily MoM snapshot store/compare |
 | `app/Console/Commands/CaptureClientMetricSnapshotsCommand.php` | `portal:capture-metric-snapshots` |
 | `resources/views/dashboard/glance.blade.php` | 1a home |
@@ -129,6 +160,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-09-08 | Activity feed: action headlines + high-contrast status badge; include closed tickets; SuperOps `updatedTime` on dashboard ticket rows. |
 | 2026-09-08 | Filter chips (M365 people/groups, Huntress All/Active/Resolved) hide rows with CSS - no full page reload / no Alpine x-show on every row. |
 | 2026-08-24 | **Contact Support** hub in nav (client users only): ticket + phone/hours + new starter form → SuperOps API. |
 | 2026-08-24 | Client portal Beta banner (superseded 2026-09-08 by quiet feedback strip). |

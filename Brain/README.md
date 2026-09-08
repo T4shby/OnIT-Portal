@@ -86,6 +86,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-09-08 | After Log a ticket / New starter, `/support/{id}` 403ed even when SuperOps had the ticket (INTEGRATION requester mismatch). Show now allows the creating organisation. - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |
+| 2026-09-08 | Dashboard activity: readable status badges + “what we did” copy from ticket/security status (not conversation log). - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-08 | Filter chips (M365 + Huntress) are instant CSS - not a new page load. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-08 | Client voice pass: glance uses On IT chrome (Barlow, square cards); quiet feedback strip instead of Beta; hide Last month until ready; Checking empty states; no SLA/MDR/snapshot jargon on client home. Staff Admin unchanged. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-04 | Server ops: one-off 3R SAM discovery export (local `3R task/` only; not a product feature) - [ServerOpsLog.md](ServerOpsLog.md) |

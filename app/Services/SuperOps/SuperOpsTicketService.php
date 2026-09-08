@@ -2,8 +2,10 @@
 
 namespace App\Services\SuperOps;
 
+use App\Models\Client;
 use App\Models\User;
 use App\Support\SuperOpsHtml;
+use Illuminate\Support\Facades\Cache;
 
 class SuperOpsTicketService
 {
@@ -86,6 +88,8 @@ class SuperOpsTicketService
 
         if ($user->superops_user_id) {
             $input['requester'] = ['userId' => $user->superops_user_id];
+        } elseif (filled($user->email)) {
+            $input['requester'] = ['email' => $user->email];
         }
 
         $data = $this->api->query(<<<'GQL'
@@ -100,20 +104,56 @@ class SuperOpsTicketService
             throw new \RuntimeException('SuperOps did not return a ticket id.');
         }
 
+        $this->rememberTicketAccount((string) $created['ticketId'], $accountId);
+
         return $created;
+    }
+
+    public function userCanViewTicket(array $ticket, User $user): bool
+    {
+        if ($this->ticketBelongsToUser($ticket, $user)) {
+            return true;
+        }
+
+        $ticketId = (string) ($ticket['ticketId'] ?? '');
+        $accountId = $this->ticketAccountId($ticket);
+        if ($accountId === '' && $ticketId !== '') {
+            $accountId = $this->rememberedTicketAccount($ticketId) ?? '';
+        }
+
+        if ($accountId === '') {
+            return false;
+        }
+
+        if ($user->canUseClientSupport() && filled($user->client?->superops_account_id)
+            && (string) $user->client->superops_account_id === $accountId) {
+            return true;
+        }
+
+        if ($user->isTeamMember()) {
+            $client = Client::query()->where('superops_account_id', $accountId)->first();
+
+            return $client !== null && $user->canAccessClient($client->id);
+        }
+
+        return false;
     }
 
     public function ticketBelongsToUser(array $ticket, User $user): bool
     {
         $requester = $this->normalizeJsonObject($ticket['requester'] ?? null);
-        $requesterId = (string) ($requester['userId'] ?? $requester['user_id'] ?? '');
-        $requesterEmail = strtolower((string) ($requester['email'] ?? ''));
+        $requesterId = (string) ($requester['userId'] ?? $requester['user_id'] ?? $requester['id'] ?? '');
+        $requesterEmail = strtolower((string) ($requester['email'] ?? $requester['userEmail'] ?? ''));
 
-        if ($user->superops_user_id && $requesterId === $user->superops_user_id) {
+        if ($user->superops_user_id && $requesterId !== '' && $requesterId === $user->superops_user_id) {
             return true;
         }
 
-        return $requesterEmail === strtolower($user->email);
+        if ($requesterEmail !== '' && $requesterEmail === strtolower((string) $user->email)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -195,5 +235,32 @@ class SuperOpsTicketService
         }
 
         return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticket
+     */
+    private function ticketAccountId(array $ticket): string
+    {
+        $client = $this->normalizeJsonObject($ticket['client'] ?? null);
+
+        return (string) ($client['accountId'] ?? $client['account_id'] ?? '');
+    }
+
+    private function rememberTicketAccount(string $ticketId, string $accountId): void
+    {
+        Cache::put($this->ticketAccountCacheKey($ticketId), $accountId, now()->addDays(14));
+    }
+
+    private function rememberedTicketAccount(string $ticketId): ?string
+    {
+        $value = Cache::get($this->ticketAccountCacheKey($ticketId));
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function ticketAccountCacheKey(string $ticketId): string
+    {
+        return 'superops-ticket-account:'.$ticketId;
     }
 }

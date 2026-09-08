@@ -274,7 +274,7 @@ class ClientHomeOverviewService
     }
 
     /**
-     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string}>}
+     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string, badge?: string, ref?: string}>}
      */
     private function activityFor(Client $client, User $user): array
     {
@@ -290,6 +290,8 @@ class ClientHomeOverviewService
                 'source' => $row['source'] ?? 'portal',
                 'title' => $row['title'] ?? null,
                 'text' => $row['detail'] ?? '',
+                'badge' => $row['badge'] ?? null,
+                'ref' => $row['ref'] ?? null,
             ];
         }
 

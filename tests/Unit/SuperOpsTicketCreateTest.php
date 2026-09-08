@@ -89,11 +89,11 @@ class SuperOpsTicketCreateTest extends TestCase
 
         app(SuperOpsTicketService::class)->createTicket($user, 'New starter request: Alex', 'Body');
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($user) {
             $input = $request->data()['variables']['input'] ?? [];
 
             return ($input['requestType'] ?? null) === 'Service Request'
-                && ! array_key_exists('requester', $input);
+                && ($input['requester']['email'] ?? null) === $user->email;
         });
     }
 

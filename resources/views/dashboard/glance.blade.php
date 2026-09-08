@@ -109,6 +109,17 @@
     .glance { color: #fff; }
     .glance-label { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #FF7000; font-family: 'Barlow Condensed', sans-serif; }
     .glance-muted { color: rgba(255,255,255,.65); }
+    .glance-activity-badge {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        color: #fff;
+        background: rgba(255,112,0,.28);
+        border: 1px solid #FF7000;
+    }
     .glance-card { background: #071f2e; border: 1px solid #0f3048; }
     .glance-columns {
         display: grid;
@@ -328,15 +339,23 @@
                         @endphp
                         <div class="glance-activity-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:start">
                             <div style="min-width:0">
-                                <div style="font-size:13px;font-weight:600;line-height:1.3">
+                                <div style="font-size:13px;font-weight:600;line-height:1.3;color:#fff">
                                     {{ $item['title'] ?? $sourceLabel }}
                                 </div>
-                                <div style="margin-top:2px;font-size:12.5px;line-height:1.4" class="glance-muted">
-                                    {{ $item['text'] ?? '' }}
-                                </div>
+                                @if(filled($item['text'] ?? null))
+                                    <div style="margin-top:2px;font-size:12.5px;line-height:1.4" class="glance-muted">
+                                        {{ $item['text'] }}
+                                    </div>
+                                @endif
+                                @if(filled($item['badge'] ?? null))
+                                    <span class="glance-activity-badge">{{ $item['badge'] }}</span>
+                                @endif
                             </div>
                             <div class="glance-activity-meta glance-muted" style="text-align:right;font-size:11px;white-space:nowrap">
                                 @if($at){{ $at }}@endif
+                                @if(filled($item['ref'] ?? null))
+                                    <div style="margin-top:2px;color:#fff;font-weight:600">{{ $item['ref'] }}</div>
+                                @endif
                                 <div style="margin-top:2px;font-weight:500;letter-spacing:.04em;text-transform:uppercase">{{ $sourceLabel }}</div>
                             </div>
                         </div>

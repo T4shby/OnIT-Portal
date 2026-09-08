@@ -18,30 +18,41 @@ class ClientActivityFeedService
         private SuperOpsClientMetricsService $superOps,
         private HuntressIncidentService $huntressIncidents,
         private DropsuiteClientMetricsService $dropsuite,
+        private ClientActivityCopy $copy,
     ) {}
 
     /**
-     * @return list<array{at: string, title: string, detail: string, source: string}>
+     * @return list<array{at: string, title: string, detail: string, source: string, badge: string, ref: string}>
      */
     public function recentFor(Client $client, ?User $viewer = null, int $limit = 8): array
     {
         $events = [];
 
         $so = $this->superOps->summaryForClient($client, false, $viewer);
-        if ($so->hasData() || $so->openTicketsTable !== []) {
-            foreach (array_slice($so->openTicketsTable, 0, 12) as $ticket) {
-                $created = $ticket['createdTime'] ?? null;
-                if (! is_string($created) || $created === '') {
+        if ($so->hasData() || $so->openTicketsTable !== [] || $so->closedTicketsTable !== []) {
+            $tickets = array_merge(
+                array_slice($so->closedTicketsTable, 0, 8),
+                array_slice($so->openTicketsTable, 0, 12),
+            );
+            foreach ($tickets as $ticket) {
+                if (! is_array($ticket)) {
+                    continue;
+                }
+                $when = $this->ticketWhen($ticket);
+                if ($when === null) {
                     continue;
                 }
                 $display = trim((string) ($ticket['displayId'] ?? ''));
                 $subject = trim((string) ($ticket['subject'] ?? 'Support ticket'));
                 $status = trim((string) ($ticket['status'] ?? ''));
+                $mapped = $this->copy->ticket($status);
                 $events[] = [
-                    'at' => $created,
-                    'title' => $display !== '' ? "Ticket {$display}" : 'Support ticket',
-                    'detail' => $this->truncate($subject.($status !== '' ? " · {$status}" : ''), 120),
+                    'at' => $when,
+                    'title' => $mapped['title'],
+                    'detail' => $this->truncate($subject, 120),
                     'source' => 'support',
+                    'badge' => $mapped['badge'],
+                    'ref' => $display !== '' ? "Ticket {$display}" : 'Support ticket',
                 ];
             }
         }
@@ -55,15 +66,15 @@ class ClientActivityFeedService
                 if ($when === null) {
                     continue;
                 }
-                $title = $incident->isActive
-                    ? 'Security case open'
-                    : 'Security case closed';
+                $mapped = $this->copy->securityCase($incident->isActive);
                 $subject = trim($incident->subject !== '' ? $incident->subject : 'Security investigation');
                 $events[] = [
                     'at' => $when->toIso8601String(),
-                    'title' => $title,
+                    'title' => $mapped['title'],
                     'detail' => $this->truncate($subject, 120),
                     'source' => 'security',
+                    'badge' => $mapped['badge'],
+                    'ref' => 'Security',
                 ];
 
                 foreach (array_slice($incident->remediations, 0, 3) as $remediation) {
@@ -75,14 +86,14 @@ class ClientActivityFeedService
                     if ($action === '') {
                         continue;
                     }
+                    $mappedFix = $this->copy->threatResponse($action, $status);
                     $events[] = [
                         'at' => $when->toIso8601String(),
-                        'title' => 'Threat response',
-                        'detail' => $this->truncate(
-                            ucfirst(str_replace('_', ' ', $action)).($status !== '' ? " · {$status}" : ''),
-                            120,
-                        ),
+                        'title' => $mappedFix['title'],
+                        'detail' => $this->truncate($mappedFix['detail'], 120),
                         'source' => 'security',
+                        'badge' => $mappedFix['badge'],
+                        'ref' => 'Threat response',
                     ];
                 }
             }
@@ -103,12 +114,15 @@ class ClientActivityFeedService
                     $when = ($bu->lastBackupAt?->toIso8601String()) ?? now()->toIso8601String();
                 }
                 $user = trim((string) ($failure['display_name'] ?? $failure['email'] ?? 'Mailbox'));
-                $status = trim((string) ($failure['current_backup_status'] ?? 'needs attention'));
+                $status = trim((string) ($failure['current_backup_status'] ?? ''));
+                $mapped = $this->copy->backup($status);
                 $events[] = [
                     'at' => $when,
-                    'title' => 'Backup attention',
-                    'detail' => $this->truncate("{$user} · {$status}", 120),
+                    'title' => $mapped['title'],
+                    'detail' => $this->truncate($user, 120),
                     'source' => 'backup',
+                    'badge' => $mapped['badge'],
+                    'ref' => 'Backup',
                 ];
             }
         }
@@ -118,6 +132,21 @@ class ClientActivityFeedService
         });
 
         return array_slice($events, 0, $limit);
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticket
+     */
+    private function ticketWhen(array $ticket): ?string
+    {
+        foreach (['updatedTime', 'resolutionTime', 'createdTime'] as $field) {
+            $value = $ticket[$field] ?? null;
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function sortKey(string $at): int

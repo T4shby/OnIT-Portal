@@ -56,7 +56,7 @@ class SupportController extends Controller
             return redirect()->route('support.index')->with('error', 'Ticket not found.');
         }
 
-        if (! $ticket || ! $this->tickets->ticketBelongsToUser($ticket, $request->user())) {
+        if (! $ticket || ! $this->tickets->userCanViewTicket($ticket, $request->user())) {
             abort(403);
         }
 

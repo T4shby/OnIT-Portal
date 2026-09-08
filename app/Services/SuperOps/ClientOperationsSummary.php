@@ -10,8 +10,8 @@ class ClientOperationsSummary
      * @param  array<string, int|null>  $ticketsCreated
      * @param  array<string, int|null>  $ticketsClosed
      * @param  array<string, int>  $openTicketsByPriority
-     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, category?: string}>  $openTicketsTable
-     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, resolutionTime: ?string, category?: string}>  $closedTicketsTable
+     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, updatedTime?: ?string, category?: string}>  $openTicketsTable
+     * @param  list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string, updatedTime?: ?string, resolutionTime: ?string, category?: string}>  $closedTicketsTable
      * @param  array<string, int>  $ticketsByCategory
      * @param  array<string, mixed>  $deviceInsights
      */

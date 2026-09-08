@@ -468,6 +468,7 @@ class SuperOpsClientMetricsService
      * @return list<array{
      *     status: string,
      *     createdTime: ?string,
+     *     updatedTime: ?string,
      *     resolutionTime: ?string,
      *     displayId: string,
      *     subject: string,
@@ -491,6 +492,7 @@ class SuperOpsClientMetricsService
                             priority
                             status
                             createdTime
+                            updatedTime
                             resolutionTime
                             resolutionViolated
                             requester
@@ -525,6 +527,7 @@ class SuperOpsClientMetricsService
                 $tickets[] = [
                     'status' => $this->statusName($ticket['status'] ?? null),
                     'createdTime' => $ticket['createdTime'] ?? null,
+                    'updatedTime' => $ticket['updatedTime'] ?? null,
                     'resolutionTime' => $ticket['resolutionTime'] ?? null,
                     'displayId' => (string) ($ticket['displayId'] ?? ''),
                     'subject' => (string) ($ticket['subject'] ?? ''),
@@ -623,6 +626,7 @@ class SuperOpsClientMetricsService
      *     subject: string,
      *     priority: string,
      *     createdTime: ?string,
+     *     updatedTime: ?string,
      * }>  $tickets
      * @return list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string}>
      */
@@ -693,6 +697,7 @@ class SuperOpsClientMetricsService
             'priority' => $ticket['priority'],
             'status' => $ticket['status'],
             'createdTime' => $ticket['createdTime'],
+            'updatedTime' => $ticket['updatedTime'] ?? null,
             'resolutionTime' => $ticket['resolutionTime'] ?? null,
             'category' => (string) ($ticket['category'] ?? ''),
             'requesterEmail' => (string) ($ticket['requesterEmail'] ?? ''),

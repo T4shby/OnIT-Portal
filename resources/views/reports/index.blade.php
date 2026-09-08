@@ -125,6 +125,17 @@
             box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
         }
         .rp-muted { color: #666; }
+        .rp-activity-badge {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            color: #071f2e;
+            background: #fff4eb;
+            border: 1px solid #FF7000;
+        }
 
         .rp-head {
             display: flex;
@@ -499,11 +510,19 @@
                                 @endphp
                                 <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px">
                                     <div style="min-width:0">
-                                        <div style="font-size:13px;font-weight:600">{{ $item['title'] ?? $sourceLabel }}</div>
-                                        <div class="rp-muted" style="margin-top:2px;font-size:12.5px;line-height:1.4">{{ $item['text'] ?? '' }}</div>
+                                        <div style="font-size:13px;font-weight:600;color:#071f2e">{{ $item['title'] ?? $sourceLabel }}</div>
+                                        @if(filled($item['text'] ?? null))
+                                            <div class="rp-muted" style="margin-top:2px;font-size:12.5px;line-height:1.4">{{ $item['text'] }}</div>
+                                        @endif
+                                        @if(filled($item['badge'] ?? null))
+                                            <span class="rp-activity-badge">{{ $item['badge'] }}</span>
+                                        @endif
                                     </div>
                                     <div class="rp-muted" style="text-align:right;font-size:11px;white-space:nowrap">
                                         @if($at){{ $at }}@endif
+                                        @if(filled($item['ref'] ?? null))
+                                            <div style="margin-top:2px;color:#071f2e;font-weight:600">{{ $item['ref'] }}</div>
+                                        @endif
                                         <div style="margin-top:2px;text-transform:uppercase;letter-spacing:.04em;font-weight:500">{{ $sourceLabel }}</div>
                                     </div>
                                 </div>

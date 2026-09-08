@@ -221,7 +221,7 @@ Cache key: `client:{client_id}:superops-dashboard:v5`
 
 Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, purchase age), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (30 days), and ticket logged/closed ranges.
 
-Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate`. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`).
+Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate`. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`) and `updatedTime` for the glance activity sort.
 
 Restart heuristic: `sysUptime` contains **2+ days**. Device name lists paginate at 5 per page. Offline 30+ days uses last communicated/reported time. RAM/disk per-device pull is parked - no placeholder card.
 
