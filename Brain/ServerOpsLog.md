@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-08 - Deploy instant filter chips (ec5b4f1)
+
+| | |
+|---|---|
+| Intent | Stop M365/Huntress filter chips taking seconds (full reload / Alpine x-show on every row) |
+| Operator | agent |
+| SHA before -> after | `7b1685b` -> `ec5b4f1` |
+| Steps | Push `origin/main` (includes rebuilt `public/build` CSS). Archive deploy; artisan post-deploy; `rm public/hot`. Confirmed live Blade has `huntress-cases` and built CSS has `m365-dir`. |
+| Result | Success. Live `.deployed-commit` = `ec5b4f1`. |
+| Rollback / watch | Redeploy `7b1685b`. Hard-refresh Microsoft 365 (People/Users/Shared) and Security (All/Active/Resolved) - chips should switch instantly. |
+
 ### 2026-09-08 - Deploy client voice pass (06cb9a9)
 
 | | |
