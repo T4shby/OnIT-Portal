@@ -129,7 +129,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
-| 2026-09-08 | **Client voice:** Barlow/square glance; drop Beta warning; hide Last month until ready; SLA/MDR/snapshot jargon off client home. |
+| 2026-09-08 | Filter chips (M365 people/groups, Huntress All/Active/Resolved) hide rows with CSS - no full page reload / no Alpine x-show on every row. |
 | 2026-08-24 | **Contact Support** hub in nav (client users only): ticket + phone/hours + new starter form → SuperOps API. |
 | 2026-08-24 | Client portal Beta banner (superseded 2026-09-08 by quiet feedback strip). |
 | 2026-08-24 | M365 directory: Download Excel + CSV (licences section then users with licences). |

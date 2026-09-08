@@ -90,7 +90,14 @@
         @endif
     </div>
 
-    <div x-data="{ tab: 'people', peopleFilter: 'all', groupFilter: 'all' }" class="space-y-6">
+    <div class="m365-dir space-y-6"
+         data-tab="people"
+         data-people-filter="all"
+         data-group-filter="all"
+         x-data="{ tab: 'people', peopleFilter: 'all', groupFilter: 'all' }"
+         :data-tab="tab"
+         :data-people-filter="peopleFilter"
+         :data-group-filter="groupFilter">
         <div class="flex flex-wrap gap-2 border-b border-white/10 pb-4">
             <button type="button"
                     @click="tab = 'people'"
@@ -106,7 +113,7 @@
             </button>
         </div>
 
-        <div x-show="tab === 'people'" x-cloak>
+        <div class="m365-pane-people">
             <div class="flex flex-wrap gap-2 mb-4">
                 @foreach([
                     'all' => 'All ('.$directory->peopleCounts()['all'].')',
@@ -140,7 +147,7 @@
                 <div class="m365-people-cards sm:hidden">
                     @foreach($peopleRows as $row)
                         @php $person = $row['person']; @endphp
-                        <article class="portal-ticket-card" x-show="peopleFilter === 'all' || peopleFilter === '{{ $person['type'] }}'">
+                        <article class="portal-ticket-card m365-person" data-type="{{ $person['type'] }}">
                             <div class="portal-ticket-card__top">
                                 <span class="text-sm font-medium text-white leading-snug">{{ $row['name'] !== '' ? $row['name'] : $person['displayName'] }}</span>
                                 <x-badge :variant="$person['accountEnabled'] ? 'success' : 'danger'">
@@ -184,7 +191,7 @@
                         <tbody>
                             @foreach($peopleRows as $row)
                                 @php $person = $row['person']; @endphp
-                                <tr x-show="peopleFilter === 'all' || peopleFilter === '{{ $person['type'] }}'">
+                                <tr class="m365-person" data-type="{{ $person['type'] }}">
                                     <td>{{ $row['name'] !== '' ? $row['name'] : $person['displayName'] }}</td>
                                     <td class="text-white/70">{{ $person['email'] ?? '-' }}</td>
                                     <td><x-badge variant="info">{{ $person['typeLabel'] }}</x-badge></td>
@@ -219,7 +226,7 @@
             @endif
         </div>
 
-        <div x-show="tab === 'groups'" x-cloak>
+        <div class="m365-pane-groups">
             <div class="flex flex-wrap gap-2 mb-4">
                 @foreach([
                     'all' => 'All ('.$directory->groupCounts()['all'].')',
@@ -252,7 +259,7 @@
                         </thead>
                         <tbody>
                             @foreach($directory->groups as $group)
-                                <tr x-show="groupFilter === 'all' || groupFilter === '{{ $group['type'] }}'">
+                                <tr class="m365-group" data-type="{{ $group['type'] }}">
                                     <td>{{ $group['displayName'] }}</td>
                                     <td class="text-white/70">{{ $group['email'] ?? '-' }}</td>
                                     <td><x-badge variant="default">{{ $group['typeLabel'] }}</x-badge></td>

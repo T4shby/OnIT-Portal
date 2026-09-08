@@ -71,7 +71,7 @@ class HuntressSecurityController extends Controller
         $viewer = $adminContext ? null : $user;
         $list = $this->incidents->listForClient(
             $client,
-            $filter === 'all' ? null : $filter,
+            null,
             $viewer,
         );
 
@@ -84,7 +84,7 @@ class HuntressSecurityController extends Controller
             $summary = $this->metrics->summaryForClient($client);
             $list = $this->incidents->listForClient(
                 $client,
-                $filter === 'all' ? null : $filter,
+                null,
                 $viewer,
             );
         }

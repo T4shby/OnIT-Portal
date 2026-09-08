@@ -120,7 +120,23 @@
     </x-card>
 @endif
 
-{{-- Cases --}}
+{{-- Cases: All / Active / Resolved filter in the browser (no page reload). --}}
+@php
+    $caseCount = count($list->incidents);
+    $activeCaseCount = 0;
+    $resolvedCaseCount = 0;
+    foreach ($list->incidents as $c) {
+        if ($c->isActive) {
+            $activeCaseCount++;
+        } else {
+            $resolvedCaseCount++;
+        }
+    }
+@endphp
+<div class="huntress-cases"
+     data-filter="{{ $filter }}"
+     x-data="{ filter: '{{ $filter }}' }"
+     x-bind:data-filter="filter">
 <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
     <div>
         <h2 class="portal-label mb-1">Cases</h2>
@@ -134,10 +150,12 @@
     </div>
     <div class="flex flex-wrap gap-2">
         @foreach(['all' => 'All', 'active' => 'Active', 'resolved' => 'Resolved'] as $key => $label)
-            <a href="{{ $indexRoute }}?status={{ $key }}"
-               class="px-3 py-1.5 text-xs border font-condensed uppercase tracking-wide {{ $filter === $key ? 'border-onit text-onit' : 'border-white/15 text-white/60 hover:text-white' }}">
+            <button type="button"
+                    @click="filter = '{{ $key }}'"
+                    :class="filter === '{{ $key }}' ? 'border-onit text-onit' : 'border-white/15 text-white/60 hover:text-white'"
+                    class="px-3 py-1.5 text-xs border font-condensed uppercase tracking-wide">
                 {{ $label }}
-            </a>
+            </button>
         @endforeach
     </div>
 </div>
@@ -152,17 +170,23 @@
             @endif
         </p>
     </x-card>
-@elseif(count($list->incidents) === 0)
+@elseif($caseCount === 0)
     <x-card>
         <p class="portal-body-muted text-sm">
             @if(! ($canViewAll ?? false))
                 No security cases linked to you right now.
             @else
-                No {{ $filter === 'all' ? '' : $filter.' ' }}cases for this organisation.
+                No cases for this organisation.
             @endif
         </p>
     </x-card>
 @else
+    <x-card class="mb-4" x-cloak x-show="filter === 'active' && {{ $activeCaseCount }} === 0">
+        <p class="portal-body-muted text-sm">No active cases for this organisation.</p>
+    </x-card>
+    <x-card class="mb-4" x-cloak x-show="filter === 'resolved' && {{ $resolvedCaseCount }} === 0">
+        <p class="portal-body-muted text-sm">No resolved cases for this organisation.</p>
+    </x-card>
     <div class="space-y-2">
         @foreach($list->incidents as $case)
             @php
@@ -177,7 +201,8 @@
                 };
             @endphp
             <a href="{{ $showUrl }}"
-               class="block border border-white/10 bg-[#011926]/40 px-4 py-4 hover:border-onit/50 transition-colors group">
+               data-active="{{ $case->isActive ? '1' : '0' }}"
+               class="huntress-case block border border-white/10 bg-[#011926]/40 px-4 py-4 hover:border-onit/50 transition-colors group">
                 <div class="flex gap-4">
                     <div class="shrink-0 mt-1 text-onit/80 group-hover:text-onit" aria-hidden="true">
                         @if($case->isActive)
@@ -225,3 +250,4 @@
         @endforeach
     </div>
 @endif
+</div>

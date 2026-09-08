@@ -214,6 +214,8 @@ class HuntressSecurityCasesTest extends TestCase
             ->assertSee('Active cases')
             ->assertSee('Case for jane')
             ->assertSee('Case for bob only')
-            ->assertSee('Open in Huntress');
+            ->assertSee('Open in Huntress')
+            ->assertSee('huntress-case', false)
+            ->assertSee('type="button"', false);
     }
 }

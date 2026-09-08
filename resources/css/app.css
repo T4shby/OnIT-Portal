@@ -890,6 +890,27 @@
         word-break: break-word;
     }
 
+    /* Filter chips: CSS hide, not Alpine x-show on every row (slow on large tenants). */
+    .m365-dir[data-tab='people'] .m365-pane-groups,
+    .m365-dir[data-tab='groups'] .m365-pane-people {
+        display: none !important;
+    }
+    .m365-dir[data-people-filter='user'] .m365-person:not([data-type='user']),
+    .m365-dir[data-people-filter='shared_mailbox'] .m365-person:not([data-type='shared_mailbox']) {
+        display: none !important;
+    }
+    .m365-dir[data-group-filter='security_group'] .m365-group:not([data-type='security_group']),
+    .m365-dir[data-group-filter='distribution_list'] .m365-group:not([data-type='distribution_list']),
+    .m365-dir[data-group-filter='microsoft_365_group'] .m365-group:not([data-type='microsoft_365_group']),
+    .m365-dir[data-group-filter='mail_enabled_security_group'] .m365-group:not([data-type='mail_enabled_security_group']) {
+        display: none !important;
+    }
+
+    .huntress-cases[data-filter='active'] .huntress-case:not([data-active='1']),
+    .huntress-cases[data-filter='resolved'] .huntress-case:not([data-active='0']) {
+        display: none !important;
+    }
+
     @media (max-width: 639px) {
         .portal-footer {
             @apply hidden;
