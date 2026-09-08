@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-08 - Deploy client voice pass (06cb9a9)
+
+| | |
+|---|---|
+| Intent | Ship client-facing copy and glance chrome to production |
+| Operator | agent |
+| SHA before -> after | `8fa5d7a` -> `06cb9a9` |
+| Steps | Push `origin/main`. `git fetch` + `git archive` into `/var/www/vhosts/onit.ltd/app.onit.ltd`; composer/artisan post-deploy. SSH: live layout has "Something look off?", no Beta warning; glance heading "at a glance"; login HTTP 200. Removed `/tmp` deploy/verify scripts. |
+| Result | Success. Live `.deployed-commit` = `06cb9a9`. |
+| Rollback / watch | Redeploy `8fa5d7a`. Hard-refresh Dashboard as a client user: no Beta strip, Checking empty states, tickets say full service desk. |
+
 ### 2026-09-07 - Deploy activity-log docs alignment (f44ca36)
 
 | | |
