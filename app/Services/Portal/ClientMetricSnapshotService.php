@@ -63,7 +63,7 @@ class ClientMetricSnapshotService
         $empty = [
             'available' => false,
             'status' => 'pipeline',
-            'message' => 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.',
+            'message' => 'Last month will show here after we have a full month of figures.',
             'as_of' => null,
             'overall_band' => null,
             'value' => null,

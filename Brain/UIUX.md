@@ -29,6 +29,8 @@ These mirror [design/SKILL.md](design/SKILL.md). Apply on every portal screen.
 
 ## Portal vs marketing
 
+Dashboard glance is the same dark On IT shell (Barlow, square cards, heading stack). Do not load a second font (Poppins) or round the home cards.
+
 | Marketing | Portal |
 |---|---|
 | Standalone HTML, Tailwind CDN | Laravel Blade, Vite, `@tailwind` |

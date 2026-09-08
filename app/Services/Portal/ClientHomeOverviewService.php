@@ -235,16 +235,21 @@ class ClientHomeOverviewService
 
         return [
             'threats' => $this->okMetricValue($byKey['huntress'] ?? null, [
+                'Threats stopped',
                 'Threats stopped (MTD)',
                 'Remediated',
                 'Remediated (snapshot)',
                 'Resolved incidents',
             ]),
             'resolved' => $this->okMetricValue($byKey['superops'] ?? null, [
+                'Tickets we closed',
                 'Resolved this month',
                 'Resolved (30d)',
             ]),
-            'sla' => $this->okMetricValue($byKey['superops'] ?? null, ['SLA met']),
+            'sla' => $this->okMetricValue($byKey['superops'] ?? null, [
+                'Resolved on time',
+                'SLA met',
+            ]),
         ];
     }
 
@@ -275,7 +280,7 @@ class ClientHomeOverviewService
     {
         $rows = $this->activity->recentFor($client, $user, 8);
         if ($rows === []) {
-            return $this->emptyActivity('No recent support or security activity in the latest snapshots.');
+            return $this->emptyActivity('Nothing new to show right now.');
         }
 
         $items = [];
@@ -290,7 +295,7 @@ class ClientHomeOverviewService
 
         return [
             'status' => 'live',
-            'message' => 'Recent activity from support tickets, security cases, and backup attention items.',
+            'message' => 'Recent tickets, security cases, and backup alerts.',
             'items' => $items,
         ];
     }
@@ -323,7 +328,7 @@ class ClientHomeOverviewService
         $priorValue = is_array($compare['value'] ?? null) ? $compare['value'] : [];
 
         $deltas = [];
-        foreach (['threats' => 'Threats stopped', 'resolved' => 'Tickets resolved', 'sla' => 'SLA met'] as $key => $label) {
+        foreach (['threats' => 'Threats stopped', 'resolved' => 'Tickets we closed', 'sla' => 'Resolved on time'] as $key => $label) {
             $cur = $priorValue !== [] ? ($currentValue[$key] ?? null) : ($currentValue[$key] ?? null);
             $prev = $priorValue[$key] ?? null;
             if ($cur === null && $prev === null) {
@@ -409,8 +414,8 @@ class ClientHomeOverviewService
             return [
                 'title' => 'Your IT at a glance',
                 'status_line' => $n === 1
-                    ? '1 service has issues to review.'
-                    : "{$n} services have issues to review.",
+                    ? '1 service needs a look.'
+                    : "{$n} services need a look.",
                 'status_tone' => 'warn',
                 'status_detail' => $firstIssuesWhy,
             ];
@@ -419,17 +424,17 @@ class ClientHomeOverviewService
         if ($live > 0) {
             return [
                 'title' => 'Your IT at a glance',
-                'status_line' => 'All systems protected.',
+                'status_line' => 'Everything looks good.',
                 'status_tone' => 'ok',
-                'status_detail' => 'Every connected service is healthy right now.',
+                'status_detail' => 'No issues on the services we track for you.',
             ];
         }
 
         return [
             'title' => 'Your IT at a glance',
-            'status_line' => 'Services not live yet.',
+            'status_line' => 'We are still getting your picture ready.',
             'status_tone' => 'neutral',
-            'status_detail' => null,
+            'status_detail' => 'Figures appear here once each service has loaded.',
         ];
     }
 
@@ -642,15 +647,15 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No SuperOps snapshot yet - waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'We are still gathering support figures. They usually appear within a few minutes.');
         }
 
         if (! empty($summary->refreshInProgress) && ! method_exists($summary, 'hasData')) {
-            return $this->markState($base, 'loading', 'Refreshing SuperOps metrics…');
+            return $this->markState($base, 'loading', 'Updating support figures...');
         }
 
         if (method_exists($summary, 'hasData') && ! $summary->hasData()) {
-            $reason = (string) ($summary->unavailableReason ?? 'SuperOps data unavailable.');
+            $reason = (string) ($summary->unavailableReason ?? 'Support figures are not available yet.');
             if (str_contains(strtolower($reason), 'not connected') || str_contains(strtolower($reason), 'not sold')) {
                 return $this->markState($base, 'setup_needed', $reason);
             }
@@ -658,7 +663,7 @@ class ClientHomeOverviewService
                 return $this->markState($base, 'platform', $reason);
             }
             if (! empty($summary->refreshInProgress)) {
-                return $this->markState($base, 'loading', 'Loading SuperOps metrics…');
+                return $this->markState($base, 'loading', 'Loading support figures...');
             }
 
             return $this->markState($base, 'cold', $reason);
@@ -671,12 +676,12 @@ class ClientHomeOverviewService
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
             $this->metric('Waiting on you', $summary->waitingOnClientTotal ?? null, null),
-            $this->metric('Resolved this month', $closed30, null),
-            $this->metric('Devices managed', $summary->assetsTotal, null),
-            $this->metric('Healthy', $summary->assetsOnline, null),
-            $this->metric('Offline', $summary->assetsOffline, null),
+            $this->metric('Tickets we closed', $closed30, null),
+            $this->metric('Devices', $summary->assetsTotal, null),
+            $this->metric('Online', $summary->assetsOnline, null),
+            $this->metric('Not online', $summary->assetsOffline, null),
             $this->metric(
-                'SLA met',
+                'Resolved on time',
                 $summary->slaMetPercent !== null ? $summary->slaMetPercent.'%' : null,
                 $summary->slaSampleSize !== null ? 'of '.$summary->slaSampleSize.' tickets' : null,
             ),
@@ -706,7 +711,7 @@ class ClientHomeOverviewService
             plan_label: 'Microsoft 365 Management',
             source: 'Microsoft Graph',
             href: route('microsoft-365.directory'),
-            href_label: 'View tenant →',
+            href_label: 'View people and licences →',
             client: $client,
             user: $user,
         );
@@ -715,17 +720,17 @@ class ClientHomeOverviewService
         if (! $orgWide) {
             $st = $this->products->status($client, 'm365');
             if ($st === ClientProductService::STATUS_NOT_SOLD) {
-                return $this->markState($base, 'not_sold', 'Microsoft 365 is not sold for this organisation.');
+                return $this->markState($base, 'not_sold', 'Microsoft 365 management is not on this plan.');
             }
             if ($st === ClientProductService::STATUS_SETUP_NEEDED) {
-                return $this->markState($base, 'setup_needed', 'Microsoft 365 tenant link is not finished - contact your account manager.');
+                return $this->markState($base, 'setup_needed', 'Microsoft 365 is still being connected. Your On IT account manager can help if this stays open.');
             }
 
             return array_merge($base, [
                 'state' => 'live',
                 'tone' => 'ok',
                 'status_label' => 'Healthy',
-                'status_reason' => 'Open Microsoft 365 for your people and groups.',
+                'status_reason' => 'Open the directory for your people, mailboxes, and groups.',
                 'message' => null,
                 'metrics' => [
                     $this->metric('Directory', 'Open Microsoft 365', null),
@@ -739,19 +744,19 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Microsoft 365 licence snapshot yet - waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'We are still gathering Microsoft 365 figures. They usually appear within a few minutes.');
         }
 
         $reason = (string) ($summary->unavailableReason ?? '');
         if ($reason !== '' && ($summary->lastRefreshedAt ?? null) === null) {
             if (! empty($summary->refreshInProgress)) {
-                return $this->markState($base, 'loading', 'Loading Microsoft 365 metrics…');
+                return $this->markState($base, 'loading', 'Loading Microsoft 365 figures...');
             }
             if (str_contains(strtolower($reason), 'not configured') || str_contains(strtolower($reason), 'tenant')) {
                 return $this->markState($base, 'setup_needed', $reason);
             }
 
-            return $this->markState($base, 'cold', $reason !== '' ? $reason : 'Microsoft 365 data unavailable.');
+            return $this->markState($base, 'cold', $reason !== '' ? $reason : 'Microsoft 365 figures are not available yet.');
         }
 
         $topPlan = null;
@@ -785,7 +790,7 @@ class ClientHomeOverviewService
                 'MFA registered',
                 rtrim(rtrim(number_format((float) $summary->mfaRegisteredPct, 1), '0'), '.').'%',
                 isset($summary->mfaUserSample) && $summary->mfaUserSample !== null
-                    ? 'of '.$summary->mfaUserSample.' members'
+                    ? 'of '.$summary->mfaUserSample.' people'
                     : null,
             );
         }
@@ -811,10 +816,10 @@ class ClientHomeOverviewService
         $base = $this->baseColumn(
             key: 'huntress',
             title: 'Security',
-            plan_label: 'Managed Cybersecurity (MDR + ITDR)',
+            plan_label: 'Managed cybersecurity',
             source: 'Huntress',
             href: route('security.huntress.index'),
-            href_label: 'View cases →',
+            href_label: 'View security →',
             client: $client,
             user: $user,
         );
@@ -824,13 +829,13 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Huntress snapshot yet - waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'We are still gathering security figures. They usually appear within a few minutes.');
         }
 
         if (empty($summary->available) && empty($summary->lastRefreshedAt)) {
-            $reason = (string) ($summary->unavailableReason ?? 'Huntress data unavailable.');
+            $reason = (string) ($summary->unavailableReason ?? 'Security figures are not available yet.');
             if (! empty($summary->refreshInProgress)) {
-                return $this->markState($base, 'loading', 'Loading Huntress metrics…');
+                return $this->markState($base, 'loading', 'Loading security figures...');
             }
             if (str_contains(strtolower($reason), 'not linked') || str_contains(strtolower($reason), 'not sold') || str_contains(strtolower($reason), 'setup')) {
                 return $this->markState($base, 'setup_needed', $reason);
@@ -843,21 +848,21 @@ class ClientHomeOverviewService
         $threatResponses = $this->huntressThreatResponsesMtd($client, $user);
 
         $metrics = array_values(array_filter([
-            $this->metric('Agent coverage', $summary->agentsTotal, null),
+            $this->metric('Protected devices', $summary->agentsTotal, null),
             $this->metric('24/7 monitoring', $summary->agentsTotal !== null ? 'Active' : null, null),
-            $this->metric('Open incidents', $summary->openIncidents, null),
+            $this->metric('Open cases', $summary->openIncidents, null),
             $threatsMtd !== null
-                ? $this->metric('Threats stopped (MTD)', $threatsMtd, 'closed this month')
+                ? $this->metric('Threats stopped', $threatsMtd, 'this month')
                 : null,
             $this->metric(
-                'Remediated',
+                'Handled overall',
                 $summary->resolvedIncidents,
-                'lifetime handled',
+                'all time',
             ),
             $threatResponses !== null && $threatResponses > 0
-                ? $this->metric('Threat responses (MTD)', $threatResponses, 'actions logged')
+                ? $this->metric('Threat responses', $threatResponses, 'this month')
                 : null,
-            $this->metric('Devices not reporting', $summary->agentsUnresponsive, null),
+            $this->metric('Devices not checking in', $summary->agentsUnresponsive, null),
         ]));
 
         $health = $this->huntressHealth($summary);
@@ -896,19 +901,19 @@ class ClientHomeOverviewService
         }
 
         if (! is_object($summary)) {
-            return $this->markState($base, 'cold', 'No Dropsuite snapshot yet - waiting for auto-refresh.');
+            return $this->markState($base, 'cold', 'We are still gathering backup figures. They usually appear within a few minutes.');
         }
 
         if (empty($summary->available) || (method_exists($summary, 'hasData') && ! $summary->hasData() && empty($summary->lastRefreshedAt))) {
-            $reason = (string) ($summary->unavailableReason ?? 'Backup data unavailable.');
+            $reason = (string) ($summary->unavailableReason ?? 'Backup figures are not available yet.');
             if (! empty($summary->refreshInProgress)) {
-                return $this->markState($base, 'loading', 'Loading backup metrics…');
+                return $this->markState($base, 'loading', 'Loading backup figures...');
             }
             if (str_contains(strtolower($reason), 'not') || str_contains(strtolower($reason), 'setup')) {
-                return $this->markState($base, 'setup_needed', $reason !== '' ? $reason : 'Backup product needs mapping.');
+                return $this->markState($base, 'setup_needed', $reason !== '' ? $reason : 'Backup is still being connected.');
             }
 
-            return $this->markState($base, 'cold', $reason !== '' ? $reason : 'Backup metrics cold.');
+            return $this->markState($base, 'cold', $reason !== '' ? $reason : 'Backup figures are not available yet.');
         }
 
         $failed = $summary->failedLast24h ?? $summary->failedBackupsCount ?? null;
@@ -969,7 +974,7 @@ class ClientHomeOverviewService
             'href_label' => $href_label,
             'state' => 'live_candidate',
             'tone' => 'neutral',
-            'status_label' => '-',
+            'status_label' => 'Checking',
             'status_reason' => null,
             'message' => null,
             'metrics' => [],
@@ -1033,11 +1038,11 @@ class ClientHomeOverviewService
         return match ($productKey) {
             'huntress' => [
                 'label' => 'Add-on',
-                'reason' => '24/7 managed detection & response (Huntress) is an optional add-on - not on this plan. On IT still helps with security through support tickets and our technicians. This tile only shows automated Huntress metrics when that feed is included.',
+                'reason' => '24/7 monitoring is an optional extra on your plan. We still help with security through the Service Desk.',
             ],
             'dropsuite' => [
                 'label' => 'Add-on',
-                'reason' => 'Dedicated email & cloud backup (Dropsuite) is an optional add-on - not on this plan. On IT still helps with recovery questions on support tickets. Ask your account manager if you want this feed added.',
+                'reason' => 'Cloud backup is an optional extra on your plan. We can still help with recovery questions through the Service Desk.',
             ],
             'm365', 'm365_insights' => [
                 'label' => 'Not on plan',
@@ -1070,11 +1075,11 @@ class ClientHomeOverviewService
 
         $label = $statusLabel ?? match ($state) {
             'not_sold' => 'Not on plan',
-            'setup_needed' => 'Setup needed',
-            'platform' => 'Critical',
-            'cold' => 'Issues',
-            'loading' => 'Loading',
-            'error' => 'Critical',
+            'setup_needed' => 'Getting ready',
+            'platform' => 'Temporarily unavailable',
+            'cold' => 'Checking',
+            'loading' => 'Checking',
+            'error' => 'Needs attention',
             'hidden' => 'Hidden',
             default => 'Issues',
         };
@@ -1172,7 +1177,10 @@ class ClientHomeOverviewService
             || str_contains($lower, 'your account manager')
             || str_contains($lower, 'your current plan')
             || str_contains($lower, 'loading the latest')
+            || str_contains($lower, 'checking the latest')
             || str_contains($lower, 'gathering the latest')
+            || str_contains($lower, 'still gathering')
+            || str_contains($lower, 'service desk')
             || str_contains($lower, 'temporarily unavailable')
             || str_contains($lower, 'could not update')
             || str_contains($lower, 'still finishing')
@@ -1181,8 +1189,8 @@ class ClientHomeOverviewService
         }
 
         return match ($state) {
-            'loading' => 'Loading the latest figures…',
-            'cold' => "We do not have the latest {$serviceTitle} figures yet. They will appear automatically when ready.",
+            'loading' => 'Checking the latest figures...',
+            'cold' => 'We do not have the latest figures yet. They will show here shortly.',
             'setup_needed' => 'We are still finishing the connection for this service. Your On IT account manager can help if this stays open.',
             'platform', 'error' => 'We could not update this service just now. On IT is looking into it.',
             // Prefer product-specific not-on-plan copy from notSoldPresentation().
@@ -1201,8 +1209,8 @@ class ClientHomeOverviewService
         if ($value === null || $value === '') {
             return [
                 'label' => $label,
-                'value' => '-',
-                'hint' => $hint ?? 'No value in latest snapshot',
+                'value' => 'Checking',
+                'hint' => null,
                 'kind' => 'empty',
                 'suffix' => null,
             ];
@@ -1239,7 +1247,7 @@ class ClientHomeOverviewService
         return [
             'available' => false,
             'status' => 'pipeline',
-            'message' => 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.',
+            'message' => 'Last month will show here after we have a full month of figures.',
         ];
     }
 }

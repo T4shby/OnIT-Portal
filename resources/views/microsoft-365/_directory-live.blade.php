@@ -2,20 +2,38 @@
 @if($error)
     <x-alert type="danger" class="mb-6">{{ $error }}</x-alert>
     <x-card>
-        <x-empty-state
-            title="Directory unavailable"
-            description="Check that Entra tenant ID is set, Graph permissions are granted, and admin consent was completed in the customer tenant."
-        />
+        @if(! empty($adminContext))
+            <x-empty-state
+                title="Directory unavailable"
+                description="Check that Entra tenant ID is set, Graph permissions are granted, and admin consent was completed in the customer tenant."
+            />
+        @else
+            <x-empty-state
+                title="Directory unavailable"
+                description="We could not load your Microsoft 365 people list just now. Please try again shortly or contact the Service Desk."
+            />
+        @endif
     </x-card>
 @elseif($display && ! $directory)
     <x-card>
-        <x-empty-state
-            title="Directory synchronising"
-            description="No cached directory yet - Microsoft Graph is loading users, licences, and mailbox types in the background. Large tenants can take several minutes. This panel updates automatically when data arrives."
-        />
+        @if(! empty($adminContext))
+            <x-empty-state
+                title="Directory synchronising"
+                description="No cached directory yet - Microsoft Graph is loading users, licences, and mailbox types in the background. Large tenants can take several minutes. This panel updates automatically when data arrives."
+            />
+        @else
+            <x-empty-state
+                title="Loading your people list"
+                description="This can take a few minutes for larger organisations. This page updates on its own when the list is ready."
+            />
+        @endif
     </x-card>
     <p class="portal-body-muted text-xs mt-3" data-live-poll-notice>
-        Updating directory data every {{ (int) ($pollSeconds ?? 5) }} seconds…
+        @if(! empty($adminContext))
+            Updating directory data every {{ (int) ($pollSeconds ?? 5) }} seconds…
+        @else
+            Checking again every few seconds...
+        @endif
     </p>
 @elseif($directory)
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

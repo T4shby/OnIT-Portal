@@ -7,7 +7,7 @@
         @include('security.huntress._list-body')
     </x-admin-layout>
 @else
-    <x-app-layout title="Huntress security" content-class="max-w-[96rem]">
+    <x-app-layout title="Security" content-class="max-w-[96rem]">
         @include('security.huntress._list-body')
     </x-app-layout>
 @endif

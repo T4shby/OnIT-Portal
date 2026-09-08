@@ -17,10 +17,12 @@
 
     $super = $cols->firstWhere('key', 'superops');
     $hunt = $cols->firstWhere('key', 'huntress');
-    $resolved = $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
-    $sla = $metricVal($super, 'SLA met');
+    $resolved = $metricVal($super, 'Tickets we closed') ?? $metricVal($super, 'Resolved this month') ?? $metricVal($super, 'Resolved (30d)');
+    $sla = $metricVal($super, 'Resolved on time') ?? $metricVal($super, 'SLA met');
     $openTickets = $metricVal($super, 'Open tickets');
-    $threats = $metricVal($hunt, 'Threats stopped (MTD)')
+    $threats = $metricVal($hunt, 'Threats stopped')
+        ?? $metricVal($hunt, 'Threats stopped (MTD)')
+        ?? $metricVal($hunt, 'Handled overall')
         ?? $metricVal($hunt, 'Remediated')
         ?? $metricVal($hunt, 'Remediated (snapshot)')
         ?? $metricVal($hunt, 'Resolved incidents');
@@ -29,21 +31,21 @@
     // Same rule as glance: no empty “threats stopped” when MDR isn’t sold.
     if ($huntLive && $threats !== null) {
         $statCards = [
-            ['value' => $threats, 'label' => $metricVal($hunt, 'Threats stopped (MTD)') !== null ? 'threats stopped via MDR (MTD)' : 'remediated (MDR)'],
-            ['value' => $resolved, 'label' => 'tickets resolved'],
-            ['value' => $sla, 'label' => 'SLA met'],
+            ['value' => $threats, 'label' => 'threats stopped'],
+            ['value' => $resolved, 'label' => 'tickets we closed'],
+            ['value' => $sla, 'label' => 'resolved on time'],
         ];
     } elseif ($huntSold) {
         $statCards = [
-            ['value' => $threats, 'label' => $threats !== null ? 'threats stopped via MDR' : 'threats stopped (MDR)'],
-            ['value' => $resolved, 'label' => 'tickets resolved'],
-            ['value' => $sla, 'label' => 'SLA met'],
+            ['value' => $threats, 'label' => 'threats stopped'],
+            ['value' => $resolved, 'label' => 'tickets we closed'],
+            ['value' => $sla, 'label' => 'resolved on time'],
         ];
     } else {
         $statCards = [
-            ['value' => $resolved, 'label' => 'tickets resolved'],
+            ['value' => $resolved, 'label' => 'tickets we closed'],
             ['value' => $openTickets, 'label' => 'open tickets'],
-            ['value' => $sla, 'label' => 'SLA met'],
+            ['value' => $sla, 'label' => 'resolved on time'],
         ];
     }
     $monthTitle = now()->timezone('Europe/London')->format('F Y');
@@ -56,9 +58,8 @@
   Brand is already in the portal header - rail starts at “Prepared for”.
 --}}
 <x-app-layout title="Reports" content-class="max-w-none">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .rp { font-family: 'Poppins', system-ui, sans-serif; color: #011926; box-sizing: border-box; }
+        .rp { font-family: Barlow, system-ui, sans-serif; color: #011926; box-sizing: border-box; }
         .rp *, .rp *::before, .rp *::after { box-sizing: border-box; }
 
         /* Cancel parent main padding so the report uses the full content width */
@@ -85,7 +86,7 @@
         @media (min-width: 900px) {
             .rp-shell {
                 grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-                border-radius: 8px;
+                border-radius: 0;
                 box-shadow: 0 4px 24px rgba(0,0,0,.25);
             }
         }
@@ -342,7 +343,7 @@
 
                 <div style="border-top:1px solid #1F2933;padding-top:20px;margin-top:auto">
                     <div style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.6">Questions about your service or this report?</div>
-                    <a href="{{ route('support.create') }}" class="rp-cta">Talk to an Expert</a>
+                    <a href="{{ route('support.create') }}" class="rp-cta">Talk to us</a>
                     <a href="{{ route('dashboard') }}" class="rp-back">← Dashboard</a>
                 </div>
             </aside>
@@ -353,34 +354,19 @@
                         <div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#FF7000;margin-bottom:10px">Monthly service review</div>
                         <h1 style="margin:0;font-size:clamp(1.45rem,4vw,1.9rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15">{{ $monthTitle }}</h1>
                     </div>
-                    @php
-                        $monthWaitMsg = $monthCompare['message']
-                            ?? 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.';
-                    @endphp
+                    @if($monthReady)
                     <div class="rp-period" role="group" aria-label="Report period">
                         <div class="rp-toggle">
                             <span style="font-weight:600;background:#011926;color:#fff">This month</span>
-                            @if($monthReady)
-                                <span style="font-weight:500;color:#555">
-                                    Last month
-                                    @if(! empty($monthCompare['as_of']))
-                                        · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
-                                    @endif
-                                </span>
-                            @else
-                                <span class="rp-period-locked" aria-disabled="true">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                    </svg>
-                                    Last month
-                                </span>
-                            @endif
+                            <span style="font-weight:500;color:#555">
+                                Last month
+                                @if(! empty($monthCompare['as_of']))
+                                    · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
+                                @endif
+                            </span>
                         </div>
-                        @unless($monthReady)
-                            <p class="rp-period-hint" role="note">{{ $monthWaitMsg }}</p>
-                        @endunless
                     </div>
+                    @endif
                 </div>
 
                 @if($monthReady && ! empty($monthCompare['value_deltas']))
@@ -397,7 +383,7 @@
                 <div class="rp-card rp-stats">
                     @foreach($statCards as $stat)
                         <div>
-                            <div class="rp-stats-v" style="{{ ($stat['value'] ?? null) === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $stat['value'] ?? '-' }}</div>
+                            <div class="rp-stats-v" style="{{ ($stat['value'] ?? null) === null ? 'color:rgba(0,0,0,.28)' : '' }}">{{ $stat['value'] ?? 'Checking' }}</div>
                             <div class="rp-muted" style="font-size:12.5px;margin-top:6px">{{ $stat['label'] }}</div>
                         </div>
                     @endforeach
@@ -411,8 +397,8 @@
                                 ?? match ($col['state'] ?? '') {
                                     'live' => 'Healthy',
                                     'not_sold' => 'Not on plan',
-                                    'setup_needed' => 'Setup needed',
-                                    'loading' => 'Loading',
+                                    'setup_needed' => $col['status_label'] ?? 'Getting ready',
+                                    'loading' => 'Checking',
                                     default => '-',
                                 };
                             $why = $col['status_reason'] ?? $col['message'] ?? null;
@@ -438,8 +424,8 @@
                                 'superops' => [
                                     ['v' => $metricVal($col, 'Open tickets'), 'l' => 'open tickets'],
                                     ['v' => $metricVal($col, 'Waiting on you'), 'l' => 'waiting on you'],
-                                    ['v' => $metricVal($col, 'Resolved this month') ?? $metricVal($col, 'Resolved (30d)'), 'l' => 'resolved'],
-                                    ['v' => $metricVal($col, 'Devices managed'), 'l' => 'devices'],
+                                    ['v' => $metricVal($col, 'Tickets we closed') ?? $metricVal($col, 'Resolved this month') ?? $metricVal($col, 'Resolved (30d)'), 'l' => 'closed'],
+                                    ['v' => $metricVal($col, 'Devices') ?? $metricVal($col, 'Devices managed'), 'l' => 'devices'],
                                 ],
                                 'm365' => [
                                     ['v' => $metricVal($col, 'Licences assigned'), 'l' => 'licences'],
@@ -448,9 +434,9 @@
                                     ['v' => $metricVal($col, 'Utilisation'), 'l' => 'utilisation'],
                                 ],
                                 'huntress' => [
-                                    ['v' => $metricVal($col, 'Agent coverage'), 'l' => 'covered'],
-                                    ['v' => $metricVal($col, 'Threats stopped (MTD)') ?? $metricVal($col, 'Remediated') ?? $metricVal($col, 'Remediated (snapshot)'), 'l' => 'stopped'],
-                                    ['v' => $metricVal($col, 'Open incidents'), 'l' => 'open'],
+                                    ['v' => $metricVal($col, 'Protected devices') ?? $metricVal($col, 'Agent coverage'), 'l' => 'covered'],
+                                    ['v' => $metricVal($col, 'Threats stopped') ?? $metricVal($col, 'Threats stopped (MTD)') ?? $metricVal($col, 'Handled overall') ?? $metricVal($col, 'Remediated') ?? $metricVal($col, 'Remediated (snapshot)'), 'l' => 'stopped'],
+                                    ['v' => $metricVal($col, 'Open cases') ?? $metricVal($col, 'Open incidents'), 'l' => 'open'],
                                 ],
                                 'dropsuite' => [
                                     ['v' => $metricVal($col, 'Mailboxes protected'), 'l' => 'mailboxes'],

@@ -14,11 +14,11 @@
 <section class="mb-6">
     <div class="orange-rule"></div>
     <div class="heading-stack mb-4">
-        <h1 class="section-heading-white">Huntress</h1>
+        <h1 class="section-heading-white">{{ ! empty($adminContext) ? 'Huntress' : 'Your' }}</h1>
         <h1 class="section-heading-orange">Security</h1>
     </div>
     <p class="portal-body-muted max-w-3xl">
-        Security posture and cases for <strong class="text-white/80">{{ $client->name }}</strong>.
+        Security cases for <strong class="text-white/80">{{ $client->name }}</strong>.
         @if($canViewAll ?? false)
             You can see every case for this organisation.
         @else
@@ -37,7 +37,7 @@
         @elseif($list->lastRefreshedAt)
             <span>Cases {{ $list->lastRefreshedAt->timezone('Europe/London')->format('d M Y H:i') }} UK</span>
         @else
-            <span>Not synced yet</span>
+            <span>Still loading</span>
         @endif
         @if($s->refreshInProgress || $list->refreshInProgress)
             <span class="text-onit text-xs font-condensed uppercase tracking-wide">Refreshing…</span>

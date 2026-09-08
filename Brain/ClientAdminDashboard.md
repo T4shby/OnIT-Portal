@@ -589,7 +589,8 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
-| 2026-08-24 | M365 Excel/CSV export (licences then users); portal Beta banner → Service Desk |
+| 2026-09-08 | Client home copy/chrome: quiet feedback strip (not Beta); glance matches On IT shell - [UIOverhaul.md](UIOverhaul.md) |
+| 2026-08-24 | M365 Excel/CSV export (licences then users) |
 | 2026-08-19 | Restart threshold 2+ days; paginated device names; RAM/disk card still hidden |
 | 2026-08-19 | Removed Organisation nav/page. **Services** dropdown: Security, Microsoft 365, Support & Devices. SuperOps tickets/devices on `/services/support-devices` (cache `v5`). Licence utilisation on Microsoft 365 page. |
 | 2026-08-13 | IH SuperOps SCIM repair path: 0 templates → Retry Graph setup then Apply (not only repair artisan) |

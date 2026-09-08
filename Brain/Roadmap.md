@@ -26,7 +26,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Near-term backlog (next value)
 
-1. **Last-month compare** - unlocks after first full month of nightly snapshots - [UIOverhaul.md](UIOverhaul.md).
+1. **Last-month compare** - unlocks after first full month of nightly snapshots (hidden until then, not a locked toggle) - [UIOverhaul.md](UIOverhaul.md).
 2. **Portfolio reporting polish** - export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
 3. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API).
 4. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.

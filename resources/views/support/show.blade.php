@@ -10,9 +10,9 @@
     @endif
     <div class="mt-8 pt-6 border-t border-white/10">
       <p class="text-sm portal-body-muted leading-relaxed mb-4">
-        Comments and attachments are not shown in the portal. Open SuperOps for the full thread and updates.
+        Comments and attachments are not shown here. Open the full service desk for the conversation and updates.
       </p>
-      <a href="{{ route('integrations.superops.launch') }}" class="cta-btn text-sm">Open SuperOps →</a>
+      <a href="{{ route('integrations.superops.launch') }}" class="cta-btn text-sm">Open full service desk →</a>
     </div>
   </x-card>
 </x-app-layout>

@@ -14,10 +14,10 @@
         <div class="orange-rule"></div>
         <div class="heading-stack mb-4">
             <h1 class="section-heading-white">Microsoft</h1>
-            <h1 class="section-heading-orange">365 Directory</h1>
+            <h1 class="section-heading-orange">365</h1>
         </div>
         <p class="portal-body-muted max-w-2xl">
-            Read-only view of licensed users, shared mailboxes, and groups in <strong class="text-white/80">{{ $client->name }}</strong>
+            People, licences, mailboxes, and groups for <strong class="text-white/80">{{ $client->name }}</strong>
             - without signing into the Microsoft 365 admin centre.
         </p>
         @if(($canExportDirectory ?? false) && (! ($m365Insights?->hasData() && $m365Insights->topSkus !== [])))

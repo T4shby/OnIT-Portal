@@ -1,6 +1,7 @@
 # Client portal UI overhaul
 
-**Status (2026-08-18):** Merged to **`main`** (`UIOverhaul` → `main`). Production deploys **`main`**.  
+**Status (2026-09-08):** Client home/Reports copy and glance chrome aligned with the rest of the portal (Barlow, square cards, heading stack). Quiet “Something look off?” strip instead of a Beta warning. Last month is hidden until snapshot history exists.
+
 **Canonical mockup:** `Customer dashboard UI mockups.zip` → `Client Dashboard Mockups.dc.html`
 
 | Mockup ID | Portal page | Notes |
@@ -56,7 +57,7 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | Compose SuperOps open tickets + Huntress cases/remediations + Dropsuite mailbox errors | Not a full event bus |
-| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until prior-month row exists: **Last month** shows locked (padlock) + **always-visible** orange/amber hint under the toggle - not browser `title` tooltip |
+| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control (do not show a locked toggle). |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
 | **Device patch / need updates** | SuperOps `patchStatus` on asset list (Support & Devices) | Restart uses 2+ day `sysUptime` with paginated names; RAM/disk not shown |
@@ -128,9 +129,9 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
-| 2026-08-24 | Beta banner sits above the nav as a slim centered strip. |
+| 2026-09-08 | **Client voice:** Barlow/square glance; drop Beta warning; hide Last month until ready; SLA/MDR/snapshot jargon off client home. |
 | 2026-08-24 | **Contact Support** hub in nav (client users only): ticket + phone/hours + new starter form → SuperOps API. |
-| 2026-08-24 | Client portal Beta banner on all `x-app-layout` pages; contact Service Desk → `support.create`. |
+| 2026-08-24 | Client portal Beta banner (superseded 2026-09-08 by quiet feedback strip). |
 | 2026-08-24 | M365 directory: Download Excel + CSV (licences section then users with licences). |
 | 2026-08-19 | Dashboard Huntress card title is **Security** (was Detection & Response). |
 | 2026-08-18 | **M365 directory:** friendly licence chips; name column drops SuperOps `(User Mailbox)` suffix (Type column already has it). |

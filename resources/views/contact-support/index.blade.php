@@ -15,7 +15,7 @@
             <p class="text-onit text-xs font-semibold uppercase tracking-wider">Online ticket</p>
             <h2 class="text-white text-lg font-semibold m-0">Log a ticket</h2>
             <p class="portal-body-muted text-sm leading-relaxed flex-1 m-0">
-                Tell us what you need help with. We will pick it up in SuperOps and keep the conversation there.
+                Tell us what you need help with. We will pick it up and keep you updated.
             </p>
             @if($apiConfigured && $clientLinked)
                 <a href="{{ route('support.create') }}" class="cta-btn text-sm text-center self-start">Log a ticket online</a>

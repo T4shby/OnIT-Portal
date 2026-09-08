@@ -14,57 +14,42 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [x-cloak] { display: none !important; }
-        .portal-beta-banner {
+        .portal-feedback-banner {
             position: relative;
             z-index: 2;
-            border-bottom: 1px solid rgba(255, 112, 0, 0.35);
-            background: rgba(255, 112, 0, 0.1);
-            padding: 8px 16px;
+            border-bottom: 1px solid #0f3048;
+            background: #011926;
+            padding: 7px 16px;
             text-align: center;
         }
-        .portal-beta-banner-text {
+        .portal-feedback-banner-text {
             margin: 0 auto;
             max-width: 56rem;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.45;
-            color: rgba(255, 255, 255, 0.82);
+            color: rgba(255, 255, 255, 0.62);
             text-align: center;
         }
-        .portal-beta-pill {
-            display: inline-block;
-            margin-right: 8px;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: #FF7000;
-            color: #0a0f14;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            vertical-align: middle;
-        }
-        .portal-beta-link {
+        .portal-feedback-link {
             color: #FF7000;
             font-weight: 600;
             text-decoration: underline;
             text-underline-offset: 2px;
         }
-        .portal-beta-link:hover { color: #ff8a33; }
+        .portal-feedback-link:hover { color: #ff8a33; }
     </style>
 </head>
 <body>
     <div class="portal-shell" x-data="{ menuOpen: false, userOpen: false, servicesOpen: false }" @keydown.escape.window="menuOpen = false; userOpen = false; servicesOpen = false">
         <div class="grid-overlay" aria-hidden="true"></div>
 
-        <div class="portal-beta-banner safe-top" role="status">
-            <p class="portal-beta-banner-text">
-                <span class="portal-beta-pill">Beta</span>
-                This portal is still in beta and figures may not be quite right.
-                If you notice something that does not look right, please
+        <div class="portal-feedback-banner safe-top" role="status">
+            <p class="portal-feedback-banner-text">
+                Something look off?
                 @can('contact-support')
-                    <a href="{{ route('contact-support.index') }}" class="portal-beta-link">contact the Service Desk</a>.
+                    <a href="{{ route('contact-support.index') }}" class="portal-feedback-link">Tell the Service Desk</a>.
                 @else
-                    <a href="mailto:{{ config('onit_support.email') }}" class="portal-beta-link">email the Service Desk</a>.
+                    <a href="mailto:{{ config('onit_support.email') }}" class="portal-feedback-link">Email the Service Desk</a>.
                 @endcan
             </p>
         </div>

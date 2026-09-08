@@ -2,25 +2,25 @@
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
     <div>
       <h1 class="section-heading-white !text-2xl">Support</h1>
-      <p class="portal-body-muted mt-1">Create and track tickets here. Conversation threads and attachments open in SuperOps.</p>
+      <p class="portal-body-muted mt-1">Create and track tickets here. Replies and files continue in the full service desk.</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
       @if($user->client_id && $apiConfigured)
         <a href="{{ route('support.create') }}" class="cta-btn w-full justify-center text-sm sm:w-auto">New request</a>
       @endif
-      <a href="{{ route('integrations.superops.launch') }}" class="cta-btn-ghost w-full justify-center text-sm sm:w-auto">Open SuperOps →</a>
+      <a href="{{ route('integrations.superops.launch') }}" class="cta-btn-ghost w-full justify-center text-sm sm:w-auto">Open full service desk →</a>
     </div>
   </div>
 
   <x-card class="mb-6">
     <p class="text-sm portal-body-muted leading-relaxed">
-      The portal shows your ticket list and opening description only.
-      Replies, comments, and files stay in SuperOps - use <strong class="text-white/80">Open SuperOps</strong> for the full conversation.
+      The portal shows your ticket list and the original request.
+      Replies, comments, and files stay in the full service desk - use <strong class="text-white/80">Open full service desk</strong> for the conversation.
     </p>
   </x-card>
 
   @if(! $apiConfigured)
-    <x-card><x-empty-state title="SuperOps not configured" description="Add SUPEROPS_API_TOKEN and SUPEROPS_SUBDOMAIN to .env" /></x-card>
+    <x-card><x-empty-state title="Online tickets not available yet" description="Please use Contact Support to call or email the Service Desk." /></x-card>
   @elseif($error)
     <x-alert type="danger" class="mb-6">{{ $error }}</x-alert>
   @elseif($tickets->isEmpty())

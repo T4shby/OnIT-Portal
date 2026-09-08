@@ -86,7 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-09-07 | Activity logs: keep 90 days (nightly prune at 03:20 `APP_TIMEZONE`). Do not skip localhost IPs. Docs aligned across schema, ADR-010, Architecture, Authentication, Deployment. - [DatabaseSchema.md](DatabaseSchema.md) |
+| 2026-09-08 | Client voice pass: glance uses On IT chrome (Barlow, square cards); quiet feedback strip instead of Beta; hide Last month until ready; Checking empty states; no SLA/MDR/snapshot jargon on client home. Staff Admin unchanged. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-04 | Server ops: one-off 3R SAM discovery export (local `3R task/` only; not a product feature) - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-08-24 | Ticket show: do not select SuperOps `description` (field does not exist); opening text from conversation list - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |
 | 2026-08-24 | Portal ticket create is MSP-wide: `source` INTEGRATION + mandatory `requestType` Incident; GraphQL client surfaces SuperOps `clientError` - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |

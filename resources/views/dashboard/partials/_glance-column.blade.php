@@ -67,8 +67,10 @@
                 @php
                     $kind = $metric['kind'] ?? 'ok';
                     $sepBefore = in_array($metric['label'] ?? '', [
+                        'Devices',
                         'Devices managed',
                         'Utilisation',
+                        'Open cases',
                         'Open incidents',
                         'Last backup run',
                     ], true);
@@ -80,7 +82,7 @@
                     <span class="glance-metric-label">{{ $metric['label'] }}</span>
                     <span class="glance-metric-value" style="{{ $kind === 'empty' ? 'color:rgba(255,255,255,.35)' : 'color:#fff' }}">
                         @if($kind === 'empty')
-                            -
+                            Checking
                         @else
                             {{ $metric['value'] }}
                             @if(! empty($metric['suffix']))

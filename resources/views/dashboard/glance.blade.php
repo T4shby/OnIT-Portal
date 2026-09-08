@@ -25,15 +25,15 @@
 
     $super = $cols->firstWhere('key', 'superops');
     $hunt = $cols->firstWhere('key', 'huntress');
-    $resolved = $okMetric($super, ['Resolved this month', 'Resolved (30d)']);
-    $sla = $okMetric($super, 'SLA met');
+    $resolved = $okMetric($super, ['Tickets we closed', 'Resolved this month', 'Resolved (30d)']);
+    $sla = $okMetric($super, ['Resolved on time', 'SLA met']);
     $openTickets = $okMetric($super, 'Open tickets');
-    $threats = $okMetric($hunt, ['Threats stopped (MTD)', 'Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
+    $threats = $okMetric($hunt, ['Threats stopped', 'Threats stopped (MTD)', 'Remediated', 'Remediated (snapshot)', 'Resolved incidents']);
     $huntLive = is_array($hunt) && ($hunt['state'] ?? '') === 'live';
     $huntSold = is_array($hunt) && ! in_array($hunt['state'] ?? '', ['not_sold', 'hidden'], true);
 
     /*
-     * Value strip: never lead with empty “Threats stopped” when MDR is not sold -
+     * Value strip: never lead with empty Threats stopped when MDR is not sold -
      * that reads as zero protection. Support-only orgs get support metrics.
      */
     if ($huntLive && $threats !== null) {
@@ -41,77 +41,75 @@
             [
                 'label' => 'Threats stopped',
                 'value' => $threats,
-                'note' => $okMetric($hunt, 'Threats stopped (MTD)') !== null ? 'via MDR this month' : 'remediated (MDR)',
-                'empty' => '-',
+                'note' => $okMetric($hunt, ['Threats stopped', 'Threats stopped (MTD)']) !== null ? 'this month' : 'handled',
+                'empty' => 'Checking',
             ],
             [
-                'label' => 'Tickets resolved',
+                'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '-',
+                'note' => $resolved !== null ? 'this month' : null,
+                'empty' => 'Checking',
             ],
             [
-                'label' => 'SLA met',
+                'label' => 'Resolved on time',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '-',
+                'empty' => 'Checking',
             ],
         ];
     } elseif ($huntSold) {
-        // Sold but cold / loading - hold blank rather than invent MTD.
         $valueStrip = [
             [
                 'label' => 'Threats stopped',
                 'value' => $threats,
-                'note' => $threats !== null ? 'via MDR' : null,
-                'empty' => '-',
+                'note' => $threats !== null ? 'this month' : null,
+                'empty' => 'Checking',
             ],
             [
-                'label' => 'Tickets resolved',
+                'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '-',
+                'note' => $resolved !== null ? 'this month' : null,
+                'empty' => 'Checking',
             ],
             [
-                'label' => 'SLA met',
+                'label' => 'Resolved on time',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '-',
+                'empty' => 'Checking',
             ],
         ];
     } else {
         $valueStrip = [
             [
-                'label' => 'Tickets resolved',
+                'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this period' : null,
-                'empty' => '-',
+                'note' => $resolved !== null ? 'this month' : null,
+                'empty' => 'Checking',
             ],
             [
                 'label' => 'Open tickets',
                 'value' => $openTickets,
                 'note' => null,
-                'empty' => '-',
+                'empty' => 'Checking',
             ],
             [
-                'label' => 'SLA met',
+                'label' => 'Resolved on time',
                 'value' => $sla,
                 'note' => null,
-                'empty' => '-',
+                'empty' => 'Checking',
             ],
         ];
     }
     $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
 
-{{-- Mockup 1a: live numbers only; no pipeline walls under every metric --}}
+{{-- Client home: On IT chrome, live numbers only --}}
 <x-app-layout title="Dashboard" content-class="max-w-[90rem]">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    .glance { font-family: 'Poppins', system-ui, sans-serif; color: #fff; }
-    .glance-label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #FF7000; }
+    .glance { color: #fff; }
+    .glance-label { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #FF7000; font-family: 'Barlow Condensed', sans-serif; }
     .glance-muted { color: rgba(255,255,255,.65); }
-    .glance-card { background: #0a2537; border: 1px solid #1F2933; border-radius: 8px; }
+    .glance-card { background: #071f2e; border: 1px solid #0f3048; }
     .glance-columns {
         display: grid;
         grid-template-columns: 1fr;
@@ -135,20 +133,19 @@
     }
     .glance-status { min-height: 5.25rem; }
     .glance-metrics { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; }
-    .glance-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #0a2537; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .glance-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #071f2e; border: 1px solid #0f3048; font-size: 12px; font-weight: 500; }
     .glance-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-    .glance-svc { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid #1F2933; border-radius: 4px; font-size: 12px; }
+    .glance-svc { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid #0f3048; font-size: 12px; }
     .glance-metric { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; }
     .glance-metric-label { color: rgba(255,255,255,.65); }
     .glance-metric-value { font-weight: 600; text-align: right; }
-    .glance-divider { height: 1px; background: #1F2933; }
+    .glance-divider { height: 1px; background: #0f3048; }
     .glance-link { font-size: 12px; font-weight: 600; color: #FF7000; text-decoration: none; }
     .glance-link:hover { color: #ff8a33; }
     .glance-toggle {
         display: inline-flex;
-        background: #0a2537;
-        border: 1px solid #1F2933;
-        border-radius: 4px;
+        background: #071f2e;
+        border: 1px solid #0f3048;
         overflow: hidden;
     }
     .glance-toggle span { padding: 10px 18px; font-size: 12px; line-height: 1.2; }
@@ -160,38 +157,10 @@
         max-width: 18rem;
         flex: 0 1 auto;
     }
-    .glance-period-hint {
-        margin: 0;
-        max-width: 16.5rem;
-        padding: 10px 12px;
-        border-radius: 6px;
-        border: 1px solid rgba(255,112,0,.35);
-        background: rgba(255,112,0,.1);
-        color: rgba(255,255,255,.88);
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 1.45;
-        text-align: left;
-    }
-    .glance-period-locked {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        font-size: 12px;
-        font-weight: 500;
-        color: rgba(255,255,255,.42);
-        background: rgba(0,0,0,.18);
-        border-left: 1px solid #1F2933;
-        user-select: none;
-    }
-    .glance-period-locked svg { flex: none; opacity: .75; }
     @media (max-width: 640px) {
         .glance-period { align-items: stretch; max-width: none; width: 100%; }
-        .glance-period-hint { max-width: none; }
         .glance-toggle { width: 100%; }
         .glance-toggle > span:first-child { flex: 1; text-align: center; justify-content: center; }
-        .glance-period-locked { flex: 1; justify-content: center; }
         .glance-value-grid { grid-template-columns: 1fr !important; }
         .glance-columns { grid-template-columns: 1fr !important; padding-top: 1.25rem !important; }
         .glance-portals { grid-template-columns: 1fr !important; }
@@ -217,18 +186,17 @@
     }
 </style>
 <div class="glance" style="padding-bottom:1rem">
-@php
-    $monthWaitMsg = $monthCompare['message']
-        ?? 'Your portal hasn\'t been set up for a full month yet. Last month appears once we have a previous month of readings.';
-@endphp
-
-    <div style="border-bottom:1px solid #1F2933;padding-bottom:2rem">
+    <div style="border-bottom:1px solid #0f3048;padding-bottom:2rem">
         <div style="display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:space-between;align-items:flex-start">
             <div style="min-width:0;flex:1 1 16rem">
-                <div class="glance-label" style="margin-bottom:12px">Your IT at a glance</div>
-                <h1 style="margin:0;font-size:clamp(1.5rem,3.5vw,2.25rem);font-weight:700;line-height:1.15;letter-spacing:-0.02em">
-                    {{ $hero['status_line'] ?? 'All systems protected.' }}
-                </h1>
+                <div class="orange-rule" style="margin-bottom:12px"></div>
+                <div class="heading-stack mb-3">
+                    <h1 class="section-heading-white">Your IT</h1>
+                    <h1 class="section-heading-orange">at a glance</h1>
+                </div>
+                <p style="margin:0;font-size:clamp(1.25rem,2.5vw,1.65rem);font-weight:600;line-height:1.25;letter-spacing:-0.02em" class="font-condensed uppercase tracking-wide">
+                    {{ $hero['status_line'] ?? 'Everything looks good.' }}
+                </p>
                 <p style="margin:10px 0 0;font-size:14px" class="glance-muted">
                     {{ $period }} · {{ $clientName }}
                 </p>
@@ -238,30 +206,19 @@
                     </p>
                 @endif
             </div>
-            <div class="glance-period" role="group" aria-label="Report period">
-                <div class="glance-toggle">
-                    <span style="background:#FF7000;font-weight:600;color:#fff;display:inline-flex;align-items:center">This month</span>
-                    @if($monthReady)
+            @if($monthReady)
+                <div class="glance-period" role="group" aria-label="Report period">
+                    <div class="glance-toggle">
+                        <span style="background:#FF7000;font-weight:600;color:#fff;display:inline-flex;align-items:center">This month</span>
                         <span class="glance-muted" style="font-weight:500;display:inline-flex;align-items:center">
                             Last month
                             @if(! empty($monthCompare['as_of']))
                                 <span style="opacity:.75;margin-left:.35em">({{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }})</span>
                             @endif
                         </span>
-                    @else
-                        <span class="glance-period-locked" aria-disabled="true">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            Last month
-                        </span>
-                    @endif
+                    </div>
                 </div>
-                @unless($monthReady)
-                    <p class="glance-period-hint" role="note">{{ $monthWaitMsg }}</p>
-                @endunless
-            </div>
+            @endif
         </div>
 
         @if($monthReady && ! empty($monthCompare['value_deltas']))
@@ -269,8 +226,8 @@
                 @foreach($monthCompare['value_deltas'] as $delta)
                     <div style="font-size:12px" class="glance-muted">
                         <span style="font-weight:600;color:rgba(255,255,255,.85)">{{ $delta['label'] }}</span>
-                        now {{ $delta['current'] ?? '-' }}
-                        · then {{ $delta['previous'] ?? '-' }}
+                        now {{ $delta['current'] ?? 'Checking' }}
+                        · then {{ $delta['previous'] ?? 'Checking' }}
                     </div>
                 @endforeach
             </div>
@@ -287,15 +244,14 @@
                         default => '#FACC15',
                     };
                     $short = match ($col['state'] ?? '') {
-                        'live' => $col['status_label'] ?? 'Live',
-                        // Prefer product label (“Add-on” / “Not on plan”) - never “Not sold”.
+                        'live' => $col['status_label'] ?? 'Healthy',
                         'not_sold' => $col['status_label'] ?? 'Not on plan',
-                        'setup_needed' => 'Setup needed',
-                        'platform' => 'Platform off',
-                        'cold' => 'Never loaded',
-                        'loading' => 'Loading',
-                        'error' => 'Error',
-                        default => $col['status_label'] ?? '-',
+                        'setup_needed' => $col['status_label'] ?? 'Getting ready',
+                        'platform' => 'Temporarily unavailable',
+                        'cold' => 'Checking',
+                        'loading' => 'Checking',
+                        'error' => 'Needs attention',
+                        default => $col['status_label'] ?? 'Checking',
                     };
                 @endphp
                 <div class="glance-pill" title="{{ $col['status_reason'] ?? $col['status_label'] ?? '' }}">
@@ -317,7 +273,7 @@
                                 <span style="font-size:12px" class="glance-muted">{{ $stat['note'] }}</span>
                             @endif
                         @else
-                            <span style="font-size:2.125rem;font-weight:700;line-height:1;color:rgba(255,255,255,.35)">{{ $stat['empty'] }}</span>
+                            <span style="font-size:1.25rem;font-weight:600;line-height:1.2;color:rgba(255,255,255,.45)">{{ $stat['empty'] }}</span>
                         @endif
                     </div>
                 </div>
@@ -325,8 +281,8 @@
         </div>
     </div>
 
-    <div class="glance-services-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #1F2933;background:#01131d;margin:0 -1rem;padding:14px 1rem">
-        <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;flex:none" class="glance-muted">Your services · managed plan</div>
+    <div class="glance-services-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #0f3048;background:#011926;margin:0 -1rem;padding:14px 1rem">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;flex:none;font-family:'Barlow Condensed',sans-serif" class="glance-muted">Your services</div>
         <div class="portal-scroll-strip" style="gap:8px">
             @foreach($cols as $col)
                 @php
@@ -354,7 +310,7 @@
     <div style="padding-bottom:1.5rem">
         <div class="glance-card" style="padding:1.35rem 1.5rem">
             <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px">
-                <div style="font-size:14px;font-weight:600">What we've done for you</div>
+                <div style="font-size:14px;font-weight:600">What we have done for you</div>
             </div>
             @if(! empty($activity['items']))
                 <div style="display:flex;flex-direction:column;gap:12px">
@@ -388,7 +344,7 @@
                 </div>
             @else
                 <p style="margin:0;font-size:13px;line-height:1.5" class="glance-muted">
-                    {{ $activity['message'] ?? 'Activity history not available yet.' }}
+                    {{ $activity['message'] ?? 'Nothing new to show right now.' }}
                 </p>
             @endif
         </div>
