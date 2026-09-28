@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-28 14:35 UK - Align live Plesk tree with GitHub main
+
+| | |
+|---|---|
+| Intent | Live and bare mirror were still `388a809` while GitHub `main` was `6c9036f` (ops diary only). Bring them to the same commit, including this row. |
+| Operator | agent |
+| SHA before -> after | `388a809` -> the commit that adds this row |
+| Steps | `git push origin main`. SSH fetch bare `/var/www/vhosts/onit.ltd/git/laravel_af3fd1`. `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`. Post-deploy: composer install --no-dev, migrate, route/config/view clear, PortalLinkSeeder, optimize. Not `cache:clear`. `rm -f public/hot`. chown storage. Remove `/tmp` deploy script. |
+| Result | Deploy this commit so live `.deployed-commit` matches GitHub `main`. Code behaviour stays the 8 Sep activity-feed and ticket-show fix; the gap was the ops diary only. |
+| Rollback / watch | Redeploy `388a809`. App behaviour is the 8 Sep activity-feed and ticket-show fix; this alignment is docs plus that code. Hard-refresh Dashboard. |
+
 ### 2026-09-08 14:40 UK - Deploy activity feed + ticket-show 403 fix (388a809)
 
 | | |
