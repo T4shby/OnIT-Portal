@@ -73,9 +73,10 @@ Policies and Gates - never trust a hidden field, a route parameter, or
    Every admin index/listing query (`Admin\ClientController::index`,
    `Admin\UserController::index`, `Admin\PortalLinkController::index`,
    `Admin\NoticeController::index`, `Admin\ActivityLogController::index`,
-   etc.) filters through `accessibleClientIds()`. `EnsureClientAccess`
-   middleware (`client.access` alias) provides the same check for routes
-   keyed by a raw `client_id`.
+   etc.) filters through `accessibleClientIds()`. (A previously-unused
+   `EnsureClientAccess` middleware/`client.access` alias that duplicated
+   this check for route-bound `client_id`s was removed in the fourth audit
+   pass - see `docs/SYSTEM_AUDIT.md`; it was applied to zero routes.)
 5. **FormRequests intentionally return `authorize(): true`** - this
    codebase does authorization in the controller, consistently. Do not
    assume a FormRequest is unauthenticated just because `authorize()`

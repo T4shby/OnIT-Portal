@@ -1033,3 +1033,271 @@ middleware finding (both flagged for a deliberate team decision rather
 than changed unilaterally), and one dev-dependency note. Nothing here
 blocks production readiness; the "Production Readiness Status" section
 above is unchanged by this pass.
+
+## Fourth Audit Pass — Requested Fixes, Frontend, Infra, Dependencies (2026-09-28)
+
+A fourth pass with two parts: (A) two fixes the repo owner explicitly asked
+for by name (both flagged, not applied, by the third pass), and (B) three
+areas the original audit brief called for but no pass had swept
+exhaustively yet - frontend/asset audit, Docker/infra confirmation, and
+dependency hygiene. Branch: `claude/jolly-hopper-6w33al`, freshly branched
+off `main` at `9bbf0b8`.
+
+### Part A1: Removed the dead `EnsureClientAccess` middleware
+
+Re-confirmed the third pass's finding (Manual Review Item 9) directly
+before deleting: `grep -rln "EnsureClientAccess\|client\.access" app
+bootstrap tests routes resources docs Brain AGENTS.md README.md config`
+returned only the middleware's own file, its alias registration in
+`bootstrap/app.php`, and narrative mentions in `docs/SECURITY.md`/
+`docs/ARCHITECTURE.md`/`docs/SYSTEM_AUDIT.md` themselves (this file) -
+**zero routes, zero tests, zero other code references**. Deleted
+`app/Http/Middleware/EnsureClientAccess.php` and removed the
+`'client.access' => EnsureClientAccess::class` alias (and its `use`
+import) from `bootstrap/app.php`. Updated the two stale claims this left
+in `docs/SECURITY.md` and `docs/ARCHITECTURE.md` (both previously said
+the middleware "provides the same check" as `accessibleClientIds()` for
+routes keyed by a raw `client_id` - it did not, because it was wired to
+none). 267 tests still pass after removal (commit `1144e8c`).
+
+### Part A2: Queued `bootstrapEntra()` and `applyClientSso()`
+
+Both methods in `app/Http/Controllers/Admin/ClientController.php` made
+synchronous Microsoft Graph calls on the request path - the same 60s
+nginx gateway timeout risk `applyScim()`/`retryScimExport()` were already
+queued for (Third Audit Pass, Manual Review Item 8). Converted both to
+the identical `markQueued()` + `dispatch()` + `_queued` activity-log
+action + background-run flash message pattern used by
+`ApplySuperOpsScimJob`/`RepairSuperOpsScimExportJob` (commit `067fd85`).
+
+- **`bootstrapEntra()` - queued.** Added `App\Jobs\BootstrapClientEntraJob`
+  wrapping `CustomerEntraBootstrapService::bootstrap()`. This method only
+  ever flashed a summary message the view doesn't read back out of a
+  cache key, so this was a mechanical copy of the `applyScim()` pattern -
+  no UI rework needed. Verified by `tests/Feature/BootstrapEntraTest.php`:
+  `test_bootstrap_queues_background_job_immediately` (asserts the
+  in-flight cache flag is set, `BootstrapClientEntraJob` is pushed with
+  the right `clientId`, and the redirect carries a `success` flash),
+  `test_bootstrap_without_tenant_id_is_not_queued` (guard clause still
+  short-circuits before queueing), and
+  `test_job_records_result_and_logs_activity` (runs the job's `handle()`
+  directly against a mocked `CustomerEntraBootstrapService`, asserts the
+  in-flight flag clears, the last-result cache is written, and a
+  `client.entra_bootstrap` row lands in `activity_logs`).
+- **`applyClientSso()` - queued**, after investigating the nuance the
+  brief flagged. The Blade partial
+  `resources/views/admin/clients/_client-sso-apply-form.blade.php` reads
+  the `client_sso_idp.{id}` cache key synchronously to display the Login
+  URL/certificate - this is exactly the pattern
+  `_scim-apply-form.blade.php` already uses for
+  `scim_apply.in_flight`/`scim_apply.last_result` (`ApplySuperOpsScimJob`
+  constants), so it was not a novel problem: added
+  `App\Jobs\ApplyClientSsoSamlJob`, which writes the same
+  `client_sso_idp.{id}` cache entry the controller used to write
+  synchronously, plus its own `client_sso_apply.in_flight`/
+  `client_sso_apply.last_result` keys. Updated
+  `_client-sso-apply-form.blade.php` to read those two keys the same way
+  `_scim-apply-form.blade.php` reads its SCIM equivalents: an amber
+  "running in the background" banner while in flight, a
+  success/failure banner from the last result once finished, and the
+  submit button disabled with a "Queued - redirecting…" state (same
+  Alpine `x-data="{ submitting: false }"` pattern already used on the
+  SCIM form) - so the page never silently shows stale/empty Login
+  URL/certificate fields. Rewrote `tests/Feature/ApplyClientSsoSamlTest.php`
+  (the old version asserted synchronous `client_sso_login_url`/
+  `client_sso_certificate` session flashes, which no longer exist) with
+  three tests modeled on `ApplySuperOpsScimTest`:
+  `test_apply_queues_background_job_immediately` (in-flight flag set,
+  job pushed with the right `entityId`/`consumerServiceUrl`, checklist
+  and `client_sso_idp` cache untouched until the worker runs),
+  `test_job_writes_login_url_and_certificate_to_cache_for_the_view` (runs
+  `handle()` directly against a mocked `MicrosoftGraphClient`, asserts
+  the `client_sso_idp.{id}` cache and the checklist flag are both set),
+  and `test_job_records_failure_without_touching_checklist` (Graph throws
+  → checklist stays false, last-result cache records the failure message,
+  matching `ApplySuperOpsScimJob::failed()`'s behaviour).
+
+`php artisan test` after both A1 and A2: **272 passed (1229 assertions)**
+(267 + 5 new: 3 in `ApplyClientSsoSamlTest`, replacing the old single test
+that asserted the now-removed synchronous behaviour, and 3 in
+`BootstrapEntraTest`, net 2 new files/+5 tests overall).
+
+### Part B1: Frontend/asset audit
+
+- **Bundling**: `vite.config.js` has a single entry pair
+  (`resources/css/app.css`, `resources/js/app.js`); `resources/js/app.js`
+  is 5 lines (imports `bootstrap.js`, starts Alpine) and
+  `resources/js/bootstrap.js` is 4 lines (wires `axios` + the
+  `X-Requested-With` header). There is no route-based JS, no dynamic
+  `import()`, and nothing that would benefit from code-splitting - the
+  compiled output (`public/build/manifest.json`) is one JS chunk
+  (`app-BJA0v0Q5.js`, 97,746 bytes) and one CSS chunk
+  (`app-rZcNukNn.css`, 77,465 bytes, both uncompressed/pre-gzip). **Not a
+  finding**: a single bundle is the correct choice for an app this size
+  with this little first-party JS: there is nothing to split.
+- **Tailwind purge config**: `tailwind.config.js`'s `content` array
+  (`./vendor/laravel/framework/.../Pagination/resources/views/*.blade.php`,
+  `./storage/framework/views/*.php`, `./resources/views/**/*.blade.php`)
+  correctly scans every Blade view in the repo (no `resources/js`
+  templating exists to miss) plus Laravel's own pagination view partial
+  (used by every `->paginate()` admin listing) and compiled view cache -
+  no missing/over-broad paths found. Confirmed correct, not changed.
+- **Duplicate polling implementations found (flagged, not refactored).**
+  There are three independent hand-rolled "fetch a fragment, swap the
+  DOM node, repeat on a timer" implementations instead of one:
+  1. `resources/views/components/live-fragment-poll.blade.php` - a
+     reusable Blade component (`props: url, targetId, seconds, active`),
+     correctly reused by `client-admin/dashboard.blade.php` and
+     `microsoft-365/_directory-body.blade.php`.
+  2. `resources/views/components/auto-reload-while-refreshing.blade.php` -
+     a different pattern (full `window.location.reload()` with a
+     `sessionStorage`-backed max-attempts counter, not a DOM-fragment
+     swap), used where a full reload is actually wanted.
+  3. `resources/views/admin/integration-health/index.blade.php` (lines
+     ~89-220) - an **inline, page-specific reimplementation** of exactly
+     what `live-fragment-poll.blade.php` already does (fetch, replace
+     `#integration-health-live` by ID, `visibilitychange` pause/resume,
+     5s interval), plus extra logic specific to this page (queue-stat
+     text, a "configured timing" summary line from the freshness-settings
+     form). This duplicates ~90 lines of fetch/DOM-swap/visibility logic
+     that `live-fragment-poll.blade.php`'s component already generalizes.
+     **Not refactored in this pass** - the extra per-page logic
+     (`applyQueueFrom`, `applyConfiguredFromForm`, form-dirty tracking)
+     means folding it into the shared component isn't a pure mechanical
+     move, and this page's JS has no test coverage to catch a regression
+     if the refactor got the DOM-replacement timing wrong. Flagged for
+     the team as a reasonable follow-up, not done here.
+  - Separately, `resources/views/admin/team/create.blade.php` and
+    `edit.blade.php` each hand-roll a `getElementById` +
+    `addEventListener('change', ...)` show/hide toggle in vanilla JS
+    (toggling the "assigned clients" field visibility by role), even
+    though Alpine is already loaded app-wide and is the pattern used
+    elsewhere (including the SCIM/SSO forms touched in this pass). Minor
+    inconsistency, not a bug - flagged, not changed.
+- **Polling frequency**: the `integration-health` page's 5-second
+  `setInterval` (and `live-fragment-poll`'s default of 5s) both pause via
+  `visibilitychange` when the tab is hidden and are only reachable from
+  admin-only pages - not excessive for a low-traffic internal admin tool.
+  `auto-reload-while-refreshing` caps itself at `maxAttempts` (default 30)
+  stored in `sessionStorage` so it can't reload forever. No excessive
+  client-side polling found.
+- **Static assets**: `find public -type f -not -path "public/build/*"`
+  returns 7 files total - `public/.htaccess`, `public/index.php`, and two
+  small SVG integration logos (`superops.svg` 387 bytes, `pax8.svg` 378
+  bytes). No raster images (`.png`/`.jpg`/`.jpeg`/`.gif`/`.webp`) exist
+  anywhere in the repo outside `node_modules`/`vendor`. Nothing to
+  optimize.
+
+### Part B2: Docker/infra confirmation
+
+- `find . -iname "*docker*" -o -iname "*.yaml" -o -iname "*.yml"`
+  (excluding `vendor`/`node_modules`/`.git`) returns **nothing** - no
+  Dockerfile, docker-compose file, Kubernetes manifest, or any YAML file
+  of any kind exists in this repository. Confirms the third pass's claim
+  directly rather than trusting it. No `.service`/`.timer` unit files or
+  a `deploy/` folder exist in the repo either - `Brain/Deployment.md`'s
+  systemd timer section (`onit-portal-{schedule,queue,queue-b}.timer`,
+  paths under `/etc/systemd/system/`) is documented as living **only on
+  the production host**, which matches what's actually in the repo (no
+  unit-file content checked in anywhere). This is consistent, not a gap.
+- Cross-checked `Brain/Deployment.md` against `docs/DEPLOYMENT.md`: they
+  agree on the deployment pipeline (Plesk Git bare-mirror pull from
+  `main`, no Docker/Redis/broker, systemd timers preferred over Plesk's
+  jailed cron on this host, database-backed queue, `public/build/`
+  committed rather than built on the server), the required `.env`
+  variables, and the post-deploy artisan command sequence.
+  `docs/DEPLOYMENT.md` explicitly says up front that it's a "condensed,
+  audit-oriented version" and defers host-specific detail (exact unit
+  file contents, Plesk UI click-paths, known cron quirks on this specific
+  server) to `Brain/Deployment.md` - this division of labor is accurate
+  and intentional, not drift. **No correction needed** in either
+  document this pass. Per AGENTS.md, `Brain/` was read but not edited.
+- No Docker/Redis/broker/Kubernetes was added - none was warranted and
+  the brief explicitly asked this pass not to introduce any.
+
+### Part B3: Dependency hygiene (exhaustive)
+
+**PHP (`composer.json`, not just the lock file)** - every `require`/
+`require-dev` entry checked for a real usage site:
+
+- `laravel/framework`, `laravel/tinker` - framework core / `artisan
+  tinker`, used by definition.
+- `laravel/socialite`, `socialiteproviders/microsoft-azure` - confirmed
+  used in `app/Providers/EventServiceProvider.php` (registers the Azure
+  provider) and `app/Http/Controllers/Auth/MicrosoftAuthController.php`
+  (`Socialite::driver('microsoft-azure')`), the app's only login path.
+- `fakerphp/faker`, `mockery/mockery`, `nunomaduro/collision`,
+  `phpunit/phpunit`, `laravel/pint` - standard dev tooling, all used
+  (factories use Faker, tests use Mockery, `phpunit.xml` runs PHPUnit,
+  `vendor/bin/pint` runs Pint).
+- `laravel/breeze` - **still flagged, not removed** (unchanged from the
+  third pass's finding): a dev dependency with no runtime import
+  anywhere in `app/`/`resources/`, but that's expected for a
+  scaffolding-only installer package, not drift. Left for the team's
+  judgement, as before.
+- **New in this pass - possible stale dependency worth a manual check**:
+  `composer.lock`'s per-package `time` field shows every other dependency
+  in the tree was released in 2025-2026 (consistent with routine
+  `composer update` churn), **except
+  `socialiteproviders/microsoft-azure` at `5.2.0`, released
+  `2024-03-15`** - over two years stale relative to everything else in
+  the lock file, including its own `socialiteproviders/manager`
+  dependency (`4.9.2`, released `2026-03-18`). This is the package this
+  app's *only* login mechanism (Microsoft Entra ID SSO) depends on.
+  Per the instruction not to fetch external URLs to verify, this is
+  **flagged, not confirmed** - the team should check upstream
+  (`github.com/SocialiteProviders/Microsoft-Azure`) for whether this is
+  simply a stable/mature package with nothing new to release, or
+  genuinely unmaintained, and whether a newer major/minor exists.
+
+**JS (`package.json`)** - every entry checked for a real import/config
+reference:
+
+- `alpinejs` - `resources/js/app.js` (`Alpine.start()`) and used via
+  `x-data`/`x-show`/`x-cloak` in several Blade views including the two
+  forms touched in this pass.
+- `axios` - `resources/js/bootstrap.js` (`window.axios = axios`).
+- `@tailwindcss/forms`, `tailwindcss`, `autoprefixer`, `postcss` -
+  referenced in `tailwind.config.js` (`plugins: [forms]`) and
+  `postcss.config.js` (`{ tailwindcss: {}, autoprefixer: {} }`).
+- `laravel-vite-plugin`, `vite` - `vite.config.js`.
+- All eight `package.json` dependencies resolve to genuine usage; none
+  flagged as unused. `package-lock.json` versions
+  (`alpinejs@3.15.12`, `axios@1.20.0`, `vite@5.4.21`, `tailwindcss@3.4.19`,
+  etc.) show normal, actively-maintained release cadences - no stale JS
+  dependency found.
+
+### Verification results (this pass, actual output)
+
+```
+$ grep -rln "EnsureClientAccess\|client\.access" app bootstrap tests routes resources config
+app/Http/Middleware/EnsureClientAccess.php
+bootstrap/app.php
+(no other files - matches the third pass's finding, confirmed before deleting)
+
+$ php artisan test        # after A1 (middleware removal)
+Tests:    267 passed (1203 assertions)
+
+$ php artisan test        # after A2 (both jobs + tests)
+Tests:    272 passed (1229 assertions)
+Duration: 31.68s
+
+$ find . -iname "*docker*" -o -iname "*.yaml" -o -iname "*.yml"    # excl. vendor/node_modules/.git
+(no output - confirmed no Docker/K8s/YAML anywhere in the repo)
+```
+
+### Bottom line on this pass
+
+Both explicitly-requested fixes (A1, A2) were completed as asked, with
+the `applyClientSso()` async-UI nuance investigated and handled the same
+way the brief anticipated (`_scim-apply-form.blade.php`'s existing
+in-flight/last-result cache-polling pattern), not skipped or half-done.
+The frontend/infra/dependency sweep (B1-B3) found nothing that blocks
+production readiness: no code-splitting gap worth fixing (nothing to
+split), Tailwind purge config is correct, Docker/infra documentation
+already matches reality, and dependency usage is exhaustively confirmed
+with one new item worth the team's own look
+(`socialiteproviders/microsoft-azure`'s two-year-stale release date) and
+one duplicated-polling-logic cleanup opportunity (`integration-health`'s
+inline script vs. the `live-fragment-poll` component) left for a future,
+better-tested pass rather than risked here.
