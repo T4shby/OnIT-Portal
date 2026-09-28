@@ -184,4 +184,48 @@ class SuperOpsTicketCreateTest extends TestCase
             return ! preg_match('/\bdescription\b/', $query);
         });
     }
+
+    private function fakeCreateTicket(): void
+    {
+        Http::fake([
+            'https://api.superops.ai/msp' => Http::response([
+                'data' => ['createTicket' => ['ticketId' => 't-9', 'displayId' => '109', 'subject' => 'S', 'status' => 'Open']],
+            ], 200),
+        ]);
+    }
+
+    public function test_user_typed_description_starting_with_a_tag_is_escaped(): void
+    {
+        $this->fakeCreateTicket();
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-h']);
+        $user = User::factory()->create(['client_id' => $client->id]);
+
+        app(SuperOpsTicketService::class)->createTicket($user, 'Subject', "<jo@acme.com> printer broken\n<img src=x onerror=alert(1)>");
+
+        Http::assertSent(function ($request) {
+            $description = $request->data()['variables']['input']['description'] ?? '';
+
+            return str_contains($description, '&lt;jo@acme.com&gt; printer broken<br>')
+                && str_contains($description, '&lt;img src=x onerror=alert(1)&gt;')
+                && ! str_contains($description, '<img');
+        });
+    }
+
+    public function test_new_starter_html_is_sent_unchanged(): void
+    {
+        $this->fakeCreateTicket();
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-ns', 'name' => 'Acme']);
+        $user = User::factory()->create(['client_id' => $client->id]);
+
+        app(\App\Services\Support\NewStarterTicketService::class)->submit($user, ['starter_name' => 'Alex <b>']);
+
+        Http::assertSent(function ($request) {
+            $description = $request->data()['variables']['input']['description'] ?? '';
+
+            return str_starts_with($description, '<p><strong>New starter request</strong>')
+                && str_contains($description, '<li><strong>Starter name:</strong> Alex &lt;b&gt;</li>');
+        });
+    }
 }
