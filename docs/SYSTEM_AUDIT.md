@@ -240,10 +240,13 @@ files as a side effect of an audit.
   `app/Services/*` sets an explicit timeout (30-90s depending on the
   known latency of that platform's API) - no unbounded outbound call
   exists.
-- **Rate limiting:** the OAuth callback, ticket creation, integration
-  launch links, directory/security refresh actions, and Entra sync are
-  all behind named rate limiters (`AppServiceProvider::boot()`) or inline
-  `throttle:` middleware.
+- **Rate limiting:** the OAuth callback, integration launch links,
+  directory/security refresh actions, and Entra sync are all behind named
+  rate limiters (`AppServiceProvider::boot()`) or inline `throttle:`
+  middleware. **Correction (see "Second Independent Audit Pass" below):**
+  support ticket creation (`POST /support`) was *not* rate-limited when
+  this bullet was first written, contrary to what it claimed - this has
+  since been fixed.
 - **No public API / no CORS surface:** confirmed no `routes/api.php`, no
   `config/cors.php`, reducing attack surface.
 - **No file uploads:** the app has no user file upload functionality
@@ -493,6 +496,225 @@ directory. This was caught immediately (the next command failed loudly -
 `vendor/autoload.php` missing), fixed by `rm -rf vendor && composer
 install` (a single clean run), and is called out here in the interest of
 an honest, complete verification log rather than omitted.
+
+## Second Independent Audit Pass (2026-09-28)
+
+A second, independent reviewer re-verified this document's material claims
+against the actual code rather than trusting the write-up above, per an
+explicit request not to rubber-stamp the first pass. Branch:
+`claude/jolly-hopper-6w33al` (unchanged from the first pass).
+
+### What was independently re-verified, with evidence
+
+- **Authorization chain on destructive/admin controllers.** Traced
+  middleware → controller → Policy for `Admin\ClientController`
+  (`store`/`update`/`destroy`/`syncEntra`/`applyScim`/`applyClientSso` -
+  every method calls `$this->authorize('update'|'delete'|'create',
+  $client)` at `app/Http/Controllers/Admin/ClientController.php:41,86,
+  134,173,183,237,313,336,374,409,431,496`, backed by
+  `app/Policies/ClientPolicy.php:16-35`), `Admin\UserController` (same
+  pattern, `app/Http/Controllers/Admin/UserController.php:26,58,73,92,
+  105,132`, backed by `app/Policies/UserPolicy.php`), and the three
+  client-scoped staff dashboards (`ClientMicrosoft365DirectoryController`,
+  `ClientHuntressSecurityController`, `ClientDropsuiteBackupController` -
+  each of their three actions calls `$this->authorize('view', $client)`
+  before touching data, even though the route itself only carries the
+  coarse `role:` group middleware). **Confirmed accurate**: no controller
+  action was found that skips authorization for a route-bound model.
+  `Admin\SettingController`/`Admin\ActivityLogController`/
+  `Admin\IntegrationHealthController::updateFreshness` were also checked -
+  all gate on `SettingPolicy`/`ActivityLogPolicy` correctly
+  (`app/Policies/SettingPolicy.php`, `app/Policies/ActivityLogPolicy.php`).
+  `SupportController::show()`'s ownership delegation to
+  `SuperOpsTicketService::userCanViewTicket()`
+  (`app/Services/SuperOps/SuperOpsTicketService.php:112-137`) was read in
+  full and does correctly deny cross-tenant/cross-user ticket access.
+- **Tenant scoping.** `User::canAccessClient()`/`accessibleClientIds()` is
+  used in every admin index/listing method inspected
+  (`UserController::index`, `ClientController::index`,
+  `ActivityLogController::index`, `IntegrationHealthController`). Confirmed.
+- **Rate limiting.** `AppServiceProvider::boot()` and `routes/web.php` were
+  re-read line by line. **The first audit's "Confirmed Good" bullet
+  overstated this one**: `POST /support` (`SupportController::store`,
+  which calls the SuperOps API to create a real ticket) had **no rate
+  limiting whatsoever** - not a named limiter, not inline `throttle:`, not
+  even the Laravel default (this app's `web` middleware group, per
+  `bootstrap/app.php`, does not include a global throttle - Laravel 11
+  only auto-throttles the `api` group, which this app doesn't have). Any
+  authenticated user could submit unlimited tickets. **Fixed** in this
+  pass: added `RateLimiter::for('support-ticket-store', ...)` (6/min per
+  user) in `app/Providers/AppServiceProvider.php` and applied
+  `throttle:support-ticket-store` to the route in `routes/web.php`. Full
+  267-test suite re-run afterward, still green.
+- **Dependency/test/build verification re-run from scratch this
+  session**, not assumed from the first pass's log:
+  - `composer audit`: still 3 `laravel/framework` advisories, matching M1
+    exactly (same advisory IDs).
+  - `npm audit`: reports "2 vulnerabilities (1 moderate, 1 high)" -
+    **a minor inaccuracy in the first pass's M2**, which said "1 moderate
+    advisory only". It is still a single root cause (esbuild <=0.24.2,
+    bundled by vite, dev-server-only exposure) but `npm audit`'s own
+    summary line counts it as 2 (esbuild moderate + the vite entry that
+    depends on it, rolled up as high). Practical risk assessment (dev-
+    server only, not shipped to production) is unaffected and still
+    correct.
+  - `php artisan test`: **267 passed (1203 assertions)**, confirmed
+    unchanged after this pass's two code fixes.
+  - `npm run build`: succeeds (`vite v5.4.21 ... built in ~2s`). Note: a
+    from-scratch `npm run build` regenerates `public/build/assets/*.css`
+    under a **different content hash than the committed one**, with byte-
+    identical CSS otherwise - Vite's hashing isn't perfectly deterministic
+    across a clean rebuild here. This pass reverted that incidental diff
+    rather than commit an unrelated asset churn; worth the team knowing
+    the committed `public/build/*` will drift by a hash on every rebuild
+    even with no source change.
+  - `vendor/bin/pint --test`: still reports style diffs across the same
+    ~60 files (same file list re-checked), matching L2 exactly.
+
+### Findings that contradict or refine the first pass
+
+1. **Rate limiting gap on support ticket creation** (above) - the first
+   pass's "Confirmed Good" section was wrong on this specific point.
+   Fixed in this pass.
+2. **`.env.example` did not actually contain `SESSION_SECURE_COOKIE`
+   at all** - not commented-out, not blank, simply absent. `docs/
+   SECURITY.md`'s wording ("`.env.example` intentionally leaves it blank
+   for local HTTP development") implied the key was present-but-empty;
+   it wasn't present. A team member copying `.env.example` to build a new
+   `.env` would never be prompted to set this production-critical flag at
+   all. **Fixed** in this pass: added `SESSION_SECURE_COOKIE=` with an
+   explicit "must be true in production" comment. M3's underlying
+   assessment (no code-level enforcement) still stands as a valid
+   separate manual-review item.
+3. **L1's fix suggestion is wrong for this repo.** The first pass wrote
+   "`LOG_STACK=daily` is a one-line `.env` change, no code change needed -
+   Laravel ships the `daily` channel already in `config/logging.php`."
+   Re-read `config/logging.php` in full: this repo's copy has been
+   trimmed to only three channels - `stack`, `single`, `null`
+   (`config/logging.php:17-37`). The `daily` channel (and the rest of
+   Laravel's stock skeleton channels - `slack`, `papertrail`, `syslog`,
+   etc.) is **not present**. Switching to `LOG_STACK=daily` today would
+   fail (`InvalidArgumentException: Log channel [daily] is not defined`)
+   until someone actually adds the channel block to
+   `config/logging.php`. Not fixed in this pass (an unrequested config
+   addition); flagged here so L1's recommendation isn't followed
+   verbatim and fails in production.
+4. **`/up` health check did not verify DB connectivity — fixed.**
+   `bootstrap/app.php` registers Laravel's default `health: '/up'` route;
+   no listener for Laravel's `DiagnosingHealth` event existed anywhere in
+   `app/`. `/up` therefore only proved the PHP process booted and routes
+   resolved - it said nothing about MySQL being reachable. **Fixed** in
+   `app/Providers/AppServiceProvider.php` by listening for
+   `DiagnosingHealth` and touching `DB::connection()->getPdo()`, so a
+   dead DB connection now fails `/up` with a 500 instead of a false
+   "healthy". Verified locally: with no MySQL reachable in the sandbox,
+   `/up` correctly returned `500` and `storage/logs/laravel.log` showed
+   `SQLSTATE[HY000] [2002] Connection refused` - confirming the listener
+   fires and surfaces the real failure rather than masking it.
+5. **SuperOps HTTP failure logging included the full raw response
+   body — mitigated.** `app/Services/SuperOps/SuperOpsApiClient.php`
+   logged `Log::error('SuperOps HTTP request failed', ['status' => ...,
+   'body' => $response->body()])` on every failed call, unbounded. No
+   token/secret was found in any logged payload in this pass's review
+   (the SuperOps API token is sent as a request header, not echoed in
+   response bodies, and no `Log::` call site logs request headers
+   anywhere in `app/` - verified by grep), so this was **not** a
+   credential-leak finding. It could, however, put customer-identifying
+   data (ticket subjects, requester emails inside a GraphQL error
+   payload) into `storage/logs/laravel.log` at `error` level, and an
+   unbounded body could flood log storage on a large failure response.
+   **Fixed** by truncating the logged body to 1000 characters
+   (`Str::limit`) - full redaction was not attempted, since GraphQL error
+   payloads are also the primary debugging signal for integration
+   failures and blanket redaction would make failures harder to
+   diagnose; truncation bounds the exposure/log-volume risk without
+   losing that signal.
+
+### New findings from areas the first pass covered lightly
+
+- **Performance**: re-checked every `Admin\*Controller::index()` (Client,
+  User, PortalLink, Notice, Opportunity, Recommendation, ActivityLog,
+  Team) - all paginate (`->paginate(15)` or `->paginate(25)`) and the two
+  genuinely relation-heavy ones (`UserController::index`,
+  `ActivityLogController::index`) eager-load (`->with([...])`,
+  `->withCount([...])`). No N+1 query pattern found in the Blade views
+  sampled (`admin/users/index.blade.php` uses pre-aggregated
+  `users_count`/`active_users_count`, not a per-row relation call in a
+  loop). This matches the first pass's Performance Review claim.
+- **Database**: re-read all 19 migrations' index/constraint definitions
+  directly (not just trusted the summary) - confirmed composite indexes
+  like `['client_id', 'is_active']` and single-column indexes on
+  `display_order`, `published_at`, `expires_at`, `action`, `created_at`
+  are actually present in the migration files, not just claimed. Matches.
+- **Infra**: confirmed via `find` for `Dockerfile*`/`docker-compose*`/
+  `.github/workflows` across the whole repo (excluding `node_modules`) -
+  genuinely none exist. `Brain/` (39 files) was opened and confirmed to
+  be pure Markdown documentation/runbooks (architecture notes, onboarding
+  guides, a decisions log) - **not** deployment scripts or executable
+  tooling, despite the brief's suggestion it might need investigating as
+  such. `.cursor/rules/*.mdc` is editor-assistant configuration
+  (ASCII-hyphen style rule, a note to keep debug scratch files outside
+  the repo, a Brain-docs-maintenance rule) - not relevant to security or
+  infra.
+- **`.env.example` vs actual `env()`/`config()` usage**: cross-referenced
+  every `env('...')` call in `config/*.php` against `.env.example`.
+  Beyond the `SESSION_SECURE_COOKIE` gap (fixed, see above), all other
+  app-specific variables (`ENTRA_SYNC_CLIENT_ID/SECRET`,
+  `SUPEROPS_TECHNICIAN_PORTAL_URL`, `ONIT_SUPPORT_*`) are present as
+  commented-out optional lines with explanatory comments - a deliberate,
+  reasonable pattern, not drift. The remaining "missing" variables from a
+  raw diff (`AWS_*`, `REDIS_*`, `DB_CHARSET`, `AUTH_GUARD`, etc.) are
+  unused stock Laravel config knobs with safe defaults in
+  `config/*.php` and don't need to be in `.env.example` for an app that
+  doesn't use S3/Redis/multi-guard auth. No further action needed there.
+
+### Updated verification results (this session, actual output)
+
+```
+$ php artisan test
+Tests:    267 passed (1203 assertions)
+Duration: 30.95s
+
+$ npm run build
+vite v5.4.21 building for production...
+✓ 59 modules transformed.
+✓ built in 2.21s
+
+$ composer audit
+Found 3 security vulnerability advisories affecting 1 package: laravel/framework
+(unchanged from first pass - see M1)
+
+$ npm audit
+2 vulnerabilities (1 moderate, 1 high) - both esbuild/vite, dev-server-only
+(first pass reported this as "1 moderate advisory only" - see correction above)
+
+$ vendor/bin/pint --test
+Same ~60-file style diff as the first pass reported (not auto-fixed, same
+reasoning as L2).
+```
+
+Two fixes were made and committed in this pass:
+1. `app/Providers/AppServiceProvider.php` / `routes/web.php` - added a
+   `support-ticket-store` rate limiter (6/min/user) to `POST /support`.
+2. `.env.example` - added the previously-absent `SESSION_SECURE_COOKIE`
+   variable with a production-required comment.
+
+Both changes were verified not to break the test suite (267 passed,
+unchanged, after each fix).
+
+### Bottom line on the first pass's quality
+
+The first pass's core security claims (authorization consistency, tenant
+scoping, no hardcoded secrets, parameterized SQL, CSRF never disabled,
+explicit `$fillable` everywhere, no file upload surface, dependency
+patching) all held up under independent, file:line-level re-verification
+in this pass and are **not** being walked back. The gaps found here are
+narrower and more operational: one real rate-limiting hole (fixed), one
+documentation/config-drift issue that would have bitten a real deploy
+(fixed), one factually wrong remediation suggestion in L1 (corrected in
+writing, not code), and a couple of observability gaps (`/up` not
+checking DB, verbose failure-path logging) that are reasonable manual
+review items rather than blockers.
 
 ## Production Readiness Status
 

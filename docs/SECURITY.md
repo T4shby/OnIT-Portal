@@ -27,8 +27,10 @@ and whether each is required.
   (`bootstrap/app.php` registers no CSRF exceptions).
 - Session cookie: `SESSION_DRIVER=database`, `http_only=true` by default,
   `SESSION_SECURE_COOKIE` **must be set to `true` in production**
-  (documented in `Brain/Deployment.md`'s example `.env` - `.env.example`
-  intentionally leaves it blank for local HTTP development). `SecurityHeaders`
+  (documented in `Brain/Deployment.md`'s example `.env`; `.env.example`
+  lists the variable blank for local HTTP development - a second audit
+  pass found it was previously missing from `.env.example` entirely and
+  added it). `SecurityHeaders`
   middleware adds `Strict-Transport-Security` only when `app()->isProduction()`.
 - Microsoft OAuth tokens obtained at login (`access_token`/`refresh_token`)
   are stored on the `users.microsoft_tokens` column with Laravel's

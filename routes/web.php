@@ -57,7 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('support')->name('support.')->group(function () {
         Route::get('/', [SupportController::class, 'index'])->name('index');
         Route::get('/create', [SupportController::class, 'create'])->name('create');
-        Route::post('/', [SupportController::class, 'store'])->name('store');
+        Route::post('/', [SupportController::class, 'store'])
+            ->middleware('throttle:support-ticket-store')
+            ->name('store');
         Route::get('/{ticketId}', [SupportController::class, 'show'])->name('show');
     });
 
