@@ -52,10 +52,12 @@ class Microsoft365DirectoryController extends Controller
         $format = strtolower((string) $request->query('format', 'xlsx'));
         abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
 
-        $orgWide = $this->visibility->canViewOrganisationWide($user, $client);
-        $scopedUser = $orgWide ? null : $user;
+        // Same rule as the page's canExportDirectory flag. The workbook always contains the
+        // organisation's licence inventory and seat/utilisation summary (only user rows
+        // were ever scoped), which personal viewers are deliberately not shown on screen.
+        abort_unless($this->visibility->canViewOrganisationWide($user, $client), 403);
 
-        return $this->streamExport($client, $format, $scopedUser);
+        return $this->streamExport($client, $format, null);
     }
 
     public function live(Request $request): View
