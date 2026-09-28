@@ -45,5 +45,11 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(2)->by($request->user()?->id.'|'.$clientId);
         });
+
+        // Support ticket creation calls out to the SuperOps API - throttle per user
+        // so a single account can't hammer that upstream (or spam tickets).
+        RateLimiter::for('support-ticket-store', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }
