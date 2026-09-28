@@ -17,7 +17,7 @@ class ActivityLogController extends Controller
 
         $logs = ActivityLog::query()
             ->with(['user', 'client'])
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+            ->whereIn('client_id', $clientIds)
             ->latest()
             ->paginate(15);
 

@@ -26,7 +26,7 @@ class NoticeController extends Controller
 
         $notices = ClientNotice::query()
             ->with(['client', 'creator'])
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+            ->whereIn('client_id', $clientIds)
             ->latest()
             ->paginate(15);
 
@@ -38,7 +38,7 @@ class NoticeController extends Controller
         $this->authorize('create', ClientNotice::class);
 
         $clientIds = $request->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -66,7 +66,7 @@ class NoticeController extends Controller
         $this->authorize('update', $notice);
 
         $clientIds = request()->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->orderBy('name')
             ->get();
 

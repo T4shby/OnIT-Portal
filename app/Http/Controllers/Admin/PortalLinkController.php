@@ -30,9 +30,9 @@ class PortalLinkController extends Controller
 
         $links = PortalLink::query()
             ->with('client')
-            ->when(! empty($clientIds), fn ($q) => $q->where(function ($q) use ($clientIds) {
+            ->where(function ($q) use ($clientIds) {
                 $q->whereNull('client_id')->orWhereIn('client_id', $clientIds);
-            }))
+            })
             ->orderBy('display_order')
             ->paginate(15);
 
@@ -44,7 +44,7 @@ class PortalLinkController extends Controller
         $this->authorize('create', PortalLink::class);
 
         $clientIds = $request->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->orderBy('name')
             ->get();
 
@@ -72,7 +72,7 @@ class PortalLinkController extends Controller
         $this->authorize('update', $portalLink);
 
         $clientIds = $request->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->orderBy('name')
             ->get();
 

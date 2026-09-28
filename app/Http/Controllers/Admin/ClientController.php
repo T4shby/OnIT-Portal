@@ -45,7 +45,7 @@ class ClientController extends Controller
         $clientIds = $request->user()->accessibleClientIds();
 
         $clients = Client::query()
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereIn('id', $clientIds)
             ->withCount('users')
             ->latest()
             ->paginate(15);
@@ -64,7 +64,7 @@ class ClientController extends Controller
         $clientIds = $request->user()->accessibleClientIds();
 
         $clients = Client::query()
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereIn('id', $clientIds)
             ->whereNotNull('entra_tenant_id')
             ->where('entra_tenant_id', '!=', '')
             ->where('is_active', true)
