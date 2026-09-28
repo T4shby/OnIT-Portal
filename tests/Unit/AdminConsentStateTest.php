@@ -21,8 +21,19 @@ class AdminConsentStateTest extends TestCase
         $this->assertNull(AdminConsentState::decode($state.'x'));
     }
 
-    public function test_decode_supports_legacy_client_prefix_state(): void
+    public function test_decode_rejects_unsigned_legacy_client_prefix_state(): void
     {
-        $this->assertSame(7, AdminConsentState::decode('client-7'));
+        // Unsigned states let anyone target any client id on the unauthenticated
+        // consent callback - they must never decode.
+        $this->assertNull(AdminConsentState::decode('client-7'));
+    }
+
+    public function test_decode_rejects_payload_that_is_not_a_canonical_integer(): void
+    {
+        $state = AdminConsentState::encode(42);
+        [, $signature] = explode('.', $state, 2);
+
+        $this->assertNull(AdminConsentState::decode('42abc.'.$signature));
+        $this->assertNull(AdminConsentState::decode('.'.$signature));
     }
 }
