@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ClientEntraSyncTest extends TestCase
@@ -380,5 +381,27 @@ class ClientEntraSyncTest extends TestCase
         \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')
             ->with('azure')
             ->andReturn($driver);
+    }
+
+    public function test_entra_sync_rate_limit_is_per_client_not_per_user(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $clientA = Client::factory()->create([
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_sync_enabled' => true,
+        ]);
+        $clientB = Client::factory()->create([
+            'entra_tenant_id' => '22222222-2222-2222-2222-222222222222',
+            'entra_sync_enabled' => true,
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.clients.sync-entra', $clientA))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.clients.sync-entra', $clientA))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.clients.sync-entra', $clientA))->assertStatus(429);
+
+        // Syncing A twice must not lock the same admin out of syncing B.
+        $this->actingAs($admin)->post(route('admin.clients.sync-entra', $clientB))->assertRedirect();
     }
 }
