@@ -599,29 +599,36 @@ explicit request not to rubber-stamp the first pass. Branch:
    `config/logging.php`. Not fixed in this pass (an unrequested config
    addition); flagged here so L1's recommendation isn't followed
    verbatim and fails in production.
-4. **`/up` health check does not verify DB connectivity.** Neither pass's
-   Infrastructure Review mentioned this explicitly. `bootstrap/app.php`
-   registers Laravel's default `health: '/up'` route; no listener for
-   Laravel's `DiagnosingHealth` event was found anywhere in `app/`
-   (verified: `grep -rn "DiagnosingHealth\|HealthCheck" app/` returns
-   nothing). `/up` therefore only proves the PHP process boots and routes
-   resolve - it says nothing about MySQL, the queue, or any of the five
-   external integrations being reachable. Not fixed (adding a DB check
-   would be new behavior, not a bug fix); flagged as a manual review item.
-5. **SuperOps HTTP failure logging includes the full raw response
-   body.** `app/Services/SuperOps/SuperOpsApiClient.php:50-53` logs
-   `Log::error('SuperOps HTTP request failed', ['status' => ...,
-   'body' => $response->body()])` on every failed call. No token/secret
-   was found in any logged payload in this pass's review (the SuperOps
-   API token is sent as a request header, not echoed in response bodies,
-   and no `Log::` call site logs request headers anywhere in `app/` -
-   verified by grep), so this is **not** a credential-leak finding.
-   It can, however, put customer-identifying data (ticket subjects,
-   requester emails inside a GraphQL error payload) into
-   `storage/logs/laravel.log` at `error` level. Low severity, logged here
-   as a genuine gap the first pass didn't call out, not fixed
-   unilaterally (changing what gets logged on every integration failure
-   path is a product/support-workflow decision, not an obvious bug).
+4. **`/up` health check did not verify DB connectivity — fixed.**
+   `bootstrap/app.php` registers Laravel's default `health: '/up'` route;
+   no listener for Laravel's `DiagnosingHealth` event existed anywhere in
+   `app/`. `/up` therefore only proved the PHP process booted and routes
+   resolved - it said nothing about MySQL being reachable. **Fixed** in
+   `app/Providers/AppServiceProvider.php` by listening for
+   `DiagnosingHealth` and touching `DB::connection()->getPdo()`, so a
+   dead DB connection now fails `/up` with a 500 instead of a false
+   "healthy". Verified locally: with no MySQL reachable in the sandbox,
+   `/up` correctly returned `500` and `storage/logs/laravel.log` showed
+   `SQLSTATE[HY000] [2002] Connection refused` - confirming the listener
+   fires and surfaces the real failure rather than masking it.
+5. **SuperOps HTTP failure logging included the full raw response
+   body — mitigated.** `app/Services/SuperOps/SuperOpsApiClient.php`
+   logged `Log::error('SuperOps HTTP request failed', ['status' => ...,
+   'body' => $response->body()])` on every failed call, unbounded. No
+   token/secret was found in any logged payload in this pass's review
+   (the SuperOps API token is sent as a request header, not echoed in
+   response bodies, and no `Log::` call site logs request headers
+   anywhere in `app/` - verified by grep), so this was **not** a
+   credential-leak finding. It could, however, put customer-identifying
+   data (ticket subjects, requester emails inside a GraphQL error
+   payload) into `storage/logs/laravel.log` at `error` level, and an
+   unbounded body could flood log storage on a large failure response.
+   **Fixed** by truncating the logged body to 1000 characters
+   (`Str::limit`) - full redaction was not attempted, since GraphQL error
+   payloads are also the primary debugging signal for integration
+   failures and blanket redaction would make failures harder to
+   diagnose; truncation bounds the exposure/log-volume risk without
+   losing that signal.
 
 ### New findings from areas the first pass covered lightly
 
