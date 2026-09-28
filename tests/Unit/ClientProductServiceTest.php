@@ -84,28 +84,17 @@ class ClientProductServiceTest extends TestCase
         $this->assertFalse($svc->shouldShowOverviewTile($client, 'pax8', null));
     }
 
-    public function test_overview_tile_width_matches_row_rules(): void
+    public function test_overview_tile_width_is_full_width(): void
     {
         $svc = app(ClientProductService::class);
 
-        // 1 tile = full width
+        // Row-based fractional widths were replaced by a CSS grid in the view;
+        // the helper now always returns full width regardless of tile count.
         $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 1));
-
-        // 2 tiles = half each
-        $half = 'w-full sm:w-[calc((100%-1rem)/2)]';
-        $this->assertSame($half, $svc->overviewTileWidthClass(0, 2));
-        $this->assertSame($half, $svc->overviewTileWidthClass(1, 2));
-
-        // 5 = row of 3 then row of 2
-        $third = 'w-full sm:w-[calc((100%-2rem)/3)]';
-        $this->assertSame($third, $svc->overviewTileWidthClass(0, 5));
-        $this->assertSame($third, $svc->overviewTileWidthClass(2, 5));
-        $this->assertSame($half, $svc->overviewTileWidthClass(3, 5));
-        $this->assertSame($half, $svc->overviewTileWidthClass(4, 5));
-
-        // 4 = 3 + 1 full-width orphan
-        $this->assertSame($third, $svc->overviewTileWidthClass(0, 4));
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(3, 4));
+        $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 2));
+        $this->assertSame('w-full', $svc->overviewTileWidthClass(1, 2));
+        $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 5));
+        $this->assertSame('w-full', $svc->overviewTileWidthClass(4, 5));
     }
 
     public function test_client_admin_overview_shows_not_sold_requester_does_not(): void

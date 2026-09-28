@@ -94,7 +94,10 @@ class HuntressClientMetricsServiceTest extends TestCase
 
     public function test_unavailable_when_organization_id_missing(): void
     {
-        $client = Client::factory()->create(['huntress_organization_id' => null]);
+        $client = Client::factory()->create([
+            'huntress_organization_id' => null,
+            'product_entitlements' => ['huntress' => ['entitled' => true]],
+        ]);
         $summary = app(HuntressClientMetricsService::class)->summaryForClient($client);
 
         $this->assertFalse($summary->available);

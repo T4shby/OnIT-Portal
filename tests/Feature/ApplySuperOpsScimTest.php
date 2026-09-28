@@ -74,6 +74,9 @@ class ApplySuperOpsScimTest extends TestCase
                 'details' => ['SCIM BaseAddress + SecretToken written to Entra'],
                 'warnings' => [],
             ]);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')
+            ->once()
+            ->andReturn(['ok' => true]);
         $this->app->instance(MicrosoftGraphClient::class, $graph);
 
         ApplySuperOpsScimJob::markQueued($client->id);
