@@ -59,11 +59,17 @@ per-client with strict multi-tenant isolation.
    and every Policy in `app/Policies/`.
 2. **`User::canAccessClient()` / `accessibleClientIds()` are the only
    correct way to scope a client-owned query to the current user.** Do not
-   write ad-hoc `where('client_id', ...)` scoping logic elsewhere.
-3. **FormRequest classes in this app intentionally return `authorize():
+   write ad-hoc `where('client_id', ...)` scoping logic elsewhere. An empty
+   `accessibleClientIds()` means **no** clients: always apply
+   `whereIn(..., $ids)` - never wrap it in `when(! empty($ids), ...)`.
+3. **Admin FormRequest classes intentionally return `authorize():
    true`** - authorization is done in the controller, not the FormRequest.
    This is a deliberate, consistent pattern here; do not "fix" it by moving
-   authorization into FormRequests without updating every caller.
+   authorization into FormRequests without updating every caller. (Two
+   customer-facing requests, `StoreSupportTicketRequest` and
+   `StoreNewStarterRequest`, do gate in `authorize()`; and requests that
+   accept a `client_id` use the `ValidatesClientAccess` validation hook so
+   staff cannot write into unassigned clients.)
 4. **Never commit `.env`, real credentials, or API tokens.** `.env.example`
    documents every variable name with a blank/placeholder value only.
    `.gitignore` already excludes `.env`, `.env.backup`, `.env.production`.

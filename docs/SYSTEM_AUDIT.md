@@ -1301,3 +1301,380 @@ with one new item worth the team's own look
 one duplicated-polling-logic cleanup opportunity (`integration-health`'s
 inline script vs. the `live-fragment-poll` component) left for a future,
 better-tested pass rather than risked here.
+
+## Fifth Audit Pass — Full Line-by-Line Review (2026-09-28)
+
+Branch `claude/jolly-hopper-6w33al`, freshly synced to `main` at `de33171`.
+The brief for this pass was explicitly *not* grep-a-pattern-then-verify, but
+to read every file in full and follow how each piece is used by its callers
+(controller → FormRequest → Policy/Gate → service → job → cache → view).
+
+### What was read (in full, not sampled)
+
+- **Routing / bootstrap:** `routes/web.php`, `routes/console.php`,
+  `bootstrap/app.php`, `bootstrap/providers.php`.
+- **`app/Models`** (9) cross-checked column-by-column against **all 19
+  migrations** (casts, `$fillable`, nullability, FK `onDelete` behaviour,
+  indexes vs. the `where()`s actually issued).
+- **`app/Enums`** (5), **`app/Contracts`**, **`app/Support`** (3 - the HTML
+  sanitizer was additionally fuzzed, see "Confirmed sound").
+- **`app/Providers`** (3), **`app/Policies`** (8), **`app/Http/Middleware`**
+  (2), **`app/Http/Requests`** (21 incl. the `ValidatesClientAccess` trait).
+- **`app/Http/Controllers`** - all 30: the 13 `Admin\*`, the auth controller,
+  both integration launchers, and every customer-facing controller.
+- **`app/Services`**, every file: `SuperOps/*` (5), `EntraSync/*` (5 -
+  including all 3,962 lines of `MicrosoftGraphClient`), `Huntress/*` (5),
+  `Dropsuite/*` (3), `M365/*` (7), `Portal/*` + `Portal/Feeds/*` (13),
+  `Admin/IntegrationHealthService`, `ClientOnboardingService`,
+  `OnboardingManual`, `ActivityLogService`, `ExternalServicesService`,
+  `Support/NewStarterTicketService`, `Pax8/Pax8SsoService`.
+- **`app/Jobs`** (10) and **`app/Console/Commands`** (11).
+- **Blade views**: all admin forms/listings/partials (checked field-by-field
+  against the FormRequest each posts to), both layouts, navigation
+  components, the polling components, dashboard/glance/reports,
+  support/contact-support, client-admin/*, microsoft-365/*,
+  security/huntress/*, auth/*. Every `{!! !!}` sink was traced to its source.
+- **Config**: `app`, `auth`, `cache`, `session`, `logging`, `services`,
+  `onit_support` (plus the vendor `SessionGuard`, `DatabaseStore`,
+  `RedirectIfAuthenticated`, middleware-priority list and the Azure Socialite
+  provider where app behaviour depended on them).
+
+Every suspected defect below was **reproduced with a throwaway test against
+the unmodified code before changing anything**, and every regression test
+added was re-run against the old code (via `git stash`) to prove it fails
+there. Suspicions that did not reproduce are listed under "Retracted".
+
+### Why the earlier passes missed these
+
+The earlier passes checked that `$this->authorize()` / `accessibleClientIds()`
+were *called*. They did not follow what those calls actually constrain.
+`accessibleClientIds()` was called everywhere, but wrapped in
+`when(! empty(...))`, so it failed open. `authorize('create')` was called on
+every store action, but it only proves "is staff", never "may write to *this*
+client". Account state was checked, but only at login, while login grants a
+400-day remember cookie. Several "Confirmed Good" claims above are therefore
+corrected here: tenant isolation, per-action authorization, "every outbound
+call sets an explicit timeout" (the Graph token request did not), and "no
+N+1" (the N+1s are external API calls made from Blade rather than Eloquent
+relation loads - see F3).
+
+### Fixed in this pass (13 commits, each with a regression test unless noted)
+
+| # | Severity | Defect (evidence) | Commit |
+|---|---|---|---|
+| 1 | **Critical** | **Unauthenticated tenant re-pointing via the admin-consent callback.** `/auth/microsoft/callback?admin_consent=True` is in the `guest` group; `AdminConsentState::decode()` still accepted the **unsigned** `client-{id}` form; the query-string `tenant` went straight into `CustomerEntraBootstrapService::bootstrap()`, which persists it as `entra_tenant_id` (bootstrap lines 69-73) before any Graph call. Reproduced: an anonymous GET changed a live client's tenant and the response page disclosed the client name. With an attacker-owned tenant that has consented to the multi-tenant app, bootstrap creates the portal group there, and the scheduled Entra sync (`EntraGroupSyncService::performSyncClient`, lines 69 and 257-277) then **deactivates the real users and provisions the attacker's users into that client** as `client_requester`. Fix: signed state only, GUID-only tenant, and an already-linked client can never be re-pointed from this route. `tests/Feature/Security/AdminConsentCallbackTest.php` (4) + updated `tests/Unit/AdminConsentStateTest.php`. | `55cba41` |
+| 2 | **High** | **Deactivation never revoked existing access.** `is_active`, `portal_login_enabled` and client `is_active` were only checked in `MicrosoftAuthController::callback()` (lines 129-144); `Auth::login($user, true)` (line 174) issues a remember cookie that lasts 400 days (`SessionGuard::$rememberDuration = 576000`). Reproduced: deactivated user → `/dashboard` 200. This defeats Entra-sync deprovisioning (`usersRemovedFromScope`) and client deactivation. Fix: new `EnsureAccountIsActive` web middleware (inside `SecurityHeaders`) applying the same three checks per request. `tests/Feature/Security/DeactivatedAccountSessionTest.php` (5). | `9fb219f` |
+| 3 | **High** | **Tenant scoping failed open.** 19 sites across 9 admin controllers used `->when(! empty($clientIds), fn ($q) => $q->whereIn(...))`, and `IntegrationHealthService::overview()` treated `[]` as "all clients" (docblock: "empty = all clients"). `accessibleClientIds()` is `[]` for an account manager with no assignments, which is a normal state (`TeamController` allows creating one or unticking every client). Reproduced: that user saw every tenant's clients, users, notices, recommendations, opportunities, portal links, **activity logs incl. IPs**, dashboard counts and Integration Health rows, and got every client in create-form dropdowns. Fix: unconditional `whereIn` (identical for super admins, whose list is every client id); only `null` means "all" in the health service. `tests/Feature/Security/AccountManagerScopeTest.php` (6). | `34c7705` |
+| 4 | **High** | **Cross-tenant writes.** `Notice/Recommendation/Opportunity/PortalLinkController::store()` authorized `create` only (= "is staff"); `update()` authorized against the record's *current* client, then `update($request->validated())` accepted any `client_id` that passed `exists:clients,id`. Reproduced: an account manager created a notice for an unassigned client. Fix: the existing `ValidatesClientAccess` hook (already used by `StoreUserRequest`) on those four requests; the Update requests inherit it. Global (null-client) portal links are still allowed, per `PortalLinkPolicy`. `tests/Feature/Security/ClientContentCrossTenantTest.php` (12). | `f984ad5` |
+| 5 | **High** | **Login silently linked a portal client to someone else's SuperOps account.** `SuperOpsUserSyncService::syncUser()` (runs on every sign-in) looks the requester up by email across *all* SuperOps clients, and if the portal client had no `superops_account_id` it copied the matched requester's account onto it. Because `ClientProductService::isEntitled()` treats "mapped, never toggled" as entitled, client Y's users then saw client X's tickets and devices, and Y's new tickets were filed under X. Undocumented in `Brain/` and untested. Fix: keep binding `superops_user_id`; never write the client's account. `tests/Unit/SuperOpsUserSyncLoginTest.php`. | `8d63ce2` |
+| 6 | Medium | **`entra-sync` limiter was per user, not per client.** `ThrottleRequests` runs before `SubstituteBindings` (framework middleware priority), so `$request->route('client')` is the raw id string; `?->id` returned null and every client shared the bucket `{user}|unknown`. Reproduced: `[302, 302, 429 (client A), 429 (client B)]`. Fix + test in `tests/Feature/ClientEntraSyncTest.php`. | `a60cd46` |
+| 7 | Medium | **HTTP 500 on client create/rename when slugs collide.** `clients.slug` is UNIQUE; `store()`/`update()` used a bare `Str::slug($name)` ("Acme Ltd" vs "Acme Ltd.", or symbol-only names slugging to `""`). Reproduced: 500. Fix: `-2`, `-3`… suffixes, ignoring the client's own row on update. 2 tests in `tests/Feature/ClientCreateTest.php`. | `4f2f36d` |
+| 8 | Medium | **User-typed ticket descriptions could be sent to SuperOps unescaped.** `SuperOpsHtml::fromPlainText()` returned any input starting with `<` verbatim (so `NewStarterTicketService`'s HTML survived), but the same heuristic applied to raw `/support/create` input. That put stored markup into the PSA and swallowed the very `<jo@acme.com>` case its docblock warns about. Fix: always escape; explicit `$descriptionIsHtml` flag, set only by the new-starter service. 2 tests in `tests/Unit/SuperOpsTicketCreateTest.php`. | `d46c73f` |
+| 9 | Medium | **M365 export leaked org licence data to personal viewers.** The page offers export only when `canExportDirectory` (`Microsoft365DirectoryController:147`) and withholds insights from personal viewers, but the route only required `can:view-m365-directory`, and `buildWorkbook()` always includes the org licence inventory and seat/utilisation summary. Fix: enforce org-wide on the route. Test in `tests/Feature/M365DirectoryExportTest.php`. | `f625208` |
+| 10 | Medium | **Unbounded `cache` table growth + dead 20s cache.** `PortalFreshnessService::activeCustomerSessionCount()` keyed on a per-second timestamp. With `CACHE_STORE=database`, `DatabaseStore` only deletes an expired row when that exact key is read again, and `Brain/Deployment.md` says not to `cache:clear` on deploys, so every recompute (up to ~4/min) left a permanent row. Fix: key by the presence window. `tests/Unit/Services/Portal/PortalFreshnessSessionCountCacheTest.php` runs against the **database** store. | `373a452` |
+| 11 | Medium | **Staff-side audit events were invisible to everyone.** `ActivityLogService::log()` records `client_id NULL` for team member create/update/delete, `settings.updated`, `settings.freshness_updated` and staff `user.login`; Activity Logs and Recent Activity filtered `whereIn('client_id', …)`, which always excludes NULL, so even super admins never saw them. Fix: super admins (existing `manage-all-clients` gate) see the whole trail; account managers stay scoped. Test in `AccountManagerScopeTest`. | `804730c` |
+| 12 | Low | **Client home "Plan" tile always showed the raw SKU** ("SPB"). `ClientHomeOverviewService::m365Column()` read `$topSkus[0]['name']`, but every `top_skus` row from `M365InsightsService` uses `displayName`. Test: `tests/Unit/Services/Portal/ClientHomeOverviewM365PlanTest.php`. | `48198b5` |
+| 13 | Low | `MicrosoftGraphClient::accessToken()` was the one outbound call without an explicit `->timeout()` (contradicting AGENTS.md rule 6 and the earlier "every call sets a timeout" finding). Huntress (error level) and Dropsuite (warning level) still logged full raw HTTP error bodies; pass 2 had bounded only SuperOps. No test; these are one-line config changes. | `6a90e76` |
+
+`docs/SECURITY.md`, `docs/ARCHITECTURE.md` and `AGENTS.md` were updated
+where these fixes made statements stale (per-request account checks, the
+consent-state rules, "empty `accessibleClientIds()` = none", and the two
+customer FormRequests that *do* gate in `authorize()`).
+
+### Flagged, not fixed (real defects needing product judgement or multi-site changes)
+
+**F1 - Feed refresh failures are recorded as success once any cache exists.**
+`SuperOpsClientMetricsService::refreshAndStore()` (line 374),
+`HuntressClientMetricsService` (188), `M365InsightsService` (239) and
+`DropsuiteClientMetricsService` (182) all catch the upstream failure and
+return the *stale cached* summary instead of throwing. Their jobs
+(`Refresh*Job::handle`) only write `last_result.success = false` when an
+exception escapes, so after the first successful load **every later failure
+is recorded as success**. `ClientProductService::hasRecentFailure()` (the
+client-facing "error" state) and Integration Health's `failed` status then
+never trigger; the only signal is data quietly ageing. Dropsuite's own
+comment at 185-186 acknowledges the problem but fixes only the no-cache
+case. *Suggested fix:* have `refreshAndStore()` rethrow after logging (jobs
+already handle it); `ProbeSecurityApisCommand` is the only other caller and
+already wraps it in try/catch.
+
+**F2 - Personal (requester) scoping is computed on truncated, fuzzily matched
+data.** (a) `SuperOpsClientMetricsService::scopeSummaryForViewer()` (155-218)
+filters the **already-truncated** org tables (top 20 open by priority, 10
+closed - lines 656/684). For an organisation with more than 20 open tickets,
+a requester's count and table silently omit their own lower-priority
+tickets. (b) `ClientVisibilityService::matchesPerson()` (53-84) does
+substring matching on the email local part (≥4 chars) and the display name.
+SuperOps personal scoping feeds it the ticket **subject** (line 236) and
+Huntress feeds it incident **body/summary** (`HuntressIncidentService:196`).
+So `mark@` matches `marketing@…`, and a ticket *about* a person ("Disable
+account for sam.jones - leaver") is shown to that person on their dashboard.
+*Suggested fix:* persist per-requester ids/emails untruncated in the cache
+payload and match on requester identity only (drop subject/body substring
+matching), or accept this explicitly as product behaviour.
+
+**F3 - Synchronous external-API calls on admin page loads, including an N+1.**
+`resources/views/admin/clients/index.blade.php:84` calls
+`ClientOnboardingService::progress($client)` **per row**. That goes through
+`steps()` → `isScimExportFailed()`/`scimExportHealth()` (live Graph on cache
+miss, `ClientOnboardingService:122,913`) and `superOpsEntraScopeWarnings()`
+→ `SuperOpsUserSyncService::countClientRequesters()` (up to 25 paged
+SuperOps calls, `:35-95`), plus a `User` count query. A cold 15-row page can
+therefore make dozens of 30-60s-timeout calls, the same 60s-gateway hazard
+pass 4 queued other actions to avoid. `ClientController::edit()` (via
+`onboardingViewData()` / `scimProvisioningHealth()`, `:99-132`) does the
+same for one client. *Suggested fix:* compute progress from checklist + DB
+fields only on the index, and have the edit page read the `scim.health.*` /
+`superops.requester_count.*` caches without populating them (let a queued
+job or prewarm fill them).
+
+**F4 - Admin-consent return: unreachable branch and inline slow work.**
+`MicrosoftAuthController:249` (`if (Auth::check() && $client)`) is
+unreachable: the route is in the `guest` group, and
+`RedirectIfAuthenticated` bounces a logged-in user to `/dashboard` first
+(verified). The anonymous path runs the full `bootstrap()` synchronously
+(about 24s in the test environment with Graph failing), which is a cheap
+worker-exhaustion lever on a public URL rate-limited only per IP.
+*Suggested fix:* dispatch `BootstrapClientEntraJob` from this path and render
+"setup running"; delete the dead branch. Residual after fix #1: the signed
+state is a static HMAC with no expiry or nonce. Fix #1's mismatch guard
+blocks re-pointing, so it is now low risk, but a timestamped state would be
+cleaner.
+
+**F5 - Integration Health queue panel is not tenant-scoped.**
+`IntegrationHealthService::listJobs()` (1263) / `recentFailures()` (1361)
+list jobs with **client names** and failure first-lines for every client to
+any admin (rendered at `admin/partials/integration-health.blade.php:156-157,
+190-191`). The per-client table *is* scoped (fix #3). *Suggested fix:*
+filter those rows by `accessibleClientIds()` for non-super-admins.
+
+**F6 - Editing an account manager silently unassigns their inactive
+clients.** `TeamController::create/edit` render checkboxes only for
+`is_active` clients (lines 41, 72), and `update()` does
+`sync($request->assigned_clients ?? [])` (line 91). *Suggested fix:* merge
+the existing inactive assignments back in, or list inactive clients (marked
+as such).
+
+**F7 - Deleting a client orphans its users.** `users.client_id` is
+`nullOnDelete` (`0001_01_01_000000_create_users_table.php:21`), so a
+client's users survive as active `client_*` users with `client_id NULL`.
+They appear in no admin listing (all listings are per client), opening one
+500s (`admin/users/edit.blade.php:3,16` dereference `$user->client->name`),
+and `callback()` still lets them sign in (to an empty portal).
+*Suggested fix:* in `ClientController::destroy()`, deactivate (or delete)
+the client's users first.
+
+**F8 - Entra sync has no safety valve before mass deactivation.**
+`EntraGroupSyncService::performSyncClient()` deactivates every Entra-synced
+user absent from `listSyncEligibleUsers()` (lines 69, 266-277). If Graph
+returns a successful but empty or partial list (permission propagation, a
+filter change), the whole client is locked out on the next 2.5-minute cycle,
+now effectively immediately given fix #2. *Suggested fix:* abort (as an
+error, not a deactivation) when Graph returns zero eligible users while the
+client has active synced users, or when more than X% would be deactivated.
+
+**F9 - Notices, recommendations and opportunities are never shown to
+customers.** A repository-wide search finds no client-facing view or service
+that reads `ClientNotice`, `ClientRecommendation` or `ClientOpportunity`.
+The only consumers are the admin CRUD pages and the admin dashboard's
+"Active Notices" count, so staff can author content no customer sees.
+(This reduced the *current* impact of fix #4.) A product decision: surface
+them on the glance dashboard or retire the three features.
+
+**F10 - Smaller defects (low severity), with evidence.**
+- `UserPolicy::view()` (line 24) runs `assignedClients()->where('users.id',
+  …)` - `users` is not in that query, so it would throw an SQL error. It is
+  currently unreachable (nothing authorizes `view` on a `User`).
+- `IntegrationHealthService::integrationStatus()` accepts `float|int`
+  minutes (line 950; requeue is 2.25, the soft window 3.5) but passes them
+  to `friendlyStatus(int …)` / `buildBlockers(int, int …)` (1091, 1170).
+  PHP silently truncates (deprecation), so labels read "2m"/"3m" and the
+  back-computed cadence shows 2.2 instead of 2.5.
+- `Admin\DashboardController` calls `overview()` and then `productCoverage()`
+  (lines 40, 52), and the latter calls `overview()` again
+  (`IntegrationHealthService:135`), building the whole matrix twice per load.
+- The admin nav always shows **Settings** (`admin/partials/nav.blade.php:11`),
+  but `SettingPolicy` is super-admin only, so account managers get a 403.
+- Every SuperOps customer's Dropsuite per-org `authentication_token` is
+  cached in plaintext in the DB `cache` table for 15 minutes
+  (`DropsuiteClientMetricsService:225`). *Suggested fix:* cache only the one
+  org-to-token mapping needed, and encrypt it.
+- `SuperOpsTicketService::getTicket()` never selects `client` (line 47), so
+  `ticketAccountId()` (248) always returns `''`. The org-member and staff
+  branches of `userCanViewTicket()` therefore only work through the 14-day
+  "remembered" cache of portal-created tickets (line 126). This fails
+  closed, but staff cannot open older tickets from the portal.
+- `syncUser()` still binds `superops_user_id` from a login-time email match
+  that is not scoped to the user's SuperOps client (line 548); it is benign
+  after fix #5, but scoping it by `clientId` would be tidier.
+- `CaptureClientMetricSnapshotsCommand` (line 56) falls back to a requester
+  when a client has no `client_admin`, which stores a *personal-scope*
+  bundle as the org's monthly snapshot, later compared against org-wide
+  figures.
+- CSV export writes directory display names with no formula-prefix
+  neutralisation (`M365DirectoryExportService:106`); XLSX is safe because it
+  uses `inlineStr`.
+- `dashboard/glance.blade.php:331` re-parses activity timestamps with no
+  try/catch (the service's own `sortKey()` guards it), so one malformed
+  SuperOps date would 500 a client's home page.
+- The avatar initial uses byte-wise `substr()`
+  (`components/layouts/app.blade.php:100`), which renders `�` for names
+  starting with É/Ø/Ł; `admin/users/index` correctly uses `mb_substr`.
+- `ProvisionSuperOpsScimUsersJob` `Cache::pull()`s the pending ids before
+  working, with `$tries = 3` (lines 21, 43). This is harmless today
+  (`triggerSuperOpsScimProvision()` never throws, and the next sync re-adds
+  missing users), but a future throwing change would lose ids on retry.
+
+**F11 - Dead code (confirmed by repository-wide search, not removed):**
+`ClientController::finishEntraSyncResponse()` (278);
+`MicrosoftGraphClient::pickScimSynchronizationTemplateId()` (2817),
+`listGroupUsers()` (1097, marked deprecated), `hasActiveLicense()` (1061);
+`DropsuiteClientMetricsService::fetchOneDriveRowsForEmails()`;
+`ClientHomeOverviewService::pipelineMetric()` (1235) and the identical-branch
+ternary at 334; `ClientProductService::overviewTileWidthClass()` (318,
+deprecated); `M365DirectoryService::snapshot()` (148, deprecated); the
+write-only `entra_sync.in_flight.*` cache key (`ApplySuperOpsScimJob:104`);
+and, after fix #9, `M365DirectoryExportService::buildWorkbook()`'s
+`$scopedUser` branch (42).
+
+### Area-by-area notes (what was confirmed on close read)
+
+**Routes / bootstrap.** 91 routes; the ordering conflict that matters
+(`admin/graph-reconsent` declared before the `clients` resource) is correct.
+The one real routing subtlety is the middleware-priority interaction behind
+fix #6. The `auth-callback`/`integrations-launch`/`support-ticket-store`
+limiters key correctly, because they read `user()`/`ip()`, not route models.
+
+**Models ↔ migrations.** Every `$fillable` matches the columns written by the
+controllers and services that call `create`/`update` (including the
+`forceFill` in `CustomerEntraBootstrapService::persist()`, which only touches
+fillable Entra columns). Casts match column types; `microsoft_tokens` is
+`encrypted:array` over a `text` column, as documented. `Setting::get()` bakes
+its `$default` into the cache on first miss. That is harmless today because
+every caller passes the same default, but worth knowing. The schema-level
+defects are F7 (`nullOnDelete` orphaning) and the UNIQUE `slug` (fix #7).
+
+**Enums / Support.** `SuperOpsHtml::sanitize()` was fuzzed against
+quoted-`>` attribute tricks, nested `<<script>`, CDATA, `javascript:` hrefs
+and unterminated tags. `strip_tags` plus the attribute-stripping regex held
+in every case (no tag survives with attributes; disallowed tags are dropped).
+`OnboardingStepFormatter::rich()` runs `e()` before its regexes, so the
+admin-entered client name interpolated into step copy cannot break out, and
+an escaped `&quot;` inside `href="…"` decodes to a literal quote in the
+value rather than ending the attribute. `AdminConsentState` was the one
+Support defect (fix #1).
+
+**Policies / Providers / Middleware.** Policies are consistent with
+`canAccessClient()`; the defects were in *what callers passed* (fixes #3 and
+#4), plus the unreachable broken branch in `UserPolicy::view` (F10). Gates
+`view-m365-directory` / `view-huntress-security` correctly combine role +
+own client + `shouldRefresh()`. SSO eligibility depends only on role +
+client + config, so the per-(client, role) portal-link cache in
+`ExternalServicesService` is sound.
+
+**Requests.** Each admin form was checked against the request it posts to.
+The shared `form-field` partial always emits a hidden `value="0"` before
+every checkbox, so the `is_active`/`*_sso_enabled` updates always receive a
+value. The product cards emit hidden `products[key]=0`. The edit form's
+`entra_license_tier` select always submits a value (an *empty* value would
+hit the NOT NULL column, but the UI cannot send one). The onboarding
+checklist's filter against `MANUAL_CHECKPOINTS` is sound.
+
+**Auth controller.** The email fallback in `callback()` matches on the
+**UPN**: `SocialiteProviders\Azure\Provider::mapUserToObject` maps `email`
+to `userPrincipalName`, not the mutable `mail` attribute. A UPN must sit on a
+DNS-verified domain that only one Entra tenant can hold, so the "nOAuth"
+email-spoof takeover pattern does **not** apply. This was checked explicitly
+because `azure.tenant` is `organizations`.
+
+**SuperOps.** GraphQL client error handling is consistent (HTTP failure →
+`RequestException`; GraphQL `errors`/`clientError` → `RuntimeException`), and
+every caller wraps it. Ticket visibility fails closed (F10). The defects
+are fixes #5 and #8, plus F1 and F2.
+
+**EntraSync / Graph.** All 3,962 lines were read. OData filter values are
+consistently `'`-escaped; every retry loop is bounded; token refresh on
+`Authorization_RequestDenied` is scoped to one retry. The Graph-side defect
+is the token-request timeout (fix #13). The sync-side risks are the
+tenant-trust issue (fix #1) and F8.
+
+**Huntress.** `findForClient()` re-checks `organization_id` on **both** the
+cache path and the live-API path, so a crafted `{incident}` segment
+(including an encoded `?` that Guzzle would treat as a query string) cannot
+return another organisation's case. Sound.
+
+**Dropsuite.** The per-org user-token model is followed correctly, and rows
+without an org hint are included only because the user token is already
+org-scoped. Defects: F1 and the plaintext token cache (F10).
+
+**M365.** Export XML escapes with `ENT_XML1`; directory snapshots are cached
+as objects and read back with an `instanceof` check. Defects: fix #9 and the
+CSV note (F10).
+
+**Portal services.** `DashboardFeedRegistry` correctly withholds
+`m365_insights` from personal viewers. `ClientHomeOverviewService`'s traffic
+lights match their docblocks (as `ClientHomeOverviewTrafficLightsTest`
+already asserts). Defects: fixes #10 and #12, plus F2.
+
+**IntegrationHealthService.** Payload client-id extraction handles escaped
+and serialized forms. Defects: fix #3 (its "empty = all" contract), F5 and
+F10.
+
+**Jobs / Commands.** Every job clears its in-flight/queued flags in both
+`finally` and `failed()`. The unique-id + `markQueued` pattern is consistent.
+`PrewarmClientDashboardsCommand::releaseStaleScheduleLocks()` only deletes
+expired rows and schedule locks more than 30 minutes out, which is
+consistent with `withoutOverlapping(8)`. `PurgeDemoDataCommand` is confined
+to `.example` emails and three fixed slugs.
+
+**Views.** Only four `{!! !!}` sinks exist: sanitized ticket HTML, formatter
+output, developer-authored icons/actions (`route()` output only), and the
+glance SVG. Every other dynamic value is escaped. Portal-link `href`s come
+from URLs that passed Laravel's `url` rule, which **rejects `javascript:`,
+`data:` and `vbscript:`** (verified). The live-fragment poller only injects
+same-origin HTML. The Huntress "status" filter is intentionally client-side
+(Alpine, `_list-body.blade.php:123`), so the controller passing `null` to
+the service is correct.
+
+**Config.** `oauth_stateless` defaults to true in production, as the login
+error copy states. Session defaults match `docs/SECURITY.md`. `logging.php`
+still has no `daily` channel (as pass 2 noted). No `env()` calls exist
+outside `config/`.
+
+### Retracted suspicions (investigated, not defects)
+
+- *Notice `expires_at` `after:published_at` rejects an expiry with no
+  publish date.* This was tested: Laravel skips the comparison when the
+  other field is null, and the store succeeds.
+- *Huntress controller ignores the status filter.* This is by design; the
+  filtering happens client-side.
+- *`SuperOpsHtml::sanitize()` bypass via quoted `>`.* Fuzzing showed
+  `strip_tags` normalises the tag, so it holds.
+- *nOAuth email takeover.* The provider maps UPN, not `mail` (see "Auth
+  controller").
+
+### Verification (this pass, actual output)
+
+```
+$ php artisan test                       # baseline, untouched checkout
+Tests:    272 passed (1229 assertions)
+
+$ php artisan test                       # after all 13 fixes
+Tests:    310 passed (1376 assertions)
+# (one earlier final run: 1 failed, 309 passed - the known
+#  HuntressClientMetricsServiceTest order flake; that file passes 5/5 alone)
+
+# Each new security test was also run against the pre-fix code (git stash):
+AccountManagerScopeTest        4 failed, 2 passed   (the 2 are controls)
+ClientContentCrossTenantTest   7 failed, 5 passed   (controls: assigned client, global link, super admin)
+AdminConsentCallbackTest / DeactivatedAccountSessionTest / limiter /
+slug / escaping / export / cache-key / Plan tests: all fail on old code
+```
+
+One honest note: the very first run of `ClientEntraSyncTest` after adding
+the limiter test reported "1 failed, 11 passed", and I did not capture which
+test failed. It did not reproduce in 5 file-level runs, 10 isolated runs of
+the new test, or 3 subsequent full-suite runs. It is recorded here rather
+than omitted, alongside the known `ClientOnboardingServiceTest` /
+`HuntressClientMetricsServiceTest` order flake that earlier passes
+characterised.
