@@ -73,9 +73,9 @@ MySQL/MariaDB (also backs session, cache, and queue tables)
   `accessibleClientIds()`), for staff who manage a subset of customers
   without being full Super Admins.
 - **`User::canAccessClient()` and `User::accessibleClientIds()` are the
-  single source of truth for tenant scoping** and are used by every Policy,
-  by `EnsureClientAccess` middleware, and by admin index queries. See
-  `docs/SECURITY.md` for the full authorization model.
+  single source of truth for tenant scoping** and are used by every Policy
+  and by admin index queries. See `docs/SECURITY.md` for the full
+  authorization model.
 
 ## Data model (core tables)
 

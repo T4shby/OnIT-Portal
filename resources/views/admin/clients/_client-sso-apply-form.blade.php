@@ -6,12 +6,19 @@
         && filled($client->entra_tenant_id ?? null)
         && $ssoAppId;
     $ssoCache = $ssoReady ? cache('client_sso_idp.'.$client->id) : null;
-    $ssoLoginUrl = session('client_sso_login_url') ?? ($ssoCache['loginUrl'] ?? null);
-    $ssoCertificate = session('client_sso_certificate') ?? ($ssoCache['certificateBase64'] ?? null);
+    $ssoLoginUrl = $ssoCache['loginUrl'] ?? null;
+    $ssoCertificate = $ssoCache['certificateBase64'] ?? null;
     $ssoWired = filled($ssoLoginUrl) && filled($ssoCertificate);
     $ssoStepDone = (bool) (($client->onboarding_checklist ?? [])['superops_client_sso_configured'] ?? false);
     $ssoAppLabel = 'SuperOps Requester SSO - '.($client->name ?? 'Customer');
+    $ssoApplyInFlight = $ssoReady && \Illuminate\Support\Facades\Cache::has(
+        \App\Jobs\ApplyClientSsoSamlJob::IN_FLIGHT_KEY_PREFIX.$client->id
+    );
+    $ssoApplyLastResult = $ssoReady
+        ? \Illuminate\Support\Facades\Cache::get(\App\Jobs\ApplyClientSsoSamlJob::LAST_RESULT_KEY_PREFIX.$client->id)
+        : null;
     $wireFailed = (isset($errors) && ($errors->has('entity_id') || $errors->has('consumer_service_url')))
+        || (is_array($ssoApplyLastResult) && ! $ssoApplyInFlight && ! ($ssoApplyLastResult['success'] ?? false))
         || session()->has('error');
 @endphp
 
@@ -28,6 +35,21 @@
                 @endif
             </ul>
         </div>
+
+        @if($ssoApplyInFlight)
+            <div class="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+                Wire SuperOps into Microsoft Entra is running in the background. Refresh in about a minute - the Login URL and certificate will appear below when it finishes.
+            </div>
+        @elseif(is_array($ssoApplyLastResult))
+            <div @class([
+                'mb-4 rounded border px-4 py-3 text-sm leading-relaxed',
+                'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' => $ssoApplyLastResult['success'] ?? false,
+                'border-red-500/40 bg-red-500/10 text-red-100' => ! ($ssoApplyLastResult['success'] ?? false),
+            ])>
+                <p class="portal-label mb-1">Last Wire SuperOps into Microsoft Entra result</p>
+                <p>{{ $ssoApplyLastResult['message'] ?? 'Finished' }}</p>
+            </div>
+        @endif
 
         @if($ssoStepDone || $ssoWired)
             <p class="portal-label mb-2 text-emerald-300/90">Step status</p>
@@ -67,7 +89,13 @@
                     <li>Copy the Login URL + certificate this page returns into SuperOps Step 3 → Save.</li>
                 </ol>
 
-                <form method="POST" action="{{ route('admin.clients.apply-client-sso', $client) }}" class="space-y-4">
+                <form
+                    method="POST"
+                    action="{{ route('admin.clients.apply-client-sso', $client) }}"
+                    class="space-y-4"
+                    x-data="{ submitting: false }"
+                    @submit="submitting = true"
+                >
                     @csrf
                     <div>
                         <label for="{{ $idPrefix }}entity_id" class="portal-label mb-2 block">SuperOps Entity ID</label>
@@ -101,8 +129,9 @@
                             <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
-                    <button type="submit" class="cta-btn text-sm px-6 py-3">
-                        Wire SuperOps into Microsoft Entra
+                    <button type="submit" class="cta-btn text-sm px-6 py-3" :disabled="submitting || {{ $ssoApplyInFlight ? 'true' : 'false' }}">
+                        <span x-show="!submitting">@if($ssoApplyInFlight) Wire already running… @else Wire SuperOps into Microsoft Entra @endif</span>
+                        <span x-cloak x-show="submitting">Queued - redirecting…</span>
                     </button>
                 </form>
             </div>

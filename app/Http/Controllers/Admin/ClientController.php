@@ -8,7 +8,9 @@ use App\Http\Requests\Admin\ApplySuperOpsScimRequest;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
+use App\Jobs\ApplyClientSsoSamlJob;
 use App\Jobs\ApplySuperOpsScimJob;
+use App\Jobs\BootstrapClientEntraJob;
 use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
 use App\Models\Client;
@@ -340,33 +342,21 @@ class ClientController extends Controller
                 ->with('error', 'No tenant ID yet. Use Connect Microsoft tenant first.');
         }
 
-        $result = app(\App\Services\EntraSync\CustomerEntraBootstrapService::class)
-            ->bootstrap($client, $client->entra_tenant_id);
+        // CustomerEntraBootstrapService::bootstrap() makes a long chain of sequential
+        // Graph calls (consent-propagation waits, service-principal polling) that can
+        // exceed nginx's 60s gateway - same reason applyScim()/retryScimExport() are queued.
+        BootstrapClientEntraJob::markQueued($client->id);
+        BootstrapClientEntraJob::dispatch($client->id);
 
-        $this->activityLog->log(
-            'client.entra_bootstrap',
-            $client,
-            properties: [
-                'ok' => $result['ok'],
-                'details' => $result['details'],
-                'warnings' => $result['warnings'],
-            ],
-            clientId: $client->id,
-        );
+        $this->activityLog->log('client.entra_bootstrap_queued', $client, clientId: $client->id);
 
-        $message = $result['summary'];
-        if ($result['details'] !== []) {
-            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
-        }
-
-        $redirect = redirect()->route('admin.clients.edit', $client)
-            ->with($result['ok'] ? 'success' : 'error', $message);
-
-        if ($result['warnings'] !== []) {
-            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 4)));
-        }
-
-        return $redirect;
+        return redirect()->route('admin.clients.edit', $client)
+            ->with(
+                'success',
+                'Entra bootstrap is running in the background (usually under 2 minutes). '
+                .'You can leave this page - refresh to check the banner under Bootstrap Entra. '
+                .'This avoids the previous timeout when Graph is slow.'
+            );
     }
 
     public function applyScim(ApplySuperOpsScimRequest $request, Client $client): RedirectResponse
@@ -435,60 +425,35 @@ class ClientController extends Controller
                 ->with('error', 'Connect Microsoft / bootstrap first so Client SSO Application (client) ID is saved.');
         }
 
-        try {
-            $result = app(\App\Services\EntraSync\MicrosoftGraphClient::class)
-                ->applyClientSsoSamlConfiguration(
-                    $client->entra_tenant_id,
-                    $client->entra_superops_sso_app_id,
-                    $request->validated('entity_id'),
-                    $request->validated('consumer_service_url'),
-                );
-        } catch (\Throwable $e) {
-            report($e);
-
-            return redirect()->route('admin.clients.edit', $client)
-                ->withInput()
-                ->with('error', 'Could not configure Client SSO SAML in Entra: '.$e->getMessage());
-        }
-
-        cache()->put('client_sso_idp.'.$client->id, [
-            'loginUrl' => $result['loginUrl'],
-            'certificateBase64' => $result['certificateBase64'],
-            'entityId' => $request->validated('entity_id'),
-            'consumerServiceUrl' => $request->validated('consumer_service_url'),
-            'configuredAt' => now()->toIso8601String(),
-        ], now()->addDays(14));
-
-        $this->onboarding->updateChecklist($client, [
-            'superops_client_sso_configured' => true,
-        ]);
+        // applyClientSsoSamlConfiguration() waits on application/service-principal
+        // readiness the same way applySuperOpsScimCredentials() does - same nginx
+        // 504 risk applyScim()/retryScimExport() are already queued for. The resulting
+        // Login URL/certificate are written to the client_sso_idp.{id} cache key by the
+        // job itself, and the Blade view polls that key + client_sso_apply.in_flight the
+        // same way it already polls scim_apply.in_flight/scim_apply.last_result.
+        ApplyClientSsoSamlJob::markQueued($client->id);
+        ApplyClientSsoSamlJob::dispatch(
+            $client->id,
+            $request->validated('entity_id'),
+            $request->validated('consumer_service_url'),
+        );
 
         $this->activityLog->log(
-            'client.client_sso_saml_configured',
+            'client.client_sso_apply_queued',
             $client,
             properties: [
-                'login_host' => parse_url($result['loginUrl'], PHP_URL_HOST),
-                'details' => $result['details'],
-                'warnings' => $result['warnings'],
+                'entity_host' => parse_url($request->validated('entity_id'), PHP_URL_HOST),
             ],
             clientId: $client->id,
         );
 
-        $message = 'Client SSO SAML configured in Entra. Copy Login URL + certificate below into SuperOps Client SSO and Save.';
-        if ($result['details'] !== []) {
-            $message .= ' '.implode(' · ', array_slice($result['details'], 0, 5));
-        }
-
-        $redirect = redirect()->route('admin.clients.edit', $client)
-            ->with('success', $message)
-            ->with('client_sso_login_url', $result['loginUrl'])
-            ->with('client_sso_certificate', $result['certificateBase64']);
-
-        if ($result['warnings'] !== []) {
-            $redirect = $redirect->with('warning', implode(' ', array_slice($result['warnings'], 0, 3)));
-        }
-
-        return $redirect;
+        return redirect()->route('admin.clients.edit', $client)
+            ->with(
+                'success',
+                'Wire SuperOps into Microsoft Entra is running in the background (usually under 2 minutes). '
+                .'You can leave this page - refresh to check the banner below for the Login URL and certificate. '
+                .'This avoids the previous timeout when Graph is slow.'
+            );
     }
 
     public function destroy(Client $client): RedirectResponse
