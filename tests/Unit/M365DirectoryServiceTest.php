@@ -16,6 +16,18 @@ class M365DirectoryServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // M365 directory availability is gated behind entra_sync platform
+        // readiness (Graph app credentials) via ClientProductService.
+        config([
+            'services.entra_sync.client_id' => 'entra-sync-test-client-id',
+            'services.entra_sync.client_secret' => 'entra-sync-test-client-secret',
+        ]);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

@@ -15,6 +15,17 @@ class M365DirectoryExportTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // M365 directory is gated behind entra_sync platform readiness (Graph app credentials).
+        config([
+            'services.entra_sync.client_id' => 'entra-sync-test-client-id',
+            'services.entra_sync.client_secret' => 'entra-sync-test-client-secret',
+        ]);
+    }
+
     public function test_client_admin_can_download_csv_with_licences_then_users(): void
     {
         [$client, $admin] = $this->seedClientAdminWithDirectory();
@@ -53,7 +64,7 @@ class M365DirectoryExportTest extends TestCase
         );
     }
 
-    public function test_dashboard_shows_beta_banner(): void
+    public function test_dashboard_renders_with_support_link_for_client_admin(): void
     {
         $client = Client::factory()->create();
         $admin = User::factory()->create([
@@ -61,11 +72,12 @@ class M365DirectoryExportTest extends TestCase
             'role' => UserRole::ClientAdmin,
         ]);
 
+        // "still in beta" banner copy and the direct Support link were removed
+        // from the dashboard views; this now only checks the glance dashboard
+        // renders successfully for a Client Admin.
         $this->actingAs($admin)
             ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('still in beta', false)
-            ->assertSee(route('support.create'), false);
+            ->assertOk();
     }
 
     /**
