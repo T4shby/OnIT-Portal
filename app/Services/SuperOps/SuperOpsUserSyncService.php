@@ -521,7 +521,7 @@ class SuperOpsUserSyncService
             $data = $this->api->query(<<<'GQL'
                 query getClientUserList($input: GetClientUserListInput!) {
                     getClientUserList(input: $input) {
-                        userList { userId email client }
+                        userList { userId email }
                     }
                 }
             GQL, [
@@ -544,23 +544,16 @@ class SuperOpsUserSyncService
                 return false;
             }
 
-            $clientBlob = $match['client'] ?? null;
-            if (is_string($clientBlob) && $clientBlob !== '') {
-                $decoded = json_decode($clientBlob, true);
-                $clientBlob = is_array($decoded) ? $decoded : [];
-            }
-            if (! is_array($clientBlob)) {
-                $clientBlob = [];
-            }
-
             $user->update([
                 'superops_user_id' => (string) $match['userId'],
                 'superops_synced_at' => now(),
             ]);
 
-            if ($user->client && empty($user->client->superops_account_id) && ! empty($clientBlob['accountId'])) {
-                $user->client->update(['superops_account_id' => (string) $clientBlob['accountId']]);
-            }
+            // Deliberately never copy the matched requester's SuperOps account onto the
+            // portal client. This lookup is by email across every SuperOps client, so a
+            // single login could otherwise link portal client Y to SuperOps account X
+            // (Y's users then see X's tickets/devices and file tickets under X).
+            // Staff link superops_account_id explicitly on Edit client.
 
             return true;
         } catch (\Throwable $e) {
