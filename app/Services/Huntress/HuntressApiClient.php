@@ -5,6 +5,7 @@ namespace App\Services\Huntress;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -47,10 +48,12 @@ class HuntressApiClient
             ->get($url, $query);
 
         if ($response->failed()) {
+            // Truncated like SuperOpsApiClient: error bodies can echo incident / customer
+            // detail and an unbounded body can flood single-file logging.
             Log::error('Huntress HTTP request failed', [
                 'status' => $response->status(),
                 'url' => $url,
-                'body' => $response->body(),
+                'body' => Str::limit($response->body(), 1000),
             ]);
 
             throw new RequestException($response);

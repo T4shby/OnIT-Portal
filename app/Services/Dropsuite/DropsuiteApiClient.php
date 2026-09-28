@@ -5,6 +5,7 @@ namespace App\Services\Dropsuite;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -53,10 +54,11 @@ class DropsuiteApiClient
             ->get($this->url($path), $query);
 
         if ($response->failed()) {
+            // Truncated like SuperOpsApiClient: bounded log volume / customer data.
             Log::warning('Dropsuite HTTP request failed', [
                 'status' => $response->status(),
                 'path' => $path,
-                'body' => $response->body(),
+                'body' => Str::limit($response->body(), 1000),
             ]);
 
             throw new RequestException($response);
