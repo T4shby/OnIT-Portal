@@ -764,8 +764,10 @@ class ClientHomeOverviewService
         $topPlan = null;
         if (is_array($summary->topSkus ?? null) && $summary->topSkus !== []) {
             $first = $summary->topSkus[0] ?? null;
+            // M365InsightsService top_skus rows carry `displayName` (never `name`), so the old
+            // `name` lookup always fell through to the raw Graph part number (e.g. "SPB").
             $topPlan = is_array($first)
-                ? ($first['name'] ?? $first['skuPartNumber'] ?? null)
+                ? ($first['displayName'] ?? $first['name'] ?? $first['skuPartNumber'] ?? null)
                 : null;
         }
 
