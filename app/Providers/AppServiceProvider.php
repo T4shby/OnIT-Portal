@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
@@ -50,6 +53,13 @@ class AppServiceProvider extends ServiceProvider
         // so a single account can't hammer that upstream (or spam tickets).
         RateLimiter::for('support-ticket-store', function (Request $request) {
             return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // The default /up health check only proves the PHP process is running.
+        // Fail it if the database is unreachable so uptime monitoring catches
+        // a dead DB connection, not just a dead web server.
+        Event::listen(function (DiagnosingHealth $event) {
+            DB::connection()->getPdo();
         });
     }
 }

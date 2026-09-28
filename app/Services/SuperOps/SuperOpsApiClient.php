@@ -5,6 +5,7 @@ namespace App\Services\SuperOps;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -47,9 +48,12 @@ class SuperOpsApiClient
             ]);
 
         if ($response->failed()) {
+            // Response bodies can echo back customer data submitted in the request
+            // (e.g. validation errors); truncate so a single failure can't flood
+            // logs with a large payload, and cap what ends up in log storage.
             Log::error('SuperOps HTTP request failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body' => Str::limit($response->body(), 1000),
             ]);
 
             throw new RequestException($response);
