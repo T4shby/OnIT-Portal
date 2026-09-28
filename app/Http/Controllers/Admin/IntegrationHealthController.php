@@ -104,7 +104,7 @@ class IntegrationHealthController extends Controller
         $clientIds = $request->user()->accessibleClientIds();
 
         return $this->integrationHealth->overview(
-            empty($clientIds) ? null : $clientIds,
+            $clientIds,
         );
     }
 }

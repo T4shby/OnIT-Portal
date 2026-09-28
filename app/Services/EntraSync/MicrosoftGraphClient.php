@@ -3775,7 +3775,9 @@ class MicrosoftGraphClient
             'entra_graph_token.'.$tenantId,
             now()->addMinutes(50),
             function () use ($tenantId) {
-                $response = Http::asForm()->post(
+                // Explicit timeout like every other outbound call (AGENTS.md rule 6) - this
+                // token request was the one Graph call relying on the client default.
+                $response = Http::asForm()->timeout(30)->post(
                     "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
                     [
                         'client_id' => config('services.entra_sync.client_id'),

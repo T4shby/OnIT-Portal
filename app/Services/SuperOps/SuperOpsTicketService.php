@@ -63,7 +63,12 @@ class SuperOpsTicketService
         return $ticket;
     }
 
-    public function createTicket(User $user, string $subject, string $description): array
+    /**
+     * @param  bool  $descriptionIsHtml  true only for HTML the portal built itself with every
+     *                                   value escaped (e.g. NewStarterTicketService). User-typed
+     *                                   text must use the default so it is escaped.
+     */
+    public function createTicket(User $user, string $subject, string $description, bool $descriptionIsHtml = false): array
     {
         $accountId = $user->client?->superops_account_id;
 
@@ -73,7 +78,7 @@ class SuperOpsTicketService
 
         $input = [
             'subject' => $subject,
-            'description' => SuperOpsHtml::fromPlainText($description),
+            'description' => $descriptionIsHtml ? trim($description) : SuperOpsHtml::fromPlainText($description),
             'client' => ['accountId' => $accountId],
             // SuperOps TicketSource enum: FORM | AGENT | EMAIL | AI | PHONE | INTEGRATION
             // PORTAL is invalid and returns a GraphQL Internal Server Error.

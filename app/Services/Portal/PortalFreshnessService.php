@@ -265,8 +265,13 @@ class PortalFreshnessService
         $roles[] = UserRole::ClientUser->value;
         $roles = array_values(array_unique($roles));
 
+        // Key by the presence window, not by $cutoff: $cutoff changes every second, so a
+        // per-cutoff key never hit (the 20s cache did nothing) and, with the database cache
+        // store, left one orphaned `cache` row per call forever - DatabaseStore only deletes
+        // an expired row when that exact key is read again, and routine deploys are told not
+        // to run cache:clear (Brain/Deployment.md).
         return (int) Cache::remember(
-            'portal.freshness.customer_sessions.'.$cutoff,
+            'portal.freshness.customer_sessions.'.$presenceMinutes,
             now()->addSeconds(20),
             function () use ($cutoff, $roles): int {
                 return (int) DB::table('sessions')

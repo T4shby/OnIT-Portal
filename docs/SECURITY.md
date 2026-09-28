@@ -19,6 +19,16 @@ and whether each is required.
 - Login is additionally refused when: `is_active = false`,
   `portal_login_enabled = false` (used for shared mailboxes synced for
   ticketing but not meant to sign in), or the user's `Client` is inactive.
+  The same three checks run on **every** authenticated request
+  (`EnsureAccountIsActive`, web group) - sign-in issues a 400-day
+  remember-me cookie, so checking only at login let deactivated users and
+  organisations keep access (fixed in the fifth audit pass).
+- The Microsoft **admin-consent return** also lands on
+  `/auth/microsoft/callback` (guest, no portal session). The client it acts
+  on comes only from an HMAC-signed `state` (`AdminConsentState`; the old
+  unsigned `client-{id}` form is rejected), the returned `tenant` must be a
+  GUID, and it can never re-point a client that already has a different
+  `entra_tenant_id` (fifth audit pass).
 - `/auth/microsoft/callback` is rate-limited (`throttle:auth-callback`, 6/min
   per IP) via `RateLimiter::for('auth-callback', ...)` in
   `AppServiceProvider`.
@@ -86,7 +96,15 @@ Policies and Gates - never trust a hidden field, a route parameter, or
    `account_manager` cannot create or move a user into a client they are
    not assigned to, and cannot move a user *between* clients at all
    (Super Admin only) - covered by
-   `tests/Feature/Security/UserClientAccessTest.php`.
+   `tests/Feature/Security/UserClientAccessTest.php`. The same check guards
+   the submitted `client_id` on notices, recommendations, opportunities and
+   (when not global) portal links, store and update - covered by
+   `tests/Feature/Security/ClientContentCrossTenantTest.php`.
+7. **An empty `accessibleClientIds()` means "no clients"**, never "all".
+   Always apply `whereIn(..., $user->accessibleClientIds())`; do not wrap it
+   in `when(! empty(...))` (that failed open for account managers with no
+   assignments until the fifth audit pass -
+   `tests/Feature/Security/AccountManagerScopeTest.php`).
 
 ### Role summary
 

@@ -30,7 +30,8 @@ class NewStarterTicketService
         $subject = 'New starter request: '.$name;
         $description = $this->buildDescription($user, $data);
 
-        return $this->tickets->createTicket($user, $subject, $description);
+        // buildDescription() escapes every submitted value, so the result is trusted HTML.
+        return $this->tickets->createTicket($user, $subject, $description, descriptionIsHtml: true);
     }
 
     /**

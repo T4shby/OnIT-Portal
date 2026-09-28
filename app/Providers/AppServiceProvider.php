@@ -44,7 +44,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('entra-sync', function (Request $request) {
-            $clientId = $request->route('client')?->id ?? 'unknown';
+            // ThrottleRequests runs before SubstituteBindings (Laravel middleware
+            // priority), so {client} is usually still the raw id string here. Reading
+            // ->id off it yielded null and collapsed every client into one bucket.
+            $client = $request->route('client');
+            $clientId = $client instanceof \App\Models\Client
+                ? $client->getKey()
+                : (is_scalar($client) && $client !== '' ? (string) $client : 'unknown');
 
             return Limit::perMinute(2)->by($request->user()?->id.'|'.$clientId);
         });

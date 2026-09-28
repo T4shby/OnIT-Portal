@@ -7,6 +7,12 @@ class SuperOpsHtml
     /**
      * SuperOps ticket bodies are HTML. Plain newlines are collapsed in the PSA UI.
      * Also never emit Name <email> - SuperOps treats that as a tag.
+     *
+     * Always escapes: this is only for untrusted/plain text. Callers that already built
+     * trusted HTML (NewStarterTicketService) pass it through createTicket()'s
+     * $descriptionIsHtml flag instead. (Previously any input starting with "<" was
+     * returned raw, so a portal user could push arbitrary HTML into SuperOps, and a
+     * description like "<jo@acme.com> printer broken" was eaten as a tag.)
      */
     public static function fromPlainText(string $text): string
     {
@@ -14,10 +20,6 @@ class SuperOpsHtml
 
         if ($text === '') {
             return '';
-        }
-
-        if (str_starts_with($text, '<')) {
-            return $text;
         }
 
         return nl2br(e($text), false);

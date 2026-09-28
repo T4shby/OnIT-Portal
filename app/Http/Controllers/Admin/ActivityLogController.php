@@ -15,9 +15,12 @@ class ActivityLogController extends Controller
 
         $clientIds = $request->user()->accessibleClientIds();
 
+        // Staff-side events (team changes, settings, staff sign-ins) are logged with
+        // client_id NULL, which whereIn() always excludes. Super admins must see the
+        // whole audit trail; everyone else stays scoped to their clients.
         $logs = ActivityLog::query()
             ->with(['user', 'client'])
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+            ->unless($request->user()->can('manage-all-clients'), fn ($q) => $q->whereIn('client_id', $clientIds))
             ->latest()
             ->paginate(15);
 

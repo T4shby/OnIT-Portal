@@ -83,6 +83,25 @@ class M365DirectoryExportTest extends TestCase
     /**
      * @return array{0: Client, 1: User}
      */
+    public function test_personal_viewer_cannot_download_organisation_licence_export(): void
+    {
+        [$client] = $this->seedClientAdminWithDirectory();
+
+        foreach ([UserRole::ClientRequester, UserRole::ClientBillingAdmin] as $role) {
+            $viewer = User::factory()->create([
+                'client_id' => $client->id,
+                'role' => $role,
+                'email' => $role->value.'@acme.com',
+            ]);
+
+            foreach (['csv', 'xlsx'] as $format) {
+                $this->actingAs($viewer)
+                    ->get(route('microsoft-365.directory.export', ['format' => $format]))
+                    ->assertForbidden();
+            }
+        }
+    }
+
     private function seedClientAdminWithDirectory(): array
     {
         $client = Client::factory()->create([

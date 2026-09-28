@@ -45,7 +45,7 @@ class ClientController extends Controller
         $clientIds = $request->user()->accessibleClientIds();
 
         $clients = Client::query()
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereIn('id', $clientIds)
             ->withCount('users')
             ->latest()
             ->paginate(15);
@@ -64,7 +64,7 @@ class ClientController extends Controller
         $clientIds = $request->user()->accessibleClientIds();
 
         $clients = Client::query()
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereIn('id', $clientIds)
             ->whereNotNull('entra_tenant_id')
             ->where('entra_tenant_id', '!=', '')
             ->where('is_active', true)
@@ -137,7 +137,7 @@ class ClientController extends Controller
 
         $client = Client::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueSlug($request->name),
             'superops_account_id' => $request->superops_account_id,
             'superops_sso_enabled' => $request->boolean('superops_sso_enabled'),
             'pax8_company_id' => $request->pax8_company_id,
@@ -186,7 +186,7 @@ class ClientController extends Controller
 
         $client->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueSlug($request->name, $client->id),
             'superops_account_id' => $request->superops_account_id,
             'superops_sso_enabled' => $request->boolean('superops_sso_enabled'),
             'pax8_company_id' => $request->pax8_company_id,
@@ -454,6 +454,26 @@ class ClientController extends Controller
                 .'You can leave this page - refresh to check the banner below for the Login URL and certificate. '
                 .'This avoids the previous timeout when Graph is slow.'
             );
+    }
+
+    /**
+     * clients.slug is UNIQUE, but different names can slug identically ("Acme Ltd" /
+     * "Acme Ltd.") and symbol-only names slug to "" - a bare Str::slug() then 500s the
+     * save with a unique-constraint violation.
+     */
+    private function uniqueSlug(string $name, ?int $ignoreClientId = null): string
+    {
+        $base = Str::slug($name) ?: 'client';
+        $slug = $base;
+
+        for ($suffix = 2; Client::query()
+            ->where('slug', $slug)
+            ->when($ignoreClientId !== null, fn ($q) => $q->whereKeyNot($ignoreClientId))
+            ->exists(); $suffix++) {
+            $slug = $base.'-'.$suffix;
+        }
+
+        return $slug;
     }
 
     public function destroy(Client $client): RedirectResponse

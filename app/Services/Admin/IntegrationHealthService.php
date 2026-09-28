@@ -56,7 +56,9 @@ class IntegrationHealthService
     ];
 
     /**
-     * @param  list<int>|null  $accessibleClientIds  empty = all clients (super admin)
+     * @param  list<int>|null  $accessibleClientIds  null = all clients (console / internal callers);
+     *                                                   an empty list means the viewer may see no clients
+     *                                                   (e.g. an account manager with no assignments) - never "all".
      * @return array{
      *     queue: array<string, mixed>,
      *     pipeline: array<string, mixed>,
@@ -76,7 +78,7 @@ class IntegrationHealthService
         $clients = Client::query()
             ->where('is_active', true)
             ->when(
-                $accessibleClientIds !== null && $accessibleClientIds !== [],
+                $accessibleClientIds !== null,
                 fn ($q) => $q->whereIn('id', $accessibleClientIds),
             )
             ->orderBy('name')

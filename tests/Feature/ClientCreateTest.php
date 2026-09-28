@@ -160,4 +160,41 @@ class ClientCreateTest extends TestCase
 
         $this->assertTrue($step['complete']);
     }
+
+    public function test_clients_whose_names_slug_identically_get_unique_slugs(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        Client::factory()->create(['name' => 'Acme Ltd', 'slug' => 'acme-ltd']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.store'), ['name' => 'Acme Ltd.', 'is_active' => '1'])
+            ->assertRedirect();
+        $this->actingAs($admin)
+            ->post(route('admin.clients.store'), ['name' => '!!!', 'is_active' => '1'])
+            ->assertRedirect();
+        $this->actingAs($admin)
+            ->post(route('admin.clients.store'), ['name' => '???', 'is_active' => '1'])
+            ->assertRedirect();
+
+        $this->assertSame('acme-ltd-2', Client::where('name', 'Acme Ltd.')->value('slug'));
+        $this->assertSame('client', Client::where('name', '!!!')->value('slug'));
+        $this->assertSame('client-2', Client::where('name', '???')->value('slug'));
+    }
+
+    public function test_renaming_a_client_keeps_its_own_slug_and_avoids_collisions(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        Client::factory()->create(['name' => 'Taken Co', 'slug' => 'taken-co']);
+        $client = Client::factory()->create(['name' => 'Mine Co', 'slug' => 'mine-co']);
+
+        $this->actingAs($admin)
+            ->put(route('admin.clients.update', $client), ['name' => 'Mine Co', 'entra_license_tier' => 'free', 'is_active' => '1'])
+            ->assertRedirect(route('admin.clients.edit', $client));
+        $this->assertSame('mine-co', $client->fresh()->slug);
+
+        $this->actingAs($admin)
+            ->put(route('admin.clients.update', $client), ['name' => 'Taken Co', 'entra_license_tier' => 'free', 'is_active' => '1'])
+            ->assertRedirect(route('admin.clients.edit', $client));
+        $this->assertSame('taken-co-2', $client->fresh()->slug);
+    }
 }

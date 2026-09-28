@@ -26,7 +26,7 @@ class RecommendationController extends Controller
 
         $recommendations = ClientRecommendation::query()
             ->with(['client', 'creator'])
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+            ->whereIn('client_id', $clientIds)
             ->orderBy('display_order')
             ->paginate(15);
 
@@ -38,7 +38,7 @@ class RecommendationController extends Controller
         $this->authorize('create', ClientRecommendation::class);
 
         $clientIds = $request->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -66,7 +66,7 @@ class RecommendationController extends Controller
         $this->authorize('update', $recommendation);
 
         $clientIds = request()->user()->accessibleClientIds();
-        $clients = Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+        $clients = Client::whereIn('id', $clientIds)
             ->orderBy('name')
             ->get();
 

@@ -33,7 +33,7 @@ class UserController extends Controller
                 'users as active_users_count' => fn ($q) => $q->where('is_active', true),
             ])
             ->with(['users' => fn ($q) => $q->orderBy('name')->limit(self::PREVIEW_USERS)])
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))
+            ->whereIn('id', $clientIds)
             ->orderBy('name')
             ->get();
 

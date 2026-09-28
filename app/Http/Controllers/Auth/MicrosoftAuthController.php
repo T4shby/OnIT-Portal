@@ -205,7 +205,40 @@ class MicrosoftAuthController extends Controller
             ? strtolower(trim($request->query('tenant')))
             : null;
 
+        // Microsoft always returns the customer tenant as a GUID. Anything else is not
+        // a genuine consent return and must never reach bootstrap(), which persists it.
+        if ($tenantFromConsent !== null && ! Str::isUuid($tenantFromConsent)) {
+            $tenantFromConsent = null;
+        }
+
         $bootstrapResult = null;
+
+        // This route runs without a portal session, so it may link a tenant to a client
+        // that has none yet, but never re-point an already-linked client elsewhere.
+        // (adminConsentUrl() pins /{tenant}/adminconsent once known, so a genuine
+        // re-consent always comes back with the same tenant.)
+        if ($client && filled($client->entra_tenant_id) && $tenantFromConsent !== null
+            && strtolower((string) $client->entra_tenant_id) !== $tenantFromConsent) {
+            Log::warning('Admin consent tenant does not match client tenant - bootstrap skipped', [
+                'client_id' => $client->id,
+                'client_tenant' => $client->entra_tenant_id,
+                'consent_tenant' => $tenantFromConsent,
+            ]);
+
+            return view('auth.admin-consent-complete', [
+                'tenant' => $tenantFromConsent,
+                'client' => null,
+                'bootstrap' => [
+                    'ok' => false,
+                    'summary' => 'Consent tenant does not match this client.',
+                    'details' => [],
+                    'warnings' => [
+                        'This Accept came back from a different Microsoft tenant than the one already linked to the client, so nothing was changed. '
+                        .'Sign in to the portal and change the tenant on Edit client if the customer really moved tenants.',
+                    ],
+                ],
+            ]);
+        }
 
         if ($client) {
             $bootstrapResult = app(\App\Services\EntraSync\CustomerEntraBootstrapService::class)

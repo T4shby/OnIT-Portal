@@ -23,21 +23,22 @@ class DashboardController extends Controller
         $clientIds = $user->accessibleClientIds();
 
         $stats = [
-            'clients' => Client::when(! empty($clientIds), fn ($q) => $q->whereIn('id', $clientIds))->count(),
-            'users' => User::when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))->count(),
+            'clients' => Client::whereIn('id', $clientIds)->count(),
+            'users' => User::whereIn('client_id', $clientIds)->count(),
             'notices' => ClientNotice::active()
-                ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+                ->whereIn('client_id', $clientIds)
                 ->count(),
         ];
 
+        // Super admins also see staff-side (client_id NULL) events - see ActivityLogController.
         $recentActivity = ActivityLog::with('user')
-            ->when(! empty($clientIds), fn ($q) => $q->whereIn('client_id', $clientIds))
+            ->unless($user->can('manage-all-clients'), fn ($q) => $q->whereIn('client_id', $clientIds))
             ->latest()
             ->limit(10)
             ->get();
 
         $overview = $this->integrationHealth->overview(
-            empty($clientIds) ? null : $clientIds,
+            $clientIds,
         );
 
         $healthSummary = [
@@ -49,7 +50,7 @@ class DashboardController extends Controller
         ];
 
         $productCoverage = $this->integrationHealth->productCoverage(
-            empty($clientIds) ? null : $clientIds,
+            $clientIds,
         );
 
         return view('admin.dashboard', compact('stats', 'recentActivity', 'healthSummary', 'productCoverage'));

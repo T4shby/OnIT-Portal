@@ -44,7 +44,9 @@ MySQL/MariaDB (also backs session, cache, and queue tables)
    self-service signup - an administrator must create the user row first
    (`Admin\UserController`).
 3. Every subsequent request carries the Laravel session cookie
-   (`SESSION_DRIVER=database`). `EnsureUserHasRole` middleware gates whole
+   (`SESSION_DRIVER=database`). `EnsureAccountIsActive` (web group) re-applies
+   the sign-in account checks on every request and signs out deactivated
+   users / users of deactivated clients. `EnsureUserHasRole` middleware gates whole
    route groups by role category (e.g. `admin/*` requires
    `super_admin`/`account_manager`); individual controller actions then
    call `$this->authorize()` against a Policy or `abort_unless()` against a
