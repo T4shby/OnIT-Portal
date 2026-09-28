@@ -30,8 +30,9 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
+        // Super admins also see staff-side (client_id NULL) events - see ActivityLogController.
         $recentActivity = ActivityLog::with('user')
-            ->whereIn('client_id', $clientIds)
+            ->unless($user->can('manage-all-clients'), fn ($q) => $q->whereIn('client_id', $clientIds))
             ->latest()
             ->limit(10)
             ->get();

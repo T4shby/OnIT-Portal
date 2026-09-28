@@ -109,4 +109,24 @@ class AccountManagerScopeTest extends TestCase
             ->assertSee('Managed Client Co')
             ->assertDontSee('Foreign Tenant Ltd');
     }
+
+    public function test_super_admin_audit_trail_includes_staff_side_events(): void
+    {
+        ActivityLog::create(['client_id' => null, 'action' => 'settings.updated']);
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $this->actingAs($admin)->get(route('admin.activity-logs.index'))
+            ->assertOk()
+            ->assertSee('settings.updated')
+            ->assertSee('foreign.secret_action');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('settings.updated');
+
+        // Staff-side events are not client data - account managers still never see them.
+        $this->actingAs($this->manager)->get(route('admin.activity-logs.index'))
+            ->assertOk()
+            ->assertDontSee('settings.updated');
+    }
 }
