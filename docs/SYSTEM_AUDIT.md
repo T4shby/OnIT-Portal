@@ -749,3 +749,287 @@ glossed over:
   the current codebase, provided the deployment checklist above is
   followed and the two open manual-review-worthy risks (M1, M3) are a
   conscious decision by the team rather than an oversight.
+
+## Third Audit Pass — Performance, API Inventory, Dead Code (2026-09-28)
+
+A third, independent pass, explicitly scoped away from re-litigating
+auth/authz/secrets/CSRF/SQLi/mass-assignment/uploads (covered exhaustively
+by the first two passes - see above) and into three areas the brief said
+were not yet swept exhaustively: performance/DB, the full route inventory,
+and dead code. This was a full sweep, not a sample: every controller
+method, every migration, every route, and every top-level class in `app/`
+was checked programmatically (grep/route:list cross-referencing), not
+spot-checked.
+
+### 1. Performance & Database
+
+**N+1 sweep (full, not sampled).** Every `index`/`show`/`live`/`export`
+method across all 26 controllers in `app/Http/Controllers` was read, and
+every corresponding Blade view was grepped for `->relation->field` inside
+`@foreach`. Result: **no new N+1 found** - the second pass's finding still
+holds under a full sweep. All admin listing controllers that pass an
+Eloquent collection to a view eager-load exactly the relations the view
+uses: `ActivityLogController::index` (`->with(['user','client'])`,
+`admin/activity-logs/index.blade.php` uses `$log->user`/`$log->client`),
+`NoticeController`/`OpportunityController`/`RecommendationController::index`
+(`->with(['client','creator'])`), `PortalLinkController::index`
+(`->with('client')`), `TeamController::index` (`->with('assignedClients')`),
+`UserController::index` (uses `withCount`/`users_count` on the `clients`
+listing view, not a per-row relation call). The non-Eloquent
+controllers (`HuntressSecurityController`, `Microsoft365DirectoryController`,
+`ClientAdminDashboardController`, `SupportController`, backup/report
+controllers) render arrays from cached external-API service calls, not
+Eloquent collections, so N+1 doesn't apply to them. No fix needed here.
+
+**Index sweep (full, cross-referenced against real `where()` usage).**
+Read all 18 migrations and cross-referenced every FK/filter column
+against `grep -rn "->where(" app/`. One real gap found and fixed:
+
+- **`clients.superops_account_id` had no index**, despite being queried
+  with a plain `Client::query()->where('superops_account_id', $accountId)`
+  in `app/Services/SuperOps/SuperOpsTicketService.php:134`
+  (`userCanViewTicket()`), which runs on every `GET /support/{ticketId}`
+  page view for a team-member user whose ticket isn't already scoped to
+  their own client. **Fixed**: added
+  `database/migrations/2026_09_28_120000_add_index_to_clients_superops_account_id.php`
+  (`$table->index('superops_account_id')`). Verified: `php artisan
+  migrate` applies cleanly, `php artisan migrate:rollback --step=1` rolls
+  it back cleanly, re-`migrate` reapplies cleanly (all run against a
+  scratch sqlite DB - no local MySQL server is available in this sandbox,
+  same constraint the prior two passes operated under; the migration uses
+  only the portable `Blueprint::index()` call). `php artisan test` still
+  267 passed after adding it.
+- All other `where()`-filtered columns found by the grep sweep
+  (`is_active`, `client_id`, `provisioned_by`, `entra_object_id`, `key`,
+  `snapshot_date`, `email`) already have an index or unique constraint in
+  the migrations that created/altered them - re-confirmed directly, not
+  assumed. `entra_tenant_id` is queried with `where('entra_tenant_id',
+  '!=', '')` in `ClientController::graphReconsent` and
+  `ListGraphReconsentUrlsCommand` - both are low-frequency admin/CLI
+  paths over a small `clients` table and a `!=` predicate isn't
+  index-selective anyway, so no index was added for it.
+
+**External HTTP calls.** Re-verified all four external API client
+classes (`SuperOpsApiClient`, `HuntressApiClient`, `DropsuiteApiClient`,
+`MicrosoftGraphClient`) still set an explicit timeout on every call
+(30-90s) - unchanged from the prior passes' finding, still holds.
+
+**New finding: two admin Entra actions run long external-call chains
+synchronously on the request path, inconsistent with sibling actions that
+were deliberately queued for the same reason.**
+`Admin\ClientController::applyScim()` and `::retryScimExport()` both
+dispatch a queued job with an in-code comment explaining why: *"Graph
+waits (schema / already-exists) can exceed nginx's 60s gateway - never do
+that inline."* `::bootstrapEntra()` and `::applyClientSso()`, however,
+call `CustomerEntraBootstrapService::bootstrap()` /
+`MicrosoftGraphClient::applyClientSsoSamlConfiguration()` **inline**,
+synchronously, in the controller action.
+`CustomerEntraBootstrapService::bootstrap()` alone makes a long chain of
+sequential Graph calls, several through
+`$this->graph->retryAfterConsentPropagation(...)` (a wait-and-retry
+wrapper) and `waitForServicePrincipalForAppId(...)` (a polling wait) -
+the same class of slow, multi-step Graph operation the SCIM methods'
+comment explicitly warns about. **Not fixed in this pass**: converting
+these two actions to queued jobs is a real behavioural change (both
+currently return SSO login URL/certificate data synchronously to the
+admin's page load; going async would need the same live-polling UI
+pattern `syncEntra`/`applyScim` already use, which is more than an
+"obvious, safe fix" and risks unintended UX regressions for an
+admin-only, low-traffic setup flow). **Flagged under Manual Review
+Items** below with the file:line evidence.
+
+**Duplicate/repeated queries.** No same-request duplicate query pattern
+found (checked controller+view chains for the same lookup run twice;
+dashboard/admin controllers consistently compute once and pass down).
+
+**Pagination.** Every admin listing controller uses `->paginate(15)` or
+`->paginate(25)`; the two non-paginated `->get()` calls found
+(`ClientController::index` line 70's `->get()` and
+`Admin\DashboardController`'s `->limit(10)->get()`) are both bounded -
+respectively a small `is_active` dropdown-source query and an explicit
+`limit(10)` recent-activity feed - not unbounded lists. No fix needed.
+
+### 2. Full route inventory
+
+All 91 named routes (plus `/`, `/up`, and the 2 `Route::redirect`
+entries) in `routes/web.php` (the only route file - no `routes/api.php`)
+were read line-by-line and cross-referenced against `php artisan
+route:list --json` and `route()`/`->name`/nav-partial references across
+`resources/views` and `app/`.
+
+- **Every route is referenced somewhere in the frontend or another
+  controller** (nav partials, model helper methods like
+  `PortalLink::launchUrl()`, or a same-app `redirect()->route()` call) -
+  checked programmatically against the full `route:list` output, not
+  sampled. No dead/orphaned route found. (The 6 names a naive grep first
+  flagged as "unreferenced" - `admin.activity-logs.index`,
+  `admin.settings.index`, `auth.microsoft.callback`,
+  `integrations.pax8.launch`, `security.huntress.refresh`,
+  `admin.clients.security.huntress.refresh` - were all false positives
+  from the grep pattern; each was manually confirmed present in
+  `resources/views/admin/partials/nav.blade.php` or a controller/model
+  `route()` call.)
+- **No duplicate or near-duplicate routes** - every URI+method pair in
+  the full `route:list` output maps to exactly one controller action; the
+  two `Route::redirect()` legacy-URL shims (`/client-admin` →
+  `/services/support-devices`, `/client-admin/live` → `.../live`) are
+  intentional redirects, not duplicates.
+- **Authorization-vs-middleware consistency re-checked for every route,
+  not just the ones the prior two passes already traced.** All
+  `admin.*` routes sit behind `role:` group middleware; every
+  `Admin\*Controller` action was confirmed (by reading the controller
+  file, not assuming from the route) to also call
+  `$this->authorize(...)` against a Policy for any client/user-scoped
+  action - this matches the two prior passes' file:line-verified findings
+  for `ClientController`/`UserController` and was re-confirmed here for
+  the remaining ones not individually itemised before:
+  `NoticeController`/`OpportunityController`/`RecommendationController`/
+  `PortalLinkController` (`authorize('viewAny'|'create'|'update'|'delete',
+  ...)` on every action), `TeamController` (all actions authorize against
+  `UserPolicy` plus the explicit `role:super-admin` route middleware
+  layer), `ClientDropsuiteBackupController`/`ClientHuntressSecurityController`/
+  `ClientMicrosoft365DirectoryController` (`authorize('view', $client)`
+  on every client-scoped action, as previously found). **No route was
+  found relying on middleware alone without an in-controller check.**
+  This closes out the brief's ask to verify this holds for every
+  remaining route, not just the previously spot-checked ones.
+
+### 3. Dead code & technical debt sweep
+
+- **Class/method reachability**: every one of the 146 PHP classes in
+  `app/` was grepped for its basename across the whole repo (`app/`,
+  `resources/`, `routes/`, `database/`, `tests/`, `config/`,
+  `bootstrap/`). The only classes with zero references outside their own
+  file were: (a) all `app/Console/Commands/*` classes - false positives,
+  Laravel auto-discovers commands in that directory, and each was
+  confirmed either scheduled in `routes/console.php` or is a documented
+  manual-run admin tool (`ListGraphReconsentUrlsCommand`,
+  `RevertEntraDisplayNamesCommand`, `PurgeDemoDataCommand`, etc.); (b)
+  `EventServiceProvider`/`AuthServiceProvider` - registered in
+  `bootstrap/providers.php`, which the first sweep's grep scope missed;
+  (c) `EnsureUserHasRole`/`SecurityHeaders`/`EnsureClientAccess` - aliased/
+  applied in `bootstrap/app.php`, also outside the first sweep's grep
+  scope. Re-run including `bootstrap/`: (a) and (b) resolved as false
+  positives. **(c) surfaced one genuine finding**:
+  - **`EnsureClientAccess` middleware is defined and aliased
+    (`'client.access' => EnsureClientAccess::class` in
+    `bootstrap/app.php`) but is never applied to any route** - `grep -rn
+    "client.access"` across the whole repo (excluding `bootstrap/app.php`
+    itself) returns nothing. It appears to predate the current pattern of
+    doing tenant checks via explicit `$this->authorize()`/
+    `User::canAccessClient()` calls in each controller (which the first
+    two passes verified is applied consistently everywhere it's needed),
+    and is now vestigial. **Not deleted** - it's a small, harmless,
+    security-adjacent piece of code, and removing an authorization
+    primitive (even an unused one) is exactly the kind of change this
+    audit's brief said should go to manual review rather than be deleted
+    on an agent's own confidence, however high. **Added to Manual Review
+    Items** below.
+- **Migrations**: all 18 migrations were checked for tables/columns never
+  referenced in `app/` - none found. Every column added by a later
+  migration is read somewhere in `app/Models`/`app/Services` (checked via
+  grep for each migration's `$table->...` column names). No superseded/
+  reverted migration found (`2026_07_15_120000_migrate_client_user_to_client_requester`
+  is a genuine data-shape migration, not a revert).
+- **Commented-out code**: grepped all of `app/`, `resources/views/`,
+  `routes/` for multi-line `/* ... */` blocks and `//`-prefixed lines that
+  look like code (`Route::`, `$var =`, `if (`, `public function`,
+  `return`, `->`). None found - the only `/* */` comments present are
+  genuine CSS comments inside `<style>` blocks in three Blade views. No
+  change needed; matches the first pass's finding.
+- **Config**: cross-referenced every key in `config/onit_support.php`
+  (the one genuinely app-specific config file) against real `config()`
+  calls - all four scalar keys plus `address_lines` are consumed via
+  `ContactSupportController` passing the whole array to
+  `resources/views/contact-support/{index,new-starter}.blade.php`
+  (`$contact['phone']`/`['hours']`/`['timezone_label']`/`['email']`/
+  `['address_lines']`). No dead config keys found. (`auth.php`/`cache.php`/
+  `database.php`/`logging.php`/`session.php`/`view.php` showing zero
+  direct `config('x.y')` call sites in `app/`/`resources/` is expected -
+  Laravel's own internals read those directly via the `Auth`/`Cache`/`DB`/
+  `Log`/`Session`/`View` facades, not a dead-config signal.)
+- **Dependencies**: every `composer.json` and `package.json` dependency
+  was checked for a real import/usage site. All resolve to genuine usage
+  (`laravel/socialite` + `socialiteproviders/microsoft-azure` via
+  `MicrosoftAuthController`/`EventServiceProvider`, `axios` via
+  `resources/js/bootstrap.js`, Tailwind/Alpine/Vite via the build
+  pipeline) with one exception, **flagged, not removed**: `laravel/breeze`
+  is a dev dependency with no runtime import anywhere in `app/`/
+  `resources/` - by design, Breeze is a one-time scaffolding installer,
+  not a runtime library, so "unused after scaffolding" is expected
+  behaviour for it, not drift. Removing it from `composer.json` is a
+  reasonable cleanup but was left to the team's judgement (it costs
+  nothing to keep, and removing a `require-dev` package it didn't ask
+  about wasn't judged safe/obvious enough to do unilaterally).
+
+### New Manual Review Items (this pass)
+
+8. **`bootstrapEntra()`/`applyClientSso()` run long Graph-API call chains
+   synchronously on the request path** (Performance & Database, above),
+   inconsistent with the sibling `applyScim()`/`retryScimExport()`
+   actions that were deliberately queued for the identical 60s-gateway-
+   timeout reason (see their in-code comment,
+   `app/Http/Controllers/Admin/ClientController.php`). Recommend either
+   queuing them the same way (would need a live-polling UI update, same
+   pattern already used for `syncEntra`) or, at minimum, raising PHP's
+   `max_execution_time`/web-server proxy timeout for just those two
+   routes if queuing is judged not worth the UX rework. Low real-world
+   risk today (admin-only, one-time-per-client setup action, not a
+   customer-facing page), but a real timeout hazard on a slow/throttled
+   Graph tenant.
+9. **`EnsureClientAccess` middleware (`client.access` alias in
+   `bootstrap/app.php`) is defined but applied to zero routes** (Dead
+   code sweep, above). Likely superseded by the controller-level
+   `$this->authorize()`/`canAccessClient()` pattern used everywhere else.
+   Recommend either wiring it onto the client-scoped routes that
+   currently rely solely on in-controller checks (defense-in-depth) or
+   removing the alias/class if the team confirms it's intentionally
+   superseded - left for a deliberate decision either way, not touched.
+10. **`laravel/breeze` dev dependency has no runtime usage** (Dependency
+    sweep, above) - expected for a scaffolding-only package, but worth a
+    conscious keep/remove decision next time `composer.json` is touched.
+
+### Verification results (this pass, actual output)
+
+```
+$ php artisan test
+Tests:    267 passed (1203 assertions)
+Duration: 31.97s
+
+$ npm run build
+vite v5.4.21 building for production...
+✓ 59 modules transformed.
+✓ built in 1.86s
+(incidental public/build/* content-hash churn from the rebuild was
+reverted, not committed - same non-determinism the second pass noted)
+
+$ composer audit
+Found 3 security vulnerability advisories affecting 1 package: laravel/framework
+(unchanged from the first two passes - see M1)
+
+$ npm audit
+2 vulnerabilities (1 moderate, 1 high) - both esbuild/vite, dev-server-only
+(unchanged from the second pass's corrected count - see M2)
+
+$ php artisan migrate            # against a scratch sqlite DB; no local
+                                  # MySQL server available in this sandbox
+2026_09_28_120000_add_index_to_clients_superops_account_id ... DONE
+$ php artisan migrate:rollback --step=1
+2026_09_28_120000_add_index_to_clients_superops_account_id ... DONE (rolled back)
+$ php artisan migrate
+2026_09_28_120000_add_index_to_clients_superops_account_id ... DONE (reapplied)
+```
+
+### Bottom line on this pass
+
+The performance and route-authorization pictures the prior two passes
+described held up under a genuinely exhaustive, full-repository sweep
+(every controller method, every migration, every route, every class) -
+no N+1s, no authz gaps, no dead/duplicate routes were found beyond what
+was already known. The concrete, additive output of this pass is one
+real missing index (fixed, migration added and verified up/down/up), one
+inconsistent-synchronous-Graph-call finding and one genuinely-unused
+middleware finding (both flagged for a deliberate team decision rather
+than changed unilaterally), and one dev-dependency note. Nothing here
+blocks production readiness; the "Production Readiness Status" section
+above is unchanged by this pass.
