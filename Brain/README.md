@@ -87,7 +87,8 @@ Read these documents before changing application code. **Update Brain for every 
 | Date | Change |
 |---|---|
 | 2026-09-29 | Eighth audit pass: sign-in OAuth state always verified via its own cookie, `MICROSOFT_OAUTH_STATELESS` removed (ADR-025); admin-consent links expire after 24h (`ADMIN_CONSENT_LINK_TTL_HOURS`); resubmitting Apply SCIM / Wire Client SSO / Retry while one is running is refused, not silently dropped. - [Decisions.md](Decisions.md), [Authentication.md](Authentication.md) |
-| 2026-09-29 | CoPilot readiness on the same host: ended the pre-audit session and scheduled daily backups. Portal app unchanged. - [ServerOpsLog.md](ServerOpsLog.md) |
+| 2026-09-29 | Deployed Claude's portal audit to live after duplicate-id check (0 collisions). - [ServerOpsLog.md](ServerOpsLog.md), [HANDOFF.md](../HANDOFF.md) |
+| 2026-09-29 | CoPilot readiness on the same host: ended the pre-audit session and scheduled daily backups. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-28 | Align live Plesk with GitHub `main` (live was still `388a809`). - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-08 | Deployed activity feed badges/action copy + ticket confirmation 403 fix (`388a809`). - [ServerOpsLog.md](ServerOpsLog.md), [UIOverhaul.md](UIOverhaul.md), [SuperOpsIntegration.md](SuperOpsIntegration.md) |
 | 2026-09-08 | After Log a ticket / New starter, `/support/{id}` 403ed even when SuperOps had the ticket (INTEGRATION requester mismatch). Show now allows the creating organisation. - [SuperOpsIntegration.md](SuperOpsIntegration.md#ticket-detail-getticket) |

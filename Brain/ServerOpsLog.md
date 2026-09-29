@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-29 14:55 UK - Deploy Claude portal audit (this commit)
+
+| | |
+|---|---|
+| Intent | GitHub `main` had eight audit passes that were not on the live tree (`7383d00`). Deploy them after the pre-deploy checks in `HANDOFF.md`. |
+| Operator | agent |
+| SHA before -> after | `7383d00` -> the commit that adds this row |
+| Steps | Duplicate external-id check: 0 groups on `superops_account_id`, `huntress_organization_id`, `dropsuite_organization_id`, `pax8_company_id`, `entra_tenant_id`. `MICROSOFT_OAUTH_STATELESS` unset. Retired tables had 3 seed rows each on client On IT Technology Partners (Notice 1-3, sample recommendations, sample opportunities). `git push origin main`. Archive `main` into the live path. Post-deploy artisan block including `migrate --force` (drops those three tables, adds the SuperOps account index). `optimize` caches the new `config/queue.php`. Not `cache:clear`. |
+| Result | Confirm `.deployed-commit` matches GitHub `main`. Login and `/up` should be HTTP 200. First real Microsoft sign-in still needs a human check for `Microsoft OAuth state check failed` in `storage/logs/laravel.log`. |
+| Rollback / watch | Redeploy `7383d00`. The dropped notice/recommendation/opportunity rows are not restored by rollback (migration `down()` recreates empty tables). Sign in once after this deploy. |
+
 ### 2026-09-29 14:45 UK - CoPilot readiness audit follow-up (same host, not the portal app)
 
 | | |
