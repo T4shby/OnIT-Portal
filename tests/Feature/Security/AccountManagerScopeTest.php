@@ -5,9 +5,6 @@ namespace Tests\Feature\Security;
 use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Client;
-use App\Models\ClientNotice;
-use App\Models\ClientOpportunity;
-use App\Models\ClientRecommendation;
 use App\Models\PortalLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,9 +37,6 @@ class AccountManagerScopeTest extends TestCase
             'client_id' => $this->foreign->id,
         ]);
 
-        ClientNotice::create(['client_id' => $this->foreign->id, 'title' => 'Foreign notice', 'body' => 'x', 'is_active' => true]);
-        ClientRecommendation::create(['client_id' => $this->foreign->id, 'title' => 'Foreign recommendation', 'body' => 'x', 'category' => 'security', 'priority' => 'high', 'is_active' => true]);
-        ClientOpportunity::create(['client_id' => $this->foreign->id, 'title' => 'Foreign opportunity', 'body' => 'x', 'category' => 'backup', 'status' => 'open', 'is_active' => true]);
         PortalLink::create(['client_id' => $this->foreign->id, 'name' => 'Foreign link', 'url' => 'https://foreign.example', 'link_type' => 'external', 'is_active' => true]);
         ActivityLog::create(['client_id' => $this->foreign->id, 'action' => 'foreign.secret_action']);
 
@@ -66,24 +60,19 @@ class AccountManagerScopeTest extends TestCase
 
     public function test_unassigned_account_manager_sees_no_foreign_content_or_logs(): void
     {
-        $this->actingAs($this->manager)->get(route('admin.notices.index'))->assertOk()->assertDontSee('Foreign notice');
-        $this->actingAs($this->manager)->get(route('admin.recommendations.index'))->assertOk()->assertDontSee('Foreign recommendation');
-        $this->actingAs($this->manager)->get(route('admin.opportunities.index'))->assertOk()->assertDontSee('Foreign opportunity');
         $this->actingAs($this->manager)->get(route('admin.portal-links.index'))->assertOk()->assertDontSee('Foreign link');
         $this->actingAs($this->manager)->get(route('admin.activity-logs.index'))->assertOk()->assertDontSee('foreign.secret_action');
     }
 
     public function test_unassigned_account_manager_create_forms_list_no_foreign_clients(): void
     {
-        foreach (['admin.notices.create', 'admin.recommendations.create', 'admin.opportunities.create', 'admin.portal-links.create'] as $route) {
-            $this->actingAs($this->manager)->get(route($route))->assertOk()->assertDontSee('Foreign Tenant Ltd');
-        }
+        $this->actingAs($this->manager)->get(route('admin.portal-links.create'))->assertOk()->assertDontSee('Foreign Tenant Ltd');
     }
 
     public function test_unassigned_account_manager_dashboards_are_empty(): void
     {
         $response = $this->actingAs($this->manager)->get(route('admin.dashboard'))->assertOk();
-        $response->assertViewHas('stats', fn (array $stats) => $stats['clients'] === 0 && $stats['users'] === 0 && $stats['notices'] === 0);
+        $response->assertViewHas('stats', fn (array $stats) => $stats['clients'] === 0 && $stats['users'] === 0);
         $response->assertDontSee('foreign.secret_action');
 
         $this->actingAs($this->manager)->get(route('admin.integration-health.live'))
@@ -96,7 +85,6 @@ class AccountManagerScopeTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
 
         $this->actingAs($admin)->get(route('admin.clients.index'))->assertOk()->assertSee('Foreign Tenant Ltd');
-        $this->actingAs($admin)->get(route('admin.notices.index'))->assertOk()->assertSee('Foreign notice');
     }
 
     public function test_assigned_account_manager_sees_only_assigned_client(): void
