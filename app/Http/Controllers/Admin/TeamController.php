@@ -87,6 +87,14 @@ class TeamController extends Controller
         $this->authorize('manageTeam', User::class);
         $this->ensureTeamMember($user);
 
+        // Same reasoning as destroy(): a super admin must not be able to lock
+        // themselves (possibly the last super admin) out of Team management.
+        if ($user->is($request->user())
+            && ($request->validated('role') !== UserRole::SuperAdmin->value
+                || ($request->has('is_active') && ! $request->boolean('is_active')))) {
+            return back()->with('error', 'You cannot remove your own Super Admin role or deactivate your own account.');
+        }
+
         $user->update([
             ...$request->safe()->except('assigned_clients'),
             'client_id' => null,
