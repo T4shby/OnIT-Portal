@@ -164,4 +164,17 @@ class AccountManagerScopeTest extends TestCase
             ->assertSee('foreign-failure-detail')
             ->assertSee('managed-failure-detail');
     }
+
+    public function test_admin_nav_shows_settings_only_to_those_who_can_open_it(): void
+    {
+        $this->actingAs($this->manager)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('admin.settings.index'), false);
+        $this->actingAs($this->manager)->get(route('admin.settings.index'))->assertForbidden();
+
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.settings.index'), false);
+    }
 }
