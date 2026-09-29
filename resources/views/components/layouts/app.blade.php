@@ -97,7 +97,7 @@
                                     class="portal-avatar"
                                     aria-label="Account menu"
                                     :aria-expanded="userOpen">
-                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
                             </button>
                             <div x-show="userOpen" @click.away="userOpen = false" x-cloak class="portal-user-menu">
                                 <div class="border-b border-white/10 px-4 py-3 md:hidden">
