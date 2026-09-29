@@ -79,4 +79,24 @@ class DeactivatedAccountSessionTest extends TestCase
         $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
         $this->assertGuest();
     }
+
+    public function test_remember_me_cookie_no_longer_signs_in_a_deactivated_user(): void
+    {
+        // The real vector: no session, only the 400-day remember-me cookie, and the
+        // deactivation written straight to the database (as Entra sync does).
+        $user = $this->clientAdmin(Client::factory()->create());
+        $user->forceFill(['remember_token' => 'remember-token-123'])->save();
+        $cookie = [\Illuminate\Support\Facades\Auth::guard('web')->getRecallerName() => $user->id.'|remember-token-123|'.$user->getAuthPassword()];
+
+        // Control: the cookie alone does sign an active user in.
+        $this->withCookies($cookie)->get(route('dashboard'))->assertOk();
+        \Illuminate\Support\Facades\Auth::forgetGuards();
+
+        User::query()->whereKey($user->id)->update(['is_active' => false]);
+
+        $this->withCookies($cookie)->get(route('dashboard'))
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('error', fn (string $m) => str_contains($m, 'deactivated'));
+        $this->assertGuest();
+    }
 }

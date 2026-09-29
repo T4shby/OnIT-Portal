@@ -129,4 +129,21 @@ class AdminConsentCallbackTest extends TestCase
 
         Bus::assertNotDispatched(BootstrapClientEntraJob::class);
     }
+
+    public function test_unsigned_legacy_state_cannot_link_an_unlinked_client(): void
+    {
+        // The linked-client case above is also stopped by the tenant-mismatch guard;
+        // this one only the signature check stops.
+        Bus::fake();
+        $this->expectNoBootstrap();
+        $client = Client::factory()->create(['entra_tenant_id' => null]);
+
+        $this->get($this->consentUrl([
+            'state' => 'client-'.$client->id,
+            'tenant' => self::OTHER_TENANT,
+        ]))->assertOk()->assertDontSee($client->name);
+
+        $this->assertNull($client->fresh()->entra_tenant_id);
+        Bus::assertNotDispatched(BootstrapClientEntraJob::class);
+    }
 }
