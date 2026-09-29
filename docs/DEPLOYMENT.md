@@ -91,6 +91,13 @@ in this repo.
       --stop-when-empty --max-time=55 --tries=3` workers running every
       minute (short-lived, restarted each minute - there is no persistent
       worker daemon by default)
+    - Jobs run on two queue names only, `high` and `default`; every job
+      class uses the `database` connection, so the worker above covers all
+      of them. A job longer than 55s keeps its worker running past the next
+      minute tick; that is safe only because `config/queue.php` sets the
+      database `retry_after` to 900s (above the longest job timeout, 600s).
+      Do not lower `DB_QUEUE_RETRY_AFTER` below that, or a second worker
+      re-runs the same job while the first is still going.
 
 ## Post-deploy checklist (every deploy, not just first-time)
 
@@ -121,6 +128,7 @@ feature-gated.
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Entra ID SSO | Yes - login is disabled without these |
 | `MICROSOFT_OAUTH_STATELESS` | Usually `true` in production (session often lost behind Plesk/nginx) | Recommended |
 | `QUEUE_CONNECTION` | `database` | Yes |
+| `DB_QUEUE_RETRY_AFTER` | Seconds before a reserved job is re-run by another worker. Must exceed the longest job `$timeout` (600s) | No, default 900 (`config/queue.php`) |
 | `ACTIVITY_LOG_RETAIN_DAYS` | Audit log retention (days) | No, default 90 |
 | `SUPEROPS_API_TOKEN`, `SUPEROPS_SUBDOMAIN`, `SUPEROPS_*` | SuperOps PSA integration | Feature-gated |
 | `ENTRA_SYNC_ENABLED`, `ENTRA_SYNC_CLIENT_ID`, `ENTRA_SYNC_CLIENT_SECRET` | Entra group sync, M365 directory, SCIM | Feature-gated |
