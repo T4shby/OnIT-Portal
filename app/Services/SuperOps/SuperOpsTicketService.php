@@ -110,7 +110,7 @@ class SuperOpsTicketService
             throw new \RuntimeException('SuperOps did not return a ticket id.');
         }
 
-        $this->rememberTicketAccount((string) $created['ticketId'], $accountId);
+        $this->rememberTicketAccount((string) $created['ticketId'], $accountId, $user->id);
 
         return $created;
     }
@@ -125,7 +125,8 @@ class SuperOpsTicketService
         // `client` is now selected by getTicket(); previously it never was, so this
         // was always '' and only the 14-day "remembered" portal-created path worked.
         $ticketAccount = $this->ticketAccountId($ticket);
-        $remembered = $ticketId !== '' ? ($this->rememberedTicketAccount($ticketId) ?? '') : '';
+        $rememberedEntry = $ticketId !== '' ? $this->rememberedTicket($ticketId) : null;
+        $remembered = $rememberedEntry['account'] ?? '';
         if ($ticketAccount !== '' && $remembered !== '' && $ticketAccount !== $remembered) {
             // SuperOps is the source of truth if the ticket was moved to another client.
             $remembered = '';
@@ -138,12 +139,13 @@ class SuperOpsTicketService
 
         if ($user->canUseClientSupport() && filled($user->client?->superops_account_id)) {
             // Org-wide viewers (client admins) may open any ticket on their SuperOps
-            // account. Personal viewers keep the previous rule - only tickets created
-            // through this portal for their organisation - so knowing the ticket's
-            // real account does not widen what a requester can open by id.
+            // account. Personal viewers only get the "created through this portal"
+            // fallback (for when SuperOps did not record them as requester) on tickets
+            // *they* created - not a colleague's, e.g. a new-starter request.
             $orgWide = app(\App\Services\Portal\ClientVisibilityService::class)
                 ->canViewOrganisationWide($user, $user->client);
-            $candidate = $orgWide ? $accountId : $remembered;
+            $createdByViewer = ($rememberedEntry['user_id'] ?? null) === $user->id;
+            $candidate = $orgWide ? $accountId : ($createdByViewer ? $remembered : '');
 
             if ($candidate !== '' && (string) $user->client->superops_account_id === $candidate) {
                 return true;
@@ -267,16 +269,35 @@ class SuperOpsTicketService
         return (string) ($client['accountId'] ?? $client['account_id'] ?? '');
     }
 
-    private function rememberTicketAccount(string $ticketId, string $accountId): void
+    private function rememberTicketAccount(string $ticketId, string $accountId, int $creatorUserId): void
     {
-        Cache::put($this->ticketAccountCacheKey($ticketId), $accountId, now()->addDays(14));
+        Cache::put($this->ticketAccountCacheKey($ticketId), [
+            'account' => $accountId,
+            'user_id' => $creatorUserId,
+        ], now()->addDays(14));
     }
 
-    private function rememberedTicketAccount(string $ticketId): ?string
+    /**
+     * @return array{account: string, user_id: ?int}|null
+     */
+    private function rememberedTicket(string $ticketId): ?array
     {
         $value = Cache::get($this->ticketAccountCacheKey($ticketId));
 
-        return is_string($value) && $value !== '' ? $value : null;
+        // Entries written before the creator was recorded are a bare account id:
+        // still usable by org-wide viewers and staff, never by personal viewers.
+        if (is_string($value) && $value !== '') {
+            return ['account' => $value, 'user_id' => null];
+        }
+
+        if (is_array($value) && is_string($value['account'] ?? null) && $value['account'] !== '') {
+            return [
+                'account' => $value['account'],
+                'user_id' => isset($value['user_id']) ? (int) $value['user_id'] : null,
+            ];
+        }
+
+        return null;
     }
 
     private function ticketAccountCacheKey(string $ticketId): string

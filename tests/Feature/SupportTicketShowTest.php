@@ -248,4 +248,71 @@ class SupportTicketShowTest extends TestCase
 
         $this->actingAs($requester)->get(route('support.show', 'ticket-old-1'))->assertForbidden();
     }
+
+    /**
+     * Fake SuperOps for a ticket created through the portal whose SuperOps requester
+     * is not the viewer (the case the "created through this portal" fallback exists for).
+     */
+    private function fakePortalCreatedTicket(string $ticketId): void
+    {
+        config([
+            'services.superops.api_token' => 'api-test-token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.superops.region' => 'us',
+        ]);
+
+        Http::fake(function ($request) use ($ticketId) {
+            $query = (string) ($request->data()['query'] ?? '');
+
+            if (str_contains($query, 'createTicket')) {
+                return Http::response(['data' => ['createTicket' => [
+                    'ticketId' => $ticketId, 'displayId' => '15001', 'subject' => 'New starter request: Pat Private',
+                    'status' => 'Open', 'createdTime' => '2026-09-08T11:42:00.000',
+                ]]], 200);
+            }
+
+            if (str_contains($query, 'getTicketConversationList')) {
+                return Http::response(['data' => ['getTicketConversationList' => []]], 200);
+            }
+
+            return Http::response(['data' => ['getTicket' => [
+                'ticketId' => $ticketId, 'displayId' => '15001', 'subject' => 'New starter request: Pat Private',
+                'status' => 'Open', 'priority' => null,
+                'createdTime' => '2026-09-08T11:42:00.000', 'updatedTime' => '2026-09-08T11:42:00.000',
+                'requester' => ['userId' => 'someone-else', 'email' => 'unmatched@example.com'],
+            ]]], 200);
+        });
+    }
+
+    public function test_requester_cannot_open_a_colleagues_portal_created_ticket_by_id(): void
+    {
+        $this->fakePortalCreatedTicket('ticket-portal-colleague');
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-1']);
+        $creator = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientRequester, 'email' => 'creator@example.com']);
+        $colleague = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientRequester, 'email' => 'colleague@example.com']);
+        $clientAdmin = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientAdmin, 'email' => 'boss@example.com']);
+
+        app(\App\Services\SuperOps\SuperOpsTicketService::class)
+            ->createTicket($creator, 'New starter request: Pat Private', 'Salary and start date');
+
+        $this->actingAs($creator)->get(route('support.show', 'ticket-portal-colleague'))->assertOk();
+        $this->actingAs($colleague)->get(route('support.show', 'ticket-portal-colleague'))->assertForbidden();
+        $this->actingAs($clientAdmin)->get(route('support.show', 'ticket-portal-colleague'))->assertOk();
+    }
+
+    public function test_legacy_remembered_account_without_creator_is_not_a_personal_viewer_pass(): void
+    {
+        $this->fakePortalCreatedTicket('ticket-legacy-1');
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-1']);
+        $requester = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientRequester, 'email' => 'me@example.com']);
+        $clientAdmin = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientAdmin, 'email' => 'boss@example.com']);
+
+        // Shape written before the creator was recorded: a bare account id.
+        \Illuminate\Support\Facades\Cache::put('superops-ticket-account:ticket-legacy-1', 'acc-1', now()->addDay());
+
+        $this->actingAs($requester)->get(route('support.show', 'ticket-legacy-1'))->assertForbidden();
+        $this->actingAs($clientAdmin)->get(route('support.show', 'ticket-legacy-1'))->assertOk();
+    }
 }
