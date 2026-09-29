@@ -19,9 +19,13 @@ class UserPolicy
         }
 
         if ($actor->role === UserRole::AccountManager) {
+            // A client-less target is a team member (or an orphan of a deleted
+            // client): same rule as update() - only themselves. The previous
+            // branch queried `users.id` on the clients relation and would have
+            // thrown an SQL error.
             return $target->client_id
                 ? $actor->canAccessClient($target->client_id)
-                : $actor->assignedClients()->where('users.id', $target->id)->exists();
+                : $actor->id === $target->id;
         }
 
         return $actor->id === $target->id;
