@@ -16,7 +16,13 @@ return [
     'cookie' => env('SESSION_COOKIE', Str::slug(env('APP_NAME', 'laravel'), '_').'_session'),
     'path' => env('SESSION_PATH', '/'),
     'domain' => env('SESSION_DOMAIN'),
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // HTTPS-only session cookie. Blank/unset means "true in production": the app
+    // already forces https URLs and sends HSTS there (AppServiceProvider,
+    // SecurityHeaders), and a .env copied from .env.example leaves this blank.
+    // Set SESSION_SECURE_COOKIE=false explicitly to opt out.
+    'secure' => in_array(env('SESSION_SECURE_COOKIE'), [null, ''], true)
+        ? env('APP_ENV', 'production') === 'production'
+        : filter_var(env('SESSION_SECURE_COOKIE'), FILTER_VALIDATE_BOOLEAN),
     'http_only' => env('SESSION_HTTP_ONLY', true),
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
     'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
