@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\ClaimsInFlightSlot;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Log;
  */
 class ApplyClientSsoSamlJob implements ShouldQueue, ShouldBeUnique
 {
+    use ClaimsInFlightSlot;
     use Queueable;
 
     public const IN_FLIGHT_KEY_PREFIX = 'client_sso_apply.in_flight.';

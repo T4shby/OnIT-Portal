@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\ClaimsInFlightSlot;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Log;
  */
 class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncrypted
 {
+    use ClaimsInFlightSlot;
     use Queueable;
 
     public const IN_FLIGHT_KEY_PREFIX = 'scim_apply.in_flight.';

@@ -32,12 +32,18 @@
                         After Accept the portal waits for Graph and creates group + SuperOps app IDs automatically.
                     </p>
                 @else
+                    @php($bootstrapInFlight = \App\Jobs\BootstrapClientEntraJob::isInFlight($client->id))
                     <form method="POST" action="{{ route('admin.clients.bootstrap-entra', $client) }}">
                         @csrf
-                        <button type="submit" class="cta-btn w-full px-5 py-3 text-center text-sm">
-                            Retry Graph setup
+                        <button type="submit" class="cta-btn w-full px-5 py-3 text-center text-sm" @disabled($bootstrapInFlight)>
+                            @if($bootstrapInFlight) Graph setup running… @else Retry Graph setup @endif
                         </button>
                     </form>
+                    @if($bootstrapInFlight)
+                        <p class="text-xs leading-relaxed text-amber-100">
+                            Graph setup is running in the background. Refresh in about a minute.
+                        </p>
+                    @endif
                     <p class="portal-body-muted text-xs leading-relaxed">
                         Tenant ID is saved. Use this only if group or SuperOps app IDs are still empty
                         (Azure lag after Accept - not a second Microsoft login).
