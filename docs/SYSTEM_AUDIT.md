@@ -1838,9 +1838,9 @@ test-strengthening items, which were checked by breaking the code they guard
 | L6 | Low (docs) | **`SUPER_ADMIN_EMAIL` was described wrongly.** `docs/DEPLOYMENT.md` and `docs/SECURITY.md` said it was "display/contact only". It is the account `UserSeeder` creates as the first `super_admin`, and login is SSO-only against pre-provisioned users. | **Corrected** in both docs. |
 | L7 | Low | **F9 trace left behind.** `ActivityLogFactory` could still generate a `notice.created` action. A repo-wide re-grep (`app routes resources config database bootstrap tests public/build`, plus docs and Brain) found no other trace beyond the intentional drop migrations, annotated docs and the unrelated Integration Health "notices" wording. | **Fixed** `4654266`. |
 | L8 | Low (test quality) | **Three security tests could not catch the regression they are named for.** (a) `DeactivatedAccountSessionTest` only used `actingAs()` and mutated the same in-memory user; it never used the remember-me cookie, which was the actual vector. (b) `AdminConsentCallbackTest::test_unsigned_legacy_state_cannot_repoint_a_linked_client` **still passes if unsigned states are accepted again**, because the later tenant-mismatch guard also stops it (verified by re-adding `client-N` decoding). (c) The F8 guard tests never asserted that no Graph writes happen. | **Fixed** `69329ed`: three new tests. Each was confirmed to fail when its guard is broken: `EnsureAccountIsActive` removed, unsigned decoding re-added, and the mass-deactivation guard disabled, respectively. |
-| L9 | Low | **New inputs can be silently dropped.** The `ShouldBeUnique` + `markQueued()` pattern means that re-submitting Apply SCIM or Apply Client SSO with **different** inputs while a job is still pending (up to 5 min) discards the new inputs. The page still says "running". | **Flagged, not fixed.** This is rare in admin-only setup flows, and fixing it needs a UX decision (reject, or replace the pending job). |
-| L10 | Low | **The admin-consent `state` never expires** (pass 5 / F4 residual). A leaked consent URL can re-dispatch `BootstrapClientEntraJob`, deduplicated to at most once per 5 min per client, but it can no longer re-point a tenant or link an already-used one (H2). | **Flagged**, as before. Adding a timestamp would invalidate consent links already emailed to customers. |
-| L11 | Low | **Sign-in has no OAuth `state` check in production.** `MICROSOFT_OAUTH_STATELESS` defaults to true in production (`config/services.php`), so there is no `state` check on sign-in, which allows login CSRF (a victim can be signed into an attacker's portal account). This is a deliberate team trade-off for session loss behind Plesk/nginx. | **Flagged.** Try `MICROSOFT_OAUTH_STATELESS=false` once production session persistence is confirmed. |
+| L9 | Low | **New inputs can be silently dropped.** The `ShouldBeUnique` + `markQueued()` pattern means that re-submitting Apply SCIM or Apply Client SSO with **different** inputs while a job is still pending (up to 5 min) discards the new inputs. The page still says "running". | **Flagged, not fixed.** This is rare in admin-only setup flows, and fixing it needs a UX decision (reject, or replace the pending job). **[RESOLVED in eighth pass]** |
+| L10 | Low | **The admin-consent `state` never expires** (pass 5 / F4 residual). A leaked consent URL can re-dispatch `BootstrapClientEntraJob`, deduplicated to at most once per 5 min per client, but it can no longer re-point a tenant or link an already-used one (H2). | **Flagged**, as before. Adding a timestamp would invalidate consent links already emailed to customers. **[RESOLVED in eighth pass]** |
+| L11 | Low | **Sign-in has no OAuth `state` check in production.** `MICROSOFT_OAUTH_STATELESS` defaults to true in production (`config/services.php`), so there is no `state` check on sign-in, which allows login CSRF (a victim can be signed into an attacker's portal account). This is a deliberate team trade-off for session loss behind Plesk/nginx. | **Flagged.** Try `MICROSOFT_OAUTH_STATELESS=false` once production session persistence is confirmed. **[RESOLVED in eighth pass - variable removed]** |
 
 ### Part 2 - Re-verified as sound (with evidence)
 
@@ -1954,4 +1954,275 @@ OK (362 tests, 1566 assertions)          (x2)
 # php artisan test was also run after every individual fix commit (monotonic:
 # 331, 340, 342, 343, 348, 354, 356, 357, 359, 359, 362), and every new
 # regression test was run against the pre-fix code, where it fails.
+```
+
+## Eighth Audit Pass — Resolving L9/L10/L11 (2026-09-29)
+
+Branch `claude/jolly-hopper-6w33al`, freshly synced to `main` at `c315c89`.
+Pass 7 flagged three items that needed a product or ops decision. The repo
+owner asked for them to be resolved "the way industry standard is". Each new
+regression test was run against the pre-fix code (`git stash` of the changed
+`app/`, `config/` and `resources/` files) and fails there.
+
+| Item | Result | Commit |
+|---|---|---|
+| **L9** resubmit silently dropped | Refused visibly, with the typed values kept | `536de53` |
+| **L10** consent link never expires | Signed issued-at time, 24h TTL | `72f764e` |
+| **L11** no OAuth state check in production | State check always on, held in its own cookie; the switch is removed | `49b1da4` |
+
+### L9 - Resubmitting while a setup job is running
+
+**What changed.** The per-client setup jobs (`ApplySuperOpsScimJob`,
+`ApplyClientSsoSamlJob`, `RepairSuperOpsScimExportJob` and
+`BootstrapClientEntraJob`) now use a new trait, `App\Jobs\Concerns\ClaimsInFlightSlot`.
+Its `claim()` takes the existing `*.in_flight.{client}` flag with
+`Cache::add()`. On the database store that is an `insertOrIgnore`, so two
+simultaneous submits cannot both win. `applyScim()`, `applyClientSso()`,
+`retryScimExport()` and `bootstrapEntra()` call `claim()` before dispatching.
+If a run is already pending or running, they redirect back with an explicit
+error: "... is already running for this client, so these new values were
+NOT applied. Wait for it to finish ... then submit again". The typed values
+are re-populated (`withInput()`), except the SCIM secret token, which is
+never flashed into the session. `retryScimExport()` is also refused while
+Apply SCIM runs, which matches the view's already-disabled Retry button.
+"Retry Graph setup" now shows as disabled ("Graph setup running…") while
+bootstrap runs. The existing Apply SCIM and Wire buttons were already
+disabled server-side when the page loaded mid-run. The server-side refusal
+closes the gap that remained: a page loaded before the first submit (a
+second tab, a second staff member, or the back button).
+
+**Why reject rather than queue.** Standard practice for a slow,
+non-idempotent admin action is to prevent a double submit, not to run the
+second request later with values that may already be stale. Queueing would
+also need a second job slot and would still race on the same Entra objects.
+All four actions are idempotent retries once the first run finishes, so the
+user loses nothing by waiting.
+
+**Tests.** `tests/Feature/InFlightResubmissionTest.php` (5 tests; all 5 fail
+on the old code). They cover: a second SSO submit is refused, only the
+first job is queued and its input is kept; a second SCIM submit is refused
+and the secret is not in the old input; Retry is refused while Apply or an
+earlier Retry is running; bootstrap is refused and the button is disabled on
+the Edit page; and a submit after `finish()` is accepted.
+
+**Residual (accepted).** There is a window of a few milliseconds between a
+job's `finish()` clearing the flag and the framework releasing the
+`ShouldBeUnique` lock. A submit landing exactly then would still be dropped
+by the lock. The admin-consent return still calls `markQueued()` directly;
+it carries no user input, so a deduplicated bootstrap there loses nothing.
+
+### L10 - Admin-consent link expiry
+
+**What changed.** `AdminConsentState` now produces
+`{clientId}.{issuedAtUnix}.{hmac}`. The HMAC (SHA-256, keyed by `APP_KEY`,
+with a versioned `admin-consent:v2:` context prefix) covers **both** the
+client id and the issue time. A leaked link's timestamp therefore cannot be
+refreshed: a swapped timestamp fails the signature
+(`test_issued_at_is_covered_by_the_signature_so_an_old_link_cannot_be_refreshed`).
+`inspect()` returns `valid`, `expired` or `invalid`. `decode()` returns a
+client id only for a valid state. Also refused: the old two-part
+`{id}.{hmac}` states (no timestamp), issue times more than 5 minutes in the
+future, and non-canonical integers. An expired state links no tenant,
+queues no bootstrap and does not name the client. The page tells the
+technician the link has expired and that they should reload Admin → Clients
+→ Edit for a fresh one and Accept again.
+
+**Why 24 hours (not 7-14 days).** The brief's 7-14 day default assumed the
+link might be emailed to a customer's IT admin. `Brain/` says otherwise:
+`CustomerEntraSyncRunbook.md` Step 4 says "the On IT technician does this
+on the customer's behalf using GDAP. **Do not send the consent URL or task
+to the customer**". `ClientOnboarding.md` (2026-07-14) says "On IT
+technicians complete all onboarding and Accept actions via GDAP; customers
+do nothing". `adminConsentUrl()` mints a fresh link on **every** Edit Client
+page load, so an expired link costs one reload. A long-lived leaked link is
+more dangerous than pass 7 described. For a client that is not linked yet,
+it could be accepted in an attacker's own tenant, and the callback would
+link that tenant, after which Entra sync provisions the attacker's users into
+the client. The state also appears in `laravel.log` (the
+consent-return log line) and in browser history. 24h still covers "opened
+Edit Client this morning, got GDAP / PIM approval this afternoon". The TTL
+can be changed with `ADMIN_CONSENT_LINK_TTL_HOURS` (clamped to 1-336, so a
+typo cannot make links immortal) if practice turns out to differ.
+
+**Deploy effect.** Consent links generated before this deploy stop working
+(they have no timestamp). Per Brain, none should be outstanding with
+customers. A technician reloads Edit Client to get a new one.
+
+**Tests.** `tests/Unit/AdminConsentStateTest.php` (10, of which 6 are new):
+valid at 23h59m, expired at 24h01m, forged fresh timestamp rejected, legacy
+two-part state rejected, future issue time rejected, TTL clamped.
+`AdminConsentCallbackTest` has 2 new tests: a link used 20h after it was
+issued still links the tenant and queues bootstrap; a link used 25h after
+it was issued with an attacker tenant links nothing, queues nothing, shows
+"has expired / generate a fresh link" and does not name the client. That
+second test fails on the old code, which links the tenant.
+`ClientOnboardingServiceTest` now decodes the state instead of comparing
+strings (they differ by timestamp).
+
+### L11 - OAuth `state` check, moved from the session to a dedicated cookie
+
+**Background.** `config/services.php` defaulted
+`services.azure.oauth_stateless` to `true` in production, so
+`MicrosoftAuthController` called `$driver->stateless()`. That skips
+Socialite's state handling completely: nothing is stored on redirect and
+nothing is checked on callback. The login error copy
+(`sessionLostMessage()`, "Production should use
+MICROSOFT_OAUTH_STATELESS=true") and `Brain/Deployment.md` ("Session not
+persisting / Socialite InvalidStateException") show why. Stateful Socialite
+keeps the nonce in the server-side session, and in production
+`InvalidStateException` ("session was lost") broke real sign-ins.
+**Reproduced the risk against the old code:** with `oauth_stateless=true`, a
+fresh browser with no cookies and no session that opened
+`/auth/microsoft/callback?code=ATTACKER&state=whatever` (Socialite mocked to
+return the attacker's identity for that code) was signed in as the
+attacker's portal user. That is login CSRF.
+
+**Root cause of the original session loss (investigated, not provable
+from the repo).** The history before `4a417f4` is squashed and no
+production logs are available. The brief suggested the missing `Secure`
+flag (pass 7 M4). That is unlikely to be the cause: a cookie without
+`Secure` is still stored and sent over HTTPS. The repo points to three more
+likely causes, and the new mechanism removes each of them:
+1. **Host mismatch.** A host-only session cookie set on one host is not sent
+   to the callback on another. `.env.example` itself pairs
+   `APP_URL=http://localhost` with
+   `MICROSOFT_REDIRECT_URI=http://127.0.0.1:8000/...`, and
+   `Brain/LocalDevelopment.md` warns to "use localhost consistently". Now,
+   `/auth/microsoft` reached on a host other than the redirect URI's
+   **bounces once** to that host before setting the cookie. A
+   `host_redirected=1` marker prevents a loop if a proxy reports a
+   different `Host`.
+2. **Several login tabs.** Socialite keeps a single `state` key in the
+   session, so a second tab overwrites the first tab's state. The old error
+   copy tells users "do not ... open multiple login tabs". The cookie now
+   holds up to 5 pending states, so both tabs can complete
+   (`test_sign_ins_started_in_two_tabs_can_both_complete`).
+3. **Concurrent session writes.** The database session handler rewrites the
+   whole payload. A concurrent request that loaded the session before
+   `state` was put and saved it afterwards erases the state. Only the
+   redirect and callback responses write the new cookie.
+
+**Mechanism (why this differs from a typical Socialite setup).**
+`App\Support\MicrosoftOAuthState`:
+- `redirect()` generates `Str::random(40)` (about 238 bits), passes it to
+  Microsoft with `->with(['state' => ...])` on a **stateless** Socialite
+  driver, and queues a cookie that holds `[{s: state, t: issuedAt}, ...]`.
+  Socialite stays stateless deliberately: the app does the check itself.
+  Nothing is written to the session.
+- **Cookie:** `__Host-onit_oauth_state` whenever `session.secure` is on or
+  the request is HTTPS, otherwise `onit_oauth_state`. It is `HttpOnly`,
+  `SameSite=Lax`, `Path=/` and host-only (no `Domain`), with a 15-minute
+  `Max-Age`. `Secure` plus the `__Host-` prefix means a sibling subdomain
+  cannot plant a state cookie (cookie tossing). The value is encrypted and
+  MACed by Laravel's `EncryptCookies` middleware (web group), bound to the
+  cookie name, so nothing is hand-signed and a forged plaintext cookie is
+  ignored (`test_a_forged_unencrypted_state_cookie_is_ignored`). The cookie
+  is built with `Symfony\Cookie::create()` instead of the `CookieJar`,
+  because the jar's defaults come from the session config: a
+  `SESSION_DOMAIN` would add a `Domain` attribute, which browsers reject on
+  a `__Host-` cookie. The test for this sets `session.domain` and asserts
+  that the `Set-Cookie` header has `secure` and `httponly` and no `domain=`.
+- `callback()`: the admin-consent return still branches first. It is a
+  separate flow with its own signed state (L10) and never signs anyone in.
+  Then, **before anything else**, `verify()` compares the `state` query
+  parameter with the cookie entries using `hash_equals`. The possible
+  results are `missing_cookie`, `mismatch` (including an absent `state`),
+  `expired` (older than 15 minutes, enforced from the issue time stored
+  in the encrypted cookie and not only by the browser's `Max-Age`), or `valid`. The
+  matched entry and any expired entries are removed; an empty cookie is
+  deleted (with `Secure`, or browsers ignore the deletion for a `__Host-`
+  name). Any result other than `valid` redirects to `/login` with a
+  specific message and logs `Microsoft OAuth state check failed` with the
+  `reason` and `has_state_cookie`. Microsoft's `error_description` is
+  checked only **after** the state, so a crafted URL can no longer put
+  arbitrary text into the login page's error banner
+  (`test_crafted_error_text_is_not_echoed_without_a_valid_state`).
+- **Why it survives the redirect.** Microsoft returns to the app with a
+  top-level GET (query response mode; the callback route is GET-only).
+  Browsers send `SameSite=Lax` cookies on exactly that. The session cookie
+  is Lax as well, so the new cookie needs nothing the session cookie did not
+  already need. It also no longer depends on the session row, the session
+  driver or concurrent writes. Auth.js/NextAuth and most Go and Python
+  OAuth middleware use the same pattern.
+- **Removed:** `services.azure.oauth_stateless` / `MICROSOFT_OAUTH_STATELESS`
+  (from `.env.example`, `docs/DEPLOYMENT.md` and `Brain/Deployment.md`,
+  where it is annotated as retired), the `InvalidStateException` branch
+  (no longer reachable) and `sessionLostMessage()`. They are replaced by
+  `stateFailureMessage()`, which gives one message for each of the three
+  failures and never suggests a config change.
+  `missingAuthorizationCodeMessage()` is still accurate and was kept.
+  `redirect()` no longer calls `$request->session()->save()`, which only
+  existed for Socialite's session state.
+
+**Tests.** `tests/Feature/Security/MicrosoftOAuthStateTest.php` (13, all
+failing on the old controller). Most tests drive the real `/auth/microsoft`
+with the real Socialite Azure driver, read the actual `Set-Cookie`, and
+return that cookie on the callback, as a browser would. Only the
+code-for-token exchange (`user()`) is mocked.
+- The cookie is HttpOnly, Lax, `Path=/`, host-only and 15 minutes long, its
+  state matches the authorize URL, and there is no `state` in the session.
+- A valid cookie with a matching state signs the user in and redirects to
+  the dashboard, and the cookie is cleared.
+- A missing cookie, a mismatch (the login-CSRF scenario: the victim has
+  their own cookie but the link carries the attacker's code and state), and
+  a missing `state` parameter are refused, and Microsoft is never asked
+  (`Socialite::driver()->never()`).
+- An expired state (15m05s) is refused; 14 minutes succeeds.
+- A forged unencrypted cookie is ignored.
+- Crafted error text is not echoed.
+- Two tabs both work.
+- Over HTTPS the cookie is `__Host-`, `Secure` and has no `Domain`, even with
+  `SESSION_DOMAIN` set, and a full sign-in works under that name.
+- The host bounce happens once, with no loop.
+- The config switch is gone.
+
+The two existing callback tests in `ClientEntraSyncTest` (inactive
+organisation, shared mailbox) now go through the real state flow, via the
+new `Tests\Concerns\StartsMicrosoftSignIn` trait, and still pass.
+Previously no test covered a *successful* Microsoft sign-in; four now do.
+
+**What could not be verified here.** No production traffic or real
+browsers were available. The design relies only on first-party Lax cookie
+behaviour that sign-in already depends on, because the session cookie
+itself must survive the same redirect for the user to stay signed in.
+Nothing found in `Brain/` or the code suggests cookies do not survive on
+this host. **Post-deploy:** sign in once and then watch `laravel.log` for
+`Microsoft OAuth state check failed`, following the steps in
+`docs/DEPLOYMENT.md` ("Microsoft sign-in state check"). There is
+deliberately no switch to turn the check off. If `missing_cookie` shows up
+at scale, roll back the code (no migration is involved) rather than
+reintroducing a stateless mode. The decision is recorded as ADR-025 in
+`Brain/Decisions.md`, and `AGENTS.md` security rule 8 records it too.
+PKCE was not added: Socialite's PKCE verifier also lives in the session,
+and it is not needed for a confidential client that uses a client secret.
+
+### Docs updated
+
+`docs/SECURITY.md` (the state check, consent link expiry and the new
+variable), `docs/DEPLOYMENT.md` (the variable table and the first-deploy
+steps), `docs/ARCHITECTURE.md` (request flow), `AGENTS.md` (security rule
+8), `.env.example`, and in `Brain/`: `Decisions.md` (ADR-025), `README.md`
+(changelog), `Authentication.md`, `Deployment.md` (troubleshooting row
+annotated, not deleted) and `CustomerEntraSyncRunbook.md` (24h link note).
+
+### Verification (this pass, actual output)
+
+```
+$ php artisan test                       # baseline at c315c89
+Tests:    362 passed (1566 assertions)
+
+$ php artisan test                       # after each commit
+Tests:    367 passed (1596 assertions)   # L9  536de53  (+5)
+Tests:    375 passed (1621 assertions)   # L10 72f764e  (+8)
+Tests:    388 passed (1745 assertions)   # L11 49b1da4  (+13)
+
+$ php artisan test                       # final, 3 consecutive runs
+Tests:    388 passed (1745 assertions)   (x3)
+$ vendor/bin/phpunit --order-by=random --random-order-seed=8 / 808
+OK (388 tests, 1745 assertions)          (x2)
+
+# Against pre-fix code (git stash): InFlightResubmissionTest 5/5 fail;
+# AdminConsentCallbackTest expired-link test fails; MicrosoftOAuthStateTest
+# 13/13 fail; old stateless controller signs a cookie-less browser in from a
+# crafted callback URL (login CSRF reproduced).
 ```

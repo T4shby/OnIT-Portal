@@ -40,10 +40,12 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
 
 ```
 1. User visits /login
-2. Application redirects to Microsoft Entra ID (organizations endpoint)
+2. Application sets a random OAuth state in a 15-minute cookie (__Host-onit_oauth_state,
+   not the session) and redirects to Microsoft Entra ID (organizations endpoint)
 3. User authenticates with their work/school Microsoft account (+ MFA if configured)
-4. Microsoft redirects to /auth/microsoft/callback with authorization code
-5. Application exchanges code for tokens via Socialite
+4. Microsoft redirects to /auth/microsoft/callback with authorization code + state
+5. Application refuses the callback unless state matches the cookie (login CSRF),
+   then exchanges code for tokens via Socialite (stateless - the app checks state itself)
 6. Application extracts: object ID, email, display name
 7. Application looks up user by entra_object_id (prefer active, recent), then by email
 8. If user found AND is_active:
@@ -98,6 +100,7 @@ Auth callback route throttled to 6 attempts per minute per IP to prevent brute-f
 - Client secret rotated via Azure portal; update `.env` accordingly
 - `entra_object_id` is immutable per user per tenant
 - Session fixation prevented by Laravel's session regeneration on login
+- Login CSRF prevented by the OAuth state cookie check (`App\Support\MicrosoftOAuthState`, 2026-09-29). There is no `MICROSOFT_OAUTH_STATELESS` switch any more - the check is always on
 - Logout invalidates session and regenerates CSRF token
 
 ## Local Development

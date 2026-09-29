@@ -10,16 +10,18 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\SuperOps\SuperOpsSsoService;
 use App\Services\SuperOps\SuperOpsUserSyncService;
+use App\Support\AdminConsentState;
+use App\Support\MicrosoftOAuthState;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\InvalidStateException;
 
 class MicrosoftAuthController extends Controller
 {
@@ -45,17 +47,57 @@ class MicrosoftAuthController extends Controller
                 ->with('error', 'Microsoft sign-in is not configured. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to your .env file.');
         }
 
-        $request->session()->save();
+        // The state cookie is host-only, so it must be set on the host Microsoft will
+        // send the browser back to. Bounce once to that host if this request arrived
+        // on another one (e.g. localhost vs 127.0.0.1, or an alias); the marker stops
+        // a loop if a proxy reports a different Host than the browser used.
+        $callbackOrigin = $this->callbackOriginIfDifferentHost($request);
+        if ($callbackOrigin !== null && ! $request->boolean('host_redirected')) {
+            Log::info('Microsoft OAuth redirect moved to the callback host', [
+                'request_host' => $request->getHost(),
+                'callback_origin' => $callbackOrigin,
+            ]);
+
+            return redirect()->away($callbackOrigin.route('auth.microsoft', ['host_redirected' => 1], false));
+        }
+
+        // Login-CSRF protection: our own state nonce in a dedicated cookie (not the
+        // session - see MicrosoftOAuthState), echoed back by Microsoft and checked in
+        // callback() before anything else.
+        [$state, $stateCookie] = MicrosoftOAuthState::issue($request);
+        Cookie::queue($stateCookie);
 
         Log::info('Microsoft OAuth redirect started', $this->oauthDiagnostics($request));
 
-        return $this->azureDriver()->redirect();
+        return $this->azureDriver()->with(['state' => $state])->redirect();
     }
 
     public function callback(Request $request): RedirectResponse|View
     {
         if ($request->query('admin_consent') === 'True') {
+            // Separate flow with its own signed, expiring state (AdminConsentState);
+            // it never signs anyone in.
             return $this->handleAdminConsentReturn($request);
+        }
+
+        // Before anything else (including Microsoft's error text, which would otherwise
+        // be echoed from a crafted URL): this response must belong to a sign-in that
+        // THIS browser started in the last few minutes. Without this, an attacker could
+        // send a victim a callback URL carrying the attacker's own authorization code
+        // and sign the victim into the attacker's portal account (login CSRF).
+        [$stateResult, $stateCookie] = MicrosoftOAuthState::verify($request, $request->query('state'));
+        Cookie::queue($stateCookie);
+
+        if ($stateResult !== MicrosoftOAuthState::VALID) {
+            Log::warning('Microsoft OAuth state check failed', [
+                ...$this->oauthDiagnostics($request),
+                'reason' => $stateResult,
+                'has_state_param' => $request->filled('state'),
+                'query_keys' => array_keys($request->query()),
+            ]);
+
+            return redirect()->route('login')
+                ->with('error', $this->stateFailureMessage($stateResult));
         }
 
         if ($request->filled('error')) {
@@ -202,7 +244,10 @@ class MicrosoftAuthController extends Controller
             'state' => $request->query('state'),
         ]);
 
-        $client = $this->clientFromAdminConsentState($request->query('state'));
+        $consentState = AdminConsentState::inspect(
+            is_string($request->query('state')) ? $request->query('state') : null
+        );
+        $client = $consentState['client_id'] !== null ? Client::find($consentState['client_id']) : null;
         $tenantFromConsent = is_string($request->query('tenant'))
             ? strtolower(trim($request->query('tenant')))
             : null;
@@ -214,6 +259,30 @@ class MicrosoftAuthController extends Controller
         }
 
         $bootstrapResult = null;
+
+        // A genuine link that is older than its TTL: link nothing, queue nothing, name no
+        // client, and tell the technician how to get a fresh one (see AdminConsentState).
+        if ($consentState['status'] === AdminConsentState::STATUS_EXPIRED) {
+            Log::warning('Admin consent state expired - nothing linked', [
+                'consent_tenant' => $tenantFromConsent,
+                'ttl_hours' => AdminConsentState::ttlHours(),
+            ]);
+
+            return view('auth.admin-consent-complete', [
+                'tenant' => $tenantFromConsent,
+                'client' => null,
+                'bootstrap' => [
+                    'ok' => false,
+                    'summary' => 'This consent link has expired.',
+                    'details' => [],
+                    'warnings' => [
+                        'This Connect Microsoft / Re-consent link has expired (links are valid for '
+                        .AdminConsentState::ttlHours().' hours), so the portal did not link or set up anything. '
+                        .'Sign in to the portal, open Admin → Clients → Edit for this client to generate a fresh link, and click Accept again.',
+                    ],
+                ],
+            ]);
+        }
 
         // This route runs without a portal session, so it may link a tenant to a client
         // that has none yet, but never re-point an already-linked client elsewhere.
@@ -309,24 +378,33 @@ class MicrosoftAuthController extends Controller
         ]);
     }
 
-    private function clientFromAdminConsentState(mixed $state): ?Client
-    {
-        $clientId = \App\Support\AdminConsentState::decode(is_string($state) ? $state : null);
-
-        return $clientId ? Client::find($clientId) : null;
-    }
-
     private function azureDriver(): Provider
     {
-        $driver = Socialite::driver('azure')
+        // Always stateless: Socialite's own state lives in the session and is not
+        // used. The app sets and verifies state itself (MicrosoftOAuthState).
+        return Socialite::driver('azure')
             ->redirectUrl(config('services.azure.redirect'))
-            ->scopes(['openid', 'profile', 'email', 'User.Read']);
+            ->scopes(['openid', 'profile', 'email', 'User.Read'])
+            ->stateless();
+    }
 
-        if (config('services.azure.oauth_stateless')) {
-            $driver->stateless();
+    /**
+     * scheme://host[:port] of MICROSOFT_REDIRECT_URI when it differs from this request's host.
+     */
+    private function callbackOriginIfDifferentHost(Request $request): ?string
+    {
+        $redirect = (string) config('services.azure.redirect');
+        $host = parse_url($redirect, PHP_URL_HOST);
+        $scheme = parse_url($redirect, PHP_URL_SCHEME);
+
+        if (! is_string($host) || $host === '' || ! in_array($scheme, ['http', 'https'], true)
+            || strcasecmp($host, $request->getHost()) === 0) {
+            return null;
         }
 
-        return $driver;
+        $port = parse_url($redirect, PHP_URL_PORT);
+
+        return $scheme.'://'.$host.($port ? ':'.$port : '');
     }
 
     /**
@@ -339,7 +417,7 @@ class MicrosoftAuthController extends Controller
             'session_id' => $request->session()->getId(),
             'has_session_cookie' => $request->hasCookie(config('session.cookie')),
             'session_cookie_name' => config('session.cookie'),
-            'oauth_stateless' => (bool) config('services.azure.oauth_stateless'),
+            'has_state_cookie' => $request->hasCookie(MicrosoftOAuthState::cookieName($request)),
             'redirect_uri' => config('services.azure.redirect'),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -353,10 +431,6 @@ class MicrosoftAuthController extends Controller
 
         if (config('app.debug')) {
             return 'Authentication failed: '.($microsoftError ?? $e->getMessage());
-        }
-
-        if ($e instanceof InvalidStateException) {
-            return $this->sessionLostMessage();
         }
 
         if (str_contains($haystack, 'aadsts900144') || str_contains($haystack, "parameter: 'code'")) {
@@ -412,10 +486,15 @@ class MicrosoftAuthController extends Controller
             .'In Entra → OnIT Portal for Portals → Authentication, the redirect URI must be Web (not SPA): '.config('services.azure.redirect');
     }
 
-    private function sessionLostMessage(): string
+    private function stateFailureMessage(string $reason): string
     {
-        return 'Sign-in session was lost during the Microsoft redirect. '
-            .'Use one browser window at https://app.onit.ltd/login - turn off VPN/private-browsing cookie blocking if possible, click Sign in with Microsoft once, and finish in the same tab. '
-            .'Production should use MICROSOFT_OAUTH_STATELESS=true (now the default after git pull + config:clear).';
+        $restart = 'Go to '.route('login').', click Sign in with Microsoft once, and finish in the same browser.';
+
+        return match ($reason) {
+            MicrosoftOAuthState::EXPIRED => 'Sign-in took longer than '.MicrosoftOAuthState::TTL_MINUTES.' minutes to complete, so it was stopped for your security. '.$restart,
+            MicrosoftOAuthState::MISMATCH => 'This sign-in response did not match a sign-in started from this browser (or it was already used), so it was stopped for your security. '.$restart,
+            default => 'This browser did not send back the portal\'s sign-in cookie, so the sign-in could not be verified. '
+                .$restart.' If it keeps happening, allow cookies for this site (private browsing or strict cookie blocking can prevent this).',
+        };
     }
 }

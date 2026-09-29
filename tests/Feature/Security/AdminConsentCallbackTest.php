@@ -146,4 +146,49 @@ class AdminConsentCallbackTest extends TestCase
         $this->assertNull($client->fresh()->entra_tenant_id);
         Bus::assertNotDispatched(BootstrapClientEntraJob::class);
     }
+
+    public function test_link_used_within_its_ttl_still_links_the_tenant(): void
+    {
+        // Pass 8 (L10): a technician who opened Edit client in the morning and only got
+        // GDAP access that afternoon must still be able to use the link.
+        Bus::fake();
+        $this->expectNoBootstrap();
+        config(['services.entra_sync.admin_consent_link_ttl_hours' => 24]);
+        $client = Client::factory()->create(['entra_tenant_id' => null]);
+        $state = AdminConsentState::encode($client->id);
+
+        $this->travel(20)->hours();
+
+        $this->get($this->consentUrl([
+            'state' => $state,
+            'tenant' => self::LINKED_TENANT,
+        ]))->assertOk()->assertSee('running in the background', false);
+
+        $this->assertSame(self::LINKED_TENANT, $client->fresh()->entra_tenant_id);
+        Bus::assertDispatched(BootstrapClientEntraJob::class, fn ($job) => $job->clientId === $client->id);
+    }
+
+    public function test_expired_link_links_nothing_queues_nothing_and_says_how_to_get_a_fresh_one(): void
+    {
+        // A leaked old link must not be able to link an attacker's tenant to a
+        // not-yet-linked client (the most dangerous thing this route can do).
+        Bus::fake();
+        $this->expectNoBootstrap();
+        config(['services.entra_sync.admin_consent_link_ttl_hours' => 24]);
+        $client = Client::factory()->create(['entra_tenant_id' => null]);
+        $state = AdminConsentState::encode($client->id);
+
+        $this->travel(25)->hours();
+
+        $this->get($this->consentUrl([
+            'state' => $state,
+            'tenant' => self::OTHER_TENANT,
+        ]))->assertOk()
+            ->assertSee('has expired', false)
+            ->assertSee('generate a fresh link', false)
+            ->assertDontSee($client->name);
+
+        $this->assertNull($client->fresh()->entra_tenant_id);
+        Bus::assertNotDispatched(BootstrapClientEntraJob::class);
+    }
 }

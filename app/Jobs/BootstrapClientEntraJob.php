@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\ClaimsInFlightSlot;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\EntraSync\CustomerEntraBootstrapService;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Log;
  */
 class BootstrapClientEntraJob implements ShouldQueue, ShouldBeUnique
 {
+    use ClaimsInFlightSlot;
     use Queueable;
 
     public const IN_FLIGHT_KEY_PREFIX = 'entra_bootstrap.in_flight.';

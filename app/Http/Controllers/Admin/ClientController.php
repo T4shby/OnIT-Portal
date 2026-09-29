@@ -321,7 +321,13 @@ class ClientController extends Controller
         // CustomerEntraBootstrapService::bootstrap() makes a long chain of sequential
         // Graph calls (consent-propagation waits, service-principal polling) that can
         // exceed nginx's 60s gateway - same reason applyScim()/retryScimExport() are queued.
-        BootstrapClientEntraJob::markQueued($client->id);
+        // claim() refuses while a run is pending/running (see ClaimsInFlightSlot, L9).
+        if (! BootstrapClientEntraJob::claim($client->id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'Graph setup is already running for this client, so it was not started again. '
+                    .'Wait for it to finish (usually under 2 minutes), then refresh this page.');
+        }
+
         BootstrapClientEntraJob::dispatch($client->id);
 
         $this->activityLog->log('client.entra_bootstrap_queued', $client, clientId: $client->id);
@@ -345,7 +351,16 @@ class ClientController extends Controller
         }
 
         // Graph waits (schema / already-exists) can exceed nginx's 60s gateway - never do that inline.
-        ApplySuperOpsScimJob::markQueued($client->id);
+        // A second submit while one is pending/running used to be dropped silently by
+        // ShouldBeUnique (new URL/token lost, page still said "running"). Refuse it
+        // visibly instead; the secret token is never flashed back into the session.
+        if (! ApplySuperOpsScimJob::claim($client->id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->withInput($request->except('scim_secret_token'))
+                ->with('error', 'Apply SCIM is already running for this client, so these new values were NOT applied. '
+                    .'Wait for it to finish (usually under 2 minutes), refresh this page to see the result, then submit again if the values still need changing.');
+        }
+
         ApplySuperOpsScimJob::dispatch(
             $client->id,
             $request->validated('scim_tenant_url'),
@@ -379,7 +394,14 @@ class ClientController extends Controller
                 ->with('error', 'Connect Microsoft first so Tenant ID and SuperOps SCIM Application (client) ID are saved.');
         }
 
-        RepairSuperOpsScimExportJob::markQueued($client->id);
+        // Same rule as the view's disabled Retry button: not while Apply SCIM or an
+        // earlier retry is pending/running (both drive the same Entra SCIM job).
+        if (ApplySuperOpsScimJob::isInFlight($client->id) || ! RepairSuperOpsScimExportJob::claim($client->id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'A SCIM job (Apply SCIM or Retry SCIM export) is already running for this client, so Retry was not started. '
+                    .'Wait for it to finish, then refresh this page.');
+        }
+
         RepairSuperOpsScimExportJob::dispatch($client->id);
 
         $this->activityLog->log('client.scim_export_retry_queued', $client, clientId: $client->id);
@@ -407,7 +429,15 @@ class ClientController extends Controller
         // Login URL/certificate are written to the client_sso_idp.{id} cache key by the
         // job itself, and the Blade view polls that key + client_sso_apply.in_flight the
         // same way it already polls scim_apply.in_flight/scim_apply.last_result.
-        ApplyClientSsoSamlJob::markQueued($client->id);
+        // Refuse (visibly, keeping the typed values) rather than let ShouldBeUnique
+        // drop a second submit's Entity ID / Reply URL silently (L9).
+        if (! ApplyClientSsoSamlJob::claim($client->id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->withInput()
+                ->with('error', 'Wire SuperOps into Microsoft Entra is already running for this client, so these new values were NOT applied. '
+                    .'Wait for it to finish (usually under 2 minutes), refresh this page to see the result, then submit again if the values still need changing.');
+        }
+
         ApplyClientSsoSamlJob::dispatch(
             $client->id,
             $request->validated('entity_id'),

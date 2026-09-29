@@ -35,11 +35,8 @@ return [
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),
         'tenant' => env('MICROSOFT_TENANT_ID', 'organizations'),
-        'oauth_stateless' => match (true) {
-            in_array(env('MICROSOFT_OAUTH_STATELESS'), ['false', '0'], true) => false,
-            in_array(env('MICROSOFT_OAUTH_STATELESS'), ['true', '1'], true) => true,
-            default => env('APP_ENV') === 'production',
-        },
+        // No stateless/stateful switch: the OAuth state check is always on and does
+        // not use the session (App\Support\MicrosoftOAuthState).
     ],
 
     'portal' => [
@@ -139,6 +136,9 @@ return [
         'max_deactivation_ratio' => (float) env('ENTRA_SYNC_MAX_DEACTIVATION_RATIO', 0.5),
         'max_deactivation_min_users' => (int) env('ENTRA_SYNC_MAX_DEACTIVATION_MIN_USERS', 5),
         'lock_seconds' => max(60, (int) env('ENTRA_SYNC_LOCK_SECONDS', 600)),
+        // Hours a generated admin-consent (Connect Microsoft / Re-consent) link stays
+        // valid. See App\Support\AdminConsentState for why 24h; clamped to 1..336.
+        'admin_consent_link_ttl_hours' => (int) env('ADMIN_CONSENT_LINK_TTL_HOURS', 24),
         'web_max_execution_seconds' => max(60, (int) env('ENTRA_SYNC_WEB_MAX_EXECUTION_SECONDS', 300)),
     ],
 
