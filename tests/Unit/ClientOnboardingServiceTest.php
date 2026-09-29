@@ -247,7 +247,7 @@ class ClientOnboardingServiceTest extends TestCase
         );
         $this->assertSame('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', $query['client_id']);
         $this->assertSame(config('services.azure.redirect'), $query['redirect_uri']);
-        $this->assertSame(\App\Support\AdminConsentState::encode($client->id), $query['state']);
+        $this->assertSame($client->id, \App\Support\AdminConsentState::decode($query['state']));
     }
 
     public function test_admin_consent_url_uses_organizations_when_tenant_unknown(): void
@@ -264,7 +264,8 @@ class ClientOnboardingServiceTest extends TestCase
             'https://login.microsoftonline.com/organizations/adminconsent',
             $url,
         );
-        $this->assertStringContainsString(AdminConsentState::encode($client->id), $url);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $this->assertSame($client->id, AdminConsentState::decode($query['state']));
     }
 
     public function test_progress_counts_auto_completed_steps(): void

@@ -10,6 +10,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\SuperOps\SuperOpsSsoService;
 use App\Services\SuperOps\SuperOpsUserSyncService;
+use App\Support\AdminConsentState;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -202,7 +203,10 @@ class MicrosoftAuthController extends Controller
             'state' => $request->query('state'),
         ]);
 
-        $client = $this->clientFromAdminConsentState($request->query('state'));
+        $consentState = AdminConsentState::inspect(
+            is_string($request->query('state')) ? $request->query('state') : null
+        );
+        $client = $consentState['client_id'] !== null ? Client::find($consentState['client_id']) : null;
         $tenantFromConsent = is_string($request->query('tenant'))
             ? strtolower(trim($request->query('tenant')))
             : null;
@@ -214,6 +218,30 @@ class MicrosoftAuthController extends Controller
         }
 
         $bootstrapResult = null;
+
+        // A genuine link that is older than its TTL: link nothing, queue nothing, name no
+        // client, and tell the technician how to get a fresh one (see AdminConsentState).
+        if ($consentState['status'] === AdminConsentState::STATUS_EXPIRED) {
+            Log::warning('Admin consent state expired - nothing linked', [
+                'consent_tenant' => $tenantFromConsent,
+                'ttl_hours' => AdminConsentState::ttlHours(),
+            ]);
+
+            return view('auth.admin-consent-complete', [
+                'tenant' => $tenantFromConsent,
+                'client' => null,
+                'bootstrap' => [
+                    'ok' => false,
+                    'summary' => 'This consent link has expired.',
+                    'details' => [],
+                    'warnings' => [
+                        'This Connect Microsoft / Re-consent link has expired (links are valid for '
+                        .AdminConsentState::ttlHours().' hours), so the portal did not link or set up anything. '
+                        .'Sign in to the portal, open Admin → Clients → Edit for this client to generate a fresh link, and click Accept again.',
+                    ],
+                ],
+            ]);
+        }
 
         // This route runs without a portal session, so it may link a tenant to a client
         // that has none yet, but never re-point an already-linked client elsewhere.
@@ -307,13 +335,6 @@ class MicrosoftAuthController extends Controller
             'client' => $client,
             'bootstrap' => $bootstrapResult,
         ]);
-    }
-
-    private function clientFromAdminConsentState(mixed $state): ?Client
-    {
-        $clientId = \App\Support\AdminConsentState::decode(is_string($state) ? $state : null);
-
-        return $clientId ? Client::find($clientId) : null;
     }
 
     private function azureDriver(): Provider
