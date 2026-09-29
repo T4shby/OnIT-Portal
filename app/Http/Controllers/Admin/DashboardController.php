@@ -54,6 +54,7 @@ class DashboardController extends Controller
 
         $productCoverage = $this->integrationHealth->productCoverage(
             $healthScope,
+            $overview,
         );
 
         return view('admin.dashboard', compact('stats', 'recentActivity', 'healthSummary', 'productCoverage'));

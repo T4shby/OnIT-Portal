@@ -123,6 +123,8 @@ class IntegrationHealthService
      * Cold = sold + mapped pathway but never loaded. KPI target: cold_cells → 0.
      *
      * @param  list<int>|null  $accessibleClientIds
+     * @param  array<string, mixed>|null  $overview  an overview() result for the same scope, to avoid
+     *                                               building the whole health matrix twice
      * @return array{
      *   clients: int,
      *   sold_feed_cells: int,
@@ -135,9 +137,9 @@ class IntegrationHealthService
      *   rows: list<array{client_id: int, client_name: string, sold: int, live: int, setup: int, cold: int, failed: int}>
      * }
      */
-    public function productCoverage(?array $accessibleClientIds = null): array
+    public function productCoverage(?array $accessibleClientIds = null, ?array $overview = null): array
     {
-        $overview = $this->overview($accessibleClientIds);
+        $overview ??= $this->overview($accessibleClientIds);
         $rows = [];
         $sold = 0;
         $live = 0;

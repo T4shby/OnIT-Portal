@@ -171,4 +171,16 @@ class AdminIntegrationHealthDashboardTest extends TestCase
             ->get(route('admin.integration-health.live'))
             ->assertForbidden();
     }
+
+    public function test_admin_dashboard_builds_the_health_overview_once(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        Client::factory()->create(['name' => 'Acme Ltd', 'is_active' => true]);
+
+        $spy = \Mockery::mock(\App\Services\Admin\IntegrationHealthService::class)->makePartial();
+        $spy->shouldReceive('overview')->once()->passthru();
+        $this->app->instance(\App\Services\Admin\IntegrationHealthService::class, $spy);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+    }
 }
