@@ -51,3 +51,14 @@ Schedule::command('portal:capture-metric-snapshots')
 Schedule::command('model:prune', ['--model' => [\App\Models\ActivityLog::class]])
     ->dailyAt('03:20')
     ->withoutOverlapping(30);
+
+// Database-backed tables that otherwise only grow: failed jobs older than 30 days,
+// and cache rows that expired but were never read again (DatabaseStore only
+// deletes an expired row when that key is read).
+Schedule::command('queue:prune-failed', ['--hours' => 720])
+    ->dailyAt('03:30')
+    ->withoutOverlapping(30);
+
+Schedule::command('portal:prune-expired-cache')
+    ->dailyAt('03:40')
+    ->withoutOverlapping(30);
