@@ -109,6 +109,30 @@ in this repo.
 - [ ] Check `storage/logs/laravel.log` after deploy for boot-time errors
 - [ ] Confirm scheduler heartbeat is current: Admin → Integration Health
       page shows a recent "Scheduler" tick
+- [ ] Sign in once with Microsoft in a normal browser window (see "Microsoft
+      sign-in state check" below)
+
+### Microsoft sign-in state check (eighth audit pass)
+
+Sign-in always verifies the OAuth `state` against a short-lived
+`__Host-onit_oauth_state` cookie (not the session), and the old
+`MICROSOFT_OAUTH_STATELESS` variable is gone. On the first deploy that
+includes this change:
+
+1. Delete `MICROSOFT_OAUTH_STATELESS` from the production `.env` if present
+   (it is ignored now), then `php artisan config:cache`.
+2. `APP_URL` and `MICROSOFT_REDIRECT_URI` must use the same host
+   (`app.onit.ltd`). If `/auth/microsoft` is reached on another host it
+   bounces once to the redirect URI's host, so the cookie is set where
+   Microsoft returns the browser.
+3. Sign in with Microsoft once. Then check `storage/logs/laravel.log` for
+   `Microsoft OAuth state check failed` warnings over the next day or so. The
+   `reason` field (`missing_cookie` / `mismatch` / `expired`) and
+   `has_state_cookie` say why. An occasional `expired`, or a `mismatch` from
+   a reused callback URL, is expected. Repeated `missing_cookie` for many
+   users would mean the cookie is not surviving the redirect. There is no
+   config switch to turn the check off: roll back the code (no migration is
+   involved) and report it.
 
 ## Required environment variables
 
@@ -126,7 +150,7 @@ feature-gated.
 | `SESSION_DRIVER` | `database` | Yes |
 | `SESSION_SECURE_COOKIE` | Set to `true` in production (blank/unset now defaults to `true` when `APP_ENV=production`) | Recommended - see `docs/SECURITY.md` |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Entra ID SSO | Yes - login is disabled without these |
-| `MICROSOFT_OAUTH_STATELESS` | Usually `true` in production (session often lost behind Plesk/nginx) | Recommended |
+| `ADMIN_CONSENT_LINK_TTL_HOURS` | Hours a Connect Microsoft / Re-consent link stays valid (clamped 1-336) | No, default 24 |
 | `QUEUE_CONNECTION` | `database` | Yes |
 | `DB_QUEUE_RETRY_AFTER` | Seconds before a reserved job is re-run by another worker. Must exceed the longest job `$timeout` (600s) | No, default 900 (`config/queue.php`) |
 | `ACTIVITY_LOG_RETAIN_DAYS` | Audit log retention (days) | No, default 90 |

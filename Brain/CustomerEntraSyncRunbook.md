@@ -235,6 +235,8 @@ Must be done in the **customer** tenant as Global Admin (or GDAP with consent ri
 4. Review permissions → **Accept**
 5. Success page confirms consent
 
+The portal link expires **24 hours** after the Edit Client page generated it (`ADMIN_CONSENT_LINK_TTL_HOURS`, since 2026-09-29). An expired link links and sets up nothing. Reload **Edit Client** for a fresh link and Accept again.
+
 ### Option B - Manual URL
 
 ```

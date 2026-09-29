@@ -82,7 +82,12 @@ per-client with strict multi-tenant isolation.
    `App\Support\SuperOpsHtml::sanitize()`** before being echoed with `{!!
    !!}` in Blade. Do not add new unescaped output of third-party or
    user-supplied content without an equivalent allowlist sanitizer.
-8. **Do not introduce Redis, a message broker, Kubernetes, or a
+8. **Microsoft sign-in always verifies the OAuth `state`** against its own
+   short-lived cookie (`App\Support\MicrosoftOAuthState`), not the
+   session. Do not remove that check, move the state back into the session,
+   or reintroduce a switch to turn it off (the old `MICROSOFT_OAUTH_STATELESS`
+   workaround disabled it and allowed login CSRF). See `docs/SECURITY.md`.
+9. **Do not introduce Redis, a message broker, Kubernetes, or a
    microservice split** without an explicit decision recorded in
    `Brain/Decisions.md` - this app is intentionally a single Laravel
    monolith on one Plesk box with database-backed queue/cache/session.

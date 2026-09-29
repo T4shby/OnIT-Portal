@@ -29,6 +29,22 @@ and whether each is required.
   returns no eligible users while the client has active synced users, or
   when it would deactivate more than `ENTRA_SYNC_MAX_DEACTIVATION_RATIO`
   (default 50%) of them (sixth audit pass).
+- **OAuth `state` (login-CSRF protection) is always verified, without using
+  the session** (eighth audit pass, `App\Support\MicrosoftOAuthState`).
+  `/auth/microsoft` generates a random 40-character state, sends it to
+  Microsoft and stores it in a dedicated cookie; the callback compares the
+  returned `state` with that cookie **before doing anything else** and
+  refuses a missing cookie, a mismatch or a state older than 15 minutes.
+  The cookie is encrypted and MACed by Laravel's `EncryptCookies` (bound to
+  its name), `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and over HTTPS
+  `Secure` with the `__Host-` name prefix (so a sibling subdomain cannot
+  plant one). It holds up to 5 pending states so two login tabs both work,
+  and a matched state is removed. Socialite runs `stateless()` because the
+  app does this check itself. This differs from a typical Socialite setup on
+  purpose: Socialite's own state lives in the server-side session, which
+  failed in production ("session lost", `InvalidStateException`), and the
+  earlier workaround (`MICROSOFT_OAUTH_STATELESS`, default true in
+  production) removed the check entirely. That variable no longer exists.
 - The Microsoft **admin-consent return** also lands on
   `/auth/microsoft/callback` (guest, no portal session). The client it acts
   on comes only from an HMAC-signed `state` (`AdminConsentState`; the old
@@ -36,7 +52,10 @@ and whether each is required.
   GUID, and it can never re-point a client that already has a different
   `entra_tenant_id` (fifth audit pass). The slow Graph bootstrap it triggers
   is queued (`BootstrapClientEntraJob`), not run inline on this public URL
-  (sixth audit pass).
+  (sixth audit pass). Since the eighth pass the signed payload includes the
+  issue time, and links older than `ADMIN_CONSENT_LINK_TTL_HOURS` (default
+  24) are refused with a "generate a fresh link" message; a fresh link is
+  minted on every Admin → Clients → Edit page load.
 - `/auth/microsoft/callback` is rate-limited (`throttle:auth-callback`, 6/min
   per IP) via `RateLimiter::for('auth-callback', ...)` in
   `AppServiceProvider`.
@@ -165,6 +184,7 @@ without it, not that the app fails to boot.
 | `APP_*`, `DB_*` | Yes | Standard Laravel/DB config |
 | `SESSION_SECURE_COOKIE` | Recommended (set `true`) | Blank/unset defaults to `true` when `APP_ENV=production` (`config/session.php`) |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Yes | Entra ID app registration; without these, login is disabled with an explicit error message |
+| `ADMIN_CONSENT_LINK_TTL_HOURS` | No, default 24 (1-336) | Lifetime of Connect Microsoft / Re-consent links (`AdminConsentState`) |
 | `SUPEROPS_API_TOKEN`, `SUPEROPS_SUBDOMAIN` | Feature-gated | Support tickets / SSO launch unavailable without it |
 | `ENTRA_SYNC_ENABLED`, `ENTRA_SYNC_CLIENT_ID`, `ENTRA_SYNC_CLIENT_SECRET` | Feature-gated | Group sync, M365 directory, SCIM provisioning all gated on this |
 | `HUNTRESS_*` | Feature-gated, default disabled | `HUNTRESS_ENABLED=false` by default |

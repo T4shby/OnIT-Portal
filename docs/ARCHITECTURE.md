@@ -37,7 +37,12 @@ MySQL/MariaDB (also backs session, cache, and queue tables)
 
 1. All routes require Entra ID session auth (`middleware('auth')`), except
    `/login`, `/auth/microsoft`, `/auth/microsoft/callback` (guest-only).
-2. `MicrosoftAuthController` completes OAuth via Socialite, looks up an
+2. `MicrosoftAuthController::redirect()` sets a random OAuth `state` in a
+   dedicated short-lived cookie (`App\Support\MicrosoftOAuthState`, not the
+   session) and sends the browser to Microsoft; `callback()` refuses the
+   response unless its `state` matches that cookie (login-CSRF protection),
+   then completes OAuth via Socialite (run `stateless()`, since the app does
+   the state check itself), looks up an
    **existing, pre-provisioned** `User` row by `entra_object_id` (falling
    back to email), and refuses login for accounts that are inactive,
    portal-login-disabled, or whose `Client` is inactive. There is no
