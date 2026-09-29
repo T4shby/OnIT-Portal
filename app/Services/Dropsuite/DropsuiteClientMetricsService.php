@@ -417,15 +417,6 @@ class DropsuiteClientMetricsService
     }
 
     /**
-     * @param  list<string>  $emails
-     * @return list<array<string, mixed>>
-     */
-    private function fetchOneDriveRowsForEmails(array $emails, ?string $accessToken = null): array
-    {
-        return $this->fetchOptionalResourceRows('onedrives', $emails, $accessToken);
-    }
-
-    /**
      * @param  array<string, mixed>  $row
      */
     private function rowHasOrganizationHint(array $row): bool

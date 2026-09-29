@@ -101,7 +101,6 @@ class ApplySuperOpsScimJob implements ShouldQueue, ShouldBeUnique, ShouldBeEncry
                 $client->refresh();
             }
 
-            Cache::put('entra_sync.in_flight.'.$client->id, true, now()->addMinutes(15));
             SyncEntraClientJob::dispatchMarked($client->id, dryRun: false);
             $syncQueued = true;
         }

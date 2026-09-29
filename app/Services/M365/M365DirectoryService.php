@@ -140,26 +140,6 @@ class M365DirectoryService
         return $snapshot;
     }
 
-    /**
-     * @deprecated Use displaySnapshot() for non-blocking reads.
-     *
-     * @throws Throwable
-     */
-    public function snapshot(Client $client, bool $refresh = false): M365DirectorySnapshot
-    {
-        if ($refresh) {
-            $this->queueRefresh($client, respectCooldown: true);
-        }
-
-        $display = $this->displaySnapshot($client);
-
-        if ($display->snapshot !== null) {
-            return $display->snapshot;
-        }
-
-        return new M365DirectorySnapshot(collect(), collect(), now());
-    }
-
     private function buildDisplayResult(
         Client $client,
         ?M365DirectorySnapshot $snapshot = null,

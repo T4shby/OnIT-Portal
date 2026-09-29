@@ -311,16 +311,6 @@ class ClientProductService
     }
 
     /**
-     * Width utility for legacy flex layouts. Prefer equal CSS grid on Organisation overview.
-     *
-     * @deprecated Organisation overview uses fixed auto-fit grid; kept for any remaining callers.
-     */
-    public function overviewTileWidthClass(int $index, int $total): string
-    {
-        return 'w-full';
-    }
-
-    /**
      * Client Admin contact-AM copy only when entitled but not fully set up.
      */
     public function needsAccountManagerHelp(Client $client, string $key): bool

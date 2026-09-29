@@ -3,8 +3,6 @@
 namespace App\Services\M365;
 
 use App\Models\Client;
-use App\Services\Portal\ClientVisibilityService;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -20,7 +18,6 @@ class M365DirectoryExportService
     public function __construct(
         protected M365DirectoryService $directory,
         protected M365InsightsService $insights,
-        protected ClientVisibilityService $visibility,
     ) {}
 
     /**
@@ -32,22 +29,13 @@ class M365DirectoryExportService
      *     users: list<array{name: string, email: string, type: string, account: string, licences: string}>
      * }
      */
-    public function buildWorkbook(Client $client, ?User $scopedUser = null): array
+    public function buildWorkbook(Client $client): array
     {
         $insights = $this->insights->summaryForClient($client);
         $display = $this->directory->displaySnapshot($client);
         $snapshot = $display?->snapshot;
 
         $people = $snapshot?->people ?? collect();
-        if ($scopedUser !== null) {
-            $people = $people->filter(function (array $person) use ($scopedUser): bool {
-                return $this->visibility->matchesEmail($person['email'] ?? null, $scopedUser)
-                    || $this->visibility->matchesPerson($scopedUser, [
-                        $person['email'] ?? null,
-                        $person['displayName'] ?? null,
-                    ]);
-            })->values();
-        }
 
         $licences = $this->licenceRows($client, $insights);
         $users = $this->userRows($people);

@@ -18,7 +18,6 @@ use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
-use App\Services\EntraSync\EntraSyncResult;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
@@ -285,41 +284,6 @@ class ClientController extends Controller
             'success',
             'Entra sync started in the background. Open Admin → Dashboard - Integration Health updates live while it runs.',
         );
-    }
-
-    private function finishEntraSyncResponse(Client $client, EntraSyncResult $result, bool $dryRun): RedirectResponse
-    {
-        if ($result->failed()) {
-            return back()->with('error', $result->errors[0] ?? 'Entra sync failed.');
-        }
-
-        $message = $result->summary($dryRun);
-
-        if ($result->hasErrors()) {
-            $warnings = array_slice($result->errors, 0, 3);
-            $message .= ' Warnings: '.implode(' ', $warnings);
-
-            if (count($result->errors) > 3) {
-                $message .= ' ('.count($result->errors).' warnings total)';
-            }
-        }
-
-        $this->activityLog->log(
-            $dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
-            $client,
-            properties: [
-                'created' => $result->created,
-                'updated' => $result->updated,
-                'deactivated' => $result->deactivated,
-                'skipped' => $result->skipped,
-                'warnings' => count($result->errors),
-            ],
-            clientId: $client->id,
-        );
-
-        $flashKey = $result->hasWarnings() ? 'warning' : 'success';
-
-        return back()->with($flashKey, ucfirst($message));
     }
 
     public function updateOnboarding(UpdateClientOnboardingRequest $request, Client $client): RedirectResponse
