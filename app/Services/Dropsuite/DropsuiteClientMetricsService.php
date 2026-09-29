@@ -10,6 +10,7 @@ use App\Services\Portal\ClientVisibilityService;
 use App\Services\Portal\PortalFreshnessService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -218,32 +219,7 @@ class DropsuiteClientMetricsService
      */
     private function userAccessTokenForOrganization(string $organizationId): string
     {
-        $users = Cache::remember('dropsuite.users.list.v1', now()->addMinutes(15), function (): array {
-            return $this->fetchAllUsers();
-        });
-
-        $match = null;
-        foreach ($users as $user) {
-            if (! is_array($user)) {
-                continue;
-            }
-            $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
-            // API sends int; staff mapping is a string. Reject dotted/user-id shapes separately below.
-            if ($oid === '' || $oid !== (string) $organizationId) {
-                continue;
-            }
-            $token = trim((string) ($user['authentication_token'] ?? ''));
-            if ($token === '') {
-                continue;
-            }
-            // Prefer admin customer user; otherwise first with a token.
-            if ($match === null || ! empty($user['admin'])) {
-                $match = $token;
-                if (! empty($user['admin'])) {
-                    break;
-                }
-            }
-        }
+        $match = $this->organizationTokenMap()[(string) $organizationId] ?? null;
 
         if ($match === null) {
             $hint = str_contains($organizationId, '-')
@@ -256,6 +232,55 @@ class DropsuiteClientMetricsService
         }
 
         return $match;
+    }
+
+    /**
+     * organization_id => user token, cached 15 minutes (one GET /users sweep shared by
+     * every org). Only the chosen token per org is kept - no emails / other user
+     * fields - and the cache entry is encrypted with the app key, because these are
+     * live per-customer API credentials sitting in the database `cache` table.
+     *
+     * @return array<string, string>
+     */
+    private function organizationTokenMap(): array
+    {
+        $cacheKey = 'dropsuite.org_tokens.v2';
+        $cached = Cache::get($cacheKey);
+        if (is_string($cached)) {
+            try {
+                $map = json_decode(Crypt::decryptString($cached), true);
+                if (is_array($map)) {
+                    return $map;
+                }
+            } catch (\Throwable) {
+                // APP_KEY rotated or corrupt entry: rebuild below.
+            }
+        }
+
+        $map = [];
+        $adminSeen = [];
+        foreach ($this->fetchAllUsers() as $user) {
+            // API sends int; staff mapping is a string.
+            $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
+            $token = trim((string) ($user['authentication_token'] ?? ''));
+            if ($oid === '' || $token === '') {
+                continue;
+            }
+            // Prefer the org's admin customer user; otherwise the first with a token.
+            if (! isset($map[$oid]) || (! empty($user['admin']) && ! isset($adminSeen[$oid]))) {
+                $map[$oid] = $token;
+                if (! empty($user['admin'])) {
+                    $adminSeen[$oid] = true;
+                }
+            }
+        }
+
+        Cache::put($cacheKey, Crypt::encryptString(json_encode($map)), now()->addMinutes(15));
+        // Previous versions cached the raw GET /users list (every org's token + user
+        // fields) in plaintext under this key.
+        Cache::forget('dropsuite.users.list.v1');
+
+        return $map;
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Services\Dropsuite\DropsuiteClientMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -220,5 +221,40 @@ class DropsuiteClientMetricsServiceTest extends TestCase
         $this->expectExceptionMessage('no user access token for organization 177210-12');
 
         app(DropsuiteClientMetricsService::class)->refreshAndStore($client);
+    }
+
+    public function test_org_user_tokens_are_not_cached_in_plaintext(): void
+    {
+        // Production uses CACHE_STORE=database: assert on what lands in that table.
+        config(['cache.default' => 'database']);
+        \Illuminate\Support\Facades\Cache::forgetDriver('database');
+
+        Http::fake([
+            'https://dropsuite.us/api/users*' => Http::response([
+                'result_set' => [
+                    ['id' => '1', 'email' => 'admin@other.test', 'organization_id' => 999, 'authentication_token' => 'other-org-secret-token', 'admin' => true],
+                    ['id' => '2', 'email' => 'admin@acme.test', 'organization_id' => 6182, 'authentication_token' => 'acme-secret-token', 'admin' => true],
+                ],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1],
+            ], 200),
+            'https://dropsuite.us/api/*' => Http::response(['result_set' => [], 'pagination' => ['current_page' => 1, 'total_pages' => 1]], 200),
+        ]);
+
+        $client = Client::factory()->create(['dropsuite_organization_id' => '6182']);
+
+        try {
+            app(DropsuiteClientMetricsService::class)->refreshAndStore($client);
+        } catch (\Throwable) {
+            // Only the token cache matters here.
+        }
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/accounts')
+            && $request->hasHeader('X-Access-Token', 'acme-secret-token'));
+
+        $this->assertNull(Cache::get('dropsuite.users.list.v1'));
+        $raw = \Illuminate\Support\Facades\DB::table('cache')->pluck('value')->implode(' ');
+        $this->assertStringNotContainsString('acme-secret-token', $raw);
+        $this->assertStringNotContainsString('other-org-secret-token', $raw);
+        $this->assertStringNotContainsString('admin@other.test', $raw);
     }
 }
