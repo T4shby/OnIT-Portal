@@ -124,7 +124,7 @@ feature-gated.
 | `APP_URL` | Public HTTPS URL | Yes |
 | `DB_*` | Database connection | Yes |
 | `SESSION_DRIVER` | `database` | Yes |
-| `SESSION_SECURE_COOKIE` | Set to `true` in production | Yes - see `docs/SECURITY.md` |
+| `SESSION_SECURE_COOKIE` | Set to `true` in production (blank/unset now defaults to `true` when `APP_ENV=production`) | Recommended - see `docs/SECURITY.md` |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Entra ID SSO | Yes - login is disabled without these |
 | `MICROSOFT_OAUTH_STATELESS` | Usually `true` in production (session often lost behind Plesk/nginx) | Recommended |
 | `QUEUE_CONNECTION` | `database` | Yes |
@@ -135,7 +135,7 @@ feature-gated.
 | `HUNTRESS_ENABLED`, `HUNTRESS_API_KEY`, `HUNTRESS_API_SECRET` | Huntress security dashboard | Feature-gated, off by default |
 | `DROPSUITE_ENABLED`, `DROPSUITE_RESELLER_TOKEN`, `DROPSUITE_AUTH_TOKEN` | Dropsuite backup dashboard | Feature-gated, off by default |
 | `PAX8_*` | Pax8 SSO launch | Feature-gated |
-| `SUPER_ADMIN_EMAIL` | Display/contact only | No |
+| `SUPER_ADMIN_EMAIL` | Microsoft sign-in (UPN) of the first `super_admin`; `db:seed` (`UserSeeder`) creates/updates this account. Login is SSO-only and needs a pre-provisioned user, so a fresh install has no admin without it | Yes on first install |
 
 ## Rollback
 
