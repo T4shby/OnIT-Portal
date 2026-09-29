@@ -267,7 +267,8 @@ class M365DirectoryService
             })
             ->where(function ($q) use ($client): void {
                 $id = (int) $client->id;
-                $q->where('payload', 'like', '%clientId";i:'.$id.';%')
+                $q->where('payload', 'like', '%clientId_";i:'.$id.';%')
+                    ->orWhere('payload', 'like', '%clientId";i:'.$id.';%')
                     ->orWhere('payload', 'like', '%"clientId":'.$id.'%')
                     ->orWhere('payload', 'like', '%i:'.$id.';%');
             })

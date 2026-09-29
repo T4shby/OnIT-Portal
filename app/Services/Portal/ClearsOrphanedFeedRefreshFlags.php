@@ -2,6 +2,7 @@
 
 namespace App\Services\Portal;
 
+use App\Support\QueuedJobPayload;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -38,9 +39,9 @@ trait ClearsOrphanedFeedRefreshFlags
             return false;
         }
 
-        return DB::table('jobs')
-            ->where('payload', 'like', '%'.$jobClassHint.'%')
-            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
-            ->exists();
+        return QueuedJobPayload::whereClientId(
+            DB::table('jobs')->where('payload', 'like', '%'.$jobClassHint.'%'),
+            $clientId,
+        )->exists();
     }
 }
