@@ -336,4 +336,119 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer api-pasted-token'));
     }
+
+    public function test_requester_scope_uses_untruncated_rows_and_requester_identity_only(): void
+    {
+        $tickets = [];
+        // 25 high-priority open tickets from someone else fill (and overflow)
+        // the 20-row org table.
+        for ($i = 1; $i <= 25; $i++) {
+            $tickets[] = [
+                'ticketId' => (string) $i,
+                'displayId' => (string) (2000 + $i),
+                'subject' => "Bob urgent {$i}",
+                'priority' => 'High',
+                'status' => 'Open',
+                'createdTime' => now()->subHours($i)->toIso8601String(),
+                'requester' => ['email' => 'bob@acme.test', 'name' => 'Bob', 'userId' => 'u-bob'],
+            ];
+        }
+        // Jane's own low-priority ticket: outside the org top-20.
+        $tickets[] = [
+            'ticketId' => '100',
+            'displayId' => '3001',
+            'subject' => 'Monitor flicker',
+            'priority' => 'Low',
+            'status' => 'Open',
+            'createdTime' => now()->subDays(3)->toIso8601String(),
+            'requester' => ['email' => 'Jane.Doe@acme.test', 'name' => 'Jane Doe', 'userId' => 'u-jane'],
+        ];
+        // A ticket *about* Jane, raised by her manager: must not be shown to her.
+        $tickets[] = [
+            'ticketId' => '101',
+            'displayId' => '3002',
+            'subject' => 'Disable account for jane.doe - leaver (Jane Doe)',
+            'priority' => 'Critical',
+            'status' => 'Open',
+            'createdTime' => now()->toIso8601String(),
+            'requester' => ['email' => 'manager@acme.test', 'name' => 'Manager', 'userId' => 'u-mgr'],
+        ];
+        // Local-part substring: "mark@" must not match "marketing@".
+        $tickets[] = [
+            'ticketId' => '102',
+            'displayId' => '3003',
+            'subject' => 'Newsletter template',
+            'priority' => 'Low',
+            'status' => 'Open',
+            'createdTime' => now()->toIso8601String(),
+            'requester' => ['email' => 'marketing@acme.test', 'name' => 'Marketing', 'userId' => 'u-mkt'],
+        ];
+        // 12 closed tickets for Jane, older than 12 closed tickets for Bob:
+        // the org "10 most recent closed" table contains none of Jane's.
+        for ($i = 1; $i <= 12; $i++) {
+            $tickets[] = [
+                'ticketId' => 'cb'.$i,
+                'displayId' => (string) (4000 + $i),
+                'subject' => "Bob closed {$i}",
+                'priority' => 'Low',
+                'status' => 'Closed',
+                'createdTime' => now()->subDays(10)->toIso8601String(),
+                'resolutionTime' => now()->subHours($i)->toIso8601String(),
+                'requester' => ['email' => 'bob@acme.test', 'name' => 'Bob', 'userId' => 'u-bob'],
+            ];
+            $tickets[] = [
+                'ticketId' => 'cj'.$i,
+                'displayId' => (string) (5000 + $i),
+                'subject' => "Jane closed {$i}",
+                'priority' => 'Low',
+                'status' => 'Closed',
+                'createdTime' => now()->subDays(30)->toIso8601String(),
+                'resolutionTime' => now()->subDays(5 + $i)->toIso8601String(),
+                'requester' => ['email' => 'jane.doe@acme.test', 'name' => 'Jane Doe', 'userId' => 'u-jane'],
+            ];
+        }
+
+        Http::fake([
+            'https://api.superops.ai/msp' => Http::sequence()
+                ->push(['data' => ['getTicketList' => [
+                    'tickets' => $tickets,
+                    'listInfo' => ['totalCount' => count($tickets), 'hasMore' => false],
+                ]]])
+                ->push(['data' => ['getAssetList' => [
+                    'assets' => [],
+                    'listInfo' => ['totalCount' => 0, 'hasMore' => false],
+                ]]]),
+        ]);
+
+        $client = Client::factory()->create(['superops_account_id' => '111']);
+        $service = app(SuperOpsClientMetricsService::class);
+        $org = $service->refreshAndStore($client);
+
+        // Org view is still truncated as before.
+        $this->assertCount(20, $org->openTicketsTable);
+        $this->assertNotContains('3001', array_column($org->openTicketsTable, 'displayId'));
+
+        $jane = \App\Models\User::factory()->create([
+            'client_id' => $client->id,
+            'role' => \App\Enums\UserRole::ClientRequester,
+            'email' => 'jane.doe@acme.test',
+            'name' => 'Jane Doe',
+        ]);
+        $mine = $service->summaryForClient($client, viewer: $jane);
+
+        $this->assertSame(1, $mine->openTicketsTotal);
+        $this->assertSame(['3001'], array_column($mine->openTicketsTable, 'displayId'));
+        $this->assertCount(10, $mine->closedTicketsTable);
+        $this->assertSame('5001', $mine->closedTicketsTable[0]['displayId']);
+
+        $mark = \App\Models\User::factory()->create([
+            'client_id' => $client->id,
+            'role' => \App\Enums\UserRole::ClientRequester,
+            'email' => 'mark@acme.test',
+            'name' => 'Mark',
+        ]);
+        $marks = $service->summaryForClient($client, viewer: $mark);
+        $this->assertSame(0, $marks->openTicketsTotal);
+        $this->assertSame([], $marks->openTicketsTable);
+    }
 }

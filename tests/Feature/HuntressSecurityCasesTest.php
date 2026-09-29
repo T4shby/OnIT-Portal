@@ -218,4 +218,66 @@ class HuntressSecurityCasesTest extends TestCase
             ->assertSee('huntress-case', false)
             ->assertSee('type="button"', false);
     }
+
+    public function test_personal_scope_does_not_substring_match_local_part_or_body(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'Acme',
+            'huntress_organization_id' => 'org-acme',
+        ]);
+        $mark = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientRequester,
+            'email' => 'mark@acme.test',
+            'name' => 'Mark Evans',
+        ]);
+
+        $cache = $this->incidentsCache();
+        $cache['incidents'][] = [
+            'id' => '300',
+            'organization_id' => 'org-acme',
+            'subject' => 'Marketing mailbox case',
+            'status' => 'open',
+            'severity' => 'high',
+            // Old fuzzy matcher: local part "mark" is a substring of "marketing@",
+            // and the display name appears in the free-text body.
+            'summary' => 'Suspicious login to marketing@acme.test reported by Mark Evans',
+            'body' => null,
+            'sent_at' => now()->toIso8601String(),
+            'closed_at' => null,
+            'updated_at' => null,
+            'platform' => 'microsoft_365',
+            'indicator_types' => [],
+            'remediations' => [],
+            'related_emails' => ['marketing@acme.test'],
+        ];
+        $cache['incidents'][] = [
+            'id' => '301',
+            'organization_id' => 'org-acme',
+            'subject' => 'Case for mark',
+            'status' => 'open',
+            'severity' => 'low',
+            'summary' => 'Device alert for mark@acme.test',
+            'body' => null,
+            'sent_at' => now()->toIso8601String(),
+            'closed_at' => null,
+            'updated_at' => null,
+            'platform' => 'windows',
+            'indicator_types' => [],
+            'remediations' => [],
+            'related_emails' => ['mark@acme.test'],
+        ];
+
+        Cache::put("client:{$client->id}:huntress-incidents:v1", $cache, now()->addHour());
+
+        $this->actingAs($mark)
+            ->get(route('security.huntress.index'))
+            ->assertOk()
+            ->assertSee('Case for mark')
+            ->assertDontSee('Marketing mailbox case');
+
+        $this->actingAs($mark)
+            ->get(route('security.huntress.show', '300'))
+            ->assertNotFound();
+    }
 }
