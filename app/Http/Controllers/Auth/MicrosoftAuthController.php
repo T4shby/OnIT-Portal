@@ -139,7 +139,8 @@ class MicrosoftAuthController extends Controller
 
         $user->loadMissing('client');
 
-        if ($user->client_id && $user->client && ! $user->client->is_active) {
+        if (($user->client_id && $user->client && ! $user->client->is_active)
+            || ($user->role->isClientFacing() && ! $user->client_id)) {
             return redirect()->route('login')
                 ->with('error', 'Your organisation is not active on the portal. Please contact your administrator.');
         }

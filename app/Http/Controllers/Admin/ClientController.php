@@ -494,7 +494,12 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.deleted', $client, clientId: $client->id);
 
-        $client->delete();
+        // users.client_id is nullOnDelete: without this the client's users would
+        // survive as active, client-less accounts that appear in no admin listing.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($client): void {
+            $client->users()->update(['is_active' => false]);
+            $client->delete();
+        });
 
         return redirect()->route('admin.clients.index')
             ->with('success', 'Client deleted successfully.');
