@@ -76,6 +76,10 @@ class EntraGroupSyncService
             return new EntraSyncResult(errors: [$e->getMessage()]);
         }
 
+        if (($guardError = $this->massDeactivationGuard($client, $graphUsers)) !== null) {
+            return new EntraSyncResult(errors: [$guardError]);
+        }
+
         $created = 0;
         $updated = 0;
         $deactivated = 0;
@@ -977,6 +981,64 @@ class EntraGroupSyncService
      * @param  list<string>  $activeEmails
      * @return Collection<int, User>
      */
+    /**
+     * Safety valve before anything is written (portal users, the portal group, SuperOps
+     * app / requester SSO assignments). A successful-but-empty or partial Graph result
+     * (consent/permission propagation, a filter change, a transient Graph fault) would
+     * otherwise deactivate the whole client - immediately, now that deactivation ends
+     * existing sessions - and strip their group/app assignments.
+     *
+     * @param  list<array<string, mixed>>  $graphUsers
+     */
+    private function massDeactivationGuard(Client $client, array $graphUsers): ?string
+    {
+        $activeSynced = User::query()
+            ->where('client_id', $client->id)
+            ->where('provisioned_by', UserProvisionSource::EntraSync)
+            ->where('is_active', true)
+            ->count();
+
+        if ($activeSynced === 0) {
+            return null;
+        }
+
+        $objectIds = [];
+        $emails = [];
+        foreach ($graphUsers as $graphUser) {
+            $email = $this->resolveEmail($graphUser);
+            if ($email === null) {
+                continue;
+            }
+            $objectIds[] = (string) $graphUser['id'];
+            $emails[] = $email;
+        }
+
+        if ($objectIds === []) {
+            $message = "Entra sync aborted: Microsoft Graph returned no eligible users but {$activeSynced} synced portal user(s) are active. "
+                .'Nothing was deactivated. Check the portal group / app permissions in the customer tenant, then sync again.';
+        } else {
+            $wouldDeactivate = $this->usersRemovedFromScope($client, $objectIds, $emails)->count();
+            $maxRatio = (float) config('services.entra_sync.max_deactivation_ratio', 0.5);
+            $minCount = (int) config('services.entra_sync.max_deactivation_min_users', 5);
+
+            if ($wouldDeactivate < $minCount || $wouldDeactivate <= $activeSynced * $maxRatio) {
+                return null;
+            }
+
+            $message = "Entra sync aborted: it would deactivate {$wouldDeactivate} of {$activeSynced} active synced portal users "
+                .'(more than '.round($maxRatio * 100).'%). Nothing was changed. If this is a genuine bulk removal, raise '
+                .'ENTRA_SYNC_MAX_DEACTIVATION_RATIO temporarily and sync again.';
+        }
+
+        Log::error('Entra sync mass-deactivation guard tripped', [
+            'client_id' => $client->id,
+            'active_synced' => $activeSynced,
+            'graph_eligible' => count($objectIds),
+        ]);
+
+        return $message;
+    }
+
     private function usersRemovedFromScope(Client $client, array $activeObjectIds, array $activeEmails): Collection
     {
         return User::query()
