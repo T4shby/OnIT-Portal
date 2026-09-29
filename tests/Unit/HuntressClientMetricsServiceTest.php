@@ -147,7 +147,7 @@ class HuntressClientMetricsServiceTest extends TestCase
         $this->assertNotSame($summaryA->agentsTotal, $summaryB->agentsTotal);
     }
 
-    public function test_api_failure_keeps_last_successful_cache(): void
+    public function test_api_failure_rethrows_and_keeps_last_successful_cache(): void
     {
         $client = Client::factory()->create(['huntress_organization_id' => 'org-42']);
 
@@ -163,13 +163,22 @@ class HuntressClientMetricsServiceTest extends TestCase
             'https://api.huntress.io/v1/organizations/org-42' => Http::response(['error' => 'boom'], 500),
         ]);
 
-        $summary = app(HuntressClientMetricsService::class)->refreshAndStore($client);
+        $service = app(HuntressClientMetricsService::class);
 
+        $threw = false;
+        try {
+            $service->refreshAndStore($client);
+        } catch (\Throwable) {
+            $threw = true;
+        }
+        $this->assertTrue($threw, 'refreshAndStore() should rethrow the upstream failure even when a cache exists.');
+
+        // The last good snapshot is untouched and still served to page views.
+        $summary = $service->summaryForClient($client);
         $this->assertSame(14, $summary->agentsTotal);
         $this->assertSame(3, $summary->agentsUnresponsive);
         $this->assertSame(2, $summary->openIncidents);
         $this->assertSame(1, $summary->edrIsolatedAgents);
-        $this->assertTrue($summary->isStale);
         $this->assertTrue($summary->available);
     }
 }

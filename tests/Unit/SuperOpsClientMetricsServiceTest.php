@@ -208,7 +208,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertNotSame($summaryA->assetsTotal, $summaryB->assetsTotal);
     }
 
-    public function test_api_failure_keeps_last_successful_cache(): void
+    public function test_api_failure_rethrows_and_keeps_last_successful_cache(): void
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
@@ -224,11 +224,42 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'https://api.superops.ai/msp' => Http::response(['errors' => [['message' => 'boom']]], 200),
         ]);
 
-        $summary = app(SuperOpsClientMetricsService::class)->refreshAndStore($client);
+        $service = app(SuperOpsClientMetricsService::class);
 
+        $threw = false;
+        try {
+            $service->refreshAndStore($client);
+        } catch (\RuntimeException) {
+            $threw = true;
+        }
+        $this->assertTrue($threw, 'refreshAndStore() should rethrow the upstream failure even when a cache exists.');
+
+        // The last good snapshot is untouched and still served to page views.
+        $summary = $service->summaryForClient($client);
         $this->assertSame(14, $summary->assetsTotal);
         $this->assertSame(6, $summary->openTicketsTotal);
-        $this->assertTrue($summary->isStale);
+    }
+
+    public function test_job_records_failure_when_refresh_fails_after_a_successful_cache(): void
+    {
+        $client = Client::factory()->create(['superops_account_id' => '111']);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+            'assets_total' => 14,
+            'open_tickets_total' => 6,
+            'last_refreshed_at' => now()->subMinutes(5)->toIso8601String(),
+        ], now()->addHour());
+
+        Http::fake([
+            'https://api.superops.ai/msp' => Http::response(['errors' => [['message' => 'boom']]], 200),
+        ]);
+
+        (new \App\Jobs\RefreshSuperOpsDashboardJob($client->id))->handle(app(SuperOpsClientMetricsService::class));
+
+        $result = Cache::get('superops_dashboard.last_result.'.$client->id);
+        $this->assertIsArray($result);
+        $this->assertFalse($result['success']);
+        $this->assertSame(14, Cache::get("client:{$client->id}:superops-dashboard:v5")['assets_total']);
     }
 
     public function test_page_view_serves_cache_without_requeueing_when_stale(): void

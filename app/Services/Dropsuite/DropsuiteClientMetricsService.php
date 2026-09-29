@@ -177,13 +177,9 @@ class DropsuiteClientMetricsService
                 'error' => $e->getMessage(),
             ]);
 
-            $cached = Cache::get($this->cacheKey($client->id));
-            if (is_array($cached)) {
-                return $this->summaryFromCache($client, $cached, isStale: true);
-            }
-
-            // No snapshot yet: rethrow so RefreshDropsuiteBackupJob records last_result
-            // success=false (was silently "success" while Integration Health stayed Never loaded).
+            // Rethrow even when a previous snapshot is cached, so
+            // RefreshDropsuiteBackupJob records last_result success=false. The
+            // cached snapshot is left untouched and still served to page views.
             throw $e;
         } finally {
             Cache::forget('dropsuite_backup.refresh_queued.'.$client->id);
