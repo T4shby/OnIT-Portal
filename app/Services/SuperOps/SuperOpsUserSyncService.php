@@ -527,6 +527,13 @@ class SuperOpsUserSyncService
             return false;
         }
 
+        // Only bind a requester that lives under this user's own SuperOps client.
+        // An unscoped email lookup could bind a requester from another MSP customer.
+        $accountId = trim((string) $user->client?->superops_account_id);
+        if ($accountId === '') {
+            return false;
+        }
+
         try {
             $data = $this->api->query(<<<'GQL'
                 query getClientUserList($input: GetClientUserListInput!) {
@@ -536,6 +543,7 @@ class SuperOpsUserSyncService
                 }
             GQL, [
                 'input' => [
+                    'clientId' => $accountId,
                     'listInfo' => [
                         'page' => 1,
                         'pageSize' => 1,
@@ -559,10 +567,9 @@ class SuperOpsUserSyncService
                 'superops_synced_at' => now(),
             ]);
 
-            // Deliberately never copy the matched requester's SuperOps account onto the
-            // portal client. This lookup is by email across every SuperOps client, so a
-            // single login could otherwise link portal client Y to SuperOps account X
-            // (Y's users then see X's tickets/devices and file tickets under X).
+            // Deliberately never copy a SuperOps account onto the portal client: a
+            // single login used to link portal client Y to SuperOps account X this way
+            // (Y's users then saw X's tickets/devices and filed tickets under X).
             // Staff link superops_account_id explicitly on Edit client.
 
             return true;
