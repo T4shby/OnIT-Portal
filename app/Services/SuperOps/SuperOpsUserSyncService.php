@@ -29,6 +29,16 @@ class SuperOpsUserSyncService
     }
 
     /**
+     * The cached requester count only - never calls SuperOps. Null on a miss.
+     */
+    public function cachedClientRequesterCount(Client $client): ?int
+    {
+        $cached = Cache::get('superops.requester_count.'.$client->id);
+
+        return is_int($cached) ? $cached : null;
+    }
+
+    /**
      * Approximate SuperOps requester count for this SuperOps client (cached briefly).
      * Used by onboarding to flag when SuperOps bulk already exists outside Entra scope.
      */

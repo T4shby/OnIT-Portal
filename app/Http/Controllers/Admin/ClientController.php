@@ -13,12 +13,12 @@ use App\Jobs\ApplySuperOpsScimJob;
 use App\Jobs\BootstrapClientEntraJob;
 use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
+use App\Jobs\WarmClientOnboardingChecksJob;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\EntraSync\EntraSyncResult;
-use App\Services\EntraSync\MicrosoftGraphClient;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
@@ -98,10 +98,14 @@ class ClientController extends Controller
      */
     private function onboardingViewData(Client $client): array
     {
+        // Cache-only: the SCIM health (Graph) and SuperOps requester count
+        // lookups are warmed by a queued job, never run on the page load.
+        $this->queueOnboardingChecksWarmIfCold($client);
+
         return [
             'client' => $client,
-            'onboardingSteps' => $this->onboarding->steps($client),
-            'onboardingProgress' => $this->onboarding->progress($client),
+            'onboardingSteps' => $this->onboarding->steps($client, live: false),
+            'onboardingProgress' => $this->onboarding->progress($client, live: false),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
             'fieldHelps' => $this->onboarding->fieldHelps($client),
             // What this customer’s /dashboard + Reports look like from sold products (no live numbers).
@@ -115,20 +119,28 @@ class ClientController extends Controller
      */
     private function scimProvisioningHealth(Client $client): ?array
     {
-        if (! $client->exists
-            || blank($client->entra_tenant_id)
-            || blank($client->entra_superops_app_id)) {
+        if (! $client->exists) {
             return null;
         }
 
-        $cacheKey = 'scim.health.'.$client->id;
+        return $this->onboarding->scimExportHealth($client, live: false);
+    }
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($client): array {
-            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
-                (string) $client->entra_tenant_id,
-                (string) $client->entra_superops_app_id,
-            );
-        });
+    private function queueOnboardingChecksWarmIfCold(Client $client): void
+    {
+        if (! $client->exists) {
+            return;
+        }
+
+        $scimCold = filled($client->entra_tenant_id)
+            && filled($client->entra_superops_app_id)
+            && ! Cache::has(ClientOnboardingService::scimHealthCacheKey($client->id));
+        $requesterCountCold = filled($client->superops_account_id)
+            && ! Cache::has('superops.requester_count.'.$client->id);
+
+        if ($scimCold || $requesterCountCold) {
+            WarmClientOnboardingChecksJob::dispatch($client->id);
+        }
     }
 
     public function store(StoreClientRequest $request): RedirectResponse
