@@ -90,4 +90,40 @@ class IntegrationHealthServiceTest extends TestCase
         $this->assertFalse($superOps['flag_queued']);
         $this->assertFalse($superOps['job_in_db']);
     }
+
+    public function test_fractional_requeue_minutes_are_not_truncated_in_labels(): void
+    {
+        // Requeue defaults to 2.25m (2.5m cadence x 0.9); these helpers took `int`
+        // and PHP silently truncated to 2 (labels "2m", cadence "2.2").
+        $service = app(IntegrationHealthService::class);
+
+        $blockers = (fn () => $this->buildBlockers(
+            status: 'due',
+            label: 'SuperOps',
+            ageRounded: 3,
+            requeueAfterMinutes: 2.25,
+            clientWindowMinutes: 3.5,
+            flagQueued: false,
+            started: null,
+            job: null,
+            lastFailed: false,
+            error: null,
+            finishedAt: null,
+            dueForRequeue: true,
+            key: 'superops',
+        ))->call($service);
+
+        $this->assertStringContainsString('~2.5m cadence', $blockers[0]);
+
+        $friendly = (fn () => $this->friendlyStatus(
+            status: 'ok',
+            key: 'superops',
+            ageRounded: 1,
+            requeueAfterMinutes: 2.25,
+            blockers: [],
+            job: null,
+        ))->call($service);
+
+        $this->assertStringContainsString('around 2.25m', $friendly['what_next']);
+    }
 }
