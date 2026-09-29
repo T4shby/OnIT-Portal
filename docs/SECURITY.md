@@ -67,9 +67,9 @@ Policies and Gates - never trust a hidden field, a route parameter, or
    route at all", not "can this admin touch this specific record".
 2. **Policies** (`app/Policies/*`, registered in `AuthServiceProvider`)
    answer the fine-grained question for a specific model instance:
-   `ClientPolicy`, `UserPolicy`, `PortalLinkPolicy`, `ClientNoticePolicy`,
-   `ClientRecommendationPolicy`, `ClientOpportunityPolicy`,
-   `SettingPolicy`, `ActivityLogPolicy`. Every controller method that
+   `ClientPolicy`, `UserPolicy`, `PortalLinkPolicy`, `SettingPolicy`,
+   `ActivityLogPolicy`. (The notice/recommendation/opportunity policies
+   were removed with those features - F9 in `docs/SYSTEM_AUDIT.md`.) Every controller method that
    reads or mutates a specific record calls `$this->authorize('action',
    $model)` before doing so.
 3. **Gates** (defined in `AuthServiceProvider::boot()`) answer
@@ -90,8 +90,7 @@ Policies and Gates - never trust a hidden field, a route parameter, or
      their own `client_id`
    Every admin index/listing query (`Admin\ClientController::index`,
    `Admin\UserController::index`, `Admin\PortalLinkController::index`,
-   `Admin\NoticeController::index`, `Admin\ActivityLogController::index`,
-   etc.) filters through `accessibleClientIds()`. (A previously-unused
+   `Admin\ActivityLogController::index`, the admin dashboard stats, etc.) filters through `accessibleClientIds()`. (A previously-unused
    `EnsureClientAccess` middleware/`client.access` alias that duplicated
    this check for route-bound `client_id`s was removed in the fourth audit
    pass - see `docs/SYSTEM_AUDIT.md`; it was applied to zero routes.)
@@ -105,8 +104,8 @@ Policies and Gates - never trust a hidden field, a route parameter, or
    not assigned to, and cannot move a user *between* clients at all
    (Super Admin only) - covered by
    `tests/Feature/Security/UserClientAccessTest.php`. The same check guards
-   the submitted `client_id` on notices, recommendations, opportunities and
-   (when not global) portal links, store and update - covered by
+   the submitted `client_id` on (non-global) portal links, store and
+   update - covered by
    `tests/Feature/Security/ClientContentCrossTenantTest.php`.
 7. **An empty `accessibleClientIds()` means "no clients"**, never "all".
    Always apply `whereIn(..., $user->accessibleClientIds())`; do not wrap it

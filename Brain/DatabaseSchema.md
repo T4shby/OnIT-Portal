@@ -16,9 +16,11 @@
 
 `id`, `client_id`, `name`, `description`, `url`, `link_type`, `icon`, `required_role`, `display_order`, `is_active`, `open_in_new_tab`, timestamps
 
-### client_notices, client_recommendations, client_opportunities
+### client_notices, client_recommendations, client_opportunities (retired 2026-09-29)
 
 Client-scoped CMS tables with `is_active`, ordering, and scheduling fields on notices.
+
+**Retired 2026-09-29:** dropped by the `2026_09_29_1200*_drop_*` migrations, along with their models, admin CRUD pages and the admin dashboard's "Active Notices" tile. No customer-facing view ever read them, so the repo owner chose to retire them rather than build one (F9 in `docs/SYSTEM_AUDIT.md`).
 
 ### pivot table `client_user`
 

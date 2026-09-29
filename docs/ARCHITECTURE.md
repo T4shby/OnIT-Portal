@@ -90,8 +90,10 @@ MySQL/MariaDB (also backs session, cache, and queue tables)
   (nullable, `nullOnDelete`), unique `email`, `entra_object_id` (indexed,
   used as the primary SSO match key), `microsoft_tokens` (encrypted cast).
 - `client_user` - pivot for Account Manager → assigned-clients.
-- `client_notices` / `client_recommendations` / `client_opportunities` -
-  per-client content admins publish to the customer dashboard.
+- *(Retired 2026-09-29:* `client_notices` / `client_recommendations` /
+  `client_opportunities` were dropped by the `2026_09_29_1200*_drop_*`
+  migrations. Staff could author them, but no customer-facing view ever
+  read them - F9 in `docs/SYSTEM_AUDIT.md`.)
 - `portal_links` - configurable dashboard tiles/links, optionally scoped to
   a client and/or a minimum role.
 - `activity_logs` - append-only audit trail of sensitive actions

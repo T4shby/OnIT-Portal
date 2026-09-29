@@ -7,7 +7,6 @@ A customer-facing MSP platform providing a unified branded experience across mul
 - Microsoft Entra ID multi-tenant authentication (OIDC/OAuth2)
 - SuperOps embedded support + SSO launch
 - Client dashboard with service cards (Support, Pax8, M365, KB, Billing)
-- Notices, recommendations, and opportunities per client
 - Full admin area for content and user management
 - Strict multi-tenant data isolation
 - Activity logging for audit trail

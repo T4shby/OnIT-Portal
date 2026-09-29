@@ -16,7 +16,7 @@ Status as of **2026-08-21**. Shipped work is live product; backlog is ordered by
 | M365 | Async directory + licence insights; free/trial SKUs excluded from paid util |
 | Product entitlements | Sold vs mapped; tiles / prewarm / IH honour entitlements |
 | Technician Integration Health | Live pipeline, cold (Never loaded), stuck/due/aging; adaptive idle vs hot; **reads current feed `cacheKey()` only** |
-| Staff Admin dashboard | Clients / users / notices stats + **Sold product coverage** KPI matrix |
+| Staff Admin dashboard | Clients / users stats (notices tile retired 2026-09-29, F9) + **Sold product coverage** KPI matrix |
 | Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
 | Client home / Reports | Glance + Reports on **`main`**; last-month needs nightly history - [UIOverhaul.md](UIOverhaul.md) |
 | Client portal mobile | Bottom tab nav, slide-up menu, ticket cards, glance scroll strips - [UIOverhaul.md](UIOverhaul.md) |
