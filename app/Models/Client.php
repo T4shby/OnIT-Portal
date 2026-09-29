@@ -133,21 +133,6 @@ class Client extends Model
         return $this->hasMany(PortalLink::class);
     }
 
-    public function notices(): HasMany
-    {
-        return $this->hasMany(ClientNotice::class);
-    }
-
-    public function recommendations(): HasMany
-    {
-        return $this->hasMany(ClientRecommendation::class);
-    }
-
-    public function opportunities(): HasMany
-    {
-        return $this->hasMany(ClientOpportunity::class);
-    }
-
     public function metricDailySnapshots(): HasMany
     {
         return $this->hasMany(ClientMetricDailySnapshot::class);

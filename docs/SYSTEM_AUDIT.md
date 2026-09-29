@@ -1386,8 +1386,10 @@ customer FormRequests that *do* gate in `authorize()`).
 > **Status update (sixth pass, 2026-09-29):** F1-F8, F10 and F11 below are
 > **resolved** - see "Sixth Audit Pass - Resolving F1-F8, F10, F11" at the end
 > of this document for what was done and the test evidence. The original
-> write-ups are kept unchanged as the record of what was found. **F9 is still
-> open**, pending a product decision from the repository owner.
+> write-ups are kept unchanged as the record of what was found. **F9** was
+> resolved on 2026-09-29 by **retiring** the three features (repo owner's
+> decision) - see "F9 Resolution - Retiring Notices, Recommendations and
+> Opportunities" at the end of this document.
 
 **[RESOLVED in sixth pass]** **F1 - Feed refresh failures are recorded as success once any cache exists.**
 `SuperOpsClientMetricsService::refreshAndStore()` (line 374),
@@ -1479,7 +1481,7 @@ now effectively immediately given fix #2. *Suggested fix:* abort (as an
 error, not a deactivation) when Graph returns zero eligible users while the
 client has active synced users, or when more than X% would be deactivated.
 
-**[STILL OPEN - pending product decision by the repo owner]** **F9 - Notices, recommendations and opportunities are never shown to
+**[RESOLVED 2026-09-29 - feature retired, not built]** **F9 - Notices, recommendations and opportunities are never shown to
 customers.** A repository-wide search finds no client-facing view or service
 that reads `ClientNotice`, `ClientRecommendation` or `ClientOpportunity`.
 The only consumers are the admin CRUD pages and the admin dashboard's
@@ -1754,4 +1756,49 @@ Tests:    310 passed (1376 assertions)
 $ php artisan test                       # after all fixes (3 consecutive runs)
 Tests:    340 passed (1504 assertions)
 # 31 tests added, 1 removed with the dead overviewTileWidthClass()
+```
+
+## F9 Resolution - Retiring Notices, Recommendations and Opportunities (2026-09-29)
+
+Branch `claude/jolly-hopper-6w33al`, freshly synced to `main` at `c617045`.
+The repo owner was asked directly and chose to **retire** the three
+features rather than build a customer-facing view for them. Before
+anything was deleted, a repo-wide search (`app`, `routes`, `resources`,
+`database`, `tests`, `config`, `bootstrap`, docs) confirmed that the only
+readers were the admin CRUD pages and the dashboard tile. No other table has
+a foreign key into the three tables, and `ActivityLog::subject()` (a morph)
+is never loaded, so older audit rows whose `subject_type` names a removed
+model are harmless.
+
+**Removed:**
+
+| Area | What | Commit |
+|---|---|---|
+| Admin UI | `Admin\NoticeController`, `Admin\RecommendationController` and `Admin\OpportunityController`; the six `Store*/Update*{Notice,Recommendation,Opportunity}Request`s; their three `Route::resource`s (18 routes); `resources/views/admin/{notices,recommendations,opportunities}/*`; the three admin nav links; and the admin dashboard's "Active Notices" tile and `stats['notices']` (the stat grid is now 3 columns wide) | `a53e50d` |
+| Data layer | The `ClientNotice`, `ClientRecommendation` and `ClientOpportunity` models, their policies and `AuthServiceProvider` mappings, their factories, the `Notice/Recommendation/OpportunitySeeder`s (never called from `DatabaseSeeder`), and the `Client::notices()/recommendations()/opportunities()` relations | `ab508dc` |
+| Schema | New append-only migrations `2026_09_29_120000_drop_client_notices_table`, `..._120100_drop_client_recommendations_table` and `..._120200_drop_client_opportunities_table`. Each `down()` recreates the original schema from `create_portal_tables`, but **not** the data. The original create migration is untouched. | `ab508dc` |
+| Tests | In `ClientContentCrossTenantTest`, the notice/recommendation/opportunity data-provider cases (9) and the super-admin notice test (1) were removed. In `AccountManagerScopeTest`, only the notice/recommendation/opportunity assertions and fixtures were removed; its portal-link, activity-log, dashboard and integration-health coverage is unchanged. | `a53e50d` |
+| Docs | `docs/ARCHITECTURE.md` (data model), `docs/SECURITY.md` (policy list, scoped listings, `ValidatesClientAccess` users) and `README.md` (feature list). In `Brain/DatabaseSchema.md`, `CustomerJourney.md` and `Roadmap.md`, the existing text was annotated as retired, not deleted. `AGENTS.md` had no mention. | this commit |
+
+**Deploy note:** running `php artisan migrate` in production **permanently
+deletes** any notice, recommendation or opportunity rows that staff
+authored. Take a DB backup first, or export those three tables if anyone
+wants a record of them.
+
+### Verification (actual output)
+
+```
+$ php artisan test                       # baseline at c617045
+Tests:    340 passed (1504 assertions)
+
+$ php artisan test                       # after removal
+Tests:    330 passed (1458 assertions)
+# -10 = the 10 retired-feature test cases listed above; nothing else changed
+
+$ DB_CONNECTION=sqlite DB_DATABASE=<scratch file> php artisan migrate:fresh --seed
+# all migrations + ClientSeeder/UserSeeder/OnItTechnologyPartnersSeeder/
+# PortalLinkSeeder/SettingSeeder DONE; client_* tables absent afterwards
+$ php artisan migrate:rollback --step=3  # recreates all three tables
+$ php artisan migrate                    # drops them again
+$ php artisan migrate:reset              # full down() chain runs cleanly
 ```

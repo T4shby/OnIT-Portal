@@ -5,10 +5,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientMicrosoft365DirectoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\IntegrationHealthController;
-use App\Http\Controllers\Admin\NoticeController;
-use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\PortalLinkController;
-use App\Http\Controllers\Admin\RecommendationController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
@@ -177,9 +174,6 @@ Route::middleware('auth')->group(function () {
                     ->parameters(['team' => 'user']);
             });
             Route::resource('portal-links', PortalLinkController::class)->except(['show']);
-            Route::resource('notices', NoticeController::class)->except(['show']);
-            Route::resource('recommendations', RecommendationController::class)->except(['show']);
-            Route::resource('opportunities', OpportunityController::class)->except(['show']);
 
             Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
             Route::put('settings', [SettingController::class, 'update'])->name('settings.update');

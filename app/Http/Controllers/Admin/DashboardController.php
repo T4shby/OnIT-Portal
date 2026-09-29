@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Client;
-use App\Models\ClientNotice;
 use App\Models\User;
 use App\Services\Admin\IntegrationHealthService;
 use Illuminate\Http\Request;
@@ -25,9 +24,6 @@ class DashboardController extends Controller
         $stats = [
             'clients' => Client::whereIn('id', $clientIds)->count(),
             'users' => User::whereIn('client_id', $clientIds)->count(),
-            'notices' => ClientNotice::active()
-                ->whereIn('client_id', $clientIds)
-                ->count(),
         ];
 
         // Super admins also see staff-side (client_id NULL) events - see ActivityLogController.

@@ -13,7 +13,7 @@ Admin: **Admin → Clients → Add/Edit** (in-app setup wizard) or [ClientOnboar
 
 ## 3. Daily Use
 
-- **Dashboard** - notices, recommendations, opportunities, service cards
+- **Dashboard** - service cards (notices / recommendations / opportunities were retired 2026-09-29 - never shown to customers; F9 in `docs/SYSTEM_AUDIT.md`)
 - **Support** (`/support`) - tickets in-portal, no second login
 - **SuperOps full portal** - one click → `/#/requester/login` → Microsoft SAML → requester dashboard
 - **SuperOps** - same-tab launch via `/integrations/superops/launch`
