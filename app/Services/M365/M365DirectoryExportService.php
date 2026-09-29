@@ -86,6 +86,22 @@ class M365DirectoryExportService
     }
 
     /**
+     * CSV/formula injection: directory display names etc. come from the customer's
+     * tenant, and a cell starting with = + - @ (or tab / CR) is run as a formula when
+     * the CSV is opened in Excel. Prefix those with an apostrophe (OWASP guidance).
+     * Plain numbers and a lone "-" placeholder are left alone. XLSX uses inlineStr
+     * and is not affected.
+     */
+    public static function neutraliseCsvFormula(mixed $value): mixed
+    {
+        if (! is_string($value) || $value === '' || $value === '-' || is_numeric($value)) {
+            return $value;
+        }
+
+        return in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
+    }
+
+    /**
      * @param  array{
      *     summary: list<array{0: string, 1: string}>,
      *     licences: list<array{name: string, sku: string, assigned: int, purchased: int, utilisation: string, type: string}>,
@@ -103,7 +119,7 @@ class M365DirectoryExportService
         fwrite($buffer, "\xEF\xBB\xBF");
 
         $write = static function (array $row) use ($buffer): void {
-            fputcsv($buffer, $row);
+            fputcsv($buffer, array_map(self::neutraliseCsvFormula(...), $row));
         };
 
         $write(['Microsoft 365 export']);
