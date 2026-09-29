@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-29 14:45 UK - CoPilot readiness audit follow-up (same host, not the portal app)
+
+| | |
+|---|---|
+| Intent | Claude's CoPilot readiness audit left operator steps that need SSH. Close the ones that do not need Entra. |
+| Operator | agent |
+| SHA before -> after | Portal live stays the commit that adds this row. CoPilot app was already the audit image (container healthy, created 28 Sep). |
+| Steps | SSH `root@159.65.83.156`. Confirmed `/api/auth/local` is HTTP 404, `ALLOW_LOCAL_LOGIN` absent, password-free route file absent, `ONIT_ADMIN_TENANT_ID` set. Ended 1 pre-deploy session (`tom.ashby@onit.ltd`, created 28 Sep 13:27 UTC, before the audit container). Installed `/srv/copilot-readiness/bin/backup-copilot.sh` and `copilot-deploy` cron `40 2 * * *`. Ran one backup. Removed the temporary session-query script from the container. |
+| Result | Health HTTP 200. Daily backup cron in place. One fresh database backup and uploads archive in `/srv/copilot-readiness/backups`. |
+| Rollback / watch | Remove the cron line and `backup-copilot.sh` to stop daily backups. Tom must sign in again at `https://copilotready.onit.ltd`. Still to do by hand: rotate both Microsoft app secrets in Entra and save them on `/microsoft`. Do not remove `tye@onit.ltd` or `viewing@onit-ai-training-internal.local` without checking. |
+
 ### 2026-09-28 14:35 UK - Align live Plesk tree with GitHub main
 
 | | |
