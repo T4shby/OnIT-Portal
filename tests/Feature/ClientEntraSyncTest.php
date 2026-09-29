@@ -9,11 +9,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Tests\Concerns\StartsMicrosoftSignIn;
 use Tests\TestCase;
 
 class ClientEntraSyncTest extends TestCase
 {
     use RefreshDatabase;
+    use StartsMicrosoftSignIn;
 
     protected function setUp(): void
     {
@@ -146,9 +148,9 @@ class ClientEntraSyncTest extends TestCase
             'entra_object_id' => 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
         ]);
 
-        $this->mockMicrosoftSocialiteUser('staff@acme.com', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee');
+        $state = $this->mockMicrosoftSocialiteUser('staff@acme.com', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee');
 
-        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code']));
+        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code', 'state' => $state]));
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'organisation'));
@@ -185,9 +187,9 @@ class ClientEntraSyncTest extends TestCase
             'entra_object_id' => 'dddddddd-dddd-dddd-dddd-dddddddddddd',
         ]);
 
-        $this->mockMicrosoftSocialiteUser('accounts@acme.com', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
+        $state = $this->mockMicrosoftSocialiteUser('accounts@acme.com', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
 
-        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code']));
+        $response = $this->get(route('auth.microsoft.callback', ['code' => 'dummy-auth-code', 'state' => $state]));
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'Shared mailboxes'));
@@ -342,9 +344,13 @@ class ClientEntraSyncTest extends TestCase
         });
     }
 
-    private function mockMicrosoftSocialiteUser(string $email, string $objectId): void
+    /**
+     * Starts a real sign-in (state cookie + state) and mocks the callback's Microsoft
+     * user; returns the state to pass to the callback.
+     */
+    private function mockMicrosoftSocialiteUser(string $email, string $objectId): string
     {
-        config(['services.azure.oauth_stateless' => true]);
+        $state = $this->startMicrosoftSignIn();
 
         $socialiteUser = new class($email, $objectId)
         {
@@ -381,6 +387,8 @@ class ClientEntraSyncTest extends TestCase
         \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')
             ->with('azure')
             ->andReturn($driver);
+
+        return $state;
     }
 
     public function test_entra_sync_rate_limit_is_per_client_not_per_user(): void

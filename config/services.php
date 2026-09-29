@@ -35,11 +35,8 @@ return [
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),
         'tenant' => env('MICROSOFT_TENANT_ID', 'organizations'),
-        'oauth_stateless' => match (true) {
-            in_array(env('MICROSOFT_OAUTH_STATELESS'), ['false', '0'], true) => false,
-            in_array(env('MICROSOFT_OAUTH_STATELESS'), ['true', '1'], true) => true,
-            default => env('APP_ENV') === 'production',
-        },
+        // No stateless/stateful switch: the OAuth state check is always on and does
+        // not use the session (App\Support\MicrosoftOAuthState).
     ],
 
     'portal' => [
