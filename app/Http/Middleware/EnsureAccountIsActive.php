@@ -30,6 +30,8 @@ class EnsureAccountIsActive
             ! $user->is_active => 'Your account has been deactivated. Please contact your administrator.',
             $user->portal_login_enabled === false => 'This account cannot sign in to the portal. Shared mailboxes are synced for support records only - please use your personal work account.',
             $user->client_id && $user->client && ! $user->client->is_active => 'Your organisation is not active on the portal. Please contact your administrator.',
+            // Client-facing account whose organisation was deleted (users.client_id nullOnDelete).
+            $user->role->isClientFacing() && ! $user->client_id => 'Your organisation is not active on the portal. Please contact your administrator.',
             default => null,
         };
 

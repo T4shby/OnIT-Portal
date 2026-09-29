@@ -129,4 +129,52 @@ class AccountManagerScopeTest extends TestCase
             ->assertOk()
             ->assertDontSee('settings.updated');
     }
+
+    public function test_integration_health_queue_panel_is_scoped_to_assigned_clients(): void
+    {
+        $mine = Client::factory()->create(['name' => 'Managed Client Co', 'slug' => 'managed-client-co']);
+        $this->manager->assignedClients()->attach($mine);
+
+        $payload = fn (int $clientId): string => json_encode([
+            'displayName' => \App\Jobs\RefreshSuperOpsDashboardJob::class,
+            'data' => ['command' => serialize(new \App\Jobs\RefreshSuperOpsDashboardJob($clientId))],
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('jobs')->insert([
+            ['queue' => 'high', 'payload' => $payload($this->foreign->id), 'attempts' => 0, 'reserved_at' => null, 'available_at' => time(), 'created_at' => time()],
+            ['queue' => 'high', 'payload' => $payload($mine->id), 'attempts' => 0, 'reserved_at' => null, 'available_at' => time(), 'created_at' => time()],
+        ]);
+        \Illuminate\Support\Facades\DB::table('failed_jobs')->insert([
+            ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'connection' => 'database', 'queue' => 'high', 'payload' => $payload($this->foreign->id), 'exception' => "RuntimeException: foreign-failure-detail\n#0 trace", 'failed_at' => now()],
+            ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'connection' => 'database', 'queue' => 'high', 'payload' => $payload($mine->id), 'exception' => "RuntimeException: managed-failure-detail\n#0 trace", 'failed_at' => now()],
+        ]);
+
+        $this->actingAs($this->manager)->get(route('admin.integration-health.index'))
+            ->assertOk()
+            ->assertSee('Managed Client Co')
+            ->assertSee('managed-failure-detail')
+            ->assertDontSee('Foreign Tenant Ltd')
+            ->assertDontSee('foreign-failure-detail')
+            ->assertDontSee('client #'.$this->foreign->id);
+
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $this->actingAs($admin)->get(route('admin.integration-health.index'))
+            ->assertOk()
+            ->assertSee('Foreign Tenant Ltd')
+            ->assertSee('foreign-failure-detail')
+            ->assertSee('managed-failure-detail');
+    }
+
+    public function test_admin_nav_shows_settings_only_to_those_who_can_open_it(): void
+    {
+        $this->actingAs($this->manager)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('admin.settings.index'), false);
+        $this->actingAs($this->manager)->get(route('admin.settings.index'))->assertForbidden();
+
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.settings.index'), false);
+    }
 }

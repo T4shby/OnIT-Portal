@@ -72,4 +72,47 @@ class AdminTeamTest extends TestCase
 
         $response->assertRedirect(route('admin.team.edit', $technician));
     }
+
+    public function test_editing_account_manager_keeps_inactive_client_assignments(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $active = Client::factory()->create(['name' => 'Active Co', 'is_active' => true]);
+        $dropped = Client::factory()->create(['name' => 'Unticked Co', 'is_active' => true]);
+        $inactive = Client::factory()->create(['name' => 'Dormant Co', 'is_active' => false]);
+        $manager = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $manager->assignedClients()->sync([$active->id, $dropped->id, $inactive->id]);
+
+        $this->actingAs($admin)->get(route('admin.team.edit', $manager))
+            ->assertOk()
+            ->assertSee('Dormant Co');
+
+        // The form only renders active-client checkboxes; the admin unticks one.
+        $this->actingAs($admin)->put(route('admin.team.update', $manager), [
+            'name' => $manager->name,
+            'email' => $manager->email,
+            'role' => UserRole::AccountManager->value,
+            'is_active' => '1',
+            'assigned_clients' => [$active->id],
+        ])->assertRedirect(route('admin.team.index'));
+
+        $ids = $manager->assignedClients()->pluck('clients.id')->sort()->values()->all();
+        $this->assertSame([$active->id, $inactive->id], $ids);
+    }
+
+    public function test_changing_role_away_from_account_manager_still_clears_all_assignments(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $inactive = Client::factory()->create(['is_active' => false]);
+        $manager = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $manager->assignedClients()->sync([$inactive->id]);
+
+        $this->actingAs($admin)->put(route('admin.team.update', $manager), [
+            'name' => $manager->name,
+            'email' => $manager->email,
+            'role' => UserRole::SuperAdmin->value,
+            'is_active' => '1',
+        ])->assertRedirect(route('admin.team.index'));
+
+        $this->assertSame(0, $manager->assignedClients()->count());
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\Portal\ClientHomeOverviewService;
@@ -28,7 +29,7 @@ class CaptureClientMetricSnapshotsCommand extends Command
             try {
                 $user = $this->pickSnapshotUser($client);
                 if ($user === null) {
-                    $this->warn("Client #{$client->id}: no suitable user for org snapshot - skipped");
+                    $this->warn("Client #{$client->id}: no active client admin for an org-wide snapshot - skipped");
 
                     return;
                 }
@@ -48,12 +49,17 @@ class CaptureClientMetricSnapshotsCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Only a client admin sees the organisation-wide bundle. Billing admins and
+     * requesters get a *personal* bundle (their own tickets/cases), which must never
+     * be stored as the org's monthly snapshot and compared with org-wide figures.
+     */
     private function pickSnapshotUser(Client $client): ?User
     {
         return User::query()
             ->where('client_id', $client->id)
             ->where('is_active', true)
-            ->orderByRaw("CASE role WHEN 'client_admin' THEN 0 WHEN 'client_billing_admin' THEN 1 ELSE 2 END")
+            ->where('role', UserRole::ClientAdmin)
             ->orderBy('id')
             ->first();
     }

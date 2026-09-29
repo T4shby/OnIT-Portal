@@ -133,6 +133,11 @@ return [
         // Microseconds between provision-on-demand API calls (default 2.1s - Graph limit ~5 per 10s).
         'superops_provision_interval_us' => (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_INTERVAL_US', 2_100_000),
         'superops_provision_max_attempts' => max(1, (int) env('ENTRA_SYNC_SUPEROPS_PROVISION_MAX_ATTEMPTS', 3)),
+        // Safety valve: abort (not deactivate) when a sync would deactivate more than this
+        // share of a client's active synced users, once at least min_users would go.
+        // Graph returning zero eligible users while synced users exist always aborts.
+        'max_deactivation_ratio' => (float) env('ENTRA_SYNC_MAX_DEACTIVATION_RATIO', 0.5),
+        'max_deactivation_min_users' => (int) env('ENTRA_SYNC_MAX_DEACTIVATION_MIN_USERS', 5),
         'lock_seconds' => max(60, (int) env('ENTRA_SYNC_LOCK_SECONDS', 600)),
         'web_max_execution_seconds' => max(60, (int) env('ENTRA_SYNC_WEB_MAX_EXECUTION_SECONDS', 300)),
     ],

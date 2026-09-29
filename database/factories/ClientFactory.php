@@ -16,7 +16,10 @@ class ClientFactory extends Factory
 
         return [
             'name' => $name,
-            'slug' => Str::slug($name),
+            // clients.slug is UNIQUE; faker company names collide often enough
+            // (and tests that pass an explicit name still get this slug) to make
+            // multi-client tests flaky, so suffix a per-test unique number.
+            'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1, 999999),
             'is_active' => true,
         ];
     }

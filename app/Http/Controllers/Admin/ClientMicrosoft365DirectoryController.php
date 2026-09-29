@@ -36,6 +36,6 @@ class ClientMicrosoft365DirectoryController extends Microsoft365DirectoryControl
         $format = strtolower((string) $request->query('format', 'xlsx'));
         abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
 
-        return $this->streamExport($client, $format, null);
+        return $this->streamExport($client, $format);
     }
 }

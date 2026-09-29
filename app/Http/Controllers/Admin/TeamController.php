@@ -72,9 +72,14 @@ class TeamController extends Controller
         $clients = Client::where('is_active', true)->orderBy('name')->get();
         $roles = array_filter(UserRole::cases(), fn (UserRole $role) => $role->isAdmin());
         $assignedClients = $user->assignedClients()->pluck('clients.id')->toArray();
+        $inactiveAssignedClients = $user->assignedClients()
+            ->where('clients.is_active', false)
+            ->orderBy('name')
+            ->pluck('clients.name')
+            ->all();
         $organisationName = config('services.portal.organisation_name');
 
-        return view('admin.team.edit', compact('user', 'clients', 'roles', 'assignedClients', 'organisationName'));
+        return view('admin.team.edit', compact('user', 'clients', 'roles', 'assignedClients', 'inactiveAssignedClients', 'organisationName'));
     }
 
     public function update(UpdateTeamMemberRequest $request, User $user): RedirectResponse
@@ -88,7 +93,18 @@ class TeamController extends Controller
         ]);
 
         if ($request->role === UserRole::AccountManager->value) {
-            $user->assignedClients()->sync($request->assigned_clients ?? []);
+            // The form only renders active clients, so an unticked box can only
+            // mean "unassign" for those. Keep existing inactive-client
+            // assignments, which sync() would otherwise silently drop.
+            $inactiveAssigned = $user->assignedClients()
+                ->where('clients.is_active', false)
+                ->pluck('clients.id')
+                ->all();
+
+            $user->assignedClients()->sync(array_values(array_unique(array_map('intval', [
+                ...($request->assigned_clients ?? []),
+                ...$inactiveAssigned,
+            ]))));
         } else {
             $user->assignedClients()->detach();
         }

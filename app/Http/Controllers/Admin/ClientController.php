@@ -13,12 +13,11 @@ use App\Jobs\ApplySuperOpsScimJob;
 use App\Jobs\BootstrapClientEntraJob;
 use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
+use App\Jobs\WarmClientOnboardingChecksJob;
 use App\Models\Client;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
-use App\Services\EntraSync\EntraSyncResult;
-use App\Services\EntraSync\MicrosoftGraphClient;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use App\Services\SuperOps\SuperOpsClientMetricsService;
@@ -98,10 +97,14 @@ class ClientController extends Controller
      */
     private function onboardingViewData(Client $client): array
     {
+        // Cache-only: the SCIM health (Graph) and SuperOps requester count
+        // lookups are warmed by a queued job, never run on the page load.
+        $this->queueOnboardingChecksWarmIfCold($client);
+
         return [
             'client' => $client,
-            'onboardingSteps' => $this->onboarding->steps($client),
-            'onboardingProgress' => $this->onboarding->progress($client),
+            'onboardingSteps' => $this->onboarding->steps($client, live: false),
+            'onboardingProgress' => $this->onboarding->progress($client, live: false),
             'adminConsentUrl' => $this->onboarding->adminConsentUrl($client),
             'fieldHelps' => $this->onboarding->fieldHelps($client),
             // What this customer’s /dashboard + Reports look like from sold products (no live numbers).
@@ -115,20 +118,28 @@ class ClientController extends Controller
      */
     private function scimProvisioningHealth(Client $client): ?array
     {
-        if (! $client->exists
-            || blank($client->entra_tenant_id)
-            || blank($client->entra_superops_app_id)) {
+        if (! $client->exists) {
             return null;
         }
 
-        $cacheKey = 'scim.health.'.$client->id;
+        return $this->onboarding->scimExportHealth($client, live: false);
+    }
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($client): array {
-            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
-                (string) $client->entra_tenant_id,
-                (string) $client->entra_superops_app_id,
-            );
-        });
+    private function queueOnboardingChecksWarmIfCold(Client $client): void
+    {
+        if (! $client->exists) {
+            return;
+        }
+
+        $scimCold = filled($client->entra_tenant_id)
+            && filled($client->entra_superops_app_id)
+            && ! Cache::has(ClientOnboardingService::scimHealthCacheKey($client->id));
+        $requesterCountCold = filled($client->superops_account_id)
+            && ! Cache::has('superops.requester_count.'.$client->id);
+
+        if ($scimCold || $requesterCountCold) {
+            WarmClientOnboardingChecksJob::dispatch($client->id);
+        }
     }
 
     public function store(StoreClientRequest $request): RedirectResponse
@@ -273,41 +284,6 @@ class ClientController extends Controller
             'success',
             'Entra sync started in the background. Open Admin → Dashboard - Integration Health updates live while it runs.',
         );
-    }
-
-    private function finishEntraSyncResponse(Client $client, EntraSyncResult $result, bool $dryRun): RedirectResponse
-    {
-        if ($result->failed()) {
-            return back()->with('error', $result->errors[0] ?? 'Entra sync failed.');
-        }
-
-        $message = $result->summary($dryRun);
-
-        if ($result->hasErrors()) {
-            $warnings = array_slice($result->errors, 0, 3);
-            $message .= ' Warnings: '.implode(' ', $warnings);
-
-            if (count($result->errors) > 3) {
-                $message .= ' ('.count($result->errors).' warnings total)';
-            }
-        }
-
-        $this->activityLog->log(
-            $dryRun ? 'client.entra_sync_dry_run' : 'client.entra_synced',
-            $client,
-            properties: [
-                'created' => $result->created,
-                'updated' => $result->updated,
-                'deactivated' => $result->deactivated,
-                'skipped' => $result->skipped,
-                'warnings' => count($result->errors),
-            ],
-            clientId: $client->id,
-        );
-
-        $flashKey = $result->hasWarnings() ? 'warning' : 'success';
-
-        return back()->with($flashKey, ucfirst($message));
     }
 
     public function updateOnboarding(UpdateClientOnboardingRequest $request, Client $client): RedirectResponse
@@ -482,7 +458,12 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.deleted', $client, clientId: $client->id);
 
-        $client->delete();
+        // users.client_id is nullOnDelete: without this the client's users would
+        // survive as active, client-less accounts that appear in no admin listing.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($client): void {
+            $client->users()->update(['is_active' => false]);
+            $client->delete();
+        });
 
         return redirect()->route('admin.clients.index')
             ->with('success', 'Client deleted successfully.');

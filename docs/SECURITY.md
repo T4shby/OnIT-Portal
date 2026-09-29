@@ -18,17 +18,25 @@ and whether each is required.
   see `Brain/EntraGroupSync.md`).
 - Login is additionally refused when: `is_active = false`,
   `portal_login_enabled = false` (used for shared mailboxes synced for
-  ticketing but not meant to sign in), or the user's `Client` is inactive.
-  The same three checks run on **every** authenticated request
+  ticketing but not meant to sign in), the user's `Client` is inactive, or
+  a client-facing user has no client at all (its client was deleted; since
+  the sixth pass `ClientController::destroy()` also deactivates the
+  client's users). The same checks run on **every** authenticated request
   (`EnsureAccountIsActive`, web group) - sign-in issues a 400-day
   remember-me cookie, so checking only at login let deactivated users and
   organisations keep access (fixed in the fifth audit pass).
+- Entra sync aborts, as an error and before writing anything, when Graph
+  returns no eligible users while the client has active synced users, or
+  when it would deactivate more than `ENTRA_SYNC_MAX_DEACTIVATION_RATIO`
+  (default 50%) of them (sixth audit pass).
 - The Microsoft **admin-consent return** also lands on
   `/auth/microsoft/callback` (guest, no portal session). The client it acts
   on comes only from an HMAC-signed `state` (`AdminConsentState`; the old
   unsigned `client-{id}` form is rejected), the returned `tenant` must be a
   GUID, and it can never re-point a client that already has a different
-  `entra_tenant_id` (fifth audit pass).
+  `entra_tenant_id` (fifth audit pass). The slow Graph bootstrap it triggers
+  is queued (`BootstrapClientEntraJob`), not run inline on this public URL
+  (sixth audit pass).
 - `/auth/microsoft/callback` is rate-limited (`throttle:auth-callback`, 6/min
   per IP) via `RateLimiter::for('auth-callback', ...)` in
   `AppServiceProvider`.

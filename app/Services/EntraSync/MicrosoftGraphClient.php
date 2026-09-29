@@ -1058,11 +1058,6 @@ class MicrosoftGraphClient
         return $skus;
     }
 
-    public function hasActiveLicense(string $tenantId, string $userId): bool
-    {
-        return $this->getUserLicenseSkuPartNumbers($tenantId, $userId) !== [];
-    }
-
     public function getMailboxUserPurpose(string $tenantId, string $userId): ?string
     {
         $url = "https://graph.microsoft.com/v1.0/users/{$userId}/mailboxSettings";
@@ -1087,52 +1082,6 @@ class MicrosoftGraphClient
         $purpose = $response->json('userPurpose');
 
         return is_string($purpose) ? strtolower($purpose) : null;
-    }
-
-    /**
-     * @deprecated Use listSyncEligibleUsers() - group scope retained for SCIM reference only.
-     *
-     * @return list<array{id: string, mail: ?string, userPrincipalName: ?string, displayName: ?string, accountEnabled: bool}>
-     */
-    public function listGroupUsers(string $tenantId, string $groupId): array
-    {
-        $users = [];
-        $url = "https://graph.microsoft.com/v1.0/groups/{$groupId}/transitiveMembers/microsoft.graph.user";
-        $query = [
-            '$select' => 'id,mail,userPrincipalName,displayName,accountEnabled',
-            '$top' => 999,
-        ];
-
-        while ($url) {
-            $response = $this->request($tenantId)
-                ->get($url, $url === "https://graph.microsoft.com/v1.0/groups/{$groupId}/transitiveMembers/microsoft.graph.user" ? $query : []);
-
-            if ($response->failed()) {
-                throw new RuntimeException(
-                    'Microsoft Graph request failed: '.$response->status().' '.$response->body()
-                );
-            }
-
-            $data = $response->json();
-
-            foreach ($data['value'] ?? [] as $user) {
-                if (($user['@odata.type'] ?? '') !== '' && ! Str::contains($user['@odata.type'] ?? '', 'user')) {
-                    continue;
-                }
-
-                $users[] = [
-                    'id' => (string) $user['id'],
-                    'mail' => $user['mail'] ?? null,
-                    'userPrincipalName' => $user['userPrincipalName'] ?? null,
-                    'displayName' => $user['displayName'] ?? null,
-                    'accountEnabled' => (bool) ($user['accountEnabled'] ?? true),
-                ];
-            }
-
-            $url = $data['@odata.nextLink'] ?? null;
-        }
-
-        return $users;
     }
 
     /**
@@ -2812,58 +2761,6 @@ class MicrosoftGraphClient
         }
 
         return '';
-    }
-
-    private function pickScimSynchronizationTemplateId(string $tenantId, string $servicePrincipalId): string
-    {
-        $response = $this->graphGet(
-            $tenantId,
-            "https://graph.microsoft.com/v1.0/servicePrincipals/{$servicePrincipalId}/synchronization/templates",
-        );
-
-        if ($response->successful()) {
-            $templates = $response->json('value') ?? [];
-            $best = null;
-            $bestScore = PHP_INT_MIN;
-
-            foreach (is_array($templates) ? $templates : [] as $template) {
-                $id = (string) ($template['id'] ?? '');
-                if ($id === '') {
-                    continue;
-                }
-
-                $name = strtolower((string) ($template['metadata']['applicationId'] ?? $template['id'] ?? ''));
-                $score = 0;
-
-                if (str_contains(strtolower($id), 'scim') || str_contains($name, 'scim')) {
-                    $score += 50;
-                }
-                if (str_contains(strtolower($id), 'custom')) {
-                    $score += 20;
-                }
-                // Prefer outbound / user provisioning templates when labeled.
-                if (str_contains(strtolower(json_encode($template)), 'user')) {
-                    $score += 5;
-                }
-
-                if ($score > $bestScore) {
-                    $bestScore = $score;
-                    $best = $id;
-                }
-            }
-
-            if ($best !== null) {
-                return $best;
-            }
-
-            $first = is_array($templates) ? ($templates[0]['id'] ?? null) : null;
-            if (filled($first)) {
-                return (string) $first;
-            }
-        }
-
-        // Non-gallery SCIM apps commonly use this built-in template id when the list is empty.
-        return 'customappsso';
     }
 
     /**

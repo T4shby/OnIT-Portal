@@ -90,7 +90,7 @@ class ClientOnboardingService
      *     blocked: bool,
      * }>
      */
-    public function steps(Client $client): array
+    public function steps(Client $client, bool $live = true): array
     {
         $checklist = $client->onboarding_checklist ?? [];
         $groupName = 'On IT Portal - '.$client->name;
@@ -118,9 +118,9 @@ class ClientOnboardingService
         $scimAppComplete = $legacyScimComplete
             || (bool) ($checklist['superops_scim_app'] ?? false)
             || filled($client->entra_superops_app_id);
-        $scimProvisioningComplete = $this->isScimProvisioningComplete($client, $checklist, $legacyScimComplete);
-        $scimExportFailed = $this->isScimExportFailed($client);
-        $scimScopeWarnings = $this->superOpsEntraScopeWarnings($client);
+        $scimProvisioningComplete = $this->isScimProvisioningComplete($client, $checklist, $legacyScimComplete, $live);
+        $scimExportFailed = $this->isScimExportFailed($client, $live);
+        $scimScopeWarnings = $this->superOpsEntraScopeWarnings($client, $live);
 
         $ssoComplete = (bool) ($checklist['superops_client_sso_configured'] ?? false);
         $portalSyncRunComplete = $syncRun || (bool) ($checklist['portal_sync_run'] ?? false);
@@ -516,7 +516,7 @@ class ClientOnboardingService
                 'complete' => $scimProvisioningComplete,
                 'failed' => $scimExportFailed,
                 'failure_summary' => $scimExportFailed
-                    ? $this->scimExportFailureSummary($client)
+                    ? $this->scimExportFailureSummary($client, $live)
                     : null,
                 'manual' => false,
                 'auto_detected' => $scimProvisioningComplete,
@@ -908,15 +908,25 @@ class ClientOnboardingService
     }
 
     /**
+     * Live Graph SCIM health, cached 5 minutes. With $live = false only the
+     * cache is read (never populated), so page loads cannot trigger a Graph
+     * call; WarmClientOnboardingChecksJob fills it in the background.
+     *
      * @return array<string, mixed>|null
      */
-    public function scimExportHealth(Client $client): ?array
+    public function scimExportHealth(Client $client, bool $live = true): ?array
     {
         if (! filled($client->entra_tenant_id) || ! filled($client->entra_superops_app_id)) {
             return null;
         }
 
-        return Cache::remember('scim.health.'.$client->id, now()->addMinutes(5), function () use ($client): array {
+        if (! $live) {
+            $cached = Cache::get(self::scimHealthCacheKey($client->id));
+
+            return is_array($cached) ? $cached : null;
+        }
+
+        return Cache::remember(self::scimHealthCacheKey($client->id), now()->addMinutes(5), function () use ($client): array {
             return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
                 (string) $client->entra_tenant_id,
                 (string) $client->entra_superops_app_id,
@@ -924,9 +934,14 @@ class ClientOnboardingService
         });
     }
 
-    public function isScimExportFailed(Client $client): bool
+    public static function scimHealthCacheKey(int $clientId): string
     {
-        $health = $this->scimExportHealth($client);
+        return 'scim.health.'.$clientId;
+    }
+
+    public function isScimExportFailed(Client $client, bool $live = true): bool
+    {
+        $health = $this->scimExportHealth($client, $live);
         if ($health === null || ($health['needsApplyScim'] ?? false)) {
             return false;
         }
@@ -934,9 +949,9 @@ class ClientOnboardingService
         return ! ($health['ok'] ?? false);
     }
 
-    public function scimExportFailureSummary(Client $client): string
+    public function scimExportFailureSummary(Client $client, bool $live = true): string
     {
-        $health = $this->scimExportHealth($client);
+        $health = $this->scimExportHealth($client, $live);
         if ($health === null) {
             return 'SuperOps SCIM export is not healthy.';
         }
@@ -988,13 +1003,13 @@ class ClientOnboardingService
      *
      * @param  array<string, mixed>  $checklist
      */
-    public function isScimProvisioningComplete(Client $client, array $checklist, ?bool $legacyScimComplete = null): bool
+    public function isScimProvisioningComplete(Client $client, array $checklist, ?bool $legacyScimComplete = null, bool $live = true): bool
     {
-        if ($this->isScimExportFailed($client)) {
+        if ($this->isScimExportFailed($client, $live)) {
             return false;
         }
 
-        $health = $this->scimExportHealth($client);
+        $health = $this->scimExportHealth($client, $live);
         if ($health && ($health['ok'] ?? false)) {
             return true;
         }
@@ -1027,7 +1042,7 @@ class ClientOnboardingService
      *
      * @return list<string>
      */
-    public function superOpsEntraScopeWarnings(Client $client): array
+    public function superOpsEntraScopeWarnings(Client $client, bool $live = true): array
     {
         $portalScoped = \App\Models\User::query()
             ->where('client_id', $client->id)
@@ -1036,8 +1051,10 @@ class ClientOnboardingService
 
         $superOpsCount = null;
         try {
-            $superOpsCount = app(\App\Services\SuperOps\SuperOpsUserSyncService::class)
-                ->countClientRequesters($client);
+            $syncService = app(\App\Services\SuperOps\SuperOpsUserSyncService::class);
+            $superOpsCount = $live
+                ? $syncService->countClientRequesters($client)
+                : $syncService->cachedClientRequesterCount($client);
         } catch (\Throwable) {
             $superOpsCount = null;
         }
@@ -1184,9 +1201,9 @@ class ClientOnboardingService
     /**
      * @return array{complete: int, total: int, percent: int}
      */
-    public function progress(Client $client): array
+    public function progress(Client $client, bool $live = true): array
     {
-        $steps = $this->steps($client);
+        $steps = $this->steps($client, $live);
         $complete = collect($steps)->where('complete', true)->count();
         $total = count($steps);
 

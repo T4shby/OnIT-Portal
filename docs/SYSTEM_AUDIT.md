@@ -1383,7 +1383,13 @@ customer FormRequests that *do* gate in `authorize()`).
 
 ### Flagged, not fixed (real defects needing product judgement or multi-site changes)
 
-**F1 - Feed refresh failures are recorded as success once any cache exists.**
+> **Status update (sixth pass, 2026-09-29):** F1-F8, F10 and F11 below are
+> **resolved** - see "Sixth Audit Pass - Resolving F1-F8, F10, F11" at the end
+> of this document for what was done and the test evidence. The original
+> write-ups are kept unchanged as the record of what was found. **F9 is still
+> open**, pending a product decision from the repository owner.
+
+**[RESOLVED in sixth pass]** **F1 - Feed refresh failures are recorded as success once any cache exists.**
 `SuperOpsClientMetricsService::refreshAndStore()` (line 374),
 `HuntressClientMetricsService` (188), `M365InsightsService` (239) and
 `DropsuiteClientMetricsService` (182) all catch the upstream failure and
@@ -1398,7 +1404,7 @@ case. *Suggested fix:* have `refreshAndStore()` rethrow after logging (jobs
 already handle it); `ProbeSecurityApisCommand` is the only other caller and
 already wraps it in try/catch.
 
-**F2 - Personal (requester) scoping is computed on truncated, fuzzily matched
+**[RESOLVED in sixth pass]** **F2 - Personal (requester) scoping is computed on truncated, fuzzily matched
 data.** (a) `SuperOpsClientMetricsService::scopeSummaryForViewer()` (155-218)
 filters the **already-truncated** org tables (top 20 open by priority, 10
 closed - lines 656/684). For an organisation with more than 20 open tickets,
@@ -1413,7 +1419,7 @@ account for sam.jones - leaver") is shown to that person on their dashboard.
 payload and match on requester identity only (drop subject/body substring
 matching), or accept this explicitly as product behaviour.
 
-**F3 - Synchronous external-API calls on admin page loads, including an N+1.**
+**[RESOLVED in sixth pass]** **F3 - Synchronous external-API calls on admin page loads, including an N+1.**
 `resources/views/admin/clients/index.blade.php:84` calls
 `ClientOnboardingService::progress($client)` **per row**. That goes through
 `steps()` → `isScimExportFailed()`/`scimExportHealth()` (live Graph on cache
@@ -1428,7 +1434,7 @@ fields only on the index, and have the edit page read the `scim.health.*` /
 `superops.requester_count.*` caches without populating them (let a queued
 job or prewarm fill them).
 
-**F4 - Admin-consent return: unreachable branch and inline slow work.**
+**[RESOLVED in sixth pass]** **F4 - Admin-consent return: unreachable branch and inline slow work.**
 `MicrosoftAuthController:249` (`if (Auth::check() && $client)`) is
 unreachable: the route is in the `guest` group, and
 `RedirectIfAuthenticated` bounces a logged-in user to `/dashboard` first
@@ -1441,21 +1447,21 @@ state is a static HMAC with no expiry or nonce. Fix #1's mismatch guard
 blocks re-pointing, so it is now low risk, but a timestamped state would be
 cleaner.
 
-**F5 - Integration Health queue panel is not tenant-scoped.**
+**[RESOLVED in sixth pass]** **F5 - Integration Health queue panel is not tenant-scoped.**
 `IntegrationHealthService::listJobs()` (1263) / `recentFailures()` (1361)
 list jobs with **client names** and failure first-lines for every client to
 any admin (rendered at `admin/partials/integration-health.blade.php:156-157,
 190-191`). The per-client table *is* scoped (fix #3). *Suggested fix:*
 filter those rows by `accessibleClientIds()` for non-super-admins.
 
-**F6 - Editing an account manager silently unassigns their inactive
+**[RESOLVED in sixth pass]** **F6 - Editing an account manager silently unassigns their inactive
 clients.** `TeamController::create/edit` render checkboxes only for
 `is_active` clients (lines 41, 72), and `update()` does
 `sync($request->assigned_clients ?? [])` (line 91). *Suggested fix:* merge
 the existing inactive assignments back in, or list inactive clients (marked
 as such).
 
-**F7 - Deleting a client orphans its users.** `users.client_id` is
+**[RESOLVED in sixth pass]** **F7 - Deleting a client orphans its users.** `users.client_id` is
 `nullOnDelete` (`0001_01_01_000000_create_users_table.php:21`), so a
 client's users survive as active `client_*` users with `client_id NULL`.
 They appear in no admin listing (all listings are per client), opening one
@@ -1464,7 +1470,7 @@ and `callback()` still lets them sign in (to an empty portal).
 *Suggested fix:* in `ClientController::destroy()`, deactivate (or delete)
 the client's users first.
 
-**F8 - Entra sync has no safety valve before mass deactivation.**
+**[RESOLVED in sixth pass]** **F8 - Entra sync has no safety valve before mass deactivation.**
 `EntraGroupSyncService::performSyncClient()` deactivates every Entra-synced
 user absent from `listSyncEligibleUsers()` (lines 69, 266-277). If Graph
 returns a successful but empty or partial list (permission propagation, a
@@ -1473,7 +1479,7 @@ now effectively immediately given fix #2. *Suggested fix:* abort (as an
 error, not a deactivation) when Graph returns zero eligible users while the
 client has active synced users, or when more than X% would be deactivated.
 
-**F9 - Notices, recommendations and opportunities are never shown to
+**[STILL OPEN - pending product decision by the repo owner]** **F9 - Notices, recommendations and opportunities are never shown to
 customers.** A repository-wide search finds no client-facing view or service
 that reads `ClientNotice`, `ClientRecommendation` or `ClientOpportunity`.
 The only consumers are the admin CRUD pages and the admin dashboard's
@@ -1481,7 +1487,7 @@ The only consumers are the admin CRUD pages and the admin dashboard's
 (This reduced the *current* impact of fix #4.) A product decision: surface
 them on the glance dashboard or retire the three features.
 
-**F10 - Smaller defects (low severity), with evidence.**
+**[RESOLVED in sixth pass]** **F10 - Smaller defects (low severity), with evidence.**
 - `UserPolicy::view()` (line 24) runs `assignedClients()->where('users.id',
   …)` - `users` is not in that query, so it would throw an SQL error. It is
   currently unreachable (nothing authorizes `view` on a `User`).
@@ -1525,7 +1531,7 @@ them on the glance dashboard or retire the three features.
   (`triggerSuperOpsScimProvision()` never throws, and the next sync re-adds
   missing users), but a future throwing change would lose ids on retry.
 
-**F11 - Dead code (confirmed by repository-wide search, not removed):**
+**[RESOLVED in sixth pass]** **F11 - Dead code (confirmed by repository-wide search, not removed):**
 `ClientController::finishEntraSyncResponse()` (278);
 `MicrosoftGraphClient::pickScimSynchronizationTemplateId()` (2817),
 `listGroupUsers()` (1097, marked deprecated), `hasActiveLicense()` (1061);
@@ -1678,3 +1684,74 @@ the new test, or 3 subsequent full-suite runs. It is recorded here rather
 than omitted, alongside the known `ClientOnboardingServiceTest` /
 `HuntressClientMetricsServiceTest` order flake that earlier passes
 characterised.
+
+## Sixth Audit Pass - Resolving F1-F8, F10, F11 (2026-09-29)
+
+Branch `claude/jolly-hopper-6w33al`, freshly synced to `main` at `602c76b`.
+The brief was to fix the fifth pass's "Flagged, not fixed" items F1-F8, F10
+and F11, and to leave **F9** alone. Each suggested fix was re-checked against
+the current code before it was applied; where the suggestion was incomplete,
+that is noted below. Every behavioural fix has a regression test, and each
+new test was re-run against the pre-fix code (`git stash` of `app/`
+/`resources/`) to confirm that it **fails there**. One logical fix per commit.
+
+### What was done
+
+| Item | Result | Evidence (test) | Commit |
+|---|---|---|---|
+| **F1** feed failures recorded as success | Fixed as suggested. All four `refreshAndStore()`s log and **rethrow** even when a cache exists. The cached snapshot is untouched and still served to page views, and the jobs and `ProbeSecurityApisCommand` already catch. The two old tests that asserted the swallow ("keeps last successful cache") now assert rethrow plus cache preserved. | `SuperOpsClientMetricsServiceTest::test_job_records_failure_when_refresh_fails_after_a_successful_cache`, `..._rethrows_and_keeps_last_successful_cache` (SuperOps + Huntress) | `1feac99` |
+| **F2** personal scoping on truncated, fuzzy data | Fixed. (a) The SuperOps refresh also stores `requester_tickets`: every open ticket plus each requester's 10 most recent closed. Personal scoping uses it, and legacy payloads fall back to the org tables until the next refresh. (b) Matching is on **requester identity only**: exact email, or the bound `superops_user_id`. Huntress incidents have no requester, so they match only on exact addresses in `related_emails`. Subject, body, name and local-part substring matching is gone for both. The M365 directory's personal filter still uses `matchesPerson()` on email/display name only (no free text). That is outside F2 and was left alone. | `test_requester_scope_uses_untruncated_rows_and_requester_identity_only`, `HuntressSecurityCasesTest::test_personal_scope_does_not_substring_match_local_part_or_body` | `ad90e2a` |
+| **F3** live API calls on admin page loads | Fixed, and extended beyond the suggestion. `steps()`/`progress()` and the SCIM/requester helpers take `$live`. With `live: false` they only **read** the `scim.health.*` / `superops.requester_count.*` caches. The index uses cache-only progress. The edit page is cache-only and queues a new `WarmClientOnboardingChecksJob` when either cache is cold, because nothing else populated those caches. Without the job the edit page would never have shown SCIM health. | `AdminClientPagesNoLiveCallsTest` (4) | `5652778` |
+| **F4** consent return: dead branch + inline bootstrap | Fixed as suggested. The GUID tenant is linked only to an unlinked client (the existing mismatch guard still refuses re-pointing), then `BootstrapClientEntraJob` is dispatched and the page reports "running in the background". The `Auth::check()` branch was deleted, and a test proves that a signed-in user is redirected before the handler. The page now echoes only the validated GUID. The residual "static HMAC, no expiry" note from pass 5 stays open as a low-risk hardening idea. | `AdminConsentCallbackTest` (6, 3 new/rewritten) | `484a4a7` |
+| **F5** queue panel not tenant-scoped | Fixed. `listJobs()`/`recentFailures()` drop rows whose payload is not for an accessible client (they scan up to 500 rows, then trim). Super admins now pass `null` (unscoped) to `overview()`, which gives the same per-client rows and keeps client-less system jobs visible. Queue totals remain aggregates. | `AccountManagerScopeTest::test_integration_health_queue_panel_is_scoped_to_assigned_clients` | `1f03842` |
+| **F6** AM edit drops inactive clients | Fixed with both suggestions. `update()` merges existing inactive assignments back in, and the edit form lists them as "kept when you save". A role change away from AM still detaches everything. | `AdminTeamTest` (2 new) | `ed69d1f` |
+| **F7** deleting a client orphans users | Fixed, and extended. `destroy()` deactivates the client's users and deletes the client in one transaction. Sign-in and `EnsureAccountIsActive` also refuse a client-facing user with no client, so orphans left by **earlier** deletions are locked out too. `admin/users/edit` no longer dereferences a null client. | `Security/ClientDeletionOrphanedUsersTest` (3) | `67f815f` |
+| **F8** no safety valve on Entra sync | Fixed. The guard runs **before any write**. That covers user deactivation and also the portal-group / SuperOps-app / requester-SSO removals, which would otherwise shrink to the same bad list. The sync aborts as an error when Graph returns zero eligible users while active synced users exist, or when it would deactivate more than `ENTRA_SYNC_MAX_DEACTIVATION_RATIO` (0.5) of them once at least `ENTRA_SYNC_MAX_DEACTIVATION_MIN_USERS` (5) would go. You can raise the ratio for a genuine bulk removal. Documented in `.env.example`. | `EntraGroupSyncServiceTest` (2 new; the existing removed-from-scope test now keeps one user in scope) | `e161262` |
+| **F11** dead code | Every entry was re-verified by repo-wide search (app, resources, routes, config, database, tests) and removed. `overviewTileWidthClass()` was referenced only by its own unit test, and that test was removed with it (which is why the suite count drops by one). The `$scopedUser` removal also dropped the matching `streamExport()` parameter and the export service's now-unused `ClientVisibilityService`. **Kept:** `MicrosoftGraphClient::getUserLicenseSkuPartNumbers()`. It is now unused in app code, but `M365DirectoryServiceTest` references it as a `shouldNotReceive()` regression guard. | suite green | `8b89189` |
+
+**F10**: all 12 bullets fixed, one commit each:
+
+| Bullet | Fix | Test | Commit |
+|---|---|---|---|
+| `UserPolicy::view()` SQL error | A client-less target is visible only to themselves, matching `update()`. The old branch was reproduced throwing `no such column: users.id`. | `UserClientAccessTest::test_user_policy_view_for_client_less_target_does_not_error` | `7e91e7e` |
+| float minutes truncated | `friendlyStatus()`/`buildBlockers()` take `float\|int`. Cadence now reads 2.5 and requeue reads 2.25m. | `IntegrationHealthServiceTest::test_fractional_requeue_minutes_are_not_truncated_in_labels` | `daafcac` |
+| `overview()` built twice | `productCoverage()` accepts the already-built overview. | `AdminIntegrationHealthDashboardTest::test_admin_dashboard_builds_the_health_overview_once` | `d1af340` |
+| Settings nav link 403s | Nav links can carry a Policy ability, and Settings uses `can('viewAny', Setting::class)` (no role check in the view). | `AccountManagerScopeTest::test_admin_nav_shows_settings_only_to_those_who_can_open_it` | `835f0dd` |
+| Dropsuite tokens in plaintext | The cache now holds only an org => chosen-token map, `Crypt`-encrypted. The legacy plaintext key is dropped. There is still one `/users` sweep per 15 min. | `DropsuiteClientMetricsServiceTest::test_org_user_tokens_are_not_cached_in_plaintext` (asserts on the **database** cache table) | `06ea0ea` |
+| ticket `client` never selected | `getTicket()` selects the `client` leaf. **Fixed differently from a plain one-liner:** once the real account is known, the org branch would have let *any* requester open any colleague's ticket by id. Org-wide viewers (client admins) and staff therefore use the real account, while personal viewers keep the old "portal-created for my org" rule. | `SupportTicketShowTest` (2 new) | `5ae8800` |
+| unscoped login-time bind | `syncUser()` passes the user's `superops_account_id` as `clientId` and skips clients that have none. | `SuperOpsUserSyncLoginTest` (rewritten + 1 new) | `19c7205` |
+| personal snapshot as org snapshot | Only an active `client_admin` is used as the snapshot viewer (billing admins are personal viewers too). Other clients are skipped with a warning. | `CaptureClientMetricSnapshotsTest` (2) | `aed8c94` |
+| CSV formula injection | String cells starting with `= + - @` tab or CR get an apostrophe prefix. Numbers and `-` are untouched. | `M365DirectoryExportCsvTest` | `8ad169c` |
+| glance date parse 500 | `try/catch` around the parse; a malformed date just omits the time. | `GlanceDashboardActivityTest` | `cb02a7f` |
+| byte-wise avatar initial | `mb_strtoupper(mb_substr(...))`. | `AvatarInitialTest` | `2c0a5a7` |
+| provision job loses pulled ids | On a throw, the pulled ids are merged back into the pending key before rethrowing. | `ProvisionSuperOpsScimUsersJobTest` | `c6f0060` |
+
+**Also fixed (test infrastructure):** `ClientFactory` derived `slug` from
+`fake()->company()`, and `clients.slug` is UNIQUE. Multi-client tests
+intermittently failed with `UniqueConstraintViolationException`. This was
+seen four times during this pass, on `ClientContentCrossTenantTest`,
+`UserClientAccessTest`, `ClientEntraSyncTest` and a new test. It is very
+likely the cause of the unexplained "1 failed" noted at the end of pass 5.
+The slug now gets a per-test unique suffix (`98ba76e`). The known
+`ClientOnboardingServiceTest` / `HuntressClientMetricsServiceTest` order
+flake did not appear in any run this pass.
+
+**Still open:** **F9** (notices/recommendations/opportunities never shown to
+customers) is unchanged. It needs a product decision from the repository
+owner: surface them to customers or retire the three features. Also still
+open is the low-risk F4 residual (the consent `state` has no expiry or
+nonce).
+
+`docs/SECURITY.md` and `docs/ARCHITECTURE.md` were updated for the orphan
+check, the queued consent bootstrap and the Entra sync guard.
+
+### Verification (this pass, actual output)
+
+```
+$ php artisan test                       # baseline, untouched checkout
+Tests:    310 passed (1376 assertions)
+
+$ php artisan test                       # after all fixes (3 consecutive runs)
+Tests:    340 passed (1504 assertions)
+# 31 tests added, 1 removed with the dead overviewTileWidthClass()
+```

@@ -81,7 +81,7 @@
                         <td class="align-middle">@include('admin.clients._product-matrix', ['client' => $client])</td>
                         <td>{{ $client->users_count }}</td>
                         <td>
-                            @php $progress = app(\App\Services\ClientOnboardingService::class)->progress($client); @endphp
+                            @php $progress = app(\App\Services\ClientOnboardingService::class)->progress($client, live: false); @endphp
                             @if($progress['percent'] === 100)
                                 <x-badge variant="success">Complete</x-badge>
                             @else

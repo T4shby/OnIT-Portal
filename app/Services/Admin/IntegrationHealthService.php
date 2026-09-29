@@ -20,6 +20,9 @@ class IntegrationHealthService
 
     public const PREWARM_CACHE_KEY = 'portal.prewarm.last_run';
 
+    /** Rows scanned before per-client filtering of the queue panel for scoped (non-super-admin) viewers. */
+    private const SCOPED_QUEUE_SCAN_LIMIT = 500;
+
     /** Last time portal:sync-entra-users was invoked by the scheduler (or manually). */
     public const ENTRA_SCHEDULE_HEARTBEAT_KEY = 'portal.entra_schedule.last_run';
 
@@ -93,7 +96,9 @@ class IntegrationHealthService
         $dueCount = collect($rows)->sum(fn (array $row): int => (int) ($row['due_count'] ?? 0));
         $coldCount = collect($rows)->sum(fn (array $row): int => (int) ($row['cold_count'] ?? 0));
 
-        $queue = $this->queueSummary();
+        // Queue totals are portfolio-wide aggregates, but the job / failure
+        // rows name clients and carry error text, so they are scoped too.
+        $queue = $this->queueSummary($accessibleClientIds);
         $pipeline = $this->pipelineSummary($queue, $coldCount);
         $notices = $this->buildNotices($pipeline, $rows, $clearedOrphans, $stuckCount, $agingCount, $dueCount, $coldCount);
 
@@ -118,6 +123,8 @@ class IntegrationHealthService
      * Cold = sold + mapped pathway but never loaded. KPI target: cold_cells → 0.
      *
      * @param  list<int>|null  $accessibleClientIds
+     * @param  array<string, mixed>|null  $overview  an overview() result for the same scope, to avoid
+     *                                               building the whole health matrix twice
      * @return array{
      *   clients: int,
      *   sold_feed_cells: int,
@@ -130,9 +137,9 @@ class IntegrationHealthService
      *   rows: list<array{client_id: int, client_name: string, sold: int, live: int, setup: int, cold: int, failed: int}>
      * }
      */
-    public function productCoverage(?array $accessibleClientIds = null): array
+    public function productCoverage(?array $accessibleClientIds = null, ?array $overview = null): array
     {
-        $overview = $this->overview($accessibleClientIds);
+        $overview ??= $this->overview($accessibleClientIds);
         $rows = [];
         $sold = 0;
         $live = 0;
@@ -220,7 +227,7 @@ class IntegrationHealthService
      *     recent_failures: list<array<string, mixed>>,
      * }
      */
-    public function queueSummary(): array
+    public function queueSummary(?array $accessibleClientIds = null): array
     {
         if (! Schema::hasTable('jobs')) {
             return [
@@ -253,8 +260,8 @@ class IntegrationHealthService
             'default' => $default,
             'reserved' => $reserved,
             'oldest_pending_seconds' => $oldestSeconds,
-            'jobs' => $this->listJobs(20),
-            'recent_failures' => $this->recentFailures(8),
+            'jobs' => $this->listJobs(20, $accessibleClientIds),
+            'recent_failures' => $this->recentFailures(8, $accessibleClientIds),
         ];
     }
 
@@ -1088,7 +1095,7 @@ class IntegrationHealthService
         string $status,
         string $key,
         ?int $ageRounded,
-        int $requeueAfterMinutes,
+        float|int $requeueAfterMinutes,
         array $blockers,
         ?array $job,
     ): array {
@@ -1167,8 +1174,8 @@ class IntegrationHealthService
         string $status,
         string $label,
         ?int $ageRounded,
-        int $requeueAfterMinutes,
-        int $clientWindowMinutes,
+        float|int $requeueAfterMinutes,
+        float|int $clientWindowMinutes,
         bool $flagQueued,
         ?Carbon $started,
         ?array $job,
@@ -1258,9 +1265,11 @@ class IntegrationHealthService
     }
 
     /**
+     * @param  list<int>|null  $accessibleClientIds  null = unscoped (super admin); otherwise only
+     *                                                rows whose payload names one of these clients
      * @return list<array<string, mixed>>
      */
-    private function listJobs(int $limit): array
+    private function listJobs(int $limit, ?array $accessibleClientIds = null): array
     {
         if (! Schema::hasTable('jobs')) {
             return [];
@@ -1268,11 +1277,12 @@ class IntegrationHealthService
 
         $rows = DB::table('jobs')
             ->orderBy('id')
-            ->limit($limit)
+            ->limit($accessibleClientIds === null ? $limit : self::SCOPED_QUEUE_SCAN_LIMIT)
             ->get()
             ->map(fn ($row) => $this->formatJobRow($row))
             ->values()
             ->all();
+        $rows = array_slice($this->onlyAccessibleClientRows($rows, $accessibleClientIds), 0, $limit);
 
         $ids = collect($rows)->pluck('client_id')->filter()->unique()->values()->all();
         $names = $ids === []
@@ -1356,17 +1366,38 @@ class IntegrationHealthService
     }
 
     /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  list<int>|null  $accessibleClientIds
      * @return list<array<string, mixed>>
      */
-    private function recentFailures(int $limit): array
+    private function onlyAccessibleClientRows(array $rows, ?array $accessibleClientIds): array
+    {
+        if ($accessibleClientIds === null) {
+            return $rows;
+        }
+
+        $allowed = array_flip(array_map('intval', $accessibleClientIds));
+
+        return array_values(array_filter(
+            $rows,
+            static fn (array $row): bool => ($row['client_id'] ?? null) !== null
+                && isset($allowed[(int) $row['client_id']]),
+        ));
+    }
+
+    /**
+     * @param  list<int>|null  $accessibleClientIds  see listJobs()
+     * @return list<array<string, mixed>>
+     */
+    private function recentFailures(int $limit, ?array $accessibleClientIds = null): array
     {
         if (! Schema::hasTable('failed_jobs')) {
             return [];
         }
 
-        return DB::table('failed_jobs')
+        $rows = DB::table('failed_jobs')
             ->orderByDesc('id')
-            ->limit($limit)
+            ->limit($accessibleClientIds === null ? $limit : self::SCOPED_QUEUE_SCAN_LIMIT)
             ->get()
             ->map(function ($row): array {
                 $payload = (string) ($row->payload ?? '');
@@ -1392,6 +1423,8 @@ class IntegrationHealthService
                 ];
             })
             ->all();
+
+        return array_slice($this->onlyAccessibleClientRows($rows, $accessibleClientIds), 0, $limit);
     }
 
     /**

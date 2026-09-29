@@ -331,7 +331,7 @@ class ClientHomeOverviewService
 
         $deltas = [];
         foreach (['threats' => 'Threats stopped', 'resolved' => 'Tickets we closed', 'sla' => 'Resolved on time'] as $key => $label) {
-            $cur = $priorValue !== [] ? ($currentValue[$key] ?? null) : ($currentValue[$key] ?? null);
+            $cur = $currentValue[$key] ?? null;
             $prev = $priorValue[$key] ?? null;
             if ($cur === null && $prev === null) {
                 continue;
@@ -1226,20 +1226,6 @@ class ClientHomeOverviewService
             'hint' => null,
             'kind' => 'ok',
             'suffix' => $hint,
-        ];
-    }
-
-    /**
-     * @return array{label: string, value: string, hint: ?string, kind: string, suffix: ?string}
-     */
-    private function pipelineMetric(string $label, string $reason): array
-    {
-        return [
-            'label' => $label,
-            'value' => 'Not set up',
-            'hint' => $reason,
-            'kind' => 'pipeline',
-            'suffix' => null,
         ];
     }
 

@@ -3,8 +3,6 @@
 namespace App\Services\M365;
 
 use App\Models\Client;
-use App\Services\Portal\ClientVisibilityService;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -20,7 +18,6 @@ class M365DirectoryExportService
     public function __construct(
         protected M365DirectoryService $directory,
         protected M365InsightsService $insights,
-        protected ClientVisibilityService $visibility,
     ) {}
 
     /**
@@ -32,22 +29,13 @@ class M365DirectoryExportService
      *     users: list<array{name: string, email: string, type: string, account: string, licences: string}>
      * }
      */
-    public function buildWorkbook(Client $client, ?User $scopedUser = null): array
+    public function buildWorkbook(Client $client): array
     {
         $insights = $this->insights->summaryForClient($client);
         $display = $this->directory->displaySnapshot($client);
         $snapshot = $display?->snapshot;
 
         $people = $snapshot?->people ?? collect();
-        if ($scopedUser !== null) {
-            $people = $people->filter(function (array $person) use ($scopedUser): bool {
-                return $this->visibility->matchesEmail($person['email'] ?? null, $scopedUser)
-                    || $this->visibility->matchesPerson($scopedUser, [
-                        $person['email'] ?? null,
-                        $person['displayName'] ?? null,
-                    ]);
-            })->values();
-        }
 
         $licences = $this->licenceRows($client, $insights);
         $users = $this->userRows($people);
@@ -86,6 +74,22 @@ class M365DirectoryExportService
     }
 
     /**
+     * CSV/formula injection: directory display names etc. come from the customer's
+     * tenant, and a cell starting with = + - @ (or tab / CR) is run as a formula when
+     * the CSV is opened in Excel. Prefix those with an apostrophe (OWASP guidance).
+     * Plain numbers and a lone "-" placeholder are left alone. XLSX uses inlineStr
+     * and is not affected.
+     */
+    public static function neutraliseCsvFormula(mixed $value): mixed
+    {
+        if (! is_string($value) || $value === '' || $value === '-' || is_numeric($value)) {
+            return $value;
+        }
+
+        return in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
+    }
+
+    /**
      * @param  array{
      *     summary: list<array{0: string, 1: string}>,
      *     licences: list<array{name: string, sku: string, assigned: int, purchased: int, utilisation: string, type: string}>,
@@ -103,7 +107,7 @@ class M365DirectoryExportService
         fwrite($buffer, "\xEF\xBB\xBF");
 
         $write = static function (array $row) use ($buffer): void {
-            fputcsv($buffer, $row);
+            fputcsv($buffer, array_map(self::neutraliseCsvFormula(...), $row));
         };
 
         $write(['Microsoft 365 export']);

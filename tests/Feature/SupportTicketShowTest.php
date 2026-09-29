@@ -182,4 +182,70 @@ class SupportTicketShowTest extends TestCase
             ->get(route('support.show', 'ticket-other-1'))
             ->assertForbidden();
     }
+
+    /**
+     * Fake SuperOps that returns the ticket's `client` leaf only when the query
+     * actually selects it (it is a leaf JSON field; see Brain/ClientAdminDashboard.md).
+     */
+    private function fakeOlderTicketOnAccount(string $accountId): void
+    {
+        config([
+            'services.superops.api_token' => 'api-test-token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.superops.region' => 'us',
+        ]);
+
+        Http::fake(function ($request) use ($accountId) {
+            $query = (string) ($request->data()['query'] ?? '');
+
+            if (str_contains($query, 'getTicketConversationList')) {
+                return Http::response(['data' => ['getTicketConversationList' => []]], 200);
+            }
+
+            $ticket = [
+                'ticketId' => 'ticket-old-1',
+                'displayId' => '500',
+                'subject' => 'Older colleague ticket',
+                'status' => 'Open',
+                'priority' => null,
+                'createdTime' => '2026-01-08T11:42:00.000',
+                'updatedTime' => '2026-01-08T11:42:00.000',
+                'requester' => ['userId' => 'colleague', 'email' => 'colleague@example.com'],
+            ];
+            if (preg_match('/getTicket\(input[^}]*\bclient\b/s', $query)) {
+                $ticket['client'] = ['accountId' => $accountId, 'name' => 'Acme'];
+            }
+
+            return Http::response(['data' => ['getTicket' => $ticket]], 200);
+        });
+    }
+
+    public function test_staff_and_client_admin_can_open_older_org_tickets_not_created_in_portal(): void
+    {
+        $this->fakeOlderTicketOnAccount('acc-1');
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-1']);
+        $manager = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $manager->assignedClients()->attach($client);
+        $clientAdmin = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientAdmin, 'email' => 'boss@example.com']);
+
+        $this->actingAs($manager)->get(route('support.show', 'ticket-old-1'))
+            ->assertOk()->assertSee('Older colleague ticket');
+        $this->actingAs($clientAdmin)->get(route('support.show', 'ticket-old-1'))
+            ->assertOk()->assertSee('Older colleague ticket');
+
+        $unassigned = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $this->actingAs($unassigned)->get(route('support.show', 'ticket-old-1'))->assertForbidden();
+    }
+
+    public function test_requester_still_cannot_open_a_colleagues_ticket_by_id(): void
+    {
+        // Knowing the ticket's real account must not widen personal viewers' access.
+        $this->fakeOlderTicketOnAccount('acc-1');
+
+        $client = Client::factory()->create(['superops_account_id' => 'acc-1']);
+        $requester = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientRequester, 'email' => 'me@example.com']);
+
+        $this->actingAs($requester)->get(route('support.show', 'ticket-old-1'))->assertForbidden();
+    }
 }

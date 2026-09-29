@@ -105,6 +105,7 @@ class SuperOpsClientMetricsService
                 $this->summaryFromCache($client->id, $cached),
                 $client,
                 $viewer,
+                is_array($cached['requester_tickets'] ?? null) ? $cached['requester_tickets'] : null,
             );
         }
 
@@ -116,6 +117,7 @@ class SuperOpsClientMetricsService
                     $this->summaryFromCache($client->id, $cached, refreshInProgress: true),
                     $client,
                     $viewer,
+                    is_array($cached['requester_tickets'] ?? null) ? $cached['requester_tickets'] : null,
                 );
             }
         } else {
@@ -127,6 +129,7 @@ class SuperOpsClientMetricsService
                 $this->summaryFromCache($client->id, $cached, refreshInProgress: true),
                 $client,
                 $viewer,
+                is_array($cached['requester_tickets'] ?? null) ? $cached['requester_tickets'] : null,
             );
         }
 
@@ -156,6 +159,7 @@ class SuperOpsClientMetricsService
         ClientOperationsSummary $summary,
         Client $client,
         ?\App\Models\User $viewer,
+        ?array $requesterRows = null,
     ): ClientOperationsSummary {
         if ($viewer === null) {
             return $summary;
@@ -166,14 +170,33 @@ class SuperOpsClientMetricsService
             return $summary;
         }
 
+        // Prefer the untruncated per-requester rows; the org tables are capped
+        // (top OPEN_TICKET_TABLE_LIMIT by priority, CLOSED_TICKET_TABLE_LIMIT most
+        // recent), so filtering them would silently drop a requester's own
+        // lower-priority / older tickets. Legacy payloads without the key fall
+        // back to the org tables until the next refresh.
+        if (is_array($requesterRows)) {
+            $openSource = array_values(array_filter(
+                $requesterRows,
+                fn ($row): bool => is_array($row) && $this->classifyStatus((string) ($row['status'] ?? '')) === 'open',
+            ));
+            $closedSource = array_values(array_filter(
+                $requesterRows,
+                fn ($row): bool => is_array($row) && $this->classifyStatus((string) ($row['status'] ?? '')) === 'closed',
+            ));
+        } else {
+            $openSource = $summary->openTicketsTable;
+            $closedSource = $summary->closedTicketsTable;
+        }
+
         $mine = array_values(array_filter(
-            $summary->openTicketsTable,
+            $openSource,
             fn (array $row): bool => $this->ticketMatchesViewer($row, $viewer, $visibility),
         ));
-        $mineClosed = array_values(array_filter(
-            $summary->closedTicketsTable,
+        $mineClosed = array_slice(array_values(array_filter(
+            $closedSource,
             fn (array $row): bool => $this->ticketMatchesViewer($row, $viewer, $visibility),
-        ));
+        )), 0, self::CLOSED_TICKET_TABLE_LIMIT);
 
         $byPriority = [];
         foreach ($mine as $row) {
@@ -201,7 +224,7 @@ class SuperOpsClientMetricsService
             assetsOffline: null,
             openTicketsTotal: count($mine),
             openTicketsByPriority: $byPriority,
-            openTicketsTable: $mine,
+            openTicketsTable: array_slice($mine, 0, self::OPEN_TICKET_TABLE_LIMIT),
             slaMetPercent: null,
             slaSampleSize: null,
             ticketsCreated: $this->emptyRangeCounts(),
@@ -222,19 +245,16 @@ class SuperOpsClientMetricsService
      */
     private function ticketMatchesViewer(array $row, \App\Models\User $viewer, \App\Services\Portal\ClientVisibilityService $visibility): bool
     {
+        // Requester identity only (exact email or bound SuperOps user id). Never
+        // substring-match the subject / requester name: "mark@" would match
+        // "marketing@", and a ticket *about* a person (a leaver request) would
+        // be shown to that person.
         if ($visibility->matchesEmail($row['requesterEmail'] ?? null, $viewer)) {
             return true;
         }
-        if (filled($viewer->superops_user_id)
-            && (string) ($row['requesterUserId'] ?? '') === (string) $viewer->superops_user_id) {
-            return true;
-        }
 
-        return $visibility->matchesPerson($viewer, [
-            $row['requesterEmail'] ?? null,
-            $row['requesterName'] ?? null,
-            $row['subject'] ?? null,
-        ]);
+        return filled($viewer->superops_user_id)
+            && (string) ($row['requesterUserId'] ?? '') === (string) $viewer->superops_user_id;
     }
 
     /**
@@ -347,6 +367,7 @@ class SuperOpsClientMetricsService
                 'open_tickets_by_priority' => $this->openTicketsByPriority($tickets),
                 'open_tickets_table' => $this->openTicketsTable($tickets),
                 'closed_tickets_table' => $this->closedTicketsTable($tickets),
+                'requester_tickets' => $this->requesterTicketRows($tickets),
                 'tickets_by_category' => $this->ticketsByCategory($tickets),
                 'sla_met_percent' => $this->slaMetPercent($tickets),
                 'sla_sample_size' => $this->slaSampleSize($tickets),
@@ -369,11 +390,10 @@ class SuperOpsClientMetricsService
                 'error' => $e->getMessage(),
             ]);
 
-            $cached = Cache::get($this->cacheKey($client->id));
-            if (is_array($cached)) {
-                return $this->summaryFromCache($client->id, $cached, isStale: true);
-            }
-
+            // Rethrow even when a previous snapshot is cached: the calling job
+            // records last_result.success=false from the exception, which is what
+            // drives the client-facing error state and Integration Health. The
+            // cached snapshot is left untouched and still served to page views.
             throw $e;
         } finally {
             Cache::forget('superops_dashboard.refresh_queued.'.$client->id);
@@ -630,7 +650,7 @@ class SuperOpsClientMetricsService
      * }>  $tickets
      * @return list<array{displayId: string, subject: string, priority: string, status: string, createdTime: ?string}>
      */
-    private function openTicketsTable(array $tickets): array
+    private function openTicketsTable(array $tickets, ?int $limit = self::OPEN_TICKET_TABLE_LIMIT): array
     {
         $open = array_values(array_filter(
             $tickets,
@@ -653,7 +673,7 @@ class SuperOpsClientMetricsService
 
         return array_map(
             fn (array $ticket): array => $this->ticketTableRow($ticket),
-            array_slice($open, 0, self::OPEN_TICKET_TABLE_LIMIT),
+            $limit === null ? $open : array_slice($open, 0, $limit),
         );
     }
 
@@ -683,6 +703,42 @@ class SuperOpsClientMetricsService
             fn (array $ticket): array => $this->ticketTableRow($ticket),
             array_slice($closed, 0, self::CLOSED_TICKET_TABLE_LIMIT),
         );
+    }
+
+    /**
+     * Untruncated rows for personal (requester) scoping: every open ticket, plus
+     * each requester's CLOSED_TICKET_TABLE_LIMIT most recently closed tickets.
+     * Rows with no requester identity can never match a viewer and are skipped.
+     *
+     * @param  list<array<string, mixed>>  $tickets
+     * @return list<array<string, mixed>>
+     */
+    private function requesterTicketRows(array $tickets): array
+    {
+        $open = [];
+        $closedByRequester = [];
+
+        foreach ($tickets as $ticket) {
+            $email = strtolower(trim((string) ($ticket['requesterEmail'] ?? '')));
+            $userId = trim((string) ($ticket['requesterUserId'] ?? ''));
+            if ($email === '' && $userId === '') {
+                continue;
+            }
+
+            $state = $this->classifyStatus((string) ($ticket['status'] ?? ''));
+            if ($state === 'open') {
+                $open[] = $ticket;
+            } elseif ($state === 'closed') {
+                $closedByRequester[$userId !== '' ? 'id:'.$userId : 'email:'.$email][] = $ticket;
+            }
+        }
+
+        $rows = $this->openTicketsTable($open, null);
+        foreach ($closedByRequester as $requesterTickets) {
+            array_push($rows, ...$this->closedTicketsTable($requesterTickets));
+        }
+
+        return $rows;
     }
 
     /**

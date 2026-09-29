@@ -101,10 +101,11 @@ class IntegrationHealthController extends Controller
      */
     private function healthOverviewFor(Request $request): array
     {
-        $clientIds = $request->user()->accessibleClientIds();
+        $user = $request->user();
 
+        // null = unscoped (super admin: every client, plus client-less queue rows).
         return $this->integrationHealth->overview(
-            $clientIds,
+            $user->can('manage-all-clients') ? null : $user->accessibleClientIds(),
         );
     }
 }

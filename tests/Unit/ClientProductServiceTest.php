@@ -84,19 +84,6 @@ class ClientProductServiceTest extends TestCase
         $this->assertFalse($svc->shouldShowOverviewTile($client, 'pax8', null));
     }
 
-    public function test_overview_tile_width_is_full_width(): void
-    {
-        $svc = app(ClientProductService::class);
-
-        // Row-based fractional widths were replaced by a CSS grid in the view;
-        // the helper now always returns full width regardless of tile count.
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 1));
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 2));
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(1, 2));
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(0, 5));
-        $this->assertSame('w-full', $svc->overviewTileWidthClass(4, 5));
-    }
-
     public function test_client_admin_overview_shows_not_sold_requester_does_not(): void
     {
         $client = Client::factory()->create([

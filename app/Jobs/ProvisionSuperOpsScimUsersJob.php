@@ -46,7 +46,19 @@ class ProvisionSuperOpsScimUsersJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        [$provisioned, $errors] = $sync->provisionSuperOpsScimUsers($client, $userIds);
+        try {
+            [$provisioned, $errors] = $sync->provisionSuperOpsScimUsers($client, $userIds);
+        } catch (\Throwable $e) {
+            // The ids were pull()ed above; merge them back before rethrowing so a
+            // retry ($tries = 3) still has them instead of silently doing nothing.
+            $pending = Cache::get($pendingKey, []);
+            Cache::put($pendingKey, array_values(array_unique(array_merge(
+                is_array($pending) ? $pending : [],
+                $userIds,
+            ))), now()->addMinutes(30));
+
+            throw $e;
+        }
 
         Log::info('Background SuperOps SCIM provision finished', [
             'client_id' => $client->id,

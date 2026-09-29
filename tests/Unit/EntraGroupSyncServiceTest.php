@@ -147,7 +147,18 @@ class EntraGroupSyncServiceTest extends TestCase
             'portal_login_enabled' => true,
         ]);
 
-        $this->fakeTenantSyncGraph($tenantId, []);
+        // One user is still in scope: Graph returning *nobody* is refused by the
+        // mass-deactivation guard (see the tests below).
+        $this->fakeTenantSyncGraph($tenantId, [
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => [
+                'mail' => 'stays@acme.com',
+                'userPrincipalName' => 'stays@acme.com',
+                'displayName' => 'Stays Here',
+                'accountEnabled' => true,
+                'licensed' => true,
+                'mailboxPurpose' => 'user',
+            ],
+        ]);
 
         $result = app(EntraGroupSyncService::class)->syncClient($client);
 
@@ -157,6 +168,78 @@ class EntraGroupSyncServiceTest extends TestCase
             'is_active' => false,
             'portal_login_enabled' => false,
         ]);
+    }
+
+    public function test_sync_aborts_without_deactivating_when_graph_returns_no_eligible_users(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'email' => 'still-here@acme.com',
+            'role' => UserRole::ClientRequester,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            'is_active' => true,
+            'portal_login_enabled' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, []);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->deactivated);
+        $this->assertNotEmpty($result->errors);
+        $this->assertStringContainsString('no eligible users', $result->errors[0]);
+        $this->assertTrue($user->fresh()->is_active);
+    }
+
+    public function test_sync_aborts_when_it_would_deactivate_most_synced_users(): void
+    {
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            User::factory()->create([
+                'client_id' => $client->id,
+                'email' => "user{$i}@acme.com",
+                'role' => UserRole::ClientRequester,
+                'provisioned_by' => UserProvisionSource::EntraSync,
+                'entra_object_id' => sprintf('%08d-0000-0000-0000-000000000000', $i),
+                'is_active' => true,
+                'portal_login_enabled' => true,
+            ]);
+        }
+
+        // Partial Graph result: only 2 of the 10 come back.
+        $this->fakeTenantSyncGraph($tenantId, [
+            '00000001-0000-0000-0000-000000000000' => [
+                'mail' => 'user1@acme.com', 'userPrincipalName' => 'user1@acme.com', 'displayName' => 'User One',
+                'accountEnabled' => true, 'licensed' => true, 'mailboxPurpose' => 'user',
+            ],
+            '00000002-0000-0000-0000-000000000000' => [
+                'mail' => 'user2@acme.com', 'userPrincipalName' => 'user2@acme.com', 'displayName' => 'User Two',
+                'accountEnabled' => true, 'licensed' => true, 'mailboxPurpose' => 'user',
+            ],
+        ]);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertSame(0, $result->deactivated);
+        $this->assertStringContainsString('would deactivate 8 of 10', $result->errors[0] ?? '');
+        $this->assertSame(10, User::where('client_id', $client->id)->where('is_active', true)->count());
+
+        // A deliberate bulk removal can be let through by raising the ratio.
+        config(['services.entra_sync.max_deactivation_ratio' => 1.0]);
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+        $this->assertSame(8, $result->deactivated);
     }
 
     public function test_sync_deactivates_disabled_entra_accounts(): void

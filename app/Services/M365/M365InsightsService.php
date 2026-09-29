@@ -234,11 +234,10 @@ class M365InsightsService
                 'error' => $e->getMessage(),
             ]);
 
-            $cached = Cache::get($this->cacheKey($client->id));
-            if (is_array($cached)) {
-                return $this->summaryFromCache($client->id, $cached, isStale: true);
-            }
-
+            // Rethrow even when a previous snapshot is cached: the calling job
+            // records last_result.success=false from the exception, which is what
+            // drives the client-facing error state and Integration Health. The
+            // cached snapshot is left untouched and still served to page views.
             throw $e;
         } finally {
             Cache::forget('m365_insights.refresh_queued.'.$client->id);

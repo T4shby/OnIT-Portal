@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BootstrapClientEntraJob;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\ActivityLogService;
@@ -138,7 +139,8 @@ class MicrosoftAuthController extends Controller
 
         $user->loadMissing('client');
 
-        if ($user->client_id && $user->client && ! $user->client->is_active) {
+        if (($user->client_id && $user->client && ! $user->client->is_active)
+            || ($user->role->isClientFacing() && ! $user->client_id)) {
             return redirect()->route('login')
                 ->with('error', 'Your organisation is not active on the portal. Please contact your administrator.');
         }
@@ -241,39 +243,39 @@ class MicrosoftAuthController extends Controller
         }
 
         if ($client) {
-            $bootstrapResult = app(\App\Services\EntraSync\CustomerEntraBootstrapService::class)
-                ->bootstrap($client, $tenantFromConsent);
-            $client = $client->fresh();
-        }
-
-        if (Auth::check() && $client) {
-            $message = $bootstrapResult['summary']
-                ?? 'Admin consent granted in the customer tenant.';
-
-            if (! empty($bootstrapResult['details'])) {
-                $message .= ' '.implode(' · ', array_slice($bootstrapResult['details'], 0, 6));
+            // Link the tenant now (unlinked client + GUID from Microsoft only; the
+            // guard above already refused re-pointing), then run the slow Graph
+            // bootstrap on the queue. It used to run inline on this public URL
+            // (~24s+ per request), a cheap worker-exhaustion lever.
+            if ($tenantFromConsent !== null && blank($client->entra_tenant_id)) {
+                $client->update(['entra_tenant_id' => $tenantFromConsent]);
             }
 
-            $redirect = redirect()->route('admin.clients.edit', $client);
+            if (filled($client->entra_tenant_id)) {
+                BootstrapClientEntraJob::markQueued($client->id);
+                BootstrapClientEntraJob::dispatch($client->id);
 
-            if ($bootstrapResult && ($bootstrapResult['ok'] ?? false)) {
-                $redirect = $redirect->with('success', $message);
+                $bootstrapResult = [
+                    'ok' => false,
+                    'summary' => 'Graph setup queued.',
+                    'details' => [
+                        'Graph setup (portal group + apps) is running in the background - usually under 2 minutes.',
+                        'Sign in → Admin → Clients → Edit to see the result under Bootstrap Entra.',
+                    ],
+                    'warnings' => [],
+                ];
             } else {
-                $redirect = $redirect->with('error', $message);
+                $bootstrapResult = [
+                    'ok' => false,
+                    'summary' => 'No tenant ID from Accept or client record.',
+                    'details' => [],
+                    'warnings' => ['Run Connect Microsoft tenant first (Accept).'],
+                ];
             }
-
-            if (! empty($bootstrapResult['warnings'])) {
-                $redirect = $redirect->with(
-                    'warning',
-                    implode(' ', array_slice($bootstrapResult['warnings'], 0, 4)),
-                );
-            }
-
-            return $redirect;
         }
 
         return view('auth.admin-consent-complete', [
-            'tenant' => $request->query('tenant'),
+            'tenant' => $tenantFromConsent,
             'client' => $client,
             'bootstrap' => $bootstrapResult,
         ]);

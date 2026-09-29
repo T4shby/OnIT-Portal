@@ -193,17 +193,21 @@ class HuntressIncidentService
         }
     }
 
+    /**
+     * Personal visibility: the viewer's exact email must be one of the
+     * incident's related addresses (remediation approver, or a full address
+     * named in the report). No substring matching on the subject/body/email
+     * local part/display name: "mark@" would otherwise match "marketing@".
+     */
     public function incidentMatchesUser(HuntressIncident $incident, User $user): bool
     {
-        return $this->visibility->matchesPerson($user, [
-            $incident->subject,
-            $incident->summary,
-            $incident->body,
-            $incident->platform,
-            implode(' ', $incident->indicatorTypes),
-            ...array_map(fn (array $r): string => ($r['action'] ?? '').' '.($r['status'] ?? ''), $incident->remediations),
-            ...$incident->relatedEmails,
-        ]);
+        foreach ($incident->relatedEmails as $email) {
+            if ($this->visibility->matchesEmail($email, $user)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

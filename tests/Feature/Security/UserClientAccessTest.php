@@ -62,4 +62,19 @@ class UserClientAccessTest extends TestCase
         $response->assertSessionHasErrors('client_id');
         $this->assertSame($clientA->id, $user->fresh()->client_id);
     }
+
+    public function test_user_policy_view_for_client_less_target_does_not_error(): void
+    {
+        // The account-manager branch for a client-less target used to query
+        // `users.id` on the clients relation (SQL error); unreachable then, now covered.
+        $client = Client::factory()->create();
+        $manager = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $manager->assignedClients()->attach($client);
+        $otherStaff = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
+        $clientUser = User::factory()->create(['role' => UserRole::ClientRequester, 'client_id' => $client->id]);
+
+        $this->assertFalse($manager->can('view', $otherStaff));
+        $this->assertTrue($manager->can('view', $manager));
+        $this->assertTrue($manager->can('view', $clientUser));
+    }
 }

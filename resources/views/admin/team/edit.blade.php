@@ -29,6 +29,12 @@
                         <span class="text-sm">{{ $client->name }}</span>
                     </label>
                 @endforeach
+                @if(! empty($inactiveAssignedClients))
+                    <p class="mt-2 text-xs text-slate-500">
+                        Also assigned to inactive clients (kept when you save):
+                        {{ implode(', ', $inactiveAssignedClients) }}
+                    </p>
+                @endif
             </div>
             @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $user->is_active])
             <div class="admin-form-actions">

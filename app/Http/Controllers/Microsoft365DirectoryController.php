@@ -57,7 +57,7 @@ class Microsoft365DirectoryController extends Controller
         // were ever scoped), which personal viewers are deliberately not shown on screen.
         abort_unless($this->visibility->canViewOrganisationWide($user, $client), 403);
 
-        return $this->streamExport($client, $format, null);
+        return $this->streamExport($client, $format);
     }
 
     public function live(Request $request): View
@@ -150,9 +150,9 @@ class Microsoft365DirectoryController extends Controller
         ];
     }
 
-    protected function streamExport(Client $client, string $format, ?User $scopedUser = null): StreamedResponse
+    protected function streamExport(Client $client, string $format): StreamedResponse
     {
-        $workbook = $this->export->buildWorkbook($client, $scopedUser);
+        $workbook = $this->export->buildWorkbook($client);
         $filename = $this->export->filename($client, $format);
 
         if ($format === 'csv') {
