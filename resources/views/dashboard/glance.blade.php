@@ -327,9 +327,15 @@
                 <div style="display:flex;flex-direction:column;gap:12px">
                     @foreach($activity['items'] as $item)
                         @php
-                            $at = filled($item['at'] ?? null)
-                                ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
-                                : null;
+                            // Third-party timestamps (SuperOps etc.): one malformed value must
+                            // not 500 the whole home page - just omit the time for that row.
+                            try {
+                                $at = filled($item['at'] ?? null)
+                                    ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
+                                    : null;
+                            } catch (\Throwable) {
+                                $at = null;
+                            }
                             $sourceLabel = match ($item['source'] ?? '') {
                                 'support' => 'Support',
                                 'security' => 'Security',
