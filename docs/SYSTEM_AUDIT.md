@@ -158,7 +158,7 @@ None found.
   warning. Left as a manual review item; low risk since `npm run dev` is a
   local-development-only tool, never run in production.
 
-### M3. `SESSION_SECURE_COOKIE` is not enforced by application code
+### M3. `SESSION_SECURE_COOKIE` is not enforced by application code [RESOLVED in seventh pass - see M4 there]
 
 - **Risk:** `config/session.php`'s `secure` flag is purely
   `env('SESSION_SECURE_COOKIE')`-driven with no default and no
@@ -1801,4 +1801,157 @@ $ DB_CONNECTION=sqlite DB_DATABASE=<scratch file> php artisan migrate:fresh --se
 $ php artisan migrate:rollback --step=3  # recreates all three tables
 $ php artisan migrate                    # drops them again
 $ php artisan migrate:reset              # full down() chain runs cleanly
+```
+
+## Seventh Audit Pass - Pre-Production Re-Audit (2026-09-29)
+
+Branch `claude/jolly-hopper-6w33al`, freshly synced to `main` at `33ff13c`
+(after passes 5, 6 and the F9 retirement). This pass had two phases: first
+investigate and log everything without changing code, then fix. It focused on
+three things. First, regressions and interactions between the last three
+passes' changes, read as the merged files stand now rather than as diffs.
+Second, whether the new tests actually prove what they claim. Third, areas
+earlier passes had called sound, plus production-versus-test differences
+(MySQL versus SQLite, the database-backed queue, cache and session tables).
+
+Every behavioural finding was reproduced before it was fixed. Each new
+regression test was run against the pre-fix code (`git stash` of `app/` or
+`config/`) and fails there. The only exceptions are the three
+test-strengthening items, which were checked by breaking the code they guard
+(see Part 1, L8).
+
+### Part 1 - Findings (Phase 1 log) and fix status
+
+| # | Severity | Finding (evidence) | Status |
+|---|---|---|---|
+| H1 | **High** | **Long jobs ran twice in parallel.** No `config/queue.php`, so the database queue used the framework default `retry_after = 90` (confirmed via `config('queue.connections.database')`). Job timeouts are 180-600s (`SyncEntraClientJob`, `ProvisionSuperOpsScimUsersJob`, `RepairSuperOpsScimExportJob` 600; `BootstrapClientEntraJob`, `RefreshM365DirectoryJob` 300; `ApplySuperOpsScimJob`, `ApplyClientSsoSamlJob` 240; `WarmClientOnboardingChecksJob` 180). `DatabaseQueue::isReservedButExpired()` hands a row reserved for more than `retry_after` to the next worker, and the production timers start a worker every minute. **Reproduced:** after popping `BootstrapClientEntraJob` and ageing `reserved_at` by 100s, a second `pop()` returned the same job with `attempts=2 > maxTries=1`. For `tries = 1` jobs, the worker then fails the job mid-run (`MaxAttemptsExceeded`), so `failed()` clears the in-flight flag, writes a false failure result and releases the unique lock while the first run continues. Jobs with retries run concurrently against Graph. Passes 4 and 6 added three more long `tries = 1` jobs, which made this worse. `Brain/Deployment.md`'s "Long Entra jobs may span workers; that is intentional" assumed this was safe. | **Fixed** `fa0d4b7`: `config/queue.php` overrides only the database connection (`retry_after` default 900, `DB_QUEUE_RETRY_AFTER`). `tests/Unit/QueueRetryAfterTest.php` fails if any job's `$timeout` reaches `retry_after` or a job has no timeout. Documented in `.env.example` and `docs/DEPLOYMENT.md`. |
+| H2 | **High** | **An account manager could read an unassigned tenant's data through an assigned client.** `StoreClientRequest` (which `UpdateClientRequest` extends) accepted any `superops_account_id` / `huntress_organization_id` / `dropsuite_organization_id` / `pax8_company_id` / `entra_tenant_id`. These ids choose whose tickets, devices, incidents, backups and M365 directory a client shows (for example `SuperOpsClientMetricsService::refreshAndStore()` uses `$client->superops_account_id`). An AM assigned only to client A could set A's ids to client B's and then see B's data on A's staff dashboards. A's **customers** would see it too. The same leak follows from a copy-paste slip by any admin. This is the same class as pass 5's High #3, #4 and #5, but through mapping ids instead of `client_id`. **Reproduced** by the new test against the old code (7 of 9 cases fail). | **Fixed** `4175bb1`: a *changed* mapping id that another client already uses is rejected (case-insensitive, portable `LOWER()`). Unchanged values are not re-checked, so a pre-existing duplicate can still be saved and fixed. The admin-consent return also refuses to link a tenant that belongs to another client. `tests/Feature/Security/ClientExternalMappingTest.php` (9). |
+| M1 | Medium | **Requesters could open colleagues' portal-created tickets by id.** `SuperOpsTicketService::userCanViewTicket()` gave every personal viewer in the organisation the 14-day "created through this portal" fallback, because the cache held only the SuperOps account. That included new-starter requests, which carry personal details. Pass 6's test covered only tickets *not* created in the portal. | **Fixed** `74b8f0b`: the cache also records the creating portal user. Personal viewers get the fallback only on tickets they created. Legacy account-only entries still work for org-wide viewers and staff. 2 tests in `SupportTicketShowTest`. |
+| M2 | Medium | **The personal M365 directory used fuzzy matching.** `Microsoft365DirectoryController::personalDirectory()` still used `ClientVisibilityService::matchesPerson()`, which matches a 4+ character local-part substring or a name substring. So `mark@` saw `marketing@` and every "Mark ...", including their licences and account state. F2 removed this matching for SuperOps and Huntress, and pass 6 explicitly left the directory on it. | **Fixed** `314c8dd`: the match is now an exact email, or the Entra object id now stored on each directory row (this covers a portal email that is the UPN while `mail` is an alias). `matchesPerson()` had no other caller and was removed. Test in `M365DirectoryTest`. |
+| M3 | Medium | **Pending refresh jobs were never found, so their flags were always cleared.** `SuperOpsClientMetricsService::jobPendingInDatabase()` and `ClearsOrphanedFeedRefreshFlags` (Huntress, Dropsuite) searched `LIKE '%clientId";i:N;%'`. A database-queue payload stores the serialized command JSON-escaped (`clientId\";i:N;`). **Reproduced** against a real queued job: no match. A pending or running refresh was therefore always treated as orphaned, and its `refresh_queued`/`refresh_started` flags were cleared on every status read. Integration Health's own `extractClientIdFromJobPayload()` docblock already noted that the naive match fails. The M365 services worked only through a loose `%i:N;%` fallback. MySQL and SQLite also differ here: a backslash in a LIKE pattern is an escape on MySQL and a literal on SQLite. | **Fixed** `d067106`: `App\Support\QueuedJobPayload::whereClientId()` matches the escaped form with the `_` wildcard, which behaves the same on both databases. `tests/Unit/OrphanedRefreshFlagJobLookupTest.php` pushes real jobs through the `database` connection for all 5 feeds (3 fail on the old code). |
+| M4 | Medium | **The session cookie was not `Secure` by default.** `config/session.php` had `'secure' => env('SESSION_SECURE_COOKIE')` with no default, and `.env.example` leaves the variable blank. A production `.env` copied from it therefore sent the session cookie without the Secure flag. This was pass 1's M3, still open. Production already forces https URLs and sends HSTS, so a default of true there is safe. | **Fixed** `1f2e88f`: blank or unset means `true` when `APP_ENV=production`; an explicit value is honoured. `tests/Unit/SessionSecureCookieDefaultTest.php` (6). |
+| L1 | Low | **Global link changes left customers' cached link lists stale.** `ExternalServicesService::clearCache(null)` (global links, `syncDefaultLinks()`) cleared only the staff lists. Customers' `portal_links.{client}.{role}` lists (5 min TTL) kept showing a deleted or deactivated global link. `PortalLinkController::update()` cleared only the new owner when a link moved, and the legacy `client_user` key was never cleared. | **Fixed** `83b3e9d`. `tests/Feature/PortalLinkCacheTest.php` (2). |
+| L2 | Low | **A super admin could demote or deactivate their own account.** `TeamController::update()` allowed it, although `destroy()` refuses self-removal. With `EnsureAccountIsActive`, that signs the admin out at once, and if they were the last super admin, Team and Settings management is lost. | **Fixed** `804596f`. Test in `AdminTeamTest`. |
+| L3 | Low | **`failed_jobs` grew unbounded.** Nothing pruned it. | **Fixed** `a2b284f`: `queue:prune-failed --hours=720` runs daily at 03:30. |
+| L4 | Low | **Expired `cache` rows grew unbounded.** `DatabaseStore` deletes an expired row only when that key is read again, and deploys do not `cache:clear`. One-shot keys such as `superops-ticket-account:{ticketId}` (one row per portal ticket) and results for deleted clients therefore accumulated. Pass 5 fix #10 closed one instance; this closes the class. | **Fixed** `a2b284f`: `portal:prune-expired-cache` runs at 03:40 and deletes only rows that have already expired, which is what the store itself does on read. `tests/Unit/PruneExpiredCacheCommandTest.php` (2, including that both prunes are scheduled). |
+| L5 | Low (docs) | **Wrong logging advice in earlier passes.** Passes 2 and 5 said `LOG_STACK=daily` "would fail" because this repo's `config/logging.php` has no `daily` channel. Laravel 11 **merges** the framework's `logging.channels` into the app config (`LoadConfiguration::mergeableOptions`). `config('logging.channels')` lists `daily`, so it works as a one-line `.env` change. | **Corrected** in `docs/SECURITY.md` and here. No code change. |
+| L6 | Low (docs) | **`SUPER_ADMIN_EMAIL` was described wrongly.** `docs/DEPLOYMENT.md` and `docs/SECURITY.md` said it was "display/contact only". It is the account `UserSeeder` creates as the first `super_admin`, and login is SSO-only against pre-provisioned users. | **Corrected** in both docs. |
+| L7 | Low | **F9 trace left behind.** `ActivityLogFactory` could still generate a `notice.created` action. A repo-wide re-grep (`app routes resources config database bootstrap tests public/build`, plus docs and Brain) found no other trace beyond the intentional drop migrations, annotated docs and the unrelated Integration Health "notices" wording. | **Fixed** `4654266`. |
+| L8 | Low (test quality) | **Three security tests could not catch the regression they are named for.** (a) `DeactivatedAccountSessionTest` only used `actingAs()` and mutated the same in-memory user; it never used the remember-me cookie, which was the actual vector. (b) `AdminConsentCallbackTest::test_unsigned_legacy_state_cannot_repoint_a_linked_client` **still passes if unsigned states are accepted again**, because the later tenant-mismatch guard also stops it (verified by re-adding `client-N` decoding). (c) The F8 guard tests never asserted that no Graph writes happen. | **Fixed** `69329ed`: three new tests. Each was confirmed to fail when its guard is broken: `EnsureAccountIsActive` removed, unsigned decoding re-added, and the mass-deactivation guard disabled, respectively. |
+| L9 | Low | **New inputs can be silently dropped.** The `ShouldBeUnique` + `markQueued()` pattern means that re-submitting Apply SCIM or Apply Client SSO with **different** inputs while a job is still pending (up to 5 min) discards the new inputs. The page still says "running". | **Flagged, not fixed.** This is rare in admin-only setup flows, and fixing it needs a UX decision (reject, or replace the pending job). |
+| L10 | Low | **The admin-consent `state` never expires** (pass 5 / F4 residual). A leaked consent URL can re-dispatch `BootstrapClientEntraJob`, deduplicated to at most once per 5 min per client, but it can no longer re-point a tenant or link an already-used one (H2). | **Flagged**, as before. Adding a timestamp would invalidate consent links already emailed to customers. |
+| L11 | Low | **Sign-in has no OAuth `state` check in production.** `MICROSOFT_OAUTH_STATELESS` defaults to true in production (`config/services.php`), so there is no `state` check on sign-in, which allows login CSRF (a victim can be signed into an attacker's portal account). This is a deliberate team trade-off for session loss behind Plesk/nginx. | **Flagged.** Try `MICROSOFT_OAUTH_STATELESS=false` once production session persistence is confirmed. |
+
+### Part 2 - Re-verified as sound (with evidence)
+
+- **`EnsureAccountIsActive` merged logic (passes 5 and 6, F7).** The four
+  conditions are coherent. Order: inactive user, then portal login disabled,
+  then an inactive client, then a client-facing role with no client. Staff
+  with a null `client_id` are unaffected. The middleware is appended to
+  `web` after `StartSession`, so `$request->user()` resolves from the
+  session **or** the recaller cookie before the check. It is inside
+  `SecurityHeaders`. `callback()` applies the identical four checks. The
+  remember-cookie path is now covered by a test (L8a).
+- **`userCanViewTicket()`** after pass 5, pass 6 (`client` selected) and
+  this pass's M1 fix. The branches are: requester identity, then the real
+  account when known (a moved ticket overrides the cache), then org-wide
+  viewers versus personal viewers, then staff via `canAccessClient()` on the
+  mapped client. H2 makes that last mapping lookup unambiguous for new data.
+- **`EntraGroupSyncService` F8 guard.** It runs before every write: user
+  updates, deactivation, group, app and SSO assignments, the SuperOps name
+  and email pushes, and provisioning. It counts the same resolvable-email
+  set that the deactivation filter uses. Graph `accountEnabled` defaults to
+  `true` when absent (`MicrosoftGraphClient:207`), so a missing field cannot
+  mass-disable users around the guard.
+- **New jobs (pass 4 and 6).** `BootstrapClientEntraJob` and
+  `ApplyClientSsoSamlJob` call `finish()` on success, on a caught exception
+  and in `failed()`, so the in-flight flag is always cleared. Both are
+  `ShouldBeUnique` on the client id, with `$tries = 1` and an explicit
+  timeout. `WarmClientOnboardingChecksJob` keeps no state and swallows its
+  own errors. They are safe for at-least-once delivery. Their one real
+  exposure was the duplicate delivery caused by H1.
+- **Queue names.** Every `onQueue()` targets `high`, and everything else
+  uses `default`. The documented worker runs `--queue=high,default` on the
+  `database` connection, so no job is routed to a queue that is not being
+  worked.
+- **F9 removal.** A repo-wide grep (listed under L7) found only the
+  factory trace. The drop migrations use `dropIfExists` on tables that no
+  other foreign key references (safe on MySQL). Nothing reads the
+  `ActivityLog::subject()` morph.
+- **Areas previously called sound, re-checked independently:**
+  `SuperOpsHtml::sanitize()` was re-fuzzed with 14 vectors (attribute
+  quoting tricks, `<<script>`, `/`-separated attributes, tab/newline
+  separators, comments, SVG/IMG). No tag survived with an attribute.
+  `HuntressIncidentService::findForClient()` re-checks `organization_id` on
+  both the cache path and the live path (lines 149 and 168). The Azure
+  provider maps `email` to `userPrincipalName`
+  (`vendor/socialiteproviders/microsoft-azure/Provider.php:100`), so the
+  nOAuth finding stands as retracted. `AdminConsentState` uses a signed,
+  canonical-integer payload with `hash_equals`. The `{!! !!}` sinks are
+  unchanged: 4 kinds, all sanitized or developer-authored.
+- **MySQL versus SQLite.** All raw SQL is parameterized (`whereRaw
+  LOWER(email) = ?`, `orderByRaw CASE WHEN client_id = ?`). The only
+  dialect-sensitive construct found was a backslash in LIKE (M3, now
+  avoided). `UserController::index` eager-loads with `->limit(5)`, which
+  Laravel compiles to a window function on MySQL 8 / MariaDB 10.2+, with a
+  legacy fallback for older MySQL. Integer ids come back as ints from
+  pdo_mysql on PHP 8.1+, so the `===` comparisons in `canAccessClient()`
+  hold.
+- **`.env.example` versus `env()`.** No `env()` call exists outside
+  `config/`, so `config:cache` is safe. Every app-specific variable missing
+  from `.env.example` has a safe code default: tuning knobs such as
+  `SUPEROPS_DASHBOARD_*`, `ENTRA_DIRECTORY_*`, `M365_INSIGHTS_*` and
+  `PORTAL_ORGANISATION_NAME`.
+- **Table growth.** `sessions` uses the default 2/100 lottery GC.
+  `activity_logs` is pruned nightly. `cache_locks` is cleared by the lock
+  lottery and by prewarm. `client_metric_daily_snapshots` grows by one row
+  per client per day, by design. `failed_jobs` and expired `cache` rows are
+  now pruned (L3, L4).
+
+### Test suite health
+
+- Baseline at `33ff13c`: 3 full runs, each **330 passed (1458
+  assertions)**. 2 random-order runs (`--random-order-seed=11`, `22`) were
+  also green. No flake was observed.
+- After all fixes: **362 passed (1566 assertions)**. The 32 new tests break
+  down as 1 + 9 + 2 + 1 + 5 + 6 + 2 + 1 + 2 + 3 across the commits above.
+  Three consecutive full runs and two random-order runs (seeds 7 and 99)
+  were all green (see the verification block below).
+- Spot-checked pass 5 and 6 security tests: `DeactivatedAccountSessionTest`,
+  `ClientDeletionOrphanedUsersTest`, `AdminConsentCallbackTest`,
+  `AccountManagerScopeTest`, the `EntraGroupSyncServiceTest` guard tests and
+  `SupportTicketShowTest`. They use real HTTP fakes and real DB state rather
+  than mocking the unit under test. The weaknesses found are listed as L8,
+  and M1 was a coverage gap in `SupportTicketShowTest`.
+
+### Deploy notes for this pass
+
+- No new migrations.
+- `config/queue.php` is new. Run `php artisan config:cache` as usual after
+  deploying. Leave `DB_QUEUE_RETRY_AFTER` unset, or set it above 600.
+- Two nightly schedules are new (03:30 and 03:40). They run through the
+  existing `schedule:run` timer, so there is no infrastructure change.
+- Existing duplicate external ids (if any) keep working but can no longer be
+  created. To check for them before deploy, run
+  `SELECT superops_account_id, COUNT(*) FROM clients WHERE superops_account_id IS NOT NULL GROUP BY 1 HAVING COUNT(*) > 1`
+  and the same query for the other four columns.
+- The personal M365 directory matches on object id only after each client's
+  next directory refresh. Until then it matches on exact email.
+
+### Verification (this pass, actual output)
+
+```
+$ php artisan test                       # baseline at 33ff13c, 3 consecutive runs
+Tests:    330 passed (1458 assertions)   (x3)
+$ vendor/bin/phpunit --order-by=random --random-order-seed=11 / 22
+OK (330 tests, 1458 assertions)          (x2)
+
+$ php artisan test                       # after all fixes, 3 consecutive runs
+Tests:    362 passed (1566 assertions)   (x3)
+$ vendor/bin/phpunit --order-by=random --random-order-seed=7 / 99
+OK (362 tests, 1566 assertions)          (x2)
+
+# php artisan test was also run after every individual fix commit (monotonic:
+# 331, 340, 342, 343, 348, 354, 356, 357, 359, 359, 362), and every new
+# regression test was run against the pre-fix code, where it fails.
 ```

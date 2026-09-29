@@ -1269,4 +1269,33 @@ class EntraGroupSyncServiceTest extends TestCase
             return Http::response([], 404);
         });
     }
+
+    public function test_tripped_guard_makes_no_graph_writes_to_group_membership(): void
+    {
+        // The guard runs before any write, so an empty Graph result must not also
+        // strip the existing portal-group members.
+        $tenantId = '11111111-1111-1111-1111-111111111111';
+        $groupId = '22222222-2222-2222-2222-222222222222';
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $tenantId,
+            'entra_group_id' => $groupId,
+            'entra_sync_enabled' => true,
+        ]);
+        User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientRequester,
+            'provisioned_by' => UserProvisionSource::EntraSync,
+            'entra_object_id' => 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            'is_active' => true,
+        ]);
+
+        $this->fakeTenantSyncGraph($tenantId, [], $groupId, ['bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb']);
+
+        $result = app(EntraGroupSyncService::class)->syncClient($client);
+
+        $this->assertStringContainsString('no eligible users', $result->errors[0] ?? '');
+        $this->assertSame(0, $result->groupMembersRemoved);
+        Http::assertNotSent(fn ($request) => in_array($request->method(), ['POST', 'PATCH', 'DELETE'], true)
+            && str_starts_with($request->url(), 'https://graph.microsoft.com/'));
+    }
 }

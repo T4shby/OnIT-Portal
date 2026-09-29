@@ -171,6 +171,45 @@ class M365DirectoryTest extends TestCase
             ->assertDontSee('All Staff');
     }
 
+    public function test_requester_directory_view_matches_exact_identity_not_name_or_local_part(): void
+    {
+        $client = Client::factory()->create([
+            'entra_tenant_id' => $this->tenantId,
+            'entra_sync_enabled' => true,
+        ]);
+
+        // Portal email is the UPN; Entra `mail` is an alias domain, so only the
+        // object id ties this row to the viewer.
+        $user = User::factory()->create([
+            'client_id' => $client->id,
+            'role' => UserRole::ClientRequester,
+            'email' => 'mark@acme.onmicrosoft.com',
+            'name' => 'Mark',
+            'entra_object_id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        ]);
+
+        $person = fn (string $mail, string $name): array => [
+            'mail' => $mail, 'userPrincipalName' => $mail, 'displayName' => $name,
+            'accountEnabled' => true, 'licensed' => true, 'mailboxPurpose' => 'user',
+            'skus' => ['O365_BUSINESS_PREMIUM'],
+        ];
+
+        $this->fakeDirectoryGraph([
+            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' => $person('mark@acme.com', 'Mark Viewer'),
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' => $person('marketing@acme.onmicrosoft.com', 'Marketing Shared'),
+            'cccccccc-cccc-cccc-cccc-cccccccccccc' => $person('mjones@acme.com', 'Mark Jones'),
+        ], []);
+
+        app(\App\Services\M365\M365DirectoryService::class)->buildAndStoreSnapshot($client);
+
+        $this->actingAs($user)
+            ->get(route('microsoft-365.directory'))
+            ->assertOk()
+            ->assertSee('Mark Viewer')
+            ->assertDontSee('Marketing Shared')
+            ->assertDontSee('Mark Jones');
+    }
+
     public function test_msp_admin_can_view_client_directory(): void
     {
         $client = Client::factory()->create(['entra_tenant_id' => $this->tenantId]);

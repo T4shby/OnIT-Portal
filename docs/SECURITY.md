@@ -43,12 +43,12 @@ and whether each is required.
 - CSRF protection is Laravel's default (`ValidateCsrfToken` in the `web`
   middleware group) and is **not** disabled anywhere in this app
   (`bootstrap/app.php` registers no CSRF exceptions).
-- Session cookie: `SESSION_DRIVER=database`, `http_only=true` by default,
-  `SESSION_SECURE_COOKIE` **must be set to `true` in production**
-  (documented in `Brain/Deployment.md`'s example `.env`; `.env.example`
-  lists the variable blank for local HTTP development - a second audit
-  pass found it was previously missing from `.env.example` entirely and
-  added it). `SecurityHeaders`
+- Session cookie: `SESSION_DRIVER=database`, `http_only=true` by default.
+  `secure` follows `SESSION_SECURE_COOKIE`; when that is unset or blank (as
+  a `.env` copied from `.env.example` leaves it) it defaults to `true` when
+  `APP_ENV=production` and `false` otherwise (`config/session.php`, seventh
+  audit pass). Setting it to `true` explicitly in production is still
+  recommended. `SecurityHeaders`
   middleware adds `Strict-Transport-Security` only when `app()->isProduction()`.
 - Microsoft OAuth tokens obtained at login (`access_token`/`refresh_token`)
   are stored on the `users.microsoft_tokens` column with Laravel's
@@ -107,6 +107,15 @@ Policies and Gates - never trust a hidden field, a route parameter, or
    the submitted `client_id` on (non-global) portal links, store and
    update - covered by
    `tests/Feature/Security/ClientContentCrossTenantTest.php`.
+   `StoreClientRequest`/`UpdateClientRequest` also refuse a changed
+   external mapping id (`superops_account_id`, `huntress_organization_id`,
+   `dropsuite_organization_id`, `pax8_company_id`, `entra_tenant_id`) that
+   another client already uses, and the admin-consent return will not link
+   a tenant that belongs to another client. Those ids decide whose data a
+   client shows, so a shared id would let an account manager read an
+   unassigned tenant through an assigned client (or leak one customer's
+   data to another after a copy-paste slip) - covered by
+   `tests/Feature/Security/ClientExternalMappingTest.php`.
 7. **An empty `accessibleClientIds()` means "no clients"**, never "all".
    Always apply `whereIn(..., $user->accessibleClientIds())`; do not wrap it
    in `when(! empty(...))` (that failed open for account managers with no
@@ -154,14 +163,14 @@ without it, not that the app fails to boot.
 | Group | Required in production | Notes |
 |---|---|---|
 | `APP_*`, `DB_*` | Yes | Standard Laravel/DB config |
-| `SESSION_SECURE_COOKIE` | Yes (set `true`) | Not enforced by app code - must be set in `.env` |
+| `SESSION_SECURE_COOKIE` | Recommended (set `true`) | Blank/unset defaults to `true` when `APP_ENV=production` (`config/session.php`) |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Yes | Entra ID app registration; without these, login is disabled with an explicit error message |
 | `SUPEROPS_API_TOKEN`, `SUPEROPS_SUBDOMAIN` | Feature-gated | Support tickets / SSO launch unavailable without it |
 | `ENTRA_SYNC_ENABLED`, `ENTRA_SYNC_CLIENT_ID`, `ENTRA_SYNC_CLIENT_SECRET` | Feature-gated | Group sync, M365 directory, SCIM provisioning all gated on this |
 | `HUNTRESS_*` | Feature-gated, default disabled | `HUNTRESS_ENABLED=false` by default |
 | `DROPSUITE_*` | Feature-gated, default disabled | `DROPSUITE_ENABLED=false` by default |
 | `PAX8_*` | Feature-gated | SSO launch to Pax8 |
-| `SUPER_ADMIN_EMAIL` | Informational | Used for display/contact only |
+| `SUPER_ADMIN_EMAIL` | Yes on first install | `UserSeeder` creates/updates this account as the first `super_admin` (SSO login needs a pre-provisioned user) |
 
 ## Trust boundaries
 
@@ -184,9 +193,9 @@ without it, not that the app fails to boot.
 ## Known limitations / accepted risk (see `docs/SYSTEM_AUDIT.md` for detail)
 
 - Single-file log channel by default (`LOG_STACK=single`) - no automatic
-  rotation. Low risk at current scale; recommend switching to `daily` in
-  production if disk usage becomes a concern.
-- `SESSION_SECURE_COOKIE` is not forced to `true` by application code (it
-  is `env()`-driven with no default) - it is documented as required in
-  production, but a misconfigured `.env` could leave it off. Consider
-  defaulting it to `true` when `APP_ENV=production` in a future change.
+  rotation. Low risk at current scale; `LOG_STACK=daily` works as a
+  one-line `.env` change (Laravel 11 merges the framework's `daily`
+  channel into this repo's trimmed `config/logging.php`).
+- `SESSION_SECURE_COOKIE`: resolved in the seventh audit pass - it now
+  defaults to `true` in production when unset or blank; an explicit
+  `false` still turns it off.

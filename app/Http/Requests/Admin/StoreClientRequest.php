@@ -37,6 +37,54 @@ class StoreClientRequest extends FormRequest
         ];
     }
 
+    /**
+     * External account / tenant ids that decide whose data a portal client shows
+     * (tickets, devices, incidents, backups, M365 directory, Pax8 launch).
+     */
+    public const EXTERNAL_MAPPING_FIELDS = [
+        'superops_account_id',
+        'huntress_organization_id',
+        'dropsuite_organization_id',
+        'pax8_company_id',
+        'entra_tenant_id',
+    ];
+
+    /**
+     * An external id may belong to one portal client only. Otherwise an account
+     * manager could point an assigned client at an unassigned client's account and
+     * read that tenant's data through it, and a copy-paste slip by anyone would show
+     * one customer another customer's tickets. Only values that change are checked,
+     * so a client with a pre-existing duplicate can still be saved and fixed.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            $current = $this->route('client');
+            $current = $current instanceof \App\Models\Client ? $current : null;
+
+            foreach (self::EXTERNAL_MAPPING_FIELDS as $field) {
+                $value = $this->input($field);
+                if (! is_string($value) || $value === '' || $validator->errors()->has($field)) {
+                    continue;
+                }
+
+                $normalized = strtolower($value);
+                if ($current !== null && strtolower((string) $current->{$field}) === $normalized) {
+                    continue;
+                }
+
+                $takenElsewhere = \App\Models\Client::query()
+                    ->whereRaw('LOWER('.$field.') = ?', [$normalized])
+                    ->when($current !== null, fn ($q) => $q->whereKeyNot($current->getKey()))
+                    ->exists();
+
+                if ($takenElsewhere) {
+                    $validator->errors()->add($field, 'This ID is already linked to another client. Each external account can belong to one portal client only.');
+                }
+            }
+        });
+    }
+
     protected function prepareForValidation(): void
     {
         $trimmed = [];

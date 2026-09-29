@@ -1184,10 +1184,10 @@ class SuperOpsClientMetricsService
             return false;
         }
 
-        return \Illuminate\Support\Facades\DB::table('jobs')
-            ->where('payload', 'like', '%RefreshSuperOpsDashboardJob%')
-            ->where('payload', 'like', '%clientId";i:'.$clientId.';%')
-            ->exists();
+        return \App\Support\QueuedJobPayload::whereClientId(
+            \Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%RefreshSuperOpsDashboardJob%'),
+            $clientId,
+        )->exists();
     }
 
     /**

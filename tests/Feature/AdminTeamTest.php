@@ -115,4 +115,36 @@ class AdminTeamTest extends TestCase
 
         $this->assertSame(0, $manager->assignedClients()->count());
     }
+
+    public function test_super_admin_cannot_demote_or_deactivate_themselves(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin, 'is_active' => true]);
+
+        $this->actingAs($admin)->put(route('admin.team.update', $admin), [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'role' => UserRole::AccountManager->value,
+            'is_active' => '1',
+        ])->assertSessionHas('error');
+
+        $this->actingAs($admin)->put(route('admin.team.update', $admin), [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'role' => UserRole::SuperAdmin->value,
+            'is_active' => '0',
+        ])->assertSessionHas('error');
+
+        $admin->refresh();
+        $this->assertSame(UserRole::SuperAdmin, $admin->role);
+        $this->assertTrue($admin->is_active);
+
+        // Editing their own name is still fine.
+        $this->actingAs($admin)->put(route('admin.team.update', $admin), [
+            'name' => 'Renamed Admin',
+            'email' => $admin->email,
+            'role' => UserRole::SuperAdmin->value,
+            'is_active' => '1',
+        ])->assertRedirect(route('admin.team.index'));
+        $this->assertSame('Renamed Admin', $admin->fresh()->name);
+    }
 }

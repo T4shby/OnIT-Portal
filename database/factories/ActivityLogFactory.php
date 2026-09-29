@@ -14,7 +14,7 @@ class ActivityLogFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'action' => fake()->randomElement(['user.login', 'client.created', 'notice.created']),
+            'action' => fake()->randomElement(['user.login', 'client.created', 'user.updated']),
             'ip_address' => fake()->ipv4(),
         ];
     }

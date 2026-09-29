@@ -86,9 +86,14 @@ class PortalLinkController extends Controller
     {
         $this->authorize('update', $portalLink);
 
+        $previousClientId = $portalLink->client_id;
         $portalLink->update($this->prepareLinkData($request->validated()));
 
         $this->externalServices->clearCache($portalLink->client_id);
+        if ($previousClientId !== $portalLink->client_id) {
+            // Moved between clients (or to/from global): the old owner's cache still lists it.
+            $this->externalServices->clearCache($previousClientId);
+        }
         $this->activityLog->log('portal_link.updated', $portalLink, clientId: $portalLink->client_id);
 
         return redirect()->route('admin.portal-links.index')

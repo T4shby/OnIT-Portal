@@ -361,7 +361,8 @@ class M365InsightsService
             })
             ->where(function ($q) use ($clientId): void {
                 $id = (int) $clientId;
-                $q->where('payload', 'like', '%clientId";i:'.$id.';%')
+                $q->where('payload', 'like', '%clientId_";i:'.$id.';%')
+                    ->orWhere('payload', 'like', '%clientId";i:'.$id.';%')
                     ->orWhere('payload', 'like', '%"clientId":'.$id.'%')
                     ->orWhere('payload', 'like', '%i:'.$id.';%');
             })

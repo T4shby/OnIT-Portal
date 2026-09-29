@@ -91,6 +91,13 @@ in this repo.
       --stop-when-empty --max-time=55 --tries=3` workers running every
       minute (short-lived, restarted each minute - there is no persistent
       worker daemon by default)
+    - Jobs run on two queue names only, `high` and `default`; every job
+      class uses the `database` connection, so the worker above covers all
+      of them. A job longer than 55s keeps its worker running past the next
+      minute tick; that is safe only because `config/queue.php` sets the
+      database `retry_after` to 900s (above the longest job timeout, 600s).
+      Do not lower `DB_QUEUE_RETRY_AFTER` below that, or a second worker
+      re-runs the same job while the first is still going.
 
 ## Post-deploy checklist (every deploy, not just first-time)
 
@@ -117,17 +124,18 @@ feature-gated.
 | `APP_URL` | Public HTTPS URL | Yes |
 | `DB_*` | Database connection | Yes |
 | `SESSION_DRIVER` | `database` | Yes |
-| `SESSION_SECURE_COOKIE` | Set to `true` in production | Yes - see `docs/SECURITY.md` |
+| `SESSION_SECURE_COOKIE` | Set to `true` in production (blank/unset now defaults to `true` when `APP_ENV=production`) | Recommended - see `docs/SECURITY.md` |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Entra ID SSO | Yes - login is disabled without these |
 | `MICROSOFT_OAUTH_STATELESS` | Usually `true` in production (session often lost behind Plesk/nginx) | Recommended |
 | `QUEUE_CONNECTION` | `database` | Yes |
+| `DB_QUEUE_RETRY_AFTER` | Seconds before a reserved job is re-run by another worker. Must exceed the longest job `$timeout` (600s) | No, default 900 (`config/queue.php`) |
 | `ACTIVITY_LOG_RETAIN_DAYS` | Audit log retention (days) | No, default 90 |
 | `SUPEROPS_API_TOKEN`, `SUPEROPS_SUBDOMAIN`, `SUPEROPS_*` | SuperOps PSA integration | Feature-gated |
 | `ENTRA_SYNC_ENABLED`, `ENTRA_SYNC_CLIENT_ID`, `ENTRA_SYNC_CLIENT_SECRET` | Entra group sync, M365 directory, SCIM | Feature-gated |
 | `HUNTRESS_ENABLED`, `HUNTRESS_API_KEY`, `HUNTRESS_API_SECRET` | Huntress security dashboard | Feature-gated, off by default |
 | `DROPSUITE_ENABLED`, `DROPSUITE_RESELLER_TOKEN`, `DROPSUITE_AUTH_TOKEN` | Dropsuite backup dashboard | Feature-gated, off by default |
 | `PAX8_*` | Pax8 SSO launch | Feature-gated |
-| `SUPER_ADMIN_EMAIL` | Display/contact only | No |
+| `SUPER_ADMIN_EMAIL` | Microsoft sign-in (UPN) of the first `super_admin`; `db:seed` (`UserSeeder`) creates/updates this account. Login is SSO-only and needs a pre-provisioned user, so a fresh install has no admin without it | Yes on first install |
 
 ## Rollback
 

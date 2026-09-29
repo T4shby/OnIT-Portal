@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\PortalLinkType;
+use App\Enums\UserRole;
+use App\Models\Client;
 use App\Models\PortalLink;
 use App\Models\User;
 use App\Services\Pax8\Pax8SsoService;
@@ -109,14 +111,23 @@ class ExternalServicesService
         $this->clearCache();
     }
 
+    /**
+     * Forget cached link lists after a link changes. A global link (null client) is
+     * in every client's cached list, so it clears them all; before, it cleared only
+     * the staff lists and a deleted / deactivated global link stayed visible to
+     * every customer for up to 5 minutes.
+     */
     public function clearCache(?int $clientId = null): void
     {
-        if ($clientId) {
-            foreach (['super_admin', 'account_manager', 'client_admin', 'client_billing_admin', 'client_requester'] as $role) {
-                Cache::forget("portal_links.{$clientId}.{$role}");
+        $roles = array_map(static fn (UserRole $role): string => $role->value, UserRole::cases());
+        $clientIds = $clientId !== null ? [$clientId] : Client::query()->pluck('id')->all();
+
+        foreach ($clientIds as $id) {
+            foreach ($roles as $role) {
+                Cache::forget("portal_links.{$id}.{$role}");
             }
         }
-        foreach (['super_admin', 'account_manager'] as $role) {
+        foreach ($roles as $role) {
             Cache::forget("portal_links.admin.{$role}");
         }
     }

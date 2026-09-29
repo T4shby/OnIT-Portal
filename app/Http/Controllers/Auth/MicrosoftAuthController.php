@@ -248,6 +248,34 @@ class MicrosoftAuthController extends Controller
             // bootstrap on the queue. It used to run inline on this public URL
             // (~24s+ per request), a cheap worker-exhaustion lever.
             if ($tenantFromConsent !== null && blank($client->entra_tenant_id)) {
+                // One tenant per portal client (same rule as StoreClientRequest): a
+                // tenant already linked elsewhere would show that client's M365 data here.
+                $linkedElsewhere = Client::query()
+                    ->whereRaw('LOWER(entra_tenant_id) = ?', [$tenantFromConsent])
+                    ->whereKeyNot($client->id)
+                    ->exists();
+
+                if ($linkedElsewhere) {
+                    Log::warning('Admin consent tenant already linked to another client - not linked', [
+                        'client_id' => $client->id,
+                        'consent_tenant' => $tenantFromConsent,
+                    ]);
+
+                    return view('auth.admin-consent-complete', [
+                        'tenant' => $tenantFromConsent,
+                        'client' => null,
+                        'bootstrap' => [
+                            'ok' => false,
+                            'summary' => 'This Microsoft tenant is already linked to another client.',
+                            'details' => [],
+                            'warnings' => [
+                                'This Microsoft tenant is already linked to another client, so nothing was changed. '
+                                .'Sign in to the portal and check which client this tenant belongs to.',
+                            ],
+                        ],
+                    ]);
+                }
+
                 $client->update(['entra_tenant_id' => $tenantFromConsent]);
             }
 
