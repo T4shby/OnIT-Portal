@@ -45,44 +45,6 @@ class ClientVisibilityService
             && (int) $user->client_id === (int) $client->id;
     }
 
-    /**
-     * Whether a free-text blob (ticket, incident, user row) belongs to this person.
-     *
-     * @param  list<string|null>  $parts
-     */
-    public function matchesPerson(User $user, array $parts): bool
-    {
-        $email = strtolower(trim((string) $user->email));
-        if ($email === '') {
-            return false;
-        }
-
-        $haystack = strtolower(implode(' ', array_filter(array_map(
-            static fn ($p) => is_string($p) ? $p : (is_scalar($p) ? (string) $p : ''),
-            $parts,
-        ))));
-
-        if ($haystack === '') {
-            return false;
-        }
-
-        if (str_contains($haystack, $email)) {
-            return true;
-        }
-
-        $local = strstr($email, '@', true);
-        if (is_string($local) && strlen($local) >= 4 && str_contains($haystack, strtolower($local))) {
-            return true;
-        }
-
-        $name = strtolower(trim((string) $user->name));
-        if (strlen($name) >= 4 && str_contains($haystack, $name)) {
-            return true;
-        }
-
-        return false;
-    }
-
     public function matchesEmail(?string $email, User $user): bool
     {
         if (! filled($email)) {

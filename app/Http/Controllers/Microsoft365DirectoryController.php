@@ -181,12 +181,13 @@ class Microsoft365DirectoryController extends Controller
             return $display;
         }
 
-        $people = $snapshot->people->filter(function (array $person) use ($user): bool {
+        // Exact identity only (email, or Entra object id). The old fuzzy match on
+        // email local part / display name substrings showed "mark@" the rows for
+        // marketing@ and every "Mark …" - other people's licences and account state.
+        $objectId = strtolower((string) $user->entra_object_id);
+        $people = $snapshot->people->filter(function (array $person) use ($user, $objectId): bool {
             return $this->visibility->matchesEmail($person['email'] ?? null, $user)
-                || $this->visibility->matchesPerson($user, [
-                    $person['email'] ?? null,
-                    $person['displayName'] ?? null,
-                ]);
+                || ($objectId !== '' && strtolower((string) ($person['id'] ?? '')) === $objectId);
         })->values();
 
         $scoped = new M365DirectorySnapshot(

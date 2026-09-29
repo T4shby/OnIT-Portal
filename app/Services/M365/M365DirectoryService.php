@@ -177,6 +177,9 @@ class M365DirectoryService
                 $identityType = $user['identityType'];
 
                 return [
+                    // Entra object id: lets personal (requester) views match the
+                    // viewer exactly even when mail differs from their portal email.
+                    'id' => (string) ($user['id'] ?? ''),
                     'displayName' => EntraSyncDisplayName::baseName(
                         $user['displayName'],
                         $email ?: null,
