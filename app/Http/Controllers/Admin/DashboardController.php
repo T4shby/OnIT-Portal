@@ -37,8 +37,11 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // null = unscoped (super admin: every client, plus client-less queue rows).
+        $healthScope = $user->can('manage-all-clients') ? null : $clientIds;
+
         $overview = $this->integrationHealth->overview(
-            $clientIds,
+            $healthScope,
         );
 
         $healthSummary = [
@@ -50,7 +53,7 @@ class DashboardController extends Controller
         ];
 
         $productCoverage = $this->integrationHealth->productCoverage(
-            $clientIds,
+            $healthScope,
         );
 
         return view('admin.dashboard', compact('stats', 'recentActivity', 'healthSummary', 'productCoverage'));
