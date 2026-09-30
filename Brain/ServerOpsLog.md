@@ -33,6 +33,28 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-30 18:50 UK - Deploy the sign-in confirmation diary
+
+| | |
+|---|---|
+| Intent | GitHub and live were still `2cfb6af`. The 29 Sep sign-in confirmation and the 30 Sep usecure API note existed only in the working tree. Put that diary on `main` and on the live tree. |
+| Operator | agent |
+| SHA before -> after | `2cfb6af` -> the commit that adds this row |
+| Steps | `git push origin main`. Bare mirror fetch. `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`. Post-deploy artisan block (migrate, route/config/view clear, PortalLinkSeeder, optimize). Not `cache:clear`. |
+| Result | Confirm `.deployed-commit` matches GitHub `main`. Login page and `/up` should be HTTP 200. Docs only; no schema change. |
+| Rollback / watch | Redeploy `2cfb6af`. |
+
+### 2026-09-29 16:40 UK - Confirm first production Microsoft sign-in after the audit
+
+| | |
+|---|---|
+| Intent | The audit deploy left one human check: a real Microsoft sign-in, to prove the OAuth state cookie survives the redirect. |
+| Operator | Tom signed in. Agent checked the live log and activity table afterwards. |
+| SHA before -> after | Live stayed `2cfb6af`. No code change. |
+| Steps | SSH `root@159.65.83.156`. Searched `storage/logs/laravel.log` for `Microsoft OAuth state check failed` (0 matches). Queried `activity_logs` for `user.login`. Removed the temporary query script. |
+| Result | Sign-in succeeded. Latest `user.login` is id 9234 at 2026-09-29 15:34:50 UTC (16:34 UK). `LOG_LEVEL=warning`, so the info line `Microsoft OAuth callback succeeded` is not written. A failed state check is a warning and would be in the log. It is not. |
+| Rollback / watch | None. If a later sign-in fails, the log line is `Microsoft OAuth state check failed` with `reason` `missing_cookie`, `mismatch`, or `expired`. |
+
 ### 2026-09-29 14:55 UK - Deploy Claude portal audit (this commit)
 
 | | |
@@ -41,8 +63,8 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 | Operator | agent |
 | SHA before -> after | `7383d00` -> the commit that adds this row |
 | Steps | Duplicate external-id check: 0 groups on `superops_account_id`, `huntress_organization_id`, `dropsuite_organization_id`, `pax8_company_id`, `entra_tenant_id`. `MICROSOFT_OAUTH_STATELESS` unset. Retired tables had 3 seed rows each on client On IT Technology Partners (Notice 1-3, sample recommendations, sample opportunities). `git push origin main`. Archive `main` into the live path. Post-deploy artisan block including `migrate --force` (drops those three tables, adds the SuperOps account index). `optimize` caches the new `config/queue.php`. Not `cache:clear`. |
-| Result | Confirm `.deployed-commit` matches GitHub `main`. Login and `/up` should be HTTP 200. First real Microsoft sign-in still needs a human check for `Microsoft OAuth state check failed` in `storage/logs/laravel.log`. |
-| Rollback / watch | Redeploy `7383d00`. The dropped notice/recommendation/opportunity rows are not restored by rollback (migration `down()` recreates empty tables). Sign in once after this deploy. |
+| Result | Live `.deployed-commit` is `2cfb6af`. Login page and `/up` were HTTP 200. The sign-in check was completed later the same day (see the 16:40 UK entry). |
+| Rollback / watch | Redeploy `7383d00`. The dropped notice/recommendation/opportunity rows are not restored by rollback (migration `down()` recreates empty tables). |
 
 ### 2026-09-29 14:45 UK - CoPilot readiness audit follow-up (same host, not the portal app)
 

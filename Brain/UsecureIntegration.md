@@ -1,9 +1,7 @@
 # usecure (Human Risk) - integration plan
 
-**Status (2026-08-10): Design only - not implemented. Not near-term roadmap work.**  
-Parked under Roadmap **Later / optional**. Build only when keys exist **and** the work is deliberately scheduled. Do not treat this doc as the next engineering step.
-
-Blocked on vendor **beta GraphQL** credentials. Resume implementation only after On IT has a partner API key + GraphQL URL and one pilot company id.
+**Status (2026-09-30): API exists. Not implemented.**  
+Parked until On IT has a partner API key. Rechecked 30 Sep 2026: partners document a real API (key from the usecure admin portal, or a beta GraphQL key from usecure Support). No public schema in this repo yet. Do not write portal code until a key and one company id are in the vault.
 
 Product: [usecure.io](https://usecure.io/) - MSP human risk (training, phishing, risk scoring).  
 Partner multi-tenant admin: **uService** (all On IT customers under the On IT partner tenant - same idea as Huntress).
@@ -27,12 +25,15 @@ Partner multi-tenant admin: **uService** (all On IT customers under the On IT pa
 
 ## Getting API access (ops - before any code enablement)
 
-Public partner guidance is explicit: API is **beta**; keys are **not** self-serve in a documented “generate key” screen.
+Two partner guides describe access. They do not match each other, so ops should try the portal screen first and fall back to Support.
+
+- **Junto** (updated guide): log into the usecure admin portal, **Settings > API**, generate a key, and record the region (**US**, **EU**, or **EU Legacy**). The key can list companies and read learners, training, phishing, breaches, policies, and risk scores. Some write actions exist (enrol learners, send policies). The portal integration stays **read-only**.
+- **Gradient** (older guide): API is **beta**. Contact usecure Support for an API key and an API URL that ends in `/graphql`.
 
 ### Steps for On IT
 
 1. Log into **uService** (MSP partner portal used to manage usecure clients day-to-day).
-2. Contact **usecure Support**:
+2. Look for **Settings > API**. If it is there, generate a key and note the region (US, EU, or EU Legacy). If it is not there, contact **usecure Support**:
    - In-app **chat** in uService, and/or
    - Support paths advertised on [usecure.io](https://usecure.io/).
 3. Request something like:
@@ -60,6 +61,7 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 |-------|--------|
 | Need API Key + API URL; beta; contact usecure Support | [Gradient - uSecure](https://support.meetgradient.com/usecure) |
 | URL must end with `/graphql` | Same page |
+| Settings > API key, regions US / EU / EU Legacy, company and learner reads | [Junto - usecure Setup](https://docs.juntoai.com/integrations/usecure) (rechecked 2026-09-30) |
 | uService is partner platform; support via chat | [usecure Partner Agreement](https://usecure.io/legal/partner-agreement) (uService + chat support) |
 | Multi-tenant MSP platform / sold to some clients | Product positioning + On IT commercial model |
 | Portal architecture (feeds, IH, entitlements) | This repo - clone Huntress/Dropsuite |
@@ -70,7 +72,7 @@ Public partner guidance is explicit: API is **beta**; keys are **not** self-serv
 
 | Condition | Decision |
 |-----------|----------|
-| Support issues key + GraphQL URL + list companies works | **Go** - implement Phase 1-2 below |
+| A partner key (Settings > API, or Support) lists companies | **Go** - implement Phase 1-2 below |
 | API refused / delayed / no company filter | **Hold** - do not stub production code; keep this doc only |
 | API is login redirect only (no data) | **No-go** for metrics feed; optional external link tile only |
 
@@ -198,4 +200,5 @@ When keys exist:
 
 | Date | Note |
 |------|------|
+| 2026-09-30 | Rechecked public partner docs. API exists (portal Settings > API, or Support-issued GraphQL key). Still no On IT key, so no portal code. |
 | 2026-08-10 | Design-only: sales model (sold some clients), Huntress-like tenant, beta API access via support, full modular build checklist. **No code.** |

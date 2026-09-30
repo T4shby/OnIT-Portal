@@ -48,7 +48,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Roadmap.md](Roadmap.md) | Phased future work |
 | [ClientAdminDashboard.md](ClientAdminDashboard.md) | **Client Admin roles, SuperOps/Huntress metrics, async M365 directory and insights** |
 | [UIOverhaul.md](UIOverhaul.md) | Client glance + Reports UI (merged to `main` 2026-08-18) |
-| [UsecureIntegration.md](UsecureIntegration.md) | **usecure - design only for later** (not near-term; blocked on beta API keys) |
+| [UsecureIntegration.md](UsecureIntegration.md) | **usecure - API confirmed, not built** (blocked on an On IT partner API key) |
 
 ## Implementation Map
 
@@ -86,6 +86,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-09-30 | usecure API rechecked: partner key exists (Settings > API or Support GraphQL). Portal still not built. Deployed the 29 Sep sign-in confirmation. - [UsecureIntegration.md](UsecureIntegration.md), [ServerOpsLog.md](ServerOpsLog.md) |
+| 2026-09-29 | Production Microsoft sign-in confirmed after the audit deploy (`user.login` 15:34 UTC, no OAuth state failure in the log). - [ServerOpsLog.md](ServerOpsLog.md), [Authentication.md](Authentication.md) |
 | 2026-09-29 | Eighth audit pass: sign-in OAuth state always verified via its own cookie, `MICROSOFT_OAUTH_STATELESS` removed (ADR-025); admin-consent links expire after 24h (`ADMIN_CONSENT_LINK_TTL_HOURS`); resubmitting Apply SCIM / Wire Client SSO / Retry while one is running is refused, not silently dropped. - [Decisions.md](Decisions.md), [Authentication.md](Authentication.md) |
 | 2026-09-29 | Deployed Claude's portal audit to live after duplicate-id check (0 collisions). - [ServerOpsLog.md](ServerOpsLog.md), [HANDOFF.md](../HANDOFF.md) |
 | 2026-09-29 | CoPilot readiness on the same host: ended the pre-audit session and scheduled daily backups. - [ServerOpsLog.md](ServerOpsLog.md) |

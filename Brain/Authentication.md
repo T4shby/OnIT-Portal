@@ -100,7 +100,7 @@ Auth callback route throttled to 6 attempts per minute per IP to prevent brute-f
 - Client secret rotated via Azure portal; update `.env` accordingly
 - `entra_object_id` is immutable per user per tenant
 - Session fixation prevented by Laravel's session regeneration on login
-- Login CSRF prevented by the OAuth state cookie check (`App\Support\MicrosoftOAuthState`, 2026-09-29). There is no `MICROSOFT_OAUTH_STATELESS` switch any more - the check is always on
+- Login CSRF prevented by the OAuth state cookie check (`App\Support\MicrosoftOAuthState`, 2026-09-29). There is no `MICROSOFT_OAUTH_STATELESS` switch any more - the check is always on. Confirmed on production 2026-09-29 15:34 UTC: a real sign-in wrote `user.login` and did not log `Microsoft OAuth state check failed`. Production `LOG_LEVEL` is `warning`, so the success info line is not in `laravel.log`.
 - Logout invalidates session and regenerates CSRF token
 
 ## Local Development
