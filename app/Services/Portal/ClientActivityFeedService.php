@@ -22,7 +22,7 @@ class ClientActivityFeedService
     ) {}
 
     /**
-     * @return list<array{at: string, title: string, detail: string, source: string, badge: string, ref: string}>
+     * @return list<array{at: string, title: string, detail: string, source: string, badge: string, ref: string, href: ?string, actions: list<array{title: string, badge: string}>}>
      */
     public function recentFor(Client $client, ?User $viewer = null, int $limit = 8): array
     {
@@ -43,16 +43,21 @@ class ClientActivityFeedService
                     continue;
                 }
                 $display = trim((string) ($ticket['displayId'] ?? ''));
-                $subject = trim((string) ($ticket['subject'] ?? 'Support ticket'));
+                $subject = trim((string) ($ticket['subject'] ?? ''));
                 $status = trim((string) ($ticket['status'] ?? ''));
                 $mapped = $this->copy->ticket($status);
+                $ticketId = trim((string) ($ticket['ticketId'] ?? ''));
                 $events[] = [
                     'at' => $when,
-                    'title' => $mapped['title'],
-                    'detail' => $this->truncate($subject, 120),
+                    'title' => $subject !== '' ? $subject : $mapped['title'],
+                    'detail' => $mapped['title'],
                     'source' => 'support',
                     'badge' => $mapped['badge'],
                     'ref' => $display !== '' ? "Ticket {$display}" : 'Support ticket',
+                    'href' => $ticketId !== '' ? route('support.show', $ticketId) : null,
+                    'detail_url' => $ticketId !== '' ? route('support.actions', $ticketId) : null,
+                    'body' => null,
+                    'actions' => [],
                 ];
             }
         }
@@ -68,16 +73,8 @@ class ClientActivityFeedService
                 }
                 $mapped = $this->copy->securityCase($incident->isActive);
                 $subject = trim($incident->subject !== '' ? $incident->subject : 'Security investigation');
-                $events[] = [
-                    'at' => $when->toIso8601String(),
-                    'title' => $mapped['title'],
-                    'detail' => $this->truncate($subject, 120),
-                    'source' => 'security',
-                    'badge' => $mapped['badge'],
-                    'ref' => 'Security',
-                ];
-
-                foreach (array_slice($incident->remediations, 0, 3) as $remediation) {
+                $actions = [];
+                foreach (array_slice($incident->remediations, 0, 6) as $remediation) {
                     if (! is_array($remediation)) {
                         continue;
                     }
@@ -87,15 +84,23 @@ class ClientActivityFeedService
                         continue;
                     }
                     $mappedFix = $this->copy->threatResponse($action, $status);
-                    $events[] = [
-                        'at' => $when->toIso8601String(),
+                    $actions[] = [
                         'title' => $mappedFix['title'],
-                        'detail' => $this->truncate($mappedFix['detail'], 120),
-                        'source' => 'security',
                         'badge' => $mappedFix['badge'],
-                        'ref' => 'Threat response',
                     ];
                 }
+                $events[] = [
+                    'at' => $when->toIso8601String(),
+                    'title' => $subject,
+                    'detail' => $mapped['title'],
+                    'source' => 'security',
+                    'badge' => $mapped['badge'],
+                    'ref' => 'Security',
+                    'href' => $this->securityHref($client, $viewer, $incident->id),
+                    'detail_url' => null,
+                    'body' => $this->truncate((string) ($incident->summary ?? ''), 400),
+                    'actions' => $actions,
+                ];
             }
         }
 
@@ -123,6 +128,10 @@ class ClientActivityFeedService
                     'source' => 'backup',
                     'badge' => $mapped['badge'],
                     'ref' => 'Backup',
+                    'href' => null,
+                    'detail_url' => null,
+                    'body' => null,
+                    'actions' => [],
                 ];
             }
         }
@@ -132,6 +141,22 @@ class ClientActivityFeedService
         });
 
         return array_slice($events, 0, $limit);
+    }
+
+    private function securityHref(Client $client, ?User $viewer, string $incidentId): ?string
+    {
+        if ($incidentId === '') {
+            return null;
+        }
+
+        if ($viewer !== null && $viewer->isTeamMember()) {
+            return route('admin.clients.security.huntress.show', [
+                'client' => $client,
+                'incident' => $incidentId,
+            ]);
+        }
+
+        return route('security.huntress.show', $incidentId);
     }
 
     /**

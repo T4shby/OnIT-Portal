@@ -274,11 +274,11 @@ class ClientHomeOverviewService
     }
 
     /**
-     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string, badge?: string, ref?: string}>}
+     * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string, badge?: string, ref?: string, href?: ?string, actions?: list<array{title: string, badge: string}>}>}
      */
     private function activityFor(Client $client, User $user): array
     {
-        $rows = $this->activity->recentFor($client, $user, 8);
+        $rows = $this->activity->recentFor($client, $user, 20);
         if ($rows === []) {
             return $this->emptyActivity('Nothing new to show right now.');
         }
@@ -292,6 +292,10 @@ class ClientHomeOverviewService
                 'text' => $row['detail'] ?? '',
                 'badge' => $row['badge'] ?? null,
                 'ref' => $row['ref'] ?? null,
+                'href' => $row['href'] ?? null,
+                'detail_url' => $row['detail_url'] ?? null,
+                'body' => $row['body'] ?? null,
+                'actions' => is_array($row['actions'] ?? null) ? $row['actions'] : [],
             ];
         }
 

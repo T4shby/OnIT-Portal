@@ -132,6 +132,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(2, $summary->openTicketsTotal);
         $this->assertSame('High', array_key_first($summary->openTicketsByPriority));
         $this->assertCount(2, $summary->openTicketsTable);
+        $this->assertSame('1', $summary->openTicketsTable[0]['ticketId']);
         $this->assertSame(50, $summary->slaMetPercent);
         $this->assertSame(2, $summary->ticketsCreated['7']);
         $this->assertSame(3, $summary->ticketsCreated['14']);

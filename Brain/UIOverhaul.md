@@ -56,7 +56,7 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v5` |
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
-| **Activity feed** | SuperOps open + recently closed tickets, Huntress cases/remediations, Dropsuite mailbox errors | Action headlines + high-contrast badge. Not a conversation log (no internal notes / per-reply). See below. |
+| **Activity feed** | SuperOps open + recently closed tickets, Huntress cases (actions nested), Dropsuite mailbox errors | One clickable ticket or case. Public replies are on the ticket page. Internal notes are not shown. See below. |
 | **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control (do not show a locked toggle). |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
@@ -77,7 +77,11 @@ Support (SuperOps) remains the protection signal for support-only orgs.
 
 Glance and Reports share `ClientActivityFeedService` + `ClientActivityCopy`.
 
-**Layout:** action headline → ticket/case subject (muted) → **status badge** (orange border, white text on glance; navy text on Reports). Ticket id sits on the right, not in the grey sentence.
+**Layout:** a vertical timeline, newest first. Each point is one ticket or case: subject, the action (status sentence), and the status badge. Security fixes are not extra points on the line.
+
+**Show detail** opens that action on the same page. Support loads the public replies (`GET /support/{ticketId}/actions`: logged, you replied, a technician replied). A security case shows its summary and each fix. Internal notes are not loaded. "Open the full record" is only inside that panel.
+
+The home list still labels the action from status, because the dashboard cache does not store the thread. `ticketId` is stored from the next SuperOps refresh (`superops-dashboard:v5`). Until that refresh, Show detail cannot load the replies.
 
 **Support copy from SuperOps status only** (dashboard cache has subject/status/times, not conversations):
 
@@ -95,9 +99,9 @@ Glance and Reports share `ClientActivityFeedService` + `ClientActivityCopy`.
 
 Also in the mapper: scheduled, waiting for update, escalated, cancelled. Closed tickets are included so the list is not only open work.
 
-**Not claimed:** technician internal notes, or a specific reply timestamp. SuperOps conversation list is not fetched for this feed.
+**Not on the home list:** internal notes, or a per-reply timestamp. Those replies are on the ticket page. Internal notes (`getTicketNoteList`) are never loaded.
 
-**Security:** open/closed case headlines; remediations map isolate / credentials / contain plus unapproved → Needs your approval vs completed.
+**Security:** one row per case, linking to the case page. Remediations (isolate / credentials / contain, unapproved vs completed) are actions under that case.
 
 **Backup:** failed/retrying mailbox attention.
 

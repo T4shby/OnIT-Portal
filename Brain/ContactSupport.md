@@ -53,6 +53,7 @@ Env keys: `ONIT_SUPPORT_PHONE`, `ONIT_SUPPORT_EMAIL`, `ONIT_SUPPORT_HOURS`, `ONI
 
 | Date | Note |
 |------|------|
+| 2026-09-30 | Ticket page lists public replies (logged, you replied, technician replied). Internal notes and files stay in SuperOps. |
 | 2026-09-08 | Create still lands in SuperOps; confirmation `/support/{id}` 403 is requester mismatch, not a failed create. |
 | 2026-08-24 | New starter / Log a ticket bodies sent as HTML so SuperOps shows line breaks (not one blob). |
 | 2026-08-24 | Ticket show: SuperOps Ticket has no `description`; load opening text from conversation list so create redirect is not "Ticket not found". |

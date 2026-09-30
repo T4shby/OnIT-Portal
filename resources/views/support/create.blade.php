@@ -3,7 +3,7 @@
   <x-card class="w-full">
     <h1 class="section-heading-white mb-6 !text-xl">New support request</h1>
     <p class="portal-body-muted text-sm mb-6 leading-relaxed">
-      Submit the request here. After it is created, discussion and attachments continue in the full service desk
+      Submit the request here. After it is created, replies show on the ticket. Files stay in the full service desk
       (<a href="{{ route('integrations.superops.launch') }}" class="text-onit hover:text-white">Open full service desk</a>).
     </p>
     <form method="POST" action="{{ route('support.store') }}" class="admin-form-grid max-w-3xl">

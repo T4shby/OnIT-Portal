@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-30 19:35 UK - Deploy the customer activity timeline
+
+| | |
+|---|---|
+| Intent | Put the customer "what we have done" timeline on GitHub `main` and on the live tree. Each ticket shows its action; Show detail loads public replies. |
+| Operator | agent |
+| SHA before -> after | `923ff65` -> the commit that adds this row |
+| Steps | `git push origin main`. Bare mirror fetch `main`. `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`. Post-deploy artisan block (migrate, route/config/view clear, PortalLinkSeeder, optimize). Not `cache:clear`. |
+| Result | Confirm `.deployed-commit` matches GitHub `main`. Login and `/up` should be HTTP 200. No schema change. Ticket detail links wait for the next SuperOps refresh because older cache rows have no `ticketId`. |
+| Rollback / watch | Redeploy `923ff65`. Hard-refresh the customer home. If Show detail fails, check `GET /support/{ticketId}/actions` and `storage/logs/laravel.log`. |
+
 ### 2026-09-30 18:50 UK - Deploy the sign-in confirmation diary
 
 | | |

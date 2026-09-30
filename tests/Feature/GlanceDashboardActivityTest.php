@@ -34,14 +34,26 @@ class GlanceDashboardActivityTest extends TestCase
 
         $feed = Mockery::mock(ClientActivityFeedService::class);
         $feed->shouldReceive('recentFor')->andReturn([
-            ['at' => 'not-a-date-from-superops', 'source' => 'support', 'title' => 'Broken date ticket', 'detail' => 'x'],
-            ['at' => now()->toIso8601String(), 'source' => 'support', 'title' => 'Good date ticket', 'detail' => 'y'],
+            ['at' => 'not-a-date-from-superops', 'source' => 'support', 'title' => 'Broken date ticket', 'detail' => 'x', 'href' => '/support/1', 'actions' => []],
+            [
+                'at' => now()->toIso8601String(),
+                'source' => 'security',
+                'title' => 'Good date ticket',
+                'detail' => 'We are investigating a security case',
+                'href' => null,
+                'actions' => [
+                    ['title' => 'We isolated a device', 'badge' => 'Completed'],
+                ],
+            ],
         ]);
         $this->app->instance(ClientActivityFeedService::class, $feed);
 
         $this->actingAs($user)->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Broken date ticket')
-            ->assertSee('Good date ticket');
+            ->assertSee('Good date ticket')
+            ->assertSee('Show detail')
+            ->assertSee('We isolated a device')
+            ->assertSee('Completed');
     }
 }

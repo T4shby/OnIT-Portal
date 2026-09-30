@@ -5,9 +5,8 @@ namespace App\Services\Portal;
 /**
  * Client-facing activity headlines from SuperOps / Huntress / Dropsuite cache.
  *
- * We do not have ticket conversation history on the dashboard, so we never claim
- * “internal note” or a specific reply. Waiting-on-you is the closest honest
- * “we wrote back and need you” signal SuperOps gives us.
+ * The home list uses ticket status only. Public replies are on the ticket page.
+ * Internal notes are a separate SuperOps API and are never shown.
  */
 class ClientActivityCopy
 {
@@ -75,6 +74,21 @@ class ClientActivityCopy
                 'title' => 'We updated this ticket',
                 'badge' => $status !== '' ? $status : 'Updated',
             ],
+        };
+    }
+
+    /**
+     * Public SuperOps conversation types only. Internal notes use a different API and are not labelled here.
+     */
+    public function conversation(string $type): string
+    {
+        return match (strtoupper(trim($type))) {
+            'DESCRIPTION' => 'We logged this request',
+            'REQ_REPLY' => 'You replied',
+            'TECH_REPLY' => 'A technician replied',
+            'REQ_NOTIFICATION' => 'You were notified',
+            'TECH_NOTIFICATION' => 'A technician sent an update',
+            default => 'Update',
         };
     }
 

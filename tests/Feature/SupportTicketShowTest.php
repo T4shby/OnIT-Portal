@@ -28,6 +28,7 @@ class SupportTicketShowTest extends TestCase
                 return Http::response([
                     'data' => [
                         'getTicketConversationList' => [
+                            ['content' => 'We reset the password', 'time' => '2026-08-24T13:00:00.000', 'type' => 'TECH_REPLY'],
                             ['content' => 'Opening details', 'time' => '2026-08-24T12:00:00.000', 'type' => 'REQ_REPLY'],
                         ],
                     ],
@@ -63,7 +64,19 @@ class SupportTicketShowTest extends TestCase
             ->assertSee('New starter request: TESTTEST')
             ->assertSee('#13761')
             ->assertSee('Opening details')
+            ->assertSee('You replied')
+            ->assertSee('A technician replied')
+            ->assertSee('We reset the password')
+            ->assertSeeInOrder(['Opening details', 'We reset the password'])
             ->assertDontSee('Ticket not found');
+
+        $this->actingAs($user)
+            ->getJson(route('support.actions', '4799638300707885056'))
+            ->assertOk()
+            ->assertJsonPath('actions.0.title', 'You replied')
+            ->assertJsonPath('actions.0.text', 'Opening details')
+            ->assertJsonPath('actions.1.title', 'A technician replied')
+            ->assertJsonPath('actions.1.text', 'We reset the password');
     }
 
     public function test_show_allows_portal_creator_when_superops_requester_does_not_match(): void
@@ -136,6 +149,10 @@ class SupportTicketShowTest extends TestCase
 
         $this->actingAs($outsider)
             ->get(route('support.show', 'ticket-created-1'))
+            ->assertForbidden();
+
+        $this->actingAs($outsider)
+            ->getJson(route('support.actions', 'ticket-created-1'))
             ->assertForbidden();
     }
 

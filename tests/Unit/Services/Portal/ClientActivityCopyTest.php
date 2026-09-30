@@ -80,4 +80,15 @@ class ClientActivityCopyTest extends TestCase
         $this->assertSame('We are checking a failed mailbox backup', $backup['title']);
         $this->assertSame('Failed', $backup['badge']);
     }
+
+    public function test_conversation_labels_are_public_replies_only(): void
+    {
+        $copy = new ClientActivityCopy;
+
+        $this->assertSame('We logged this request', $copy->conversation('DESCRIPTION'));
+        $this->assertSame('You replied', $copy->conversation('REQ_REPLY'));
+        $this->assertSame('A technician replied', $copy->conversation('TECH_REPLY'));
+        $this->assertSame('A technician sent an update', $copy->conversation('TECH_NOTIFICATION'));
+        $this->assertSame('Update', $copy->conversation('NOTE'));
+    }
 }

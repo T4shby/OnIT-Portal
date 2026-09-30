@@ -324,49 +324,7 @@
                 <div style="font-size:14px;font-weight:600">What we have done for you</div>
             </div>
             @if(! empty($activity['items']))
-                <div style="display:flex;flex-direction:column;gap:12px">
-                    @foreach($activity['items'] as $item)
-                        @php
-                            // Third-party timestamps (SuperOps etc.): one malformed value must
-                            // not 500 the whole home page - just omit the time for that row.
-                            try {
-                                $at = filled($item['at'] ?? null)
-                                    ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
-                                    : null;
-                            } catch (\Throwable) {
-                                $at = null;
-                            }
-                            $sourceLabel = match ($item['source'] ?? '') {
-                                'support' => 'Support',
-                                'security' => 'Security',
-                                'backup' => 'Backup',
-                                default => 'Update',
-                            };
-                        @endphp
-                        <div class="glance-activity-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:start">
-                            <div style="min-width:0">
-                                <div style="font-size:13px;font-weight:600;line-height:1.3;color:#fff">
-                                    {{ $item['title'] ?? $sourceLabel }}
-                                </div>
-                                @if(filled($item['text'] ?? null))
-                                    <div style="margin-top:2px;font-size:12.5px;line-height:1.4" class="glance-muted">
-                                        {{ $item['text'] }}
-                                    </div>
-                                @endif
-                                @if(filled($item['badge'] ?? null))
-                                    <span class="glance-activity-badge">{{ $item['badge'] }}</span>
-                                @endif
-                            </div>
-                            <div class="glance-activity-meta glance-muted" style="text-align:right;font-size:11px;white-space:nowrap">
-                                @if($at){{ $at }}@endif
-                                @if(filled($item['ref'] ?? null))
-                                    <div style="margin-top:2px;color:#fff;font-weight:600">{{ $item['ref'] }}</div>
-                                @endif
-                                <div style="margin-top:2px;font-weight:500;letter-spacing:.04em;text-transform:uppercase">{{ $sourceLabel }}</div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
+                @include('dashboard.partials._activity-feed', ['items' => $activity['items'], 'variant' => 'glance'])
             @else
                 <p style="margin:0;font-size:13px;line-height:1.5" class="glance-muted">
                     {{ $activity['message'] ?? 'Nothing new to show right now.' }}

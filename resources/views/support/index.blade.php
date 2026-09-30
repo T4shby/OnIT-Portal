@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
     <div>
       <h1 class="section-heading-white !text-2xl">Support</h1>
-      <p class="portal-body-muted mt-1">Create and track tickets here. Replies and files continue in the full service desk.</p>
+      <p class="portal-body-muted mt-1">Create and track tickets here. Open a ticket to read the replies.</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
       @if($user->client_id && $apiConfigured)
@@ -14,8 +14,7 @@
 
   <x-card class="mb-6">
     <p class="text-sm portal-body-muted leading-relaxed">
-      The portal shows your ticket list and the original request.
-      Replies, comments, and files stay in the full service desk - use <strong class="text-white/80">Open full service desk</strong> for the conversation.
+      Open a ticket to see each reply. Internal notes stay with the technician. Files stay in the full service desk.
     </p>
   </x-card>
 

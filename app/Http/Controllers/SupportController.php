@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSupportTicketRequest;
 use App\Services\ActivityLogService;
+use App\Services\Portal\ClientActivityCopy;
 use App\Services\SuperOps\SuperOpsTicketService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -60,7 +62,77 @@ class SupportController extends Controller
             abort(403);
         }
 
+        $ticket['conversations'] = $this->labelledConversations($ticket);
+
         return view('support.show', compact('ticket'));
+    }
+
+    public function actions(Request $request, string $ticketId): JsonResponse
+    {
+        if (! $this->tickets->isAvailable()) {
+            abort(404);
+        }
+
+        try {
+            $ticket = $this->tickets->getTicket($ticketId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Support ticket actions failed', [
+                'ticket_id' => $ticketId,
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            abort(404);
+        }
+
+        if (! $ticket || ! $this->tickets->userCanViewTicket($ticket, $request->user())) {
+            abort(403);
+        }
+
+        $actions = [];
+        foreach ($this->labelledConversations($ticket) as $row) {
+            $text = trim(html_entity_decode(strip_tags((string) ($row['content'] ?? ''))));
+            $text = preg_replace('/\s+/', ' ', $text) ?? '';
+            if ($text === '') {
+                continue;
+            }
+            if (mb_strlen($text) > 700) {
+                $text = rtrim(mb_substr($text, 0, 699)).'...';
+            }
+
+            $when = null;
+            try {
+                if (filled($row['at'] ?? null)) {
+                    $when = \Illuminate\Support\Carbon::parse($row['at'])->timezone('Europe/London')->format('d M Y · H:i');
+                }
+            } catch (\Throwable) {
+                $when = null;
+            }
+
+            $actions[] = [
+                'title' => (string) ($row['title'] ?? 'Update'),
+                'at' => $when,
+                'text' => $text,
+            ];
+        }
+
+        return response()->json(['actions' => $actions]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticket
+     * @return list<array<string, mixed>>
+     */
+    private function labelledConversations(array $ticket): array
+    {
+        $copy = app(ClientActivityCopy::class);
+        $rows = is_array($ticket['conversations'] ?? null) ? $ticket['conversations'] : [];
+
+        return array_map(function (array $row) use ($copy): array {
+            $row['title'] = $copy->conversation((string) ($row['type'] ?? ''));
+
+            return $row;
+        }, $rows);
     }
 
     public function create(Request $request): View|RedirectResponse

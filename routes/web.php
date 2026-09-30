@@ -57,6 +57,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [SupportController::class, 'store'])
             ->middleware('throttle:support-ticket-store')
             ->name('store');
+        Route::get('/{ticketId}/actions', [SupportController::class, 'actions'])
+            ->middleware('throttle:30,1')
+            ->name('actions');
         Route::get('/{ticketId}', [SupportController::class, 'show'])->name('show');
     });
 

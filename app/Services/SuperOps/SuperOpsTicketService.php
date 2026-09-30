@@ -56,8 +56,10 @@ class SuperOpsTicketService
             return null;
         }
 
-        $opening = $this->openingDescription($ticketId);
-        if ($opening !== null) {
+        $conversations = $this->conversationRows($ticketId);
+        $ticket['conversations'] = $conversations;
+        $opening = $conversations[0]['content'] ?? null;
+        if (is_string($opening) && $opening !== '') {
             $ticket['description'] = $opening;
         }
 
@@ -179,10 +181,12 @@ class SuperOpsTicketService
     }
 
     /**
-     * SuperOps Ticket type has no `description` field. Opening text lives on
-     * the conversation list. Failure here must not hide the ticket.
+     * Public replies only (`getTicketConversationList`). Internal notes are
+     * `getTicketNoteList` and are not loaded. Failure must not hide the ticket.
+     *
+     * @return list<array{at: ?string, type: string, content: string}>
      */
-    private function openingDescription(string $ticketId): ?string
+    private function conversationRows(string $ticketId): array
     {
         try {
             $data = $this->api->query(<<<'GQL'
@@ -195,7 +199,7 @@ class SuperOpsTicketService
                 }
             GQL, ['input' => ['ticketId' => $ticketId]]);
         } catch (\Throwable) {
-            return null;
+            return [];
         }
 
         $list = $data['getTicketConversationList'] ?? [];
@@ -205,21 +209,32 @@ class SuperOpsTicketService
         }
 
         if (! is_array($list)) {
-            return null;
+            return [];
         }
 
+        $rows = [];
         foreach ($list as $row) {
             if (! is_array($row)) {
                 continue;
             }
 
             $content = trim((string) ($row['content'] ?? ''));
-            if ($content !== '') {
-                return $content;
+            if ($content === '') {
+                continue;
             }
+
+            $rows[] = [
+                'at' => is_string($row['time'] ?? null) && $row['time'] !== '' ? $row['time'] : null,
+                'type' => strtoupper(trim((string) ($row['type'] ?? ''))),
+                'content' => $content,
+            ];
         }
 
-        return null;
+        usort($rows, function (array $a, array $b): int {
+            return strcmp((string) ($a['at'] ?? ''), (string) ($b['at'] ?? ''));
+        });
+
+        return $rows;
     }
 
     private function requesterCondition(User $user): array

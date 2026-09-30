@@ -321,6 +321,8 @@ Maintaining comment parity is expensive and always behind SuperOps; technicians 
 Consequences:
 `/support` and ticket show emphasize Open SuperOps. Do not prioritise portal thread/composer work. Documented in [SuperOpsIntegration.md](SuperOpsIntegration.md), [ProductRequirements.md](ProductRequirements.md).
 
+**Update 2026-09-30:** the ticket page lists the public conversation read-only (what was logged, who replied). Internal notes and file upload stay in SuperOps. Still no composer.
+
 ---
 
 ## ADR-023

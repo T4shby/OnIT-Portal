@@ -559,6 +559,7 @@ class SuperOpsClientMetricsService
                     'requesterEmail' => strtolower((string) ($requester['email'] ?? '')),
                     'requesterName' => (string) ($requester['name'] ?? ''),
                     'requesterUserId' => (string) ($requester['userId'] ?? $requester['user_id'] ?? ''),
+                    'ticketId' => (string) ($ticket['ticketId'] ?? ''),
                 ];
             }
 
@@ -759,6 +760,7 @@ class SuperOpsClientMetricsService
             'requesterEmail' => (string) ($ticket['requesterEmail'] ?? ''),
             'requesterName' => (string) ($ticket['requesterName'] ?? ''),
             'requesterUserId' => (string) ($ticket['requesterUserId'] ?? ''),
+            'ticketId' => (string) ($ticket['ticketId'] ?? ''),
         ];
     }
 

@@ -154,7 +154,11 @@ After create, the portal redirects to `GET /support/{ticketId}` (internal SuperO
 
 The SuperOps **Ticket** type has **no `description` field**. Selecting it returns a GraphQL error. `SupportController@show` used to catch that and flash **Ticket not found** while the list still showed the new ticket.
 
-Correct show query: `ticketId displayId subject status priority createdTime updatedTime requester` (leaf JSON). Opening body from `getTicketConversationList` (`content`). If conversation fetch fails, still render subject/status.
+Correct show query: `ticketId displayId subject status priority createdTime updatedTime requester` (leaf JSON). Public thread from `getTicketConversationList` (`content`, `time`, `type`), oldest first. Types: `DESCRIPTION`, `REQ_REPLY`, `TECH_REPLY`, `REQ_NOTIFICATION`, `TECH_NOTIFICATION`. If the conversation fetch fails, still render subject/status.
+
+Internal notes are `getTicketNoteList` and are **not** shown. Files stay behind SuperOps SSO. There is no reply box in the portal.
+
+The customer timeline calls `GET /support/{ticketId}/actions` (same visibility as show) and renders those public replies as plain text. It does not load notes.
 
 `SupportController@show` used to 403 unless SuperOps `requester.userId` / email matched the portal user. Portal **Log a ticket** / **New starter** use `source: INTEGRATION`; SuperOps often stores a different requester (or none) even though the ticket is on the correct client. The ticket is in SuperOps; the confirmation page was Laravel `403 | FORBIDDEN`.
 
