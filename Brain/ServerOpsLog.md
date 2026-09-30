@@ -39,9 +39,9 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | GitHub and live were still `2cfb6af`. The 29 Sep sign-in confirmation and the 30 Sep usecure API note existed only in the working tree. Put that diary on `main` and on the live tree. |
 | Operator | agent |
-| SHA before -> after | `2cfb6af` -> the commit that adds this row |
+| SHA before -> after | `2cfb6af` -> `414ef09` |
 | Steps | `git push origin main`. Bare mirror fetch. `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`. Post-deploy artisan block (migrate, route/config/view clear, PortalLinkSeeder, optimize). Not `cache:clear`. |
-| Result | Confirm `.deployed-commit` matches GitHub `main`. Login page and `/up` should be HTTP 200. Docs only; no schema change. |
+| Result | `414ef09` deployed. Login HTTP 200. `/up` HTTP 200. Nothing to migrate. Timers `onit-portal-queue`, `onit-portal-queue-b`, and `onit-portal-schedule` fired at 18:50 UK. |
 | Rollback / watch | Redeploy `2cfb6af`. |
 
 ### 2026-09-29 16:40 UK - Confirm first production Microsoft sign-in after the audit
