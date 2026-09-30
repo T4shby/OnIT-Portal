@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-30 19:55 UK - Deploy the condensed activity list
+
+| | |
+|---|---|
+| Intent | The live home still had the long timeline and a services strip that stuck out past the cards. Ship the full-width list (5 rows, up to 10, today / working week / working month). |
+| Operator | agent |
+| SHA before -> after | `c9dcac2` -> the commit that adds this row |
+| Steps | `git push origin main`. Bare mirror fetch `main`. `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`. Post-deploy artisan block (migrate, route/config/view clear, PortalLinkSeeder, optimize). Not `cache:clear`. |
+| Result | Confirm `.deployed-commit` matches GitHub `main`. Login and `/up` should be HTTP 200. No schema change. Hard-refresh the customer home. |
+| Rollback / watch | Redeploy `c9dcac2`. |
+
 ### 2026-09-30 19:35 UK - Deploy the customer activity timeline
 
 | | |

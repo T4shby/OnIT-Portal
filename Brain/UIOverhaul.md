@@ -77,11 +77,13 @@ Support (SuperOps) remains the protection signal for support-only orgs.
 
 Glance and Reports share `ClientActivityFeedService` + `ClientActivityCopy`.
 
-**Layout:** a vertical timeline, newest first. Each point is one ticket or case: subject, the action (status sentence), and the status badge. Security fixes are not extra points on the line.
+**Layout:** one full-width row per ticket or case (time, subject, action, badge). On a narrow screen the subject and action stack. Click the row to open that action underneath it. The services strip on the home page stays inside the same column as the cards above it.
 
-**Show detail** opens that action on the same page. Support loads the public replies (`GET /support/{ticketId}/actions`: logged, you replied, a technician replied). A security case shows its summary and each fix. Internal notes are not loaded. "Open the full record" is only inside that panel.
+**Range:** Today, This working week (Monday-Friday, London), This working month (weekdays in the current month). Starts at 5 rows. The Show control can raise that to 10, which is the maximum on screen. **Show more** reveals the next rows up to 10 and scrolls to them.
 
-The home list still labels the action from status, because the dashboard cache does not store the thread. `ticketId` is stored from the next SuperOps refresh (`superops-dashboard:v5`). Until that refresh, Show detail cannot load the replies.
+**Detail:** support loads the public replies (`GET /support/{ticketId}/actions`). A security case shows its summary and each fix. Internal notes are not loaded.
+
+The row action still comes from status, because the dashboard cache does not store the thread. `ticketId` is stored from the next SuperOps refresh (`superops-dashboard:v5`). Until that refresh, the reply list cannot load.
 
 **Support copy from SuperOps status only** (dashboard cache has subject/status/times, not conversations):
 

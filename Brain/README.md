@@ -86,7 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-09-30 | Customer "what we have done" is a timeline. Each ticket shows its action; Show detail loads that action. - [UIOverhaul.md](UIOverhaul.md), [SuperOpsIntegration.md](SuperOpsIntegration.md) |
+| 2026-09-30 | Customer activity is a full-width list: 5 rows, up to 10, filtered by today / working week / working month. The home services strip no longer sticks out past the cards. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-30 | usecure API rechecked: partner key exists (Settings > API or Support GraphQL). Portal still not built. Deployed the 29 Sep sign-in confirmation. - [UsecureIntegration.md](UsecureIntegration.md), [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-29 | Production Microsoft sign-in confirmed after the audit deploy (`user.login` 15:34 UTC, no OAuth state failure in the log). - [ServerOpsLog.md](ServerOpsLog.md), [Authentication.md](Authentication.md) |
 | 2026-09-29 | Eighth audit pass: sign-in OAuth state always verified via its own cookie, `MICROSOFT_OAUTH_STATELESS` removed (ADR-025); admin-consent links expire after 24h (`ADMIN_CONSENT_LINK_TTL_HOURS`); resubmitting Apply SCIM / Wire Client SSO / Retry while one is running is refused, not silently dropped. - [Decisions.md](Decisions.md), [Authentication.md](Authentication.md) |

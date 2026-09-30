@@ -52,7 +52,8 @@ class GlanceDashboardActivityTest extends TestCase
             ->assertOk()
             ->assertSee('Broken date ticket')
             ->assertSee('Good date ticket')
-            ->assertSee('Show detail')
+            ->assertSee('This working week')
+            ->assertSee('This working month')
             ->assertSee('We isolated a device')
             ->assertSee('Completed');
     }

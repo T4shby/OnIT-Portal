@@ -130,6 +130,7 @@
     }
     @media (min-width: 700px) {
         .glance-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .glance-value-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
     }
     @media (min-width: 1100px) {
         .glance-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -176,10 +177,8 @@
         .glance-columns { grid-template-columns: 1fr !important; padding-top: 1.25rem !important; }
         .glance-portals { grid-template-columns: 1fr !important; }
         .glance-services-bar {
-            margin-left: -1rem !important;
-            margin-right: -1rem !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
         }
         .glance-activity-row {
             grid-template-columns: 1fr !important;
@@ -273,7 +272,7 @@
             @endforeach
         </div>
 
-        <div class="glance-value-grid" style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem">
+        <div class="glance-value-grid" style="margin-top:1.5rem;display:grid;grid-template-columns:1fr;gap:1rem">
             @foreach($valueStrip as $stat)
                 <div class="glance-card" style="padding:1.25rem 1.5rem">
                     <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase" class="glance-muted">{{ $stat['label'] }}</div>
@@ -292,7 +291,7 @@
         </div>
     </div>
 
-    <div class="glance-services-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid #0f3048;background:#011926;margin:0 -1rem;padding:14px 1rem">
+    <div class="glance-services-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-top:1px solid #0f3048;border-bottom:1px solid #0f3048;padding:14px 0">
         <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;flex:none;font-family:'Barlow Condensed',sans-serif" class="glance-muted">Your services</div>
         <div class="portal-scroll-strip" style="gap:8px">
             @foreach($cols as $col)

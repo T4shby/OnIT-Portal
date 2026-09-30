@@ -1,146 +1,254 @@
 @php
     $variant = $variant ?? 'glance';
-    $badgeClass = $variant === 'report' ? 'rp-activity-badge' : 'glance-activity-badge';
-    $mutedClass = $variant === 'report' ? 'rp-muted' : 'glance-muted';
-    $titleColor = $variant === 'report' ? '#071f2e' : '#fff';
-    $lineColor = $variant === 'report' ? '#ffd2b0' : 'rgba(255,112,0,.55)';
-    $panelBg = $variant === 'report' ? '#fff8f3' : 'rgba(255,255,255,.04)';
-    $panelBorder = $variant === 'report' ? '#ffd2b0' : 'rgba(255,112,0,.35)';
-@endphp
-<style>
-    [x-cloak] { display: none !important; }
-</style>
-<div class="activity-timeline" style="display:flex;flex-direction:column;gap:0">
-    @foreach($items as $item)
-        @php
-            try {
-                $at = filled($item['at'] ?? null)
-                    ? \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London')->format('d M · H:i')
-                    : null;
-            } catch (\Throwable) {
-                $at = null;
+    $now = \Illuminate\Support\Carbon::now('Europe/London');
+    $weekStart = $now->copy()->startOfWeek(\Illuminate\Support\Carbon::MONDAY)->startOfDay();
+    $weekEnd = $weekStart->copy()->addDays(4)->endOfDay();
+    $prepared = [];
+    foreach ($items as $index => $item) {
+        $ts = null;
+        $weekday = null;
+        $atLabel = null;
+        try {
+            if (filled($item['at'] ?? null)) {
+                $at = \Illuminate\Support\Carbon::parse($item['at'])->timezone('Europe/London');
+                $ts = $at->timestamp;
+                $weekday = $at->dayOfWeekIso;
+                $atLabel = $at->format('d M · H:i');
             }
-            $sourceLabel = match ($item['source'] ?? '') {
+        } catch (\Throwable) {
+            $ts = null;
+        }
+        $actions = [];
+        foreach (is_array($item['actions'] ?? null) ? $item['actions'] : [] as $action) {
+            if (! is_array($action)) {
+                continue;
+            }
+            $actions[] = [
+                'title' => (string) ($action['title'] ?? 'Update'),
+                'badge' => filled($action['badge'] ?? null) ? (string) $action['badge'] : null,
+            ];
+        }
+        $source = (string) ($item['source'] ?? '');
+        $prepared[] = [
+            'key' => $index,
+            'ts' => $ts,
+            'weekday' => $weekday,
+            'atLabel' => $atLabel,
+            'title' => (string) ($item['title'] ?? 'Update'),
+            'text' => (string) ($item['text'] ?? ''),
+            'badge' => filled($item['badge'] ?? null) ? (string) $item['badge'] : null,
+            'ref' => filled($item['ref'] ?? null) ? (string) $item['ref'] : null,
+            'source' => match ($source) {
                 'support' => 'Support',
                 'security' => 'Security',
                 'backup' => 'Backup',
                 default => 'Update',
-            };
-            $href = filled($item['href'] ?? null) ? $item['href'] : null;
-            $detailUrl = filled($item['detail_url'] ?? null) ? $item['detail_url'] : null;
-            $actions = is_array($item['actions'] ?? null) ? $item['actions'] : [];
-            $body = filled($item['body'] ?? null) ? $item['body'] : null;
-            $canOpen = $detailUrl || $href || $body || $actions !== [];
-        @endphp
-        <div
-            style="display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px"
-            @if($canOpen)
-                x-data="{
-                    open: false,
-                    loading: false,
-                    loaded: false,
-                    error: false,
-                    rows: [],
-                    toggle() {
-                        this.open = !this.open;
-                        if (!this.open || this.loaded || !this.$el.dataset.detailUrl) {
-                            return;
-                        }
-                        this.loading = true;
-                        fetch(this.$el.dataset.detailUrl, {
-                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                            credentials: 'same-origin'
-                        })
-                            .then((response) => {
-                                if (!response.ok) {
-                                    throw new Error('unavailable');
-                                }
-                                return response.json();
-                            })
-                            .then((data) => {
-                                this.rows = Array.isArray(data.actions) ? data.actions : [];
-                                this.loaded = true;
-                            })
-                            .catch(() => {
-                                this.error = true;
-                                this.loaded = true;
-                            })
-                            .finally(() => {
-                                this.loading = false;
-                            });
-                    }
-                }"
-                @if($detailUrl) data-detail-url="{{ $detailUrl }}" @endif
-            @endif
-        >
-            <div style="position:relative">
-                <span style="position:absolute;left:4px;top:6px;width:10px;height:10px;border-radius:999px;background:#FF7000;box-shadow:0 0 0 3px {{ $variant === 'report' ? '#fff4eb' : '#071f2e' }}"></span>
-                @if(! $loop->last)
-                    <span style="position:absolute;left:8px;top:18px;bottom:-8px;width:2px;background:{{ $lineColor }}"></span>
-                @endif
-            </div>
-            <div style="padding:0 0 18px">
-                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;align-items:baseline">
-                    <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase" class="{{ $mutedClass }}">
-                        {{ $sourceLabel }}
-                        @if(filled($item['ref'] ?? null))
-                            · {{ $item['ref'] }}
-                        @endif
-                    </div>
-                    @if($at)
-                        <div style="font-size:11px" class="{{ $mutedClass }}">{{ $at }}</div>
-                    @endif
-                </div>
-                <div style="margin-top:4px;font-size:14px;font-weight:600;line-height:1.3;color:{{ $titleColor }}">
-                    {{ $item['title'] ?? $sourceLabel }}
-                </div>
-                @if(filled($item['text'] ?? null))
-                    <div style="margin-top:4px;font-size:13px;line-height:1.4;color:{{ $titleColor }}">
-                        {{ $item['text'] }}
-                    </div>
-                @endif
-                @if(filled($item['badge'] ?? null))
-                    <span class="{{ $badgeClass }}">{{ $item['badge'] }}</span>
-                @endif
-                @if($canOpen)
-                    <button type="button" @click="toggle()" :aria-expanded="open.toString()" style="margin-top:8px;padding:0;border:0;background:none;color:#FF7000;font-size:12px;font-weight:700;cursor:pointer">
-                        <span x-text="open ? 'Hide detail' : 'Show detail'"></span>
-                    </button>
-                    <div x-show="open" x-cloak style="margin-top:10px;padding:12px;background:{{ $panelBg }};border:1px solid {{ $panelBorder }}">
-                        @if($body)
-                            <p style="margin:0 0 8px;font-size:13px;line-height:1.45;color:{{ $titleColor }}">{{ $body }}</p>
-                        @endif
-                        @if($actions !== [])
-                            <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
-                                @foreach($actions as $action)
-                                    <li style="font-size:13px;line-height:1.4;color:{{ $titleColor }}">
-                                        {{ $action['title'] ?? 'Update' }}
-                                        @if(filled($action['badge'] ?? null))
-                                            <span class="{{ $badgeClass }}">{{ $action['badge'] }}</span>
-                                        @endif
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                        <p x-show="loading" x-cloak style="margin:0;font-size:13px" class="{{ $mutedClass }}">Loading this action...</p>
-                        <p x-show="error" x-cloak style="margin:0;font-size:13px" class="{{ $mutedClass }}">We could not load the detail just now.</p>
-                        <ul x-show="rows.length" x-cloak style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
-                            <template x-for="(row, index) in rows" :key="index">
-                                <li>
-                                    <div style="font-size:13px;font-weight:700;color:{{ $titleColor }}">
-                                        <span x-text="row.title"></span>
-                                        <span x-show="row.at" class="{{ $mutedClass }}" style="font-weight:500" x-text="row.at ? ' · ' + row.at : ''"></span>
-                                    </div>
-                                    <p style="margin:2px 0 0;font-size:13px;line-height:1.45;color:{{ $titleColor }}" x-text="row.text"></p>
-                                </li>
-                            </template>
-                        </ul>
-                        @if($href)
-                            <a href="{{ $href }}" style="display:inline-block;margin-top:10px;color:#FF7000;font-size:12px;font-weight:700">Open the full record</a>
-                        @endif
-                    </div>
-                @endif
-            </div>
+            },
+            'href' => filled($item['href'] ?? null) ? (string) $item['href'] : null,
+            'detailUrl' => filled($item['detail_url'] ?? null) ? (string) $item['detail_url'] : null,
+            'body' => filled($item['body'] ?? null) ? (string) $item['body'] : null,
+            'actions' => $actions,
+        ];
+    }
+    $config = [
+        'variant' => $variant,
+        'items' => $prepared,
+        'bounds' => [
+            'today' => [$now->copy()->startOfDay()->timestamp, $now->copy()->endOfDay()->timestamp],
+            'week' => [$weekStart->timestamp, $weekEnd->timestamp],
+            'month' => [$now->copy()->startOfMonth()->startOfDay()->timestamp, $now->copy()->endOfMonth()->endOfDay()->timestamp],
+        ],
+    ];
+@endphp
+<style>
+    [x-cloak] { display: none !important; }
+    .activity-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .activity-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .activity-chip, .activity-size {
+        border: 1px solid {{ $variant === 'report' ? '#ffd2b0' : '#0f3048' }};
+        background: transparent;
+        color: {{ $variant === 'report' ? '#071f2e' : '#fff' }};
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 10px;
+        cursor: pointer;
+    }
+    .activity-chip.is-on { background: #FF7000; border-color: #FF7000; color: #fff; }
+    .activity-size { padding: 6px 8px; }
+    .activity-row {
+        display: grid;
+        grid-template-columns: 6.5rem minmax(0, 1.5fr) minmax(0, 1fr) auto;
+        gap: 6px 14px;
+        align-items: center;
+        padding: 8px 4px;
+        border-top: 1px solid {{ $variant === 'report' ? '#f0e6dc' : '#0f3048' }};
+        cursor: pointer;
+    }
+    .activity-row:hover { background: {{ $variant === 'report' ? '#fff8f3' : 'rgba(255,255,255,.04)' }}; }
+    .activity-subject { font-size: 13px; font-weight: 600; line-height: 1.3; color: {{ $variant === 'report' ? '#071f2e' : '#fff' }}; }
+    .activity-meta, .activity-action { font-size: 12px; line-height: 1.35; color: {{ $variant === 'report' ? '#666' : 'rgba(255,255,255,.72)' }}; }
+    .activity-detail { grid-column: 1 / -1; padding: 8px 10px 10px; background: {{ $variant === 'report' ? '#fff8f3' : 'rgba(255,255,255,.04)' }}; border: 1px solid {{ $variant === 'report' ? '#ffd2b0' : 'rgba(255,112,0,.35)' }}; }
+    .glance-activity-badge, .rp-activity-badge { margin-top: 0; }
+    @media (max-width: 720px) {
+        .activity-row { grid-template-columns: 1fr auto; align-items: start; }
+        .activity-subject, .activity-action { grid-column: 1 / -1; }
+    }
+</style>
+<div
+    x-data="onitActivityTimeline({{ \Illuminate\Support\Js::from($config) }})"
+>
+    <div class="activity-toolbar">
+        <div class="activity-filters" role="group" aria-label="When">
+            <button type="button" class="activity-chip" :class="{ 'is-on': range === 'today' }" @click="setRange('today')">Today</button>
+            <button type="button" class="activity-chip" :class="{ 'is-on': range === 'week' }" @click="setRange('week')">This working week</button>
+            <button type="button" class="activity-chip" :class="{ 'is-on': range === 'month' }" @click="setRange('month')">This working month</button>
         </div>
-    @endforeach
+        <label class="activity-meta" style="display:inline-flex;align-items:center;gap:8px">
+            Show
+            <select class="activity-size" x-model.number="pageSize" @change="shown = pageSize" aria-label="How many to show">
+                <option value="5">5</option>
+                <option value="10">10</option>
+            </select>
+        </label>
+    </div>
+    <p class="activity-meta" style="margin:0 0 8px" x-text="summary"></p>
+    <div x-ref="list">
+        <template x-for="(item, index) in visible" :key="item.key">
+            <div class="activity-row" :data-index="index" @click="toggle(item)">
+                <div class="activity-meta" x-text="item.atLabel || item.source"></div>
+                <div style="min-width:0">
+                    <div class="activity-meta" x-show="item.ref" x-text="item.source + (item.ref ? ' · ' + item.ref : '')"></div>
+                    <div class="activity-subject" x-text="item.title"></div>
+                </div>
+                <div class="activity-action" x-text="item.text"></div>
+                <div>
+                    <span x-show="item.badge" class="{{ $variant === 'report' ? 'rp-activity-badge' : 'glance-activity-badge' }}" x-text="item.badge"></span>
+                </div>
+                <div class="activity-detail" x-show="openKey === item.key" x-cloak @click.stop>
+                    <p class="activity-action" style="margin:0 0 8px" x-show="item.body" x-text="item.body"></p>
+                    <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px" x-show="item.actions.length">
+                        <template x-for="(action, actionIndex) in item.actions" :key="actionIndex">
+                            <li class="activity-subject">
+                                <span x-text="action.title"></span>
+                                <span x-show="action.badge" class="{{ $variant === 'report' ? 'rp-activity-badge' : 'glance-activity-badge' }}" x-text="action.badge"></span>
+                            </li>
+                        </template>
+                    </ul>
+                    <p class="activity-meta" style="margin:0" x-show="item.loading">Loading this action...</p>
+                    <p class="activity-meta" style="margin:0" x-show="item.error">We could not load the detail just now.</p>
+                    <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px" x-show="item.rows && item.rows.length">
+                        <template x-for="(row, rowIndex) in item.rows" :key="rowIndex">
+                            <li>
+                                <div class="activity-subject">
+                                    <span x-text="row.title"></span>
+                                    <span class="activity-meta" x-show="row.at" x-text="row.at ? ' · ' + row.at : ''"></span>
+                                </div>
+                                <p class="activity-action" style="margin:2px 0 0" x-text="row.text"></p>
+                            </li>
+                        </template>
+                    </ul>
+                    <a x-show="item.href" :href="item.href" @click.stop style="display:inline-block;margin-top:8px;color:#FF7000;font-size:12px;font-weight:700">Open the full record</a>
+                </div>
+            </div>
+        </template>
+    </div>
+    <p class="activity-meta" style="margin:12px 0 0" x-show="filteredCount === 0" x-cloak>Nothing in this period. Try a wider range.</p>
+    <button type="button" class="activity-chip" style="margin-top:10px" x-show="canShowMore" x-cloak @click="showMore()">Show more</button>
 </div>
+<script>
+    function onitActivityTimeline(config) {
+        return {
+            range: 'week',
+            pageSize: 5,
+            shown: 5,
+            openKey: null,
+            items: config.items || [],
+            bounds: config.bounds || {},
+            get filtered() {
+                return this.items.filter((item) => this.matches(item));
+            },
+            get visible() {
+                return this.filtered.slice(0, this.shown);
+            },
+            get filteredCount() {
+                return this.filtered.length;
+            },
+            get canShowMore() {
+                return this.filteredCount > this.shown && this.shown < 10;
+            },
+            get summary() {
+                const labels = { today: 'today', week: 'this working week', month: 'this working month' };
+                const count = this.filteredCount;
+                if (count === 0) {
+                    return 'Nothing ' + (labels[this.range] || 'in this period') + '.';
+                }
+                const visible = Math.min(this.shown, count);
+                return 'Showing ' + visible + ' of ' + count + ' · ' + (labels[this.range] || '');
+            },
+            matches(item) {
+                if (!item.ts) {
+                    return true;
+                }
+                const bound = this.bounds[this.range];
+                if (!bound) {
+                    return true;
+                }
+                if (item.ts < bound[0] || item.ts > bound[1]) {
+                    return false;
+                }
+                if (this.range !== 'today' && item.weekday > 5) {
+                    return false;
+                }
+                return true;
+            },
+            setRange(range) {
+                this.range = range;
+                this.shown = this.pageSize;
+                this.openKey = null;
+            },
+            showMore() {
+                const start = this.shown;
+                this.shown = Math.min(10, this.filteredCount);
+                this.$nextTick(() => {
+                    const row = this.$refs.list.querySelector('[data-index="' + start + '"]');
+                    if (row) {
+                        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            },
+            toggle(item) {
+                if (this.openKey === item.key) {
+                    this.openKey = null;
+                    return;
+                }
+                this.openKey = item.key;
+                if (!item.detailUrl || item.loaded || item.loading) {
+                    return;
+                }
+                item.loading = true;
+                item.error = false;
+                fetch(item.detailUrl, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('unavailable');
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        item.rows = Array.isArray(data.actions) ? data.actions : [];
+                        item.loaded = true;
+                    })
+                    .catch(() => {
+                        item.error = true;
+                        item.loaded = true;
+                    })
+                    .finally(() => {
+                        item.loading = false;
+                    });
+            },
+        };
+    }
+</script>
