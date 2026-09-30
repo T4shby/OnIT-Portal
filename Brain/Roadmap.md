@@ -10,7 +10,7 @@ Status as of **2026-08-21**. Shipped work is live product; backlog is ordered by
 | Domain / email cutover | Portal + SuperOps email align on Entra Sync - [DomainEmailChange.md](DomainEmailChange.md) |
 | Roles | `super_admin`, `account_manager`, `client_admin`, `client_requester`, `client_billing_admin` |
 | Portal IA | **Dashboard** home; **Services** dropdown (Security, Microsoft 365, Support & Devices). Organisation page removed |
-| SuperOps | Dashboard metrics, ticket list/create API, SSO launch; **threads/comments live in SuperOps** (not portal-embedded conversation) |
+| SuperOps | Dashboard metrics, ticket list/create, public replies on the ticket and the home activity list. Internal notes, files, and the reply box stay in SuperOps (ADR-022) |
 | Huntress | Org security tile + cases; staff board; Integration Health column |
 | Dropsuite | Org backup summary (24h success / open issues); full Online backups inventory for Client Admin; IH column |
 | M365 | Async directory + licence insights; free/trial SKUs excluded from paid util |
@@ -37,7 +37,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Later / optional
 
-- **usecure human-risk feed** - full design parked for later; **not** near-term work. Unblocks when On IT has beta GraphQL API keys from usecure Support (ops request in own time). Build plan: [UsecureIntegration.md](UsecureIntegration.md).
+- **usecure human-risk feed** - not built. Next action is an On IT partner API key and one company id, then a flagged pilot. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps).
 - PWA install prompt / offline shell (mobile nav shipped 2026-08-18)
 - Public API for AM tools
 - Marketplace-style third-party tiles
@@ -47,7 +47,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 | Idea | Why not now |
 |------|-------------|
-| Full ticket thread + comments UI in portal | Replies stay in SuperOps; portal is list/create + SSO (ADR-022) |
+| Reply box, attachments, and internal notes in the portal | Public replies are read-only on the ticket and the home list. Writing, files, and notes stay in SuperOps (ADR-022) |
 | Global SuperOps Multitenant SSO experiment | Retired; **Client SSO per customer** only |
 | Email-blast “AM reports” as primary surface | Prefer in-app coverage matrix + IH (ADR-023) |
 | Hardcoding every free M365 SKU string | Heuristics + paid seat util labels only |

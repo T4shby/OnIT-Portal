@@ -86,6 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-09-30 | Only `main` remains. usecure next step is a partner API key and one company id, then a flagged pilot. - [UsecureIntegration.md](UsecureIntegration.md#next-steps), [Deployment.md](Deployment.md) |
 | 2026-09-30 | Customer activity is a full-width list: 5 rows, up to 10, filtered by today / working week / working month. The home services strip no longer sticks out past the cards. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-30 | usecure API rechecked: partner key exists (Settings > API or Support GraphQL). Portal still not built. Deployed the 29 Sep sign-in confirmation. - [UsecureIntegration.md](UsecureIntegration.md), [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-29 | Production Microsoft sign-in confirmed after the audit deploy (`user.login` 15:34 UTC, no OAuth state failure in the log). - [ServerOpsLog.md](ServerOpsLog.md), [Authentication.md](Authentication.md) |

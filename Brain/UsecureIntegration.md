@@ -1,7 +1,23 @@
 # usecure (Human Risk) - integration plan
 
-**Status (2026-09-30): API exists. Not implemented.**  
-Parked until On IT has a partner API key. Rechecked 30 Sep 2026: partners document a real API (key from the usecure admin portal, or a beta GraphQL key from usecure Support). No public schema in this repo yet. Do not write portal code until a key and one company id are in the vault.
+**Status (2026-09-30): API exists. Not implemented. Next step is a partner key, not code.**
+
+## Next steps
+
+Do these in order. Stop at step 4 until the vault has a key. Do not start portal code before that.
+
+| Step | Who | Done when |
+|------|-----|-----------|
+| 1 | On IT technician | Logged into **uService** (the partner portal for usecure clients). |
+| 2 | On IT technician | **Settings > API** shows a new key, and the region is written down: **US**, **EU**, or **EU Legacy**. If that screen is missing, send the support request in the section below and wait for a key plus a URL ending in `/graphql`. |
+| 3 | On IT technician | One pilot company id is copied from the usecure company list (a client that already buys usecure). |
+| 4 | On IT technician | Key, region or URL, and the pilot company id are in the team password vault only. Not in git, not in chat, not in `.env` yet. |
+| 5 | Engineer | A throwaway probe under `tmp/` calls the API, lists companies, and pastes field names into this file. The probe is deleted after. |
+| 6 | Engineer | Phase 1 ships behind `USECURE_ENABLED=false`: company id on the client, metrics job, home tile, Integration Health column. |
+| 7 | On IT technician | The pilot client is marked sold and mapped. Integration Health moves from Never loaded to Up to date. |
+| 8 | On IT technician | `USECURE_ENABLED=true` on production only after that pilot cell is green. Other buyers are mapped the same way. Non-buyers see no usecure data. |
+
+v1 is read-only: risk score, training completion, overdue training, phish results, open breach alerts. No enrol, no policy send, no internal notes.
 
 Product: [usecure.io](https://usecure.io/) - MSP human risk (training, phishing, risk scoring).  
 Partner multi-tenant admin: **uService** (all On IT customers under the On IT partner tenant - same idea as Huntress).
@@ -200,5 +216,6 @@ When keys exist:
 
 | Date | Note |
 |------|------|
+| 2026-09-30 | Next steps written: key and one company id first, then a probe, then a flagged pilot. Still no On IT key, so no portal code. |
 | 2026-09-30 | Rechecked public partner docs. API exists (portal Settings > API, or Support-issued GraphQL key). Still no On IT key, so no portal code. |
 | 2026-08-10 | Design-only: sales model (sold some clients), Huntress-like tenant, beta API access via support, full modular build checklist. **No code.** |

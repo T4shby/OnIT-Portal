@@ -358,7 +358,7 @@ Use the same Plesk PHP binary as in [Updating the Application](#updating-the-app
 
 **Ops diary:** every SSH/deploy session must append [ServerOpsLog.md](ServerOpsLog.md) (Cursor rule `server-ops-log.mdc`).
 
-Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding`, then **`UIOverhaul`** until **2026-08-18**). **`UIOverhaul` is merged to `main`** - deploy **`main`** only.
+Do **not** `git pull` inside `app.onit.ltd` (there is no clone). Do **not** leave production tracking a feature branch (it was briefly on `feature/client-onboarding`, then **`UIOverhaul`** until **2026-08-18**). **`UIOverhaul` is merged to `main`** - deploy **`main`** only. On 2026-09-30 the merged `UIOverhaul` and `claude/jolly-hopper-6w33al` branches were deleted. GitHub should have **`main` only**.
 
 ### SSH: pull GitHub + deploy via Plesk bare mirror
 

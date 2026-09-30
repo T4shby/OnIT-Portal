@@ -20,7 +20,7 @@ MSP-side multi-tenant portal: one Microsoft login for On IT customers, organisat
 | Area | Requirement |
 |------|-------------|
 | Auth | Multi-tenant Entra; pre-provisioned users; capability gates |
-| SuperOps support | List + create tickets in portal; **open SuperOps for conversation** (not embed full thread UI) |
+| SuperOps support | List + create tickets; public replies on the ticket page and the home activity list. Files, internal notes, and the reply box stay in SuperOps |
 | SuperOps metrics | Support & Devices (CA org-wide / requester personal) from cached GraphQL metrics |
 | M365 | Directory page + licence insights tiles; async refresh |
 | Huntress | Sold org security posture + cases (visibility rules) |

@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-09-30 20:10 UK - Keep GitHub and live on main only
+
+| | |
+|---|---|
+| Intent | Docs for the usecure next steps, and remove merged branches so GitHub has `main` only. Live stays on that same `main`. |
+| Operator | agent |
+| SHA before -> after | `00cd8bf` -> the commit that adds this row |
+| Steps | Confirm `UIOverhaul` and `claude/jolly-hopper-6w33al` are already in `main`. `git push origin main`. Delete those two remote branches and the local `UIOverhaul` branch. Bare mirror fetch `main`. `git archive main` into the live tree. Post-deploy artisan block. Not `cache:clear`. |
+| Result | Confirm `.deployed-commit` matches GitHub `main`. `git branch -r` shows `origin/main` only. Login and `/up` should be HTTP 200. |
+| Rollback / watch | Redeploy `00cd8bf`. Branches can be recreated from their old SHAs if a name is needed; their commits are already on `main`. |
+
 ### 2026-09-30 19:55 UK - Deploy the condensed activity list
 
 | | |
