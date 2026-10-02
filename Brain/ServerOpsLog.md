@@ -33,6 +33,39 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 16:45 UK - First dashboard pull on client save
+
+| | |
+|---|---|
+| Intent | Saving a new client only queued SuperOps. Huntress, Dropsuite, and Microsoft 365 waited for the idle hour, which had not come around since Finishing Design was created. |
+| Operator | agent |
+| SHA before -> after | `2403653` -> `9690b99` |
+| Steps | `git push origin main`. Bare mirror fetch `main`. `git archive main` into the live tree. Post-deploy artisan block. Not `cache:clear`. |
+| Result | `9690b99` deployed. Login HTTP 200. `/up` HTTP 200. Nothing to migrate. Save client and Microsoft Accept now queue a first pull for every sold feed with no snapshot. |
+| Rollback / watch | Redeploy `2403653`. Next new client should leave Never loaded within a minute of Save, not after the idle hour. |
+
+### 2026-10-02 16:40 UK - Prewarm Finishing Design feeds
+
+| | |
+|---|---|
+| Intent | Finishing Design was sold and mapped, but M365 directory, M365 licences, Huntress, and Dropsuite had never loaded. Last automatic prewarm was 15:41 UK, before the client existed. Idle cadence is 60 minutes while no customer is online. |
+| Operator | agent |
+| SHA before -> after | n/a (read + `portal:prewarm-client-dashboards`, live `2403653`) |
+| Steps | Read client 13 mapping, cache keys, prewarm heartbeat. Then `php artisan portal:prewarm-client-dashboards`. |
+| Result | Prewarm queued 6 critical, 23 optional, 4 of those cold. No migrate, no cache:clear. |
+| Rollback / watch | Nothing to undo. Integration Health should leave Never loaded once those four jobs finish. |
+
+### 2026-10-02 16:20 UK - Read Finishing Design portal login flags
+
+| | |
+|---|---|
+| Intent | Check whether Entra sync created sign-in accounts for shared mailboxes on Finishing Design Services. |
+| Operator | agent |
+| SHA before -> after | n/a (read only, live `2403653`) |
+| Steps | One-off PHP under `/tmp` via the app bootstrap. Listed that client's users: identity type, active, portal login. Deleted the script after. |
+| Result | 30 users. 24 can sign in. 6 are shared mailboxes with sign-in off. No data changed. |
+| Rollback / watch | Nothing to undo. |
+
 ### 2026-10-02 14:25 UK - Pax8 company id is the link
 
 | | |
