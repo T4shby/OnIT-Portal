@@ -131,7 +131,7 @@ class Pax8SsoServiceTest extends TestCase
         );
     }
 
-    public function test_client_without_pax8_sso_enabled_is_denied(): void
+    public function test_company_id_alone_enables_launch(): void
     {
         $client = Client::factory()->create([
             'pax8_company_id' => 'abc-123',
@@ -140,12 +140,13 @@ class Pax8SsoServiceTest extends TestCase
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientRequester,
+            'email' => 'approver@customer.example',
         ]);
 
-        $this->assertFalse($this->service->isEnabledForUser($user));
-        $this->assertStringContainsString(
-            'not enabled for your organisation',
-            $this->service->accessDeniedHint($user),
+        $this->assertTrue($this->service->isEnabledForUser($user));
+        $this->assertSame(
+            'https://app.pax8.com/companies/abc-123?login_hint=approver%40customer.example',
+            $this->service->launchUrlFor($user),
         );
     }
 

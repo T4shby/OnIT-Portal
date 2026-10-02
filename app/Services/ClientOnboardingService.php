@@ -101,7 +101,8 @@ class ClientOnboardingService
         $superOpsUrl = config('services.superops.portal_url', 'https://app.superops.ai');
 
         $superopsLinked = filled($client->superops_account_id);
-        $pax8Configured = ! $client->pax8_sso_enabled || filled($client->pax8_company_id);
+        $pax8Configured = filled($client->pax8_company_id)
+            || ! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'pax8');
         $entraTenantSaved = filled($client->entra_tenant_id);
         $entraGroupSaved = filled($client->entra_group_id);
         $syncConfigured = $client->hasEntraSyncPrerequisites();
@@ -189,17 +190,17 @@ class ClientOnboardingService
                 automated: $pax8Configured
                     ? [
                         filled($client->pax8_company_id ?? null)
-                            ? '**Pax8 Company ID** is saved (and access as configured) - step Done automatically.'
-                            : 'Pax8 not required for this client (access off / no Company ID) - step Done automatically.',
+                            ? '**Pax8 Company ID** is saved - step Done automatically.'
+                            : 'Pax8 not required for this client (no Company ID) - step Done automatically.',
                     ]
                     : [
-                        'Step Done automatically when Pax8 is unused **or** Company ID + access are saved.',
+                        'Step Done automatically when Pax8 is unused, or when the Company ID is saved.',
                     ],
                 notes: $pax8Configured
                     ? ['Nothing left unless Pax8 launch fails - open recovery.']
                     : [
-                        'If they do not use Pax8: leave Company ID blank and **Pax8 access** unticked → step becomes Done.',
-                        'If they use Pax8: remaining is copy UUID → paste → tick access → **Save client**.',
+                        'If they do not use Pax8: leave Company ID blank and licences via Pax8 off.',
+                        'If they use Pax8: copy the company UUID, paste it, Save client.',
                     ],
                 sections: $pax8Configured
                     ? []
@@ -208,9 +209,9 @@ class ClientOnboardingService
                             'Remaining: skip or link Pax8',
                             'https://app.pax8.com → Companies · or portal left',
                             [
-                                'No Pax8: leave **Pax8 Company ID** blank, **Pax8 access** off → **Save client** if you changed anything.',
+                                'No Pax8: leave **Pax8 Company ID** blank and licences via Pax8 off.',
                                 'Use Pax8: app.pax8.com → **Companies** → this customer → copy company **UUID**.',
-                                'Portal left → **Pax8 Company ID** → paste → tick **Pax8 access** → **Save client**.',
+                                'Portal left → **Pax8 Company ID** → paste → **Save client**.',
                             ],
                         ),
                     ],
@@ -220,7 +221,7 @@ class ClientOnboardingService
                         'Portal left · https://app.pax8.com',
                         [
                             'Confirm UUID matches the customer company in Pax8, not another tenant.',
-                            'Re-paste **Pax8 Company ID**, confirm **Pax8 access**, **Save client**.',
+                            'Re-paste **Pax8 Company ID** and **Save client**.',
                             'If launch still fails, escalate platform Pax8 SSO config (Tom) - not a customer Accept.',
                         ],
                     ),

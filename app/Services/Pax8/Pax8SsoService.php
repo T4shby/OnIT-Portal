@@ -24,10 +24,6 @@ class Pax8SsoService
             return false;
         }
 
-        if (! (bool) $user->client?->pax8_sso_enabled) {
-            return false;
-        }
-
         return filled($user->client?->pax8_company_id)
             && preg_match('/^[A-Za-z0-9_-]+$/', (string) $user->client->pax8_company_id);
     }
@@ -52,10 +48,6 @@ class Pax8SsoService
         }
 
         if ($user->role->isClientFacing()) {
-            if (! (bool) $user->client?->pax8_sso_enabled) {
-                return 'Pax8 access is not enabled for your organisation. Contact your administrator.';
-            }
-
             if (! filled($user->client?->pax8_company_id)) {
                 return 'Pax8 is not linked to your organisation yet. Ask your administrator to set the Pax8 company ID on your client record.';
             }

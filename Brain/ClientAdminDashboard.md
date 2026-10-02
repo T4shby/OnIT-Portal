@@ -262,7 +262,7 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 | `m365` | Microsoft 365 | `entra_tenant_id` |
 | `huntress` | Security | `huntress_organization_id` |
 | `dropsuite` | Backups | `dropsuite_organization_id` |
-| `pax8` | Pax8 (licence vendor) | `pax8_company_id` + `pax8_sso_enabled` |
+| `pax8` | Pax8 (licence vendor) | `pax8_company_id` |
 
 Status codes: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.  
 Labels differ by kind (e.g. vendor: “Not assigned” / “Assigned” instead of “Not sold” / “Live”).

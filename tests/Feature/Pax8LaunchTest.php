@@ -79,7 +79,7 @@ class Pax8LaunchTest extends TestCase
         );
     }
 
-    public function test_client_without_pax8_sso_enabled_gets_redirect_with_error(): void
+    public function test_client_with_company_id_can_launch_without_a_second_access_tick(): void
     {
         $client = Client::factory()->create([
             'pax8_company_id' => 'abc-123',
@@ -88,15 +88,11 @@ class Pax8LaunchTest extends TestCase
         $user = User::factory()->create([
             'client_id' => $client->id,
             'role' => UserRole::ClientRequester,
+            'email' => 'approver@customer.example',
         ]);
 
         $response = $this->actingAs($user)->get(route('integrations.pax8.launch'));
 
-        $response->assertRedirect(route('dashboard'));
-        $response->assertSessionHas('error');
-        $this->assertStringContainsString(
-            'not enabled for your organisation',
-            session('error'),
-        );
+        $response->assertRedirect('https://app.pax8.com/companies/abc-123?login_hint=approver%40customer.example');
     }
 }

@@ -24,8 +24,7 @@ How **client users** view their **subscriptions and licensing** in Pax8 from the
 
 | Field | Action |
 |---|---|
-| **Pax8 Company ID** | From Pax8 → Companies → customer → UUID in URL |
-| **Pax8 access enabled** | ✓ - shows Pax8 tile on dashboard for that client's users |
+| **Pax8 Company ID** | From Pax8 → Companies → customer → UUID in the URL. Saving this id links Pax8 and shows the tile. |
 
 ### Admin → Users
 
@@ -38,7 +37,7 @@ How **client users** view their **subscriptions and licensing** in Pax8 from the
   → https://app.pax8.com/companies/{pax8_company_id}?login_hint={user.email}
 ```
 
-Tile hidden when Pax8 access disabled or company ID missing.
+Tile hidden when the company ID is missing.
 
 ---
 
@@ -103,4 +102,5 @@ Use for **new sales**; use **company view** (portal tile) for **existing subscri
 
 | Date | Notes |
 |---|---|
+| 2026-10-02 | A saved Pax8 company id is the link. The separate portal-access tick is gone, so Link needed only means the id is missing. |
 | 2026-06-23 | Initial guide; `pax8_sso_enabled` gates dashboard tile |

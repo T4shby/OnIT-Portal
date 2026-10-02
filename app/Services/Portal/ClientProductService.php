@@ -186,7 +186,7 @@ class ClientProductService
             self::KEY_M365 => filled($client->entra_tenant_id),
             self::KEY_HUNTRESS => filled($client->huntress_organization_id),
             self::KEY_DROPSUITE => filled($client->dropsuite_organization_id),
-            self::KEY_PAX8 => filled($client->pax8_company_id) && (bool) $client->pax8_sso_enabled,
+            self::KEY_PAX8 => filled($client->pax8_company_id),
             default => false,
         };
     }
