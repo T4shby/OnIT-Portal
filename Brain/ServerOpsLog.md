@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 17:39 UK - Prewarm looks every minute
+
+| | |
+|---|---|
+| Intent | Finishing Design SuperOps sat past the freshness target because the last sweep had skipped it and the next look was gated for an hour. |
+| Operator | agent |
+| SHA before -> after | `fa3304e` -> `2e3f4c1` (diary commit follows on `main`) |
+| Steps | Pushed `2e3f4c1`. Fetched the bare mirror, `git archive main` into the live tree, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Did not `cache:clear`. Then `portal:prewarm-client-dashboards`. Removed `/tmp/deploy-prewarm.sh`. |
+| Result | Live `.deployed-commit` `2e3f4c1`. Prewarm queued 7 SuperOps and 22 other feeds. Client 13 SuperOps `last_refreshed_at` 17:38 UK. Login 200, `/up` 200. |
+| Rollback / watch | Redeploy `fa3304e` with the same archive steps. Refresh Integration Health; Finishing Design SuperOps should show Up to date. |
+
 ### 2026-10-02 17:20 UK - Finishing Design SuperOps age
 
 | | |
