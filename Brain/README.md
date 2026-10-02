@@ -86,6 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-02 | Dropsuite's organization id is the short number, not the user id shown in Dropsuite (360787-12). YorPower is 6182. Finishing Design Services is 11223. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-02 | Saving a client, or finishing Microsoft Accept, queues the first pull for every sold feed that has never loaded. The idle hour wait is only for later refreshes. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-02 | Pax8 is linked when the company id is saved. Link needed means that id is missing, not that Microsoft licences are missing. - [Pax8Integration.md](Pax8Integration.md) |
 | 2026-10-02 | Client SSO wire sets the Entra app to v2 tokens before saving the SuperOps Entity ID, so Graph can create the IDP login URL and certificate. Do not verify superops.ai on the customer tenant. - [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |

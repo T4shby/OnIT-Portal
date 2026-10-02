@@ -554,7 +554,7 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 | Sample probe | org `10879` Reid & Rose: 3 mailboxes; org `5979` On IT NFR: 23 mailboxes |
 | Client map | Client #1 On IT Technology Partners → `5979` (NFR). **YorPower → `6182`**. Other orgs: Admin → Clients |
 
-**Map only numeric `organization_id`.** Do **not** paste user `id` / plan_id shapes like `177210-12` - those never match `GET /users` and log *no user access token…* while Integration Health stays Never loaded. A first cold refresh that fails now records `last_result.success=false` (was falsely “success” with no cache).
+**Map only the short numeric `organization_id`.** Dropsuite does not show that number on screen. The id you can see is the user id, shaped like `177210-12` (YorPower) or `360787-12` (Finishing Design Services). Pasting `360787` or `177210-12` never matches and Integration Health stays Never loaded. YorPower's organization id is `6182`. Finishing Design Services is `11223`.
 
 **Dropsuite organizations seen under On IT reseller (map `dropsuite_organization_id`):**
 
@@ -573,6 +573,8 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 | 12720 | Northern Property Partners |
 | 13469 | Schneiderfm.co.uk |
 | 14494 | GreenView Project |
+| 16030 | Actio Recruitment |
+| 16324 | AEDUS |
 
 Secret Token is not required for current GET users/accounts flow.
 
@@ -589,6 +591,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-02 | Dropsuite organization id is the short number (YorPower 6182, Finishing Design 11223). The website shows the user id, like 360787-12, and that must not be pasted. |
 | 2026-10-02 | Save client and Microsoft Accept queue the first pull for every sold feed with no snapshot. The idle hour is only for later refreshes. |
 | 2026-09-08 | Client home copy/chrome: quiet feedback strip (not Beta); glance matches On IT shell - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-24 | M365 Excel/CSV export (licences then users) |

@@ -296,7 +296,8 @@ class ClientOnboardingService
                             'Remaining: map Dropsuite org',
                             'Dropsuite sub-reseller · portal Products',
                             [
-                                'Dropsuite UK → organisation list → organization id for this customer.',
+                                'Dropsuite does not show this number. Paste the short organization number (Finishing Design Services is 11223, YorPower is 6182).',
+                                'Do not paste the user id that looks like 360787-12.',
                                 'Portal left → Products → ensure Dropsuite sold → **Organization ID** → Save client.',
                             ],
                         ),
@@ -1295,7 +1296,7 @@ class ClientOnboardingService
                 'Optional. Huntress → Organizations → open customer → copy the organization ID.',
             ],
             'dropsuite_organization_id' => [
-                'Optional. Dropsuite / NinjaOne SaaS Backup → Organizations → copy the organization ID for dashboard backup metrics.',
+                'Not shown in Dropsuite. Paste the short number only (YorPower is 6182, Finishing Design Services is 11223). An id like 360787-12 is the user id, not this field.',
             ],
             'entra_license_tier' => [
                 'Entra directory tier for Free vs P1 assignment (not the user SKU list alone).',

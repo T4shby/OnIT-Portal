@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 17:15 UK - Dropsuite organization id is not the user id
+
+| | |
+|---|---|
+| Intent | Help text told staff to copy an organization id from Dropsuite. That number is not on screen. Finishing Design had `360787` saved. |
+| Operator | agent |
+| SHA before -> after | n/a for the read. Help-text change deployed in the same session. |
+| Steps | `GET /users` via the app bootstrap. Printed organization_id, organization_name, and user id only. No tokens. Deleted `/tmp/dropsuite-orgs.php`. |
+| Result | Finishing Design organization_id is `11223`. User id is `360787-12`. YorPower organization_id is `6182`, user id `177210-12`. Saved value `360787` is the user id, not the organization id. |
+| Rollback / watch | Nothing changed in the client row. Replace `360787` with `11223` on Save. |
+
 ### 2026-10-02 16:45 UK - First dashboard pull on client save
 
 | | |

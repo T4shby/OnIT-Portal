@@ -97,7 +97,7 @@ class ClientProductService
                 'kind' => self::KIND_SERVICE,
                 'label' => 'Backups (Dropsuite)',
                 'short' => 'D',
-                'mapping_hint' => 'Paste Dropsuite organization ID from the sub-reseller portal.',
+                'mapping_hint' => 'Short number, not shown in Dropsuite. YorPower is 6182. Do not paste a user id like 360787-12.',
                 'toggle_label' => 'Sold to this client',
                 'form_partial' => 'admin.clients.products._dropsuite',
             ],

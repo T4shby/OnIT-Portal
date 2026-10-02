@@ -223,7 +223,7 @@ class DropsuiteClientMetricsService
 
         if ($match === null) {
             $hint = str_contains($organizationId, '-')
-                ? ' Mapped value looks like a Dropsuite user/plan id (…-12), not organization_id. Use the numeric organization_id from GET /users (Admin → Clients map; e.g. YorPower is 6182).'
+                ? ' Mapped value looks like a Dropsuite user id (360787-12) or plan id, not organization_id. Use the short number (YorPower is 6182, Finishing Design Services is 11223).'
                 : ' Confirm clients.dropsuite_organization_id is the numeric organization_id from the reseller GET /users list.';
 
             throw new \RuntimeException(
