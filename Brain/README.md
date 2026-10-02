@@ -86,6 +86,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-02 | Client SSO wire sets the Entra app to v2 tokens before saving the SuperOps Entity ID, so Graph can create the IDP login URL and certificate. Do not verify superops.ai on the customer tenant. - [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) |
 | 2026-09-30 | Only `main` remains. usecure next step is a partner API key and one company id, then a flagged pilot. - [UsecureIntegration.md](UsecureIntegration.md#next-steps), [Deployment.md](Deployment.md) |
 | 2026-09-30 | Customer activity is a full-width list: 5 rows, up to 10, filtered by today / working week / working month. The home services strip no longer sticks out past the cards. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-09-30 | usecure API rechecked: partner key exists (Settings > API or Support GraphQL). Portal still not built. Deployed the 29 Sep sign-in confirmation. - [UsecureIntegration.md](UsecureIntegration.md), [ServerOpsLog.md](ServerOpsLog.md) |

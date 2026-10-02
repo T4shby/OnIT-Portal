@@ -425,6 +425,10 @@ class MicrosoftGraphClient
         $response = $this->graphPost($tenantId, 'https://graph.microsoft.com/v1.0/applications', [
             'displayName' => $displayName,
             'signInAudience' => 'AzureADMyOrg',
+            // v2 tokens: an https SAML Entity ID (clientuser.superops.ai) is not a v1 API App ID URI.
+            'api' => [
+                'requestedAccessTokenVersion' => 2,
+            ],
             'appRoles' => [
                 [
                     'allowedMemberTypes' => ['User'],
@@ -3001,6 +3005,25 @@ class MicrosoftGraphClient
         }
         $details[] = 'preferredSingleSignOnMode=saml';
 
+        // HostNameNotOnVerifiedDomain fires when identifierUris is https:// on a v1 app
+        // (requestedAccessTokenVersion null). Connect creates the SSO app that way, so Graph
+        // treats the SuperOps Entity ID as an API the customer publishes and demands a domain
+        // they own. This app issues SAML, not a v1 API token. Set v2 before the Entity ID write
+        // or the login URL and certificate below are never created.
+        $tokenPatch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}", [
+            'api' => [
+                'requestedAccessTokenVersion' => 2,
+            ],
+        ]);
+
+        if ($tokenPatch->failed() && $tokenPatch->status() !== 204) {
+            throw new RuntimeException(
+                'Microsoft Graph could not set the Client SSO app to v2 tokens, so the IDP login URL and certificate were not created: '
+                .$tokenPatch->status().' '.$tokenPatch->body()
+            );
+        }
+        $details[] = 'Client SSO app accepts v2 tokens';
+
         $appPatch = $this->graphPatch($tenantId, "https://graph.microsoft.com/v1.0/applications/{$applicationObjectId}", [
             'identifierUris' => [$entityId],
             'web' => [
@@ -3010,8 +3033,8 @@ class MicrosoftGraphClient
 
         if ($appPatch->failed() && $appPatch->status() !== 204) {
             throw new RuntimeException(
-                'Microsoft Graph could not set Entity ID / Reply URL: '.$appPatch->status().' '.$appPatch->body()
-                .' (Entity ID and ACS must match SuperOps Client SSO for this customer only.)'
+                'Microsoft Graph could not save the SuperOps Entity ID, so the IDP login URL and certificate were not created: '
+                .$appPatch->status().' '.$appPatch->body()
             );
         }
         $details[] = 'Entity ID + Reply URL (ACS) set on application';

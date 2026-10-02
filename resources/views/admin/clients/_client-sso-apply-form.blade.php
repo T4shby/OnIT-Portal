@@ -153,7 +153,7 @@
 
         @if($wireFailed)
             <p class="mt-4 border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                Wire did not finish cleanly. Open <strong class="text-white">Only if something failed</strong> in the guide below for the Azure fallback, or retry after checking the SuperOps URLs.
+                Wire did not finish, so SuperOps has no IDP login URL or certificate yet. Re-run Wire. Do not add superops.ai as a domain in the customer tenant. The Azure fallback is under <strong class="text-white">Only if something failed</strong> in the guide below.
             </p>
         @endif
     </div>

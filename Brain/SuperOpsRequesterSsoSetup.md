@@ -86,7 +86,9 @@ In-app checklist **step 08** is automation-first: Entra app shell from Connect/b
 3. Copy **IDP Login URL** and **Certificate** returned on that page.
 4. Paste into SuperOps Client SSO Step 3 → **Save** / leave Enabled.
 
-Graph uses Application.ReadWrite.All and **Policy.ReadWrite.ApplicationConfiguration** for SAML claims. Wire waits/retries policy create + assign (up to ~8 attempts); a remaining failure is a real Graph claims error - not “SSO app missing” - fix by re-Wire or manual Attributes & Claims. Azure Enterprise apps SAML blade is under step recovery if Wire fails.
+Graph uses Application.ReadWrite.All and **Policy.ReadWrite.ApplicationConfiguration** for SAML claims. Wire waits/retries policy create + assign (up to ~8 attempts); a remaining failure is a real Graph claims error - not "SSO app missing" - fix by re-Wire or manual Attributes & Claims. Azure Enterprise apps SAML blade is under step recovery if Wire fails.
+
+Wire sets the Client SSO app to Entra v2 tokens (`api.requestedAccessTokenVersion = 2`) before it writes the SuperOps Entity ID. A v1 app treats that `https://clientuser.superops.ai/...` value as an API App ID URI and Graph returns `HostNameNotOnVerifiedDomain`. That stops the job before the IDP login URL and certificate exist, so SuperOps Step 3 stays blank. Do not verify `superops.ai` in the customer tenant. Re-run Wire after this build is deployed. The Entity ID and Consumer Service URL from SuperOps stay as they are.
 
 Long Azure click-paths and “if someone cannot login” live under **Only if something failed** on the live checklist - same for all 12 steps (automated / remaining / recovery).
 
@@ -198,6 +200,7 @@ Never test customer requester SSO with an On IT technician identity.
 | User not assigned | P1: assign Portal group; Free: save Client SSO Application ID and run Sync now |
 | Another customer's login page appears | Wrong Client SSO configuration, Entity ID, Consumer URL or client association |
 | SAML response rejected | Recheck customer-specific Entity ID, Consumer Service URL, certificate and claims |
+| IDP login URL and certificate blank in SuperOps | Wire stopped before it could create them. Re-run Wire. Do not verify superops.ai in the customer tenant |
 
 ## Retired components
 
@@ -211,6 +214,7 @@ The deployment migration clears that checkpoint on existing clients because any 
 
 | Date | Change |
 |---|---|
+| 2026-10-02 | Wire sets v2 tokens before the SuperOps Entity ID. That is what creates the IDP login URL and certificate. `HostNameNotOnVerifiedDomain` is a v1 app, not a wrong URL and not a domain to verify. |
 | 2026-08-06 | Step 08 portal path: **Wire SuperOps into Microsoft Entra**; automation-first checklist recovery for Azure fallback |
 | 2026-08-04 | Pilot client names removed from checklist 08 examples; use `{Company}` pattern only |
 | 2026-07-17 | Leave Reply URL Index blank; documented in Basic SAML steps |
