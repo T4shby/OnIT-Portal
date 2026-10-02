@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 14:25 UK - Pax8 company id is the link
+
+| | |
+|---|---|
+| Intent | JustLife had a Pax8 company id saved and still showed Link needed, because a second portal-access tick was required. A saved company id is the link. |
+| Operator | agent |
+| SHA before -> after | `a254cc2` -> `ec97548` |
+| Steps | `git push origin main`. Bare mirror fetch `main`. `git archive main` into the live tree. Post-deploy artisan block. Not `cache:clear`. |
+| Result | `ec97548` deployed. Login HTTP 200. `/up` HTTP 200. Nothing to migrate. Clients with a Pax8 company id show linked without the old access tick. |
+| Rollback / watch | Redeploy `a254cc2`. Clients list P badge and the Pax8 product card. Microsoft 365 licences are unchanged. |
+
 ### 2026-10-02 14:00 UK - Client SSO wire creates the IDP certificate
 
 | | |
