@@ -287,8 +287,8 @@ class IntegrationHealthService
         $superOpsRequeueAfter = (float) $freshness['requeue_minutes'];
         $superOpsClientWindow = (float) $freshness['soft_window_minutes'];
         $prewarmIntervalMinutes = (float) $freshness['interval_minutes'];
-        // Late if more than ~2.2× the current target cadence (e.g. ~5.5m when hot 2.5m; ~2h when hour idle).
-        $prewarmLateAfterSeconds = (int) round($prewarmIntervalMinutes * 60 * 2.2);
+        // The checker runs every minute. Late means it has not recorded a run, not that data is still inside the idle hour.
+        $prewarmLateAfterSeconds = 5 * 60;
 
         $workerLagSuspect = ($queue['pending'] ?? 0) > 0
             && ($queue['reserved'] ?? 0) === 0
@@ -490,18 +490,14 @@ class IntegrationHealthService
             $requeue = (float) ($pipeline['superops_requeue_after_minutes']
                 ?? ($pipeline['freshness']['requeue_minutes'] ?? null)
                 ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5));
-            $interval = (float) ($pipeline['prewarm']['interval_minutes']
-                ?? ($pipeline['freshness']['interval_minutes'] ?? 2.5));
             $prewarmAge = $pipeline['prewarm']['age_minutes'] ?? '?';
             $requeueLabel = rtrim(rtrim(number_format($requeue, 1), '0'), '.');
-            $intervalLabel = rtrim(rtrim(number_format($interval, 1), '0'), '.');
             if ($pipeline['prewarm']['ok'] ?? false) {
-                // Idle cadence intentionally leaves a short “due” window before the next prewarm.
-                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age - normal until next prewarm "
-                    ."(~every {$intervalLabel}m; last ran {$prewarmAge}m ago). Workers stay idle with an empty queue until then.";
+                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m refresh age and not queued yet. "
+                    ."The minute checker should queue them on the next pass (last ran {$prewarmAge}m ago).";
             } else {
-                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m requeue age and prewarm is late "
-                    ."(last ran {$prewarmAge}m ago; expect ~{$intervalLabel}m) - SuperOps, M365, Huntress, Dropsuite will age until prewarm runs.";
+                $notices[] = "{$dueCount} feed(s) past ~{$requeueLabel}m refresh age and the checker is late "
+                    ."(last ran {$prewarmAge}m ago; it should run every minute).";
             }
         }
 
@@ -1113,8 +1109,8 @@ class IntegrationHealthService
                 'status_label' => 'Waiting to refresh',
                 'what_it_is_doing' => $ageBit.' Not in the queue yet.',
                 'what_next' => $key === 'entra_sync'
-                    ? 'Runs from adaptive portal:sync-entra-users (not SuperOps prewarm).'
-                    : 'Waiting for the next adaptive auto-refresh (prewarm) to queue a job.',
+                    ? 'Runs from adaptive portal:sync-entra-users (not product prewarm).'
+                    : 'The minute checker queues this on its next pass.',
             ],
             'aging' => [
                 'status_label' => 'Getting old',
@@ -1207,7 +1203,7 @@ class IntegrationHealthService
             if ($key === 'entra_sync') {
                 $lines[] = "{$label}: age {$ageRounded}m · waits on adaptive portal:sync-entra-users (~{$intervalLabel}m cadence, separate from product prewarm)";
             } else {
-                $lines[] = "{$label}: age {$ageRounded}m · not queued yet · next prewarm (~{$intervalLabel}m cadence) will start a job";
+                $lines[] = "{$label}: age {$ageRounded}m · not queued yet · the minute checker should queue this on the next pass";
             }
             if ($status === 'aging') {
                 $lines[] = "{$label}: past freshness target {$clientWindowMinutes}m - clients may see soft note";

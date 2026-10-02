@@ -49,6 +49,7 @@
                 @else
                     .
                 @endif
+                The checker looks every minute and queues a pull as soon as a feed is past that refresh age.
             </span>
         </p>
         <p id="ih-configured-timing" class="mt-3 max-w-3xl text-sm font-light leading-relaxed text-white/55">
@@ -90,7 +91,7 @@
             @elseif(! empty($prewarm['ok']))
                 <p class="mt-3 text-2xl font-condensed font-bold text-emerald-400">OK</p>
                 <p class="mt-3 text-sm font-light leading-relaxed text-white/55">
-                    Last run {{ $prewarm['age_minutes'] ?? 0 }}m ago (cadence ~{{ $fmtMin($freshInterval) }}m).
+                    Last run {{ $prewarm['age_minutes'] ?? 0 }}m ago. Looks every minute. Data is pulled once it is older than ~{{ $fmtMin($freshness['requeue_minutes'] ?? ($freshInterval * 0.9)) }}m.
                     At that run it queued SuperOps {{ $prewarm['superops_queued'] ?? 0 }},
                     other feeds {{ $prewarm['optional_queued'] ?? 0 }}
                     @if(($prewarm['cold_optional_queued'] ?? 0) > 0)
@@ -104,7 +105,7 @@
             @else
                 <p class="mt-3 text-2xl font-condensed font-bold text-amber-300">Late</p>
                 <p class="mt-3 text-sm font-light leading-relaxed text-white/55">
-                    Last run {{ $prewarm['age_minutes'] ?? '?' }}m ago (want every ~{{ rtrim(rtrim(number_format((float) ($freshInterval ?? 2.5), 1), '0'), '.') }}m).
+                    Last run {{ $prewarm['age_minutes'] ?? '?' }}m ago (the checker should run every minute).
                 </p>
             @endif
         </x-card>

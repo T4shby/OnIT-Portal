@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 17:20 UK - Finishing Design SuperOps age
+
+| | |
+|---|---|
+| Intent | Integration Health showed SuperOps Getting old at about 89 minutes while the other Finishing Design feeds were a few minutes old. |
+| Operator | agent |
+| SHA before -> after | n/a (read only, live `fa3304e`) |
+| Steps | Read SuperOps cache time, prewarm heartbeat, and freshness mode for client 13. Deleted `/tmp/fds-superops-age.php`. |
+| Result | SuperOps last success 15:59 UK. Last prewarm 16:37 UK queued the never-loaded feeds only; SuperOps was 38 minutes old, under the 54 minute requeue. Next idle prewarm about 17:37 UK. No customer sessions, so cadence is 60 minutes. |
+| Rollback / watch | Nothing changed. |
+
 ### 2026-10-02 17:15 UK - Dropsuite organization id is not the user id
 
 | | |

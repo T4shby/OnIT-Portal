@@ -150,7 +150,7 @@ Service: `App\Services\Portal\PortalFreshnessService`
 Also: presence window (`freshness.presence_minutes`, default 15), work start/end (`07:00`-`19:00` exclusive end), timezone (`Europe/London`).  
 Derived: **requeue** ≈ `interval × 0.9` (min 0.5m); **soft window** for client-facing soft note ≈ `max(interval+1, interval×1.15)`.
 
-Schedule (`routes/console.php`): every minute scheduler tick; when adaptive interval is **due** against last prewarm/Entra heartbeats, run `portal:prewarm-client-dashboards` and (if enabled) `portal:sync-entra-users`.
+Schedule (`routes/console.php`): every minute `schedule:run`. `portal:prewarm-client-dashboards` **runs on that minute tick** and only queues a feed once that feed is past requeue age. It is not held back until the last sweep is an hour old. `portal:sync-entra-users` (if enabled) still waits for the adaptive interval against its own heartbeat.
 
 **Requires** `SESSION_DRIVER=database` for hot mode (customer presence counts DB sessions).
 
@@ -179,14 +179,14 @@ When data looks “stuck”, the live panel answers **why** without SSH:
 | Why isn’t it resetting? | Auto notices (orphaned flags cleared, due SuperOps, aging, stuck, last failure text) |
 | Jobs table | Live `jobs` rows: class, client id, age seconds, waiting vs reserved, attempts |
 | failed_jobs | Last failures with first error line |
-| Status **due** | Feed past **adaptive requeue** age but under soft window - waiting next prewarm (idle hours this is expected) |
+| Status **due** | Feed past **adaptive requeue** age but under soft window, and the minute checker has not queued it yet |
 | Status **cold** / **Never loaded** | No successful cache for a sold/mapped feed - warning headline + notice (not OK just because SuperOps is green) |
 
 Prewarm writes cache key `portal.prewarm.last_run` every run for the heartbeat.
 
-**Idle looks “stuck” (not a failure):** With no customer sessions, cadence is **~60m**. Around requeue (~54m) every sold feed shows **Waiting to refresh** and the Action list can list many dues while **Workers = Idle** and **queue empty**. That means the last wave finished; the **next** prewarm (still on interval) will re-queue. Do **not** treat that as workers broken. Staff Entra **Sync now** is separate - it only updates portal users / SuperOps emails, not Product SuperOps/M365/Huntress caches.
+**Past freshness with an empty queue is a miss, not the idle hour.** The checker runs every minute. A feed is queued once its last success is past requeue (~54m when idle, ~2m when a customer is online). The 60 minute figure is how old data may be before that pull, not how long the scheduler waits after a sweep that skipped the client. Entra user sync still uses the adaptive interval on its own heartbeat. Staff Entra **Sync now** only updates portal users.
 
-Notices and “Needs attention” use the **live** interval (not hardcoded 2.5m). When prewarm is still on time, due notice wording is normal-waiting, not “not started / broken”.
+Notices use the live requeue age (not a hardcoded 2.5m). A due feed with the checker on time is queued within a minute. Entra user sync still waits on its own interval.
 
 **Severity order (headline):** scheduler dead → **truly stuck schedule locks** (expired mutexes, or long withoutOverlapping **while tick is late** - *not* healthy Laravel withoutOverlapping TTL while cron is fine) → prewarm late / worker lag → cold sold feeds → jobs pending (info) → OK.
 
@@ -279,7 +279,7 @@ Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (befor
 
 **Data should exist before anyone opens the page:**
 
-1. Scheduler runs `portal:prewarm-client-dashboards` when the **adaptive interval is due** (hot when customers online, otherwise idle hour-scale defaults).
+1. Scheduler runs `portal:prewarm-client-dashboards` **every minute**. The command queues a feed only when that feed is cold or past adaptive requeue age. A sweep that runs while a feed is still fresh must not block the next look for an hour.
 2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ adaptive requeue minutes (`PortalFreshnessService::effectiveRequeueMinutes()`), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row.
 3. M365 / Huntress / Dropsuite only when cold or past adaptive requeue age, and only when spare queue capacity (&lt; 40 pending).
 4. **Save client** queues the first pull for every sold, mapped feed that has no snapshot yet (SuperOps, M365 directory, M365 licences, Huntress, Dropsuite). Microsoft Accept does the same once Graph setup finishes. Later refreshes stay on the adaptive prewarm. **Sync now** still only syncs portal users.
@@ -591,6 +591,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. It no longer waits an hour after a sweep that skipped a still-fresh client. |
 | 2026-10-02 | Dropsuite organization id is the short number (YorPower 6182, Finishing Design 11223). The website shows the user id, like 360787-12, and that must not be pasted. |
 | 2026-10-02 | Save client and Microsoft Accept queue the first pull for every sold feed with no snapshot. The idle hour is only for later refreshes. |
 | 2026-09-08 | Client home copy/chrome: quiet feedback strip (not Beta); glance matches On IT shell - [UIOverhaul.md](UIOverhaul.md) |

@@ -12,25 +12,27 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /**
- * Cron fires schedule:run every minute. Prewarm / Entra only run when the adaptive
- * cadence says the interval has elapsed (hot 2.5m with customers online, hour when idle).
+ * Cron fires schedule:run every minute.
+ * Product prewarm looks every minute and only queues a feed once that feed is
+ * past its requeue age. Gating the whole sweep on the last-run heartbeat skips
+ * a client that was still fresh at the last look, then leaves it past the
+ * freshness target until the next full interval.
+ * Entra user sync stays on the adaptive interval (hot 2.5m, idle hour).
  */
 $intervalDue = static function (string $heartbeatKey): bool {
     return app(PortalFreshnessService::class)->isIntervalDue($heartbeatKey);
 };
 
-// Entra portal user sync - same adaptive cadence as prewarm.
 Schedule::command('portal:sync-entra-users')
     ->everyMinute()
     ->when(fn () => (bool) config('services.entra_sync.enabled')
         && $intervalDue(IntegrationHealthService::ENTRA_SCHEDULE_HEARTBEAT_KEY))
     ->withoutOverlapping(8);
 
-// SuperOps + M365 + Huntress/Dropsuite when due.
+// SuperOps + M365 + Huntress/Dropsuite. The command no-ops feeds that are still fresh.
 // Single-server: do NOT use onOneServer() - stuck cache_locks can block for hours.
 Schedule::command('portal:prewarm-client-dashboards')
     ->everyMinute()
-    ->when(fn () => $intervalDue(IntegrationHealthService::PREWARM_CACHE_KEY))
     ->withoutOverlapping(8);
 
 // Proves minute cron + schedule:run are alive (Integration Health heartbeat).
