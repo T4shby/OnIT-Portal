@@ -314,6 +314,8 @@ class CustomerEntraBootstrapService
         $this->onboarding->syncAutoCheckpointsFromClient($client);
         $client = $client->fresh() ?? $client;
 
+        app(\App\Services\Portal\DashboardFeedRegistry::class)->queueMissingSnapshots($client);
+
         foreach ($this->remainingWorkWarnings($client) as $remaining) {
             $warnings[] = $remaining;
         }

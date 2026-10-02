@@ -282,7 +282,7 @@ Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (befor
 1. Scheduler runs `portal:prewarm-client-dashboards` when the **adaptive interval is due** (hot when customers online, otherwise idle hour-scale defaults).
 2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ adaptive requeue minutes (`PortalFreshnessService::effectiveRequeueMinutes()`), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row.
 3. M365 / Huntress / Dropsuite only when cold or past adaptive requeue age, and only when spare queue capacity (&lt; 40 pending).
-4. Linking SuperOps Account ID (Save client) queues a cold prewarm if the cache is empty.
+4. **Save client** queues the first pull for every sold, mapped feed that has no snapshot yet (SuperOps, M365 directory, M365 licences, Huntress, Dropsuite). Microsoft Accept does the same once Graph setup finishes. Later refreshes stay on the adaptive prewarm. **Sync now** still only syncs portal users.
 5. Page views **serve cache only** - they do not re-queue every time metrics are past the fresh window.
 6. Queue workers: two minute-cron processes with `--max-time=55` (not 300) so workers do not stack; process `high` before `default` - [Deployment.md](Deployment.md#10-configure-cron).
 
@@ -589,6 +589,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-02 | Save client and Microsoft Accept queue the first pull for every sold feed with no snapshot. The idle hour is only for later refreshes. |
 | 2026-09-08 | Client home copy/chrome: quiet feedback strip (not Beta); glance matches On IT shell - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-08-24 | M365 Excel/CSV export (licences then users) |
 | 2026-08-19 | Restart threshold 2+ days; paginated device names; RAM/disk card still hidden |

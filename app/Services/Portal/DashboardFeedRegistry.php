@@ -5,6 +5,7 @@ namespace App\Services\Portal;
 use App\Contracts\DashboardFeed;
 use App\Models\Client;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Ordered list of Client Admin / prewarm feeds (modular dashboard integrations).
@@ -156,6 +157,47 @@ class DashboardFeedRegistry
             isStale: $list->isStale || $summary->isStale,
             refreshInProgress: $list->refreshInProgress || $summary->refreshInProgress,
         );
+    }
+
+    /**
+     * First snapshot for each sold, mapped feed. Later freshness stays on adaptive prewarm.
+     */
+    public function queueMissingSnapshots(Client $client): int
+    {
+        $queued = 0;
+
+        foreach ($this->feeds as $feed) {
+            if ($this->hasSnapshot($feed, $client)) {
+                continue;
+            }
+
+            if ($feed->queueRefresh($client)) {
+                $queued++;
+            }
+        }
+
+        return $queued;
+    }
+
+    private function hasSnapshot(DashboardFeed $feed, Client $client): bool
+    {
+        $key = match ($feed->key()) {
+            'superops' => app(\App\Services\SuperOps\SuperOpsClientMetricsService::class)->cacheKey($client->id),
+            'huntress' => app(\App\Services\Huntress\HuntressClientMetricsService::class)->cacheKey($client->id),
+            'dropsuite' => app(\App\Services\Dropsuite\DropsuiteClientMetricsService::class)->cacheKey($client->id),
+            'm365_insights' => app(\App\Services\M365\M365InsightsService::class)->cacheKey($client->id),
+            'm365_directory' => 'm365_directory.meta.'.$client->id,
+            'usecure' => class_exists(\App\Services\Usecure\UsecureClientMetricsService::class)
+                ? app(\App\Services\Usecure\UsecureClientMetricsService::class)->cacheKey($client->id)
+                : null,
+            default => null,
+        };
+
+        if ($key === null) {
+            return true;
+        }
+
+        return Cache::get($key) !== null;
     }
 
     /**

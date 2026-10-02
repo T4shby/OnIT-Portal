@@ -20,7 +20,6 @@ use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
-use App\Services\SuperOps\SuperOpsClientMetricsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -32,7 +31,6 @@ class ClientController extends Controller
     public function __construct(
         private ActivityLogService $activityLog,
         private ClientOnboardingService $onboarding,
-        private SuperOpsClientMetricsService $superOpsMetrics,
         private ClientProductService $products,
         private ClientHomeOverviewService $homeOverview,
     ) {}
@@ -173,9 +171,7 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
-        if ($this->superOpsMetrics->needsColdPrewarm($client)) {
-            $this->superOpsMetrics->queueRefresh($client);
-        }
+        app(\App\Services\Portal\DashboardFeedRegistry::class)->queueMissingSnapshots($client);
 
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', 'Client created. Start with step 01 on the right.');
@@ -227,10 +223,8 @@ class ClientController extends Controller
 
         $this->activityLog->log('client.updated', $client, clientId: $client->id);
 
-        // Keep SuperOps dashboard filled once the client is linked - no need for a first visit.
-        if ($this->superOpsMetrics->needsColdPrewarm($client)) {
-            $this->superOpsMetrics->queueRefresh($client);
-        }
+        // First snapshot for every sold feed. The hourly idle prewarm is only for later refreshes.
+        app(\App\Services\Portal\DashboardFeedRegistry::class)->queueMissingSnapshots($client);
 
         $message = 'Client updated successfully.';
 
