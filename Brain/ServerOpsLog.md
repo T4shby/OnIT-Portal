@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-02 14:00 UK - Client SSO wire creates the IDP certificate
+
+| | |
+|---|---|
+| Intent | JustLife Wire died on HostNameNotOnVerifiedDomain, so SuperOps Step 3 had no IDP login URL or certificate. Ship the v2-token fix. |
+| Operator | agent |
+| SHA before -> after | `1a6212a` -> `db13c68` |
+| Steps | `git push origin main`. Bare mirror fetch `main`. `git archive main` into the live tree. Post-deploy artisan block. Not `cache:clear`. |
+| Result | `db13c68` deployed. Login HTTP 200. `/up` HTTP 200. Nothing to migrate. Re-run Wire on JustLife. Do not verify superops.ai. |
+| Rollback / watch | Redeploy `1a6212a`. If Wire still returns HostNameNotOnVerifiedDomain, the v2 token patch did not stick. Check `storage/logs/laravel.log` for "Background Apply Client SSO failed". |
+
 ### 2026-09-30 20:10 UK - Keep GitHub and live on main only
 
 | | |
