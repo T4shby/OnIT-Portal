@@ -305,7 +305,11 @@ on Integration Health usually mean the minute runner was dead, not Graph API rat
 
 Verified against live SuperOps status enums (2026-07-15):
 
-`Open`, `In Progress`, `On Hold`, `Pending`, `Reopened`, `Waiting on Client`, `Waiting on Customer`, `Waiting on Vendor`
+`Open`, `In Progress`, `On Hold`, `Pending`, `Reopened`, `Waiting on Client`, `Waiting on Customer`, `Waiting on Vendor`, `Waiting on third party`, `Still Issue`
+
+`Waiting on third party` is someone outside the ticket. It counts as open, and it does not count as waiting on the client.
+
+`Still Issue` means On IT emailed the client and had no reply after 24 hours. It counts as open and as waiting on the client. A later status that still has "Still Issue" in the name (the next chase) is treated the same way.
 
 ### Closed ticket statuses
 
@@ -591,6 +595,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |
 | 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. It no longer waits an hour after a sweep that skipped a still-fresh client. |
 | 2026-10-02 | Dropsuite organization id is the short number (YorPower 6182, Finishing Design 11223). The website shows the user id, like 360787-12, and that must not be pasted. |
 | 2026-10-02 | Save client and Microsoft Accept queue the first pull for every sold feed with no snapshot. The idle hour is only for later refreshes. |

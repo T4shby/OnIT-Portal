@@ -18,9 +18,13 @@ class ClientActivityCopy
         $key = $this->normalise($status);
 
         return match (true) {
-            $this->containsAny($key, ['waiting on client', 'waiting on customer', 'waiting for client', 'waiting for customer']) => [
+            $this->containsAny($key, ['waiting on client', 'waiting on customer', 'waiting for client', 'waiting for customer']) || str_contains($key, 'still issue') => [
                 'title' => 'We sent an update and are waiting on you',
                 'badge' => 'Waiting on you',
+            ],
+            str_contains($key, 'third party') || str_contains($key, '3rd party') => [
+                'title' => 'We are waiting on someone outside this ticket',
+                'badge' => 'Waiting on someone else',
             ],
             str_contains($key, 'waiting on vendor') || str_contains($key, 'waiting for vendor') => [
                 'title' => 'We are waiting on a supplier',

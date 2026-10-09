@@ -49,6 +49,21 @@ class ClientActivityCopyTest extends TestCase
                 'We are waiting on a supplier',
                 'Waiting on supplier',
             ],
+            'third party' => [
+                'Waiting on third party',
+                'We are waiting on someone outside this ticket',
+                'Waiting on someone else',
+            ],
+            'still issue' => [
+                'Still Issue',
+                'We sent an update and are waiting on you',
+                'Waiting on you',
+            ],
+            'still issue follow up' => [
+                'Still Issue 2',
+                'We sent an update and are waiting on you',
+                'Waiting on you',
+            ],
             'reopened' => [
                 'Reopened',
                 'We have reopened this ticket',

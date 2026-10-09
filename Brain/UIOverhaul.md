@@ -53,7 +53,7 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 
 | Field | Source | Notes |
 |-------|--------|--------|
-| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` | Cache `superops-dashboard:v5` |
+| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` / `Still Issue` (and a later status whose name contains Still Issue) | Cache `superops-dashboard:v5` |
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | SuperOps open + recently closed tickets, Huntress cases (actions nested), Dropsuite mailbox errors | One clickable ticket or case. Public replies are on the ticket page. Internal notes are not shown. See below. |
@@ -89,12 +89,13 @@ The row action still comes from status, because the dashboard cache does not sto
 
 | SuperOps status | Headline | Badge |
 |---|---|---|
-| Waiting on Client / Customer | We sent an update and are waiting on you | Waiting on you |
+| Waiting on Client / Customer / Still Issue | We sent an update and are waiting on you | Waiting on you |
 | In Progress | A technician is working on this | In progress |
 | Open | This is in our support queue | Open |
 | On Hold | We have paused this ticket | On hold |
 | Pending | We are lining up the next step | Pending |
 | Waiting on Vendor | We are waiting on a supplier | Waiting on supplier |
+| Waiting on third party | We are waiting on someone outside this ticket | Waiting on someone else |
 | Reopened | We have reopened this ticket | Reopened |
 | Closed / Resolved | We closed this ticket | Closed |
 | Closed (no response) | We closed this after no reply | Closed |
@@ -166,6 +167,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-10-09 | Activity copy: Waiting on third party is someone outside the ticket. Still Issue (and a later Still Issue chase) is waiting on you. |
 | 2026-09-08 | Activity feed: action headlines + high-contrast status badge; include closed tickets; SuperOps `updatedTime` on dashboard ticket rows. |
 | 2026-09-08 | Filter chips (M365 people/groups, Huntress All/Active/Resolved) hide rows with CSS - no full page reload / no Alpine x-show on every row. |
 | 2026-08-24 | **Contact Support** hub in nav (client users only): ticket + phone/hours + new starter form → SuperOps API. |

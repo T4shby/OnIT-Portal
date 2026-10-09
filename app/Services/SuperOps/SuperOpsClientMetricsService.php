@@ -28,6 +28,8 @@ class SuperOpsClientMetricsService
         'Waiting on Client',
         'Waiting on Customer',
         'Waiting on Vendor',
+        'Waiting on third party',
+        'Still Issue',
     ];
 
     /**
@@ -48,6 +50,7 @@ class SuperOpsClientMetricsService
     public const WAITING_ON_CLIENT_STATUSES = [
         'Waiting on Client',
         'Waiting on Customer',
+        'Still Issue',
     ];
 
     /**
@@ -615,7 +618,19 @@ class SuperOpsClientMetricsService
 
     private function isWaitingOnClientStatus(string $status): bool
     {
-        return in_array($status, self::WAITING_ON_CLIENT_STATUSES, true);
+        if (in_array($status, self::WAITING_ON_CLIENT_STATUSES, true)) {
+            return true;
+        }
+
+        // The chase after Still Issue keeps "Still Issue" in the name.
+        return str_contains(strtolower($status), 'still issue');
+    }
+
+    private function isThirdPartyStatus(string $status): bool
+    {
+        $key = strtolower($status);
+
+        return str_contains($key, 'third party') || str_contains($key, '3rd party');
     }
 
     /**
@@ -920,7 +935,7 @@ class SuperOpsClientMetricsService
             return null;
         }
 
-        if (in_array($status, self::OPEN_STATUSES, true)) {
+        if (in_array($status, self::OPEN_STATUSES, true) || $this->isThirdPartyStatus($status) || $this->isWaitingOnClientStatus($status)) {
             return 'open';
         }
 

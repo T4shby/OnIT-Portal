@@ -33,6 +33,28 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-09 14:56 UK - Recent production errors
+
+| | |
+|---|---|
+| Intent | See whether failed jobs or log errors since 1 October had been missed. |
+| Operator | agent |
+| SHA before -> after | n/a (read only) |
+| Steps | Counted `failed_jobs`. Grouped `storage/logs/laravel.log` ERROR and WARNING lines since 1 October. Deleted `/tmp/recent-errors.php`, `/tmp/scan-logs.sh`, `/tmp/parse-log.php`, `/tmp/error-detail.php`. |
+| Result | `failed_jobs` is empty. Two SuperOps statuses are logged and then dropped from open and closed counts: `Waiting on third party` (6672 lines) and `Still Issue` (960). YorPower (client 10) email align is skipped on every sync because the target address is already another requester (6008 lines). Five SuperOps `rate_limit_exceeded` errors on 6 October 08:16 UK, none since. Two view permission errors on 2 October during deploy, none since. |
+| Rollback / watch | Nothing changed. |
+
+### 2026-10-05 09:45 UK - Check Finishing Design Dropsuite and JustLife SSO
+
+| | |
+|---|---|
+| Intent | Confirm whether the Dropsuite organization id and JustLife Client SSO wire were already saved, before running either again. |
+| Operator | agent |
+| SHA before -> after | n/a (read only) |
+| Steps | Read client 13 `dropsuite_organization_id` and Dropsuite cache result. Read client 12 SSO checklist flag, IdP cache presence (host and certificate length only), and SSO activity rows. Deleted `/tmp/check-onboarding.php`. |
+| Result | Finishing Design organization id is 11223, saved 09:05 UK, Dropsuite pull succeeded 09:17 UK. JustLife Wire succeeded 2026-10-02 14:01 UK: login host set, certificate present. Nothing re-run. |
+| Rollback / watch | Nothing changed. |
+
 ### 2026-10-02 17:39 UK - Prewarm looks every minute
 
 | | |
