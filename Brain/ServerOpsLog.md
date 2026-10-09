@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-09 15:25 UK - SuperOps third party and Still Issue
+
+| | |
+|---|---|
+| Intent | Count `Waiting on third party` as open, and `Still Issue` (plus a later status whose name contains Still Issue) as waiting on the client. |
+| Operator | agent |
+| SHA before -> after | `56446ad` -> `c7c545d` |
+| Steps | Pushed `c7c545d`. Fetched the bare mirror, `git archive main` into the live tree, migrate (nothing), route/config/view clear, optimize. Did not `cache:clear`. Queued a SuperOps refresh for each active mapped client. Removed `/tmp/deploy-status.sh` and `/tmp/queue-superops.php`. |
+| Result | Live `.deployed-commit` `c7c545d`. Queued clients 5, 6, 7, 9, 10, 12, 13. |
+| Rollback / watch | Redeploy `56446ad`. After the queued jobs finish, open-ticket and waiting-on-you figures include those statuses. |
+
 ### 2026-10-09 14:56 UK - Recent production errors
 
 | | |
