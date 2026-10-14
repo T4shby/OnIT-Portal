@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-15 00:32 UK - Handover guide
+
+| | |
+|---|---|
+| Intent | Put Brain/Handover.md on main and on the live tree so a new chat can start from what the app is. |
+| Operator | agent |
+| SHA before -> after | `96fee47` -> `9023f1d` |
+| Steps | Pushed `9023f1d`. Fetched the bare mirror, `git archive main`, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Did not `cache:clear`. Removed `/tmp/deploy-handover.sh`. |
+| Result | Live `.deployed-commit` was `9023f1d`. `/up` 200. `Brain/Handover.md` is on the live tree. This diary row is deployed straight after, so the marker may be this commit instead. |
+| Rollback / watch | Redeploy `96fee47`. The guide is documentation only. |
+
 ### 2026-10-14 14:30 UK - SuperOps backoff and Dropsuite 404 noise
 
 | | |

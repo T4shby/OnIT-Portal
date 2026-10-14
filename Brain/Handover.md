@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-As of 15 October 2026 the live marker is `96fee47`. Behaviour commit for the last code change is `53b1680`.
+As of 15 October 2026 this guide is commit `9023f1d`. The last code change is `53b1680` (a failed SuperOps pull waits before it is queued again). The newest row in [ServerOpsLog.md](ServerOpsLog.md) is the live marker.
 
 ## What already works
 
