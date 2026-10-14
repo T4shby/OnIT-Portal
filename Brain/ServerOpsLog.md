@@ -33,6 +33,28 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-14 14:30 UK - SuperOps backoff and Dropsuite 404 noise
+
+| | |
+|---|---|
+| Intent | Stop a SuperOps outage from being retried every minute, and stop logging optional Dropsuite SharePoint 404s. |
+| Operator | agent |
+| SHA before -> after | `5773977` -> `53b1680` |
+| Steps | Pushed `53b1680`. Fetched the bare mirror, `git archive main`, migrate (nothing), route/config/view clear, optimize. Did not `cache:clear`. Removed `/tmp/deploy-audit.sh`. |
+| Result | Live `.deployed-commit` `53b1680`. `/up` 200. |
+| Rollback / watch | Redeploy `5773977`. After the next failed SuperOps pull, Integration Health should wait at least 15 minutes before that client is queued again. |
+
+### 2026-10-14 13:58 UK - Usage and error review
+
+| | |
+|---|---|
+| Intent | See who has signed in, which errors are still only in the log, and whether the queue is keeping up. |
+| Operator | agent |
+| SHA before -> after | n/a (read only, live `5773977`) |
+| Steps | Counted `user.login`, recent sessions, `failed_jobs`, queue depth, cache size, and prewarm heartbeat. Grouped `laravel.log` errors and warnings since 10 October. Deleted `/tmp/review-usage.php`, `/tmp/review-logs.php`, `/tmp/review-fail.php`, `/tmp/review-more.php`. |
+| Result | No login events since 2 October. A 3R Systems client admin session was active at 09:28 UK today. `failed_jobs` 0, queue empty, cache 1.1 MB. SuperOps HTTP failures were 11-12 October only (502 and 401), none on 13-14 October. Dropsuite `sharepoints`/`sites` 404 warnings continue every refresh. YorPower email-align skip is still logging. |
+| Rollback / watch | Nothing changed. |
+
 ### 2026-10-09 15:25 UK - SuperOps third party and Still Issue
 
 | | |
