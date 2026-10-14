@@ -367,7 +367,7 @@ class DropsuiteClientMetricsService
         try {
             $out = [];
             for ($page = 1; $page <= 20; $page++) {
-                $payload = $this->api->get($path, ['page' => $page, 'per_page' => 100], accessToken: $accessToken);
+                $payload = $this->api->get($path, ['page' => $page, 'per_page' => 100], accessToken: $accessToken, quietNotFound: true);
                 $rows = $this->extractListRows($payload);
                 if ($rows === []) {
                     break;

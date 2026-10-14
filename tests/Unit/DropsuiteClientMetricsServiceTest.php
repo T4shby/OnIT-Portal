@@ -9,6 +9,7 @@ use App\Services\Dropsuite\DropsuiteClientMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class DropsuiteClientMetricsServiceTest extends TestCase
@@ -196,6 +197,45 @@ class DropsuiteClientMetricsServiceTest extends TestCase
         $this->assertFalse($summary->available);
         $this->assertSame('Dropsuite is not connected for this organisation.', $summary->unavailableReason);
         Http::assertNothingSent();
+    }
+
+    public function test_optional_sharepoint_404_does_not_warn_and_still_stores_mailboxes(): void
+    {
+        Log::spy();
+
+        Http::fake([
+            'https://dropsuite.us/api/users*' => Http::response([
+                'result_set' => [[
+                    'id' => '1',
+                    'email' => 'admin@customer.test',
+                    'organization_id' => 19771,
+                    'authentication_token' => 'user-org-token',
+                    'admin' => true,
+                ]],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1],
+            ], 200),
+            'https://dropsuite.us/api/accounts*' => Http::response([
+                'result_set' => [[
+                    'id' => 1,
+                    'email' => 'alex@customer.test',
+                    'last_backup' => '2023-05-11T06:43:27.040Z',
+                    'current_backup_status' => 'Running',
+                    'errors' => [],
+                    'user' => ['organization_id' => 19771],
+                ]],
+                'pagination' => ['current_page' => 1, 'total_pages' => 1],
+            ], 200),
+            'https://dropsuite.us/api/onedrives*' => Http::response(['result_set' => []], 200),
+            'https://dropsuite.us/api/sharepoints*' => Http::response(['error' => 'Not Found'], 404),
+            'https://dropsuite.us/api/sites*' => Http::response(['error' => 'Not Found'], 404),
+        ]);
+
+        $client = Client::factory()->create(['dropsuite_organization_id' => '19771']);
+        $summary = app(DropsuiteClientMetricsService::class)->refreshAndStore($client);
+
+        $this->assertTrue($summary->available);
+        $this->assertCount(1, $summary->accounts);
+        Log::shouldNotHaveReceived('warning');
     }
 
     public function test_refresh_throws_when_org_has_no_user_token_and_no_cache(): void

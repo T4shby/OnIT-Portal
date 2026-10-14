@@ -281,7 +281,34 @@ class SuperOpsClientMetricsService
             return false;
         }
 
+        if ($this->inRefreshBackoff($client)) {
+            return false;
+        }
+
         return ! $this->hasStoredSummary($client);
+    }
+
+    public function refreshBackoffKey(int $clientId): string
+    {
+        return 'superops_dashboard.refresh_backoff.'.$clientId;
+    }
+
+    public function inRefreshBackoff(Client $client): bool
+    {
+        return Cache::has($this->refreshBackoffKey($client->id));
+    }
+
+    /**
+     * After a failed pull, wait out the current requeue interval (at least 15 minutes)
+     * before the minute checker queues the same client again.
+     */
+    public function markRefreshBackoff(Client $client): void
+    {
+        $minutes = max(15, (int) ceil(
+            app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes()
+        ));
+
+        Cache::put($this->refreshBackoffKey($client->id), now()->toIso8601String(), now()->addMinutes($minutes));
     }
 
     /**
@@ -293,6 +320,10 @@ class SuperOpsClientMetricsService
     public function needsBackgroundRefresh(Client $client): bool
     {
         if (! $this->hasStoredSummary($client)) {
+            return false;
+        }
+
+        if ($this->inRefreshBackoff($client)) {
             return false;
         }
 

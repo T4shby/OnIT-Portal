@@ -59,6 +59,8 @@ class RefreshSuperOpsDashboardJob implements ShouldQueue, ShouldBeUnique
                 'error' => $e->getMessage(),
             ]);
 
+            $metrics->markRefreshBackoff($client);
+
             Cache::put('superops_dashboard.last_result.'.$client->id, [
                 'success' => false,
                 'error' => $e->getMessage(),

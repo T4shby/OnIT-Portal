@@ -315,6 +315,28 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertFalse($service->needsBackgroundRefresh($client));
     }
 
+    public function test_failed_refresh_backoff_skips_the_next_minute_check(): void
+    {
+        $service = app(SuperOpsClientMetricsService::class);
+        $client = Client::factory()->create(['superops_account_id' => '111']);
+
+        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+            'assets_total' => 1,
+            'open_tickets_total' => 1,
+            'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
+            'tickets_closed' => ['7' => 0, '14' => 0, '30' => 0, 'all' => 0],
+            'last_refreshed_at' => now()->subHours(3)->toIso8601String(),
+        ], now()->addDay());
+
+        $this->assertTrue($service->needsBackgroundRefresh($client));
+
+        $service->markRefreshBackoff($client);
+
+        $this->assertFalse($service->needsBackgroundRefresh($client));
+        $this->assertFalse($service->needsColdPrewarm($client));
+        $this->assertTrue(Cache::has($service->refreshBackoffKey($client->id)));
+    }
+
     public function test_api_client_strips_bearer_prefix_from_env_token(): void
     {
         config(['services.superops.api_token' => 'Bearer api-pasted-token']);

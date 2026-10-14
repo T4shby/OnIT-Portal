@@ -280,7 +280,7 @@ Background refresh: `RefreshSuperOpsDashboardJob` on the **`high`** queue (befor
 **Data should exist before anyone opens the page:**
 
 1. Scheduler runs `portal:prewarm-client-dashboards` **every minute**. The command queues a feed only when that feed is cold or past adaptive requeue age. A sweep that runs while a feed is still fresh must not block the next look for an hour.
-2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ adaptive requeue minutes (`PortalFreshnessService::effectiveRequeueMinutes()`), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row.
+2. **SuperOps cold + due-for-refresh always queues** when last success age ≥ adaptive requeue minutes (`PortalFreshnessService::effectiveRequeueMinutes()`), even when the jobs table is deep. Clears orphaned `refresh_queued` when no matching `jobs` row. A failed pull sets a backoff of at least 15 minutes (or the current requeue interval, whichever is longer) so a SuperOps outage is not retried every minute. A manual refresh still queues immediately.
 3. M365 / Huntress / Dropsuite only when cold or past adaptive requeue age, and only when spare queue capacity (&lt; 40 pending).
 4. **Save client** queues the first pull for every sold, mapped feed that has no snapshot yet (SuperOps, M365 directory, M365 licences, Huntress, Dropsuite). Microsoft Accept does the same once Graph setup finishes. Later refreshes stay on the adaptive prewarm. **Sync now** still only syncs portal users.
 5. Page views **serve cache only** - they do not re-queue every time metrics are past the fresh window.
@@ -532,7 +532,7 @@ Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value i
 
 /** Auth (live UK): X-Reseller-Token = Reseller Token (UUID). X-Access-Token = Authentication Token from API Information (Admin - lists `GET /users`). Per-org mailbox list uses each user’s `authentication_token` as User Token for `GET /accounts`. Secret Token is not used for these GETs. **/
 
-**Primary refresh path:** `GET /users` (Admin Authentication Token) → pick that org’s `authentication_token` → `GET /accounts` as User Token (paginated `result_set`). Fields: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`, `user.organization_id`. Optional: `GET /onedrives` with the same user token.
+**Primary refresh path:** `GET /users` (Admin Authentication Token) → pick that org’s `authentication_token` → `GET /accounts` as User Token (paginated `result_set`). Fields: `email`, `last_backup`, `current_backup_status`, `errors`, `display_name`, `user.organization_id`. Optional: `GET /onedrives`, then `GET /sharepoints` and `GET /sites`. A 404 on SharePoint or sites is normal for a mailbox-only organisation. Those calls are skipped and are not logged as a failure. Mailbox backups still save.
 
 ### Who sees what
 
@@ -595,6 +595,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before the minute checker queues it again. Dropsuite SharePoint and sites 404s are optional and are not logged as failures. |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |
 | 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. It no longer waits an hour after a sweep that skipped a still-fresh client. |
 | 2026-10-02 | Dropsuite organization id is the short number (YorPower 6182, Finishing Design 11223). The website shows the user id, like 360787-12, and that must not be pasted. |

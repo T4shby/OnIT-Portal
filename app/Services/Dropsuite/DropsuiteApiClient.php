@@ -37,6 +37,7 @@ class DropsuiteApiClient
         array $query = [],
         int $timeoutSeconds = 30,
         ?string $accessToken = null,
+        bool $quietNotFound = false,
     ): array {
         if (! $this->isConfigured()) {
             throw new RuntimeException('Dropsuite API is not configured.');
@@ -54,12 +55,15 @@ class DropsuiteApiClient
             ->get($this->url($path), $query);
 
         if ($response->failed()) {
-            // Truncated like SuperOpsApiClient: bounded log volume / customer data.
-            Log::warning('Dropsuite HTTP request failed', [
-                'status' => $response->status(),
-                'path' => $path,
-                'body' => Str::limit($response->body(), 1000),
-            ]);
+            // Optional SharePoint/sites calls 404 on mailbox-only organisations.
+            // The caller treats that as empty. Do not warn on every refresh.
+            if (! ($quietNotFound && $response->status() === 404)) {
+                Log::warning('Dropsuite HTTP request failed', [
+                    'status' => $response->status(),
+                    'path' => $path,
+                    'body' => Str::limit($response->body(), 1000),
+                ]);
+            }
 
             throw new RequestException($response);
         }
