@@ -1,6 +1,6 @@
 # On IT Portal - Brain (Source of Truth)
 
-Read these documents before changing application code. **Update Brain for every meaningful change in the same turn** (code, checklist, Entra/SSO, deploy, env) - not only “docs tickets”. This folder is the handover doc for technicians and maintainers.
+Read these documents before changing application code. **Update Brain for every meaningful change in the same turn** (code, checklist, Entra/SSO, deploy, env) - not only “docs tickets”. For a new chat, start at [Handover.md](Handover.md).
 
 ## For Junior Engineers
 
@@ -13,6 +13,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Document | Purpose |
 |---|---|
+| [Handover.md](Handover.md) | **Start here in a new chat** - what the app is, what is live, what is still waiting |
 | [ProjectVision.md](ProjectVision.md) | Strategic goals and product positioning |
 | [ProductRequirements.md](ProductRequirements.md) | MVP scope, user stories, functional requirements |
 | [Architecture.md](Architecture.md) | Layers, flows, directory structure |
@@ -86,6 +87,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-15 | Handover guide for a new chat: [Handover.md](Handover.md). |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before it is queued again. Optional Dropsuite SharePoint and sites 404s are not logged as failures. YorPower email-align skips until the duplicate SuperOps requester is cleared. - [ClientAdminDashboard.md](ClientAdminDashboard.md), [AccessAndSync.md](AccessAndSync.md) |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open. `Still Issue` and a later Still Issue chase count as waiting on the client. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. A sweep that skipped a still-fresh client no longer blocks the next look for an hour. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -153,4 +153,5 @@ add a `pint.json` matching the codebase's actual conventions first (see
 - `docs/SECURITY.md` - auth/authz model, secrets handling, trust boundaries
 - `docs/DEPLOYMENT.md` - exact production deployment steps and required env vars
 - `docs/SYSTEM_AUDIT.md` - this audit's full findings and verification results
+- `Brain/Handover.md` - start here in a new chat: what the app is, what is live, what is still waiting
 - `Brain/README.md` - the project's own knowledge base index
