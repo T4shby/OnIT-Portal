@@ -97,8 +97,8 @@ class ClientMetricSnapshotService
             'available' => true,
             'status' => 'ready',
             'message' => $asOf
-                ? "Snapshot from {$asOf} (end of last month / nearest prior day)."
-                : 'Historical snapshot available.',
+                ? "Figures from {$asOf}."
+                : 'Last month is available.',
             'as_of' => $asOf,
             'overall_band' => $payload['overall_band'] ?? null,
             'value' => is_array($payload['value'] ?? null) ? $payload['value'] : null,

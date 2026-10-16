@@ -42,6 +42,7 @@ As of 15 October 2026 this guide is commit `9023f1d`. The last code change is `5
 - **Dropsuite organisation id** is the short number from the API, not the user id shown in Dropsuite. YorPower is `6182`. Finishing Design Services is `11223`. An id like `360787-12` is a user id. SharePoint and sites often 404 on mailbox-only orgs. That is optional and is not a failed backup.
 - **SuperOps ticket statuses.** `Waiting on third party` is open, and it is not "waiting on you". `Still Issue`, and any later status whose name contains Still Issue, is open and waiting on the client (emailed, no reply after 24 hours).
 - **Entra portal sync** creates portal users for licensed member accounts, and keeps unlicensed shared mailboxes as rows that cannot sign in. A shared mailbox that still has a licence can sign in. The Active badge means the row is active, not that sign-in is allowed.
+- **Last month.** On the client home and Reports, This month and Last month are links once a prior month has been stored. Last month shows those stored service figures. The activity list stays recent work. The control stays hidden until that history exists.
 
 ## Who is using it
 
@@ -67,12 +68,11 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md), in order:
 
-1. Last-month compare on the client home and Reports. Nightly snapshots have been running since August 2026.
-2. Portfolio export and an account-manager filter on the sold-coverage matrix.
-3. Pax8 billed catalogue, which needs the partner API.
-4. Email or Teams when Integration Health stays on a warning.
-5. Per-client logo and colour.
-6. Average first response, patch posture, and restore retention.
+1. Portfolio export and an account-manager filter on the sold-coverage matrix.
+2. Pax8 billed catalogue, which needs the partner API.
+3. Email or Teams when Integration Health stays on a warning.
+4. Per-client logo and colour.
+5. Average first response, patch posture, and restore retention.
 
 ## Start prompt
 
@@ -84,5 +84,5 @@ This is On IT Portal, Laravel 11, production branch main, live at https://app.on
 Continue from the handover. Do not enable usecure. Do not commit any uncommitted usecure files unless I say the partner key is in the vault and I ask you to probe it.
 ASCII hyphens only. Update Brain in the same turn as any code change.
 The two open human tasks are the YorPower SuperOps email clash and the usecure partner key.
-Ask me which roadmap item to build next if I have not named one.
+The next approved task is in Brain/NEXT_TASK.md. Do not start it unless I ask.
 ```

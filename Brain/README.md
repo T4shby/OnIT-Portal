@@ -14,6 +14,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Document | Purpose |
 |---|---|
 | [Handover.md](Handover.md) | **Start here in a new chat** - what the app is, what is live, what is still waiting |
+| [NEXT_TASK.md](NEXT_TASK.md) | The one next product task. Do not start it until asked |
 | [ProjectVision.md](ProjectVision.md) | Strategic goals and product positioning |
 | [ProductRequirements.md](ProductRequirements.md) | MVP scope, user stories, functional requirements |
 | [Architecture.md](Architecture.md) | Layers, flows, directory structure |
@@ -87,6 +88,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-16 | Last month on the client home and Reports shows the stored end-of-month figures. The control stays hidden until that history exists. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-10-15 | Handover guide for a new chat: [Handover.md](Handover.md). |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before it is queued again. Optional Dropsuite SharePoint and sites 404s are not logged as failures. YorPower email-align skips until the duplicate SuperOps requester is cleared. - [ClientAdminDashboard.md](ClientAdminDashboard.md), [AccessAndSync.md](AccessAndSync.md) |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open. `Still Issue` and a later Still Issue chase count as waiting on the client. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |

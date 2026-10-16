@@ -48,8 +48,9 @@
             ['value' => $sla, 'label' => 'resolved on time'],
         ];
     }
-    $monthTitle = now()->timezone('Europe/London')->format('F Y');
+    $monthTitle = $overview['month_title'] ?? now()->timezone('Europe/London')->format('F Y');
     $monthReady = ($monthCompare['available'] ?? false) === true;
+    $viewingLast = ($overview['viewing_period'] ?? 'this') === 'last';
 @endphp
 
 {{--
@@ -273,12 +274,20 @@
             background: #fff;
             flex: none;
         }
-        .rp-toggle span {
+        .rp-toggle a {
             padding: 10px 14px;
             font-size: 12px;
             min-height: 40px;
             display: inline-flex;
             align-items: center;
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+        }
+        .rp-toggle a[aria-current="true"] {
+            font-weight: 600;
+            background: #011926;
+            color: #fff;
         }
         .rp-period {
             display: flex;
@@ -319,7 +328,7 @@
             .rp-period { align-items: stretch; max-width: none; width: 100%; }
             .rp-period-hint { max-width: none; }
             .rp-toggle { width: 100%; }
-            .rp-toggle > span:first-child { flex: 1; justify-content: center; }
+            .rp-toggle > a:first-child { flex: 1; justify-content: center; }
             .rp-period-locked { flex: 1; justify-content: center; }
         }
     </style>
@@ -368,19 +377,23 @@
                     @if($monthReady)
                     <div class="rp-period" role="group" aria-label="Report period">
                         <div class="rp-toggle">
-                            <span style="font-weight:600;background:#011926;color:#fff">This month</span>
-                            <span style="font-weight:500;color:#555">
+                            <a href="{{ route('reports.index') }}" @if(! $viewingLast) aria-current="true" @endif>This month</a>
+                            <a href="{{ route('reports.index', ['period' => 'last']) }}" @if($viewingLast) aria-current="true" @endif>
                                 Last month
                                 @if(! empty($monthCompare['as_of']))
                                     · {{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }}
                                 @endif
-                            </span>
+                            </a>
                         </div>
                     </div>
                     @endif
                 </div>
 
-                @if($monthReady && ! empty($monthCompare['value_deltas']))
+                @if($viewingLast)
+                    <p style="margin:12px 0 0;font-size:13px;line-height:1.45;color:#64748B">
+                        Service figures on this page are from last month. The activity list below is still recent work.
+                    </p>
+                @elseif($monthReady && ! empty($monthCompare['value_deltas']))
                     <div class="rp-card" style="margin-top:12px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 18px">
                         @foreach($monthCompare['value_deltas'] as $delta)
                             <div style="font-size:12.5px;color:#64748B">

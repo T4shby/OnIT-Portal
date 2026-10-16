@@ -30,7 +30,8 @@ class ClientReportsController extends Controller
         // Reports are organisation-level value story.
         abort_unless($this->visibility->canViewOrganisationWide($user, $client), 403);
 
-        $overview = $this->homeOverview->forUser($user);
+        $period = $request->query('period') === 'last' ? 'last' : 'this';
+        $overview = $this->homeOverview->forUser($user, $period);
 
         return view('reports.index', [
             'user' => $user,

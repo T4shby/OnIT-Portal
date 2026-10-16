@@ -18,7 +18,8 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $portalLinks = $this->externalServices->getLinksForUser($user);
-        $overview = $this->homeOverview->forUser($user);
+        $period = $request->query('period') === 'last' ? 'last' : 'this';
+        $overview = $this->homeOverview->forUser($user, $period);
 
         // Client Admin + requesters with systems: new glance dashboard.
         // Team without a bound client keeps the simple home with portals.

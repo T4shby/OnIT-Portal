@@ -5,6 +5,8 @@
     $monthCompare = $overview['month_compare'] ?? [];
     $period = $overview['period_label'] ?? '';
     $clientName = $user->client?->name ?? 'Your organisation';
+    $monthReady = ($monthCompare['available'] ?? false) === true;
+    $viewingLast = ($overview['viewing_period'] ?? 'this') === 'last';
 
     $okMetric = function (?array $col, string|array $labels) {
         if (! is_array($col)) {
@@ -41,13 +43,13 @@
             [
                 'label' => 'Threats stopped',
                 'value' => $threats,
-                'note' => $okMetric($hunt, ['Threats stopped', 'Threats stopped (MTD)']) !== null ? 'this month' : 'handled',
+                'note' => $okMetric($hunt, ['Threats stopped', 'Threats stopped (MTD)']) !== null ? ($viewingLast ? 'last month' : 'this month') : 'handled',
                 'empty' => 'Checking',
             ],
             [
                 'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this month' : null,
+                'note' => $resolved !== null ? ($viewingLast ? 'last month' : 'this month') : null,
                 'empty' => 'Checking',
             ],
             [
@@ -62,13 +64,13 @@
             [
                 'label' => 'Threats stopped',
                 'value' => $threats,
-                'note' => $threats !== null ? 'this month' : null,
+                'note' => $threats !== null ? ($viewingLast ? 'last month' : 'this month') : null,
                 'empty' => 'Checking',
             ],
             [
                 'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this month' : null,
+                'note' => $resolved !== null ? ($viewingLast ? 'last month' : 'this month') : null,
                 'empty' => 'Checking',
             ],
             [
@@ -83,7 +85,7 @@
             [
                 'label' => 'Tickets we closed',
                 'value' => $resolved,
-                'note' => $resolved !== null ? 'this month' : null,
+                'note' => $resolved !== null ? ($viewingLast ? 'last month' : 'this month') : null,
                 'empty' => 'Checking',
             ],
             [
@@ -100,7 +102,6 @@
             ],
         ];
     }
-    $monthReady = ($monthCompare['available'] ?? false) === true;
 @endphp
 
 {{-- Client home: On IT chrome, live numbers only --}}
@@ -160,7 +161,17 @@
         border: 1px solid #0f3048;
         overflow: hidden;
     }
-    .glance-toggle span { padding: 10px 18px; font-size: 12px; line-height: 1.2; }
+    .glance-toggle a {
+        padding: 10px 18px;
+        font-size: 12px;
+        line-height: 1.2;
+        text-decoration: none;
+        color: rgba(255,255,255,.65);
+        display: inline-flex;
+        align-items: center;
+        font-weight: 500;
+    }
+    .glance-toggle a[aria-current="true"] { background: #FF7000; font-weight: 600; color: #fff; }
     .glance-period {
         display: flex;
         flex-direction: column;
@@ -172,7 +183,7 @@
     @media (max-width: 640px) {
         .glance-period { align-items: stretch; max-width: none; width: 100%; }
         .glance-toggle { width: 100%; }
-        .glance-toggle > span:first-child { flex: 1; text-align: center; justify-content: center; }
+        .glance-toggle > a:first-child { flex: 1; text-align: center; justify-content: center; }
         .glance-value-grid { grid-template-columns: 1fr !important; }
         .glance-columns { grid-template-columns: 1fr !important; padding-top: 1.25rem !important; }
         .glance-portals { grid-template-columns: 1fr !important; }
@@ -219,19 +230,23 @@
             @if($monthReady)
                 <div class="glance-period" role="group" aria-label="Report period">
                     <div class="glance-toggle">
-                        <span style="background:#FF7000;font-weight:600;color:#fff;display:inline-flex;align-items:center">This month</span>
-                        <span class="glance-muted" style="font-weight:500;display:inline-flex;align-items:center">
+                        <a href="{{ route('dashboard') }}" @if(! $viewingLast) aria-current="true" @endif>This month</a>
+                        <a href="{{ route('dashboard', ['period' => 'last']) }}" @if($viewingLast) aria-current="true" @endif>
                             Last month
                             @if(! empty($monthCompare['as_of']))
                                 <span style="opacity:.75;margin-left:.35em">({{ \Illuminate\Support\Carbon::parse($monthCompare['as_of'])->format('M j') }})</span>
                             @endif
-                        </span>
+                        </a>
                     </div>
                 </div>
             @endif
         </div>
 
-        @if($monthReady && ! empty($monthCompare['value_deltas']))
+        @if($viewingLast)
+            <p style="margin:1rem 0 0;font-size:13px;line-height:1.45" class="glance-muted">
+                Service figures on this page are from last month. The activity list below is still recent work.
+            </p>
+        @elseif($monthReady && ! empty($monthCompare['value_deltas']))
             <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:10px 16px">
                 @foreach($monthCompare['value_deltas'] as $delta)
                     <div style="font-size:12px" class="glance-muted">

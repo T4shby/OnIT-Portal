@@ -39,6 +39,11 @@ class ClientMetricSnapshotServiceTest extends TestCase
         $this->assertSame('ready', $compare['status']);
         $this->assertSame('3', $compare['value']['threats'] ?? null);
         $this->assertSame('2', $compare['services']['superops']['metrics']['Open tickets'] ?? null);
+        $this->assertStringStartsWith('Figures from ', $compare['message']);
         $this->assertSame(1, ClientMetricDailySnapshot::query()->count());
+
+        $other = Client::factory()->create();
+        $otherCompare = $service->previousMonthCompare($other);
+        $this->assertFalse($otherCompare['available']);
     }
 }

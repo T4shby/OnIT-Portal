@@ -147,6 +147,10 @@ add a `pint.json` matching the codebase's actual conventions first (see
   system, not code, and is the primary source of institutional knowledge
   for this project.
 
+## Continuing work
+
+Read `Brain/Handover.md` and `Brain/NEXT_TASK.md` before a new task. Implement one approved milestone, follow the existing Laravel monolith, add tests, and update `Brain/` in the same change. Commit and push to `main` when the work is verified. Do not deploy to production unless asked. Do not commit the local usecure skeleton.
+
 ## Further reading
 
 - `docs/ARCHITECTURE.md` - system architecture, request flow, integrations
@@ -154,4 +158,5 @@ add a `pint.json` matching the codebase's actual conventions first (see
 - `docs/DEPLOYMENT.md` - exact production deployment steps and required env vars
 - `docs/SYSTEM_AUDIT.md` - this audit's full findings and verification results
 - `Brain/Handover.md` - start here in a new chat: what the app is, what is live, what is still waiting
+- `Brain/NEXT_TASK.md` - the one next product task; do not start it until asked
 - `Brain/README.md` - the project's own knowledge base index

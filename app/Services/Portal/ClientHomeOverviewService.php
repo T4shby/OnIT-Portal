@@ -43,7 +43,23 @@ class ClientHomeOverviewService
      *   generated_at: Carbon
      * }
      */
-    public function forUser(User $user): array
+    public function forUser(User $user, string $period = 'this'): array
+    {
+        $overview = $this->currentMonthOverview($user);
+        $overview['viewing_period'] = 'this';
+        $overview['month_title'] = now()->timezone('Europe/London')->format('F Y');
+
+        if ($period === 'last') {
+            return $this->viewPreviousMonth($overview);
+        }
+
+        return $overview;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentMonthOverview(User $user): array
     {
         $client = $user->client;
         $orgWide = $client !== null && $this->visibility->canViewOrganisationWide($user, $client);
@@ -352,6 +368,113 @@ class ClientHomeOverviewService
         $compare['current_band'] = $hero['status_tone'] ?? null;
 
         return $compare;
+    }
+
+    /**
+     * Replace live service figures with the stored end-of-last-month row.
+     * Activity is left as recent work. A missing row keeps the live month.
+     *
+     * @param  array<string, mixed>  $overview
+     * @return array<string, mixed>
+     */
+    public function viewPreviousMonth(array $overview): array
+    {
+        $compare = is_array($overview['month_compare'] ?? null) ? $overview['month_compare'] : [];
+        if (($compare['available'] ?? false) !== true) {
+            $overview['viewing_period'] = 'this';
+
+            return $overview;
+        }
+
+        $services = is_array($compare['services'] ?? null) ? $compare['services'] : [];
+        $columns = [];
+        foreach ($overview['columns'] ?? [] as $col) {
+            if (! is_array($col)) {
+                continue;
+            }
+            $key = (string) ($col['key'] ?? '');
+            $prior = is_array($services[$key] ?? null) ? $services[$key] : null;
+            $columns[] = $this->overlayColumnFromPriorMonth($col, $prior);
+        }
+
+        $client = $overview['client'] ?? null;
+        if ($client instanceof Client) {
+            $overview['hero'] = $this->heroFromColumns(
+                $client,
+                $columns,
+                (bool) ($overview['organisation_wide'] ?? false),
+            );
+        }
+
+        $asOf = filled($compare['as_of'] ?? null)
+            ? Carbon::parse((string) $compare['as_of'])->timezone('Europe/London')
+            : null;
+        $overview['columns'] = $columns;
+        $overview['viewing_period'] = 'last';
+        $overview['period_label'] = $asOf
+            ? $asOf->format('F Y').', as of '.$asOf->format('j M')
+            : 'Last month';
+        $overview['month_title'] = $asOf ? $asOf->format('F Y') : 'Last month';
+
+        return $overview;
+    }
+
+    /**
+     * @param  array<string, mixed>  $col
+     * @param  array<string, mixed>|null  $prior
+     * @return array<string, mixed>
+     */
+    private function overlayColumnFromPriorMonth(array $col, ?array $prior): array
+    {
+        $state = (string) ($col['state'] ?? '');
+        if (in_array($state, ['not_sold', 'hidden'], true)) {
+            return $col;
+        }
+
+        $priorMetrics = is_array($prior['metrics'] ?? null) ? $prior['metrics'] : [];
+        $metrics = [];
+        foreach ($col['metrics'] ?? [] as $metric) {
+            if (! is_array($metric)) {
+                continue;
+            }
+            $label = (string) ($metric['label'] ?? '');
+            if ($label !== '' && array_key_exists($label, $priorMetrics)) {
+                $metrics[] = array_merge($metric, [
+                    'value' => (string) $priorMetrics[$label],
+                    'kind' => 'ok',
+                ]);
+
+                continue;
+            }
+
+            $metrics[] = array_merge($metric, [
+                'value' => 'Not stored',
+                'kind' => 'empty',
+                'hint' => null,
+            ]);
+        }
+
+        $col['metrics'] = $metrics;
+        if ($prior === null) {
+            $col['status_reason'] = 'We do not have last month stored for this service.';
+
+            return $col;
+        }
+
+        $tone = (string) ($prior['band'] ?? 'neutral');
+        if (! in_array($tone, ['ok', 'warn', 'bad', 'muted', 'neutral'], true)) {
+            $tone = 'neutral';
+        }
+        $col['tone'] = $tone;
+        $col['state'] = 'live';
+        if (filled($prior['label'] ?? null)) {
+            $col['status_label'] = (string) $prior['label'];
+        }
+        if (filled($prior['status_reason'] ?? null)) {
+            $col['status_reason'] = (string) $prior['status_reason'];
+        }
+
+        return $col;
     }
 
     /**
