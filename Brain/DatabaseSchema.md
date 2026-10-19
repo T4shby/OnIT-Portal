@@ -4,9 +4,25 @@
 
 ### clients
 
-`id`, `name`, `slug`, `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** - Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** - Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: entitled flags per catalog key - services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
+`id`, `name`, `slug`, `primary_domain` (required on create; main mail domain), `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** - Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** - Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: entitled flags per catalog key - services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
 
 **Planned (not migrated):** `usecure_company_id` - see [UsecureIntegration.md](UsecureIntegration.md).
+
+### client_domains
+
+Mail domains for onboarding DNS health (MX / SPF / DKIM / DMARC). See [MailDomainDns.md](MailDomainDns.md).
+
+| Column | Notes |
+|--------|--------|
+| `client_id` | FK → clients, cascade delete |
+| `domain` | Unique per client |
+| `is_primary` | One primary; mirrors `clients.primary_domain` |
+| `dkim_selectors` | JSON extra selectors |
+| `source` | `manual` (later `entra`) |
+| `last_checked_at` / `last_result` | Last public DNS check |
+| `notes` | Optional technician note |
+
+Migration: `2026_10_19_120000_add_client_mail_domains.php`.
 
 ### users
 
@@ -64,6 +80,7 @@ Command: `portal:capture-metric-snapshots` (scheduled **02:15** daily).
 - `2026_07_15_141000_add_huntress_organization_id_to_clients.php`
 - `2026_08_06_120000_add_product_entitlements_to_clients.php`
 - `2026_08_10_120000_create_client_metric_daily_snapshots_table.php`
+- `2026_10_19_120000_add_client_mail_domains.php`
 
 ## Tenant Rules
 

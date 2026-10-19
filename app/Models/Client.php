@@ -14,6 +14,7 @@ class Client extends Model
     protected $fillable = [
         'name',
         'slug',
+        'primary_domain',
         'superops_account_id',
         'superops_sso_enabled',
         'pax8_company_id',
@@ -126,6 +127,11 @@ class Client extends Model
     public function assignedUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'client_user')->withTimestamps();
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(ClientDomain::class)->orderByDesc('is_primary')->orderBy('domain');
     }
 
     public function portalLinks(): HasMany

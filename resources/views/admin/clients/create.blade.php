@@ -7,6 +7,16 @@
         <form method="POST" action="{{ route('admin.clients.store') }}" class="space-y-6">
             @csrf
             @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true])
+            @include('admin.partials.form-field', [
+                'label' => 'Main domain',
+                'name' => 'primary_domain',
+                'required' => true,
+                'help' => [
+                    'The customer’s primary mail domain, e.g. clientco.co.uk.',
+                    'Required with the company name. Extra domains are added on Edit after create.',
+                    'Do not include @ or https.',
+                ],
+            ])
             @include('admin.clients._products', [
                 'client' => $client,
                 'fieldHelps' => $fieldHelps,

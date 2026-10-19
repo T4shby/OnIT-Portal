@@ -15,9 +15,11 @@ use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
 use App\Jobs\WarmClientOnboardingChecksJob;
 use App\Models\Client;
+use App\Models\ClientDomain;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
+use App\Services\MailDns\ClientDomainService;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +35,7 @@ class ClientController extends Controller
         private ClientOnboardingService $onboarding,
         private ClientProductService $products,
         private ClientHomeOverviewService $homeOverview,
+        private ClientDomainService $domains,
     ) {}
 
     public function index(Request $request): View
@@ -99,6 +102,8 @@ class ClientController extends Controller
         // lookups are warmed by a queued job, never run on the page load.
         $this->queueOnboardingChecksWarmIfCold($client);
 
+        $client->load('domains');
+
         return [
             'client' => $client,
             'onboardingSteps' => $this->onboarding->steps($client, live: false),
@@ -108,7 +113,62 @@ class ClientController extends Controller
             // What this customer’s /dashboard + Reports look like from sold products (no live numbers).
             'clientHomeComposition' => $this->homeOverview->staffHomeComposition($client),
             'scimProvisioningHealth' => $this->scimProvisioningHealth($client),
+            'mailDomains' => $client->domains,
+            'mailDnsStillRed' => $this->domains->anyDomainStillRed($client),
         ];
+    }
+
+    public function storeDomain(Request $request, Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        $validated = $request->validate([
+            'domain' => ['required', 'string', 'max:255'],
+            'make_primary' => ['sometimes', 'boolean'],
+            'dkim_selectors' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $selectors = collect(preg_split('/[\s,;]+/', (string) ($validated['dkim_selectors'] ?? '')) ?: [])
+            ->map(fn ($s) => strtolower(trim((string) $s)))
+            ->filter()
+            ->values()
+            ->all();
+
+        $this->domains->addDomain(
+            $client,
+            (string) $validated['domain'],
+            makePrimary: $request->boolean('make_primary'),
+            dkimSelectors: $selectors,
+        );
+
+        $this->activityLog->log('client.domain_added', $client, clientId: $client->id);
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', 'Domain saved. DNS check queued.');
+    }
+
+    public function checkDomain(Client $client, ClientDomain $domain): RedirectResponse
+    {
+        $this->authorize('update', $client);
+        abort_unless($domain->client_id === $client->id, 404);
+
+        $this->domains->checkNow($domain, sync: true);
+        $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', 'DNS checked for '.$domain->domain.'.');
+    }
+
+    public function destroyDomain(Client $client, ClientDomain $domain): RedirectResponse
+    {
+        $this->authorize('update', $client);
+        abort_unless($domain->client_id === $client->id, 404);
+
+        $this->domains->removeDomain($domain);
+        $this->activityLog->log('client.domain_removed', $client, clientId: $client->id);
+
+        return redirect()->route('admin.clients.edit', $client)
+            ->with('success', 'Domain removed.');
     }
 
     /**
@@ -147,6 +207,7 @@ class ClientController extends Controller
         $client = Client::create([
             'name' => $request->name,
             'slug' => $this->uniqueSlug($request->name),
+            'primary_domain' => $request->primary_domain,
             'superops_account_id' => $request->superops_account_id,
             'superops_sso_enabled' => $request->boolean('superops_sso_enabled'),
             'pax8_company_id' => $request->pax8_company_id,
@@ -162,12 +223,15 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
+        $this->domains->setPrimaryDomain($client, (string) $request->primary_domain, queueCheck: true);
+
         $productToggles = $request->input('products', []);
         if (is_array($productToggles) && $productToggles !== []) {
             $this->products->applyEntitlements($client, $productToggles);
         }
         $this->products->syncEntitlementsFromMappings($client->fresh());
         $client->refresh();
+        $this->onboarding->syncAutoCheckpointsFromClient($client);
 
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
@@ -194,6 +258,7 @@ class ClientController extends Controller
         $client->update([
             'name' => $request->name,
             'slug' => $this->uniqueSlug($request->name, $client->id),
+            'primary_domain' => $request->primary_domain,
             'superops_account_id' => $request->superops_account_id,
             'superops_sso_enabled' => $request->boolean('superops_sso_enabled'),
             'pax8_company_id' => $request->pax8_company_id,
@@ -209,6 +274,7 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
+        $this->domains->setPrimaryDomain($client->fresh(), (string) $request->primary_domain, queueCheck: true);
         $client->refresh();
 
         $productToggles = $request->input('products', []);

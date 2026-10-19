@@ -17,6 +17,21 @@
             <form method="POST" action="{{ route('admin.clients.update', $client) }}">
                 @csrf @method('PUT')
                 @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $client->name])
+                @include('admin.partials.form-field', [
+                    'label' => 'Main domain',
+                    'name' => 'primary_domain',
+                    'required' => true,
+                    'value' => $client->primary_domain,
+                    'help' => [
+                        'Primary mail domain for this customer.',
+                        'Extra domains and DNS results are in the Mail domains panel below.',
+                    ],
+                ])
+                @include('admin.clients._mail-domains', [
+                    'client' => $client,
+                    'mailDomains' => $mailDomains ?? $client->domains,
+                    'mailDnsStillRed' => $mailDnsStillRed ?? false,
+                ])
                 @include('admin.clients._products', [
                     'client' => $client,
                     'fieldHelps' => $fieldHelps,

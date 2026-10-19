@@ -121,6 +121,7 @@ class ClientProductEntitlementsTest extends TestCase
         $this->actingAs($staff)
             ->put(route('admin.clients.update', $client), [
                 'name' => $client->name,
+                'primary_domain' => 'products.example',
                 'products' => [
                     'superops' => '1',
                     'm365' => '0',

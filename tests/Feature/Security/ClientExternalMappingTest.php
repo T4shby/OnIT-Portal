@@ -51,6 +51,7 @@ class ClientExternalMappingTest extends TestCase
             ->from(route('admin.clients.edit', $mine))
             ->put(route('admin.clients.update', $mine), [
                 'name' => $mine->name,
+                'primary_domain' => 'mine.example',
                 'is_active' => '1',
                 $field => strtoupper($value),
             ])
@@ -66,7 +67,7 @@ class ClientExternalMappingTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
 
         $this->actingAs($admin)
-            ->post(route('admin.clients.store'), ['name' => 'Copy Paste Ltd', 'superops_account_id' => 'acc-1', 'is_active' => '1'])
+            ->post(route('admin.clients.store'), ['name' => 'Copy Paste Ltd', 'primary_domain' => 'copypaste.example', 'superops_account_id' => 'acc-1', 'is_active' => '1'])
             ->assertSessionHasErrors('superops_account_id');
 
         $this->assertNull(Client::where('name', 'Copy Paste Ltd')->first());
@@ -81,6 +82,7 @@ class ClientExternalMappingTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
                 'name' => 'Renamed Ltd',
+                'primary_domain' => 'renamed.example',
                 'superops_account_id' => 'acc-shared',
                 'is_active' => '1',
             ])
@@ -97,6 +99,7 @@ class ClientExternalMappingTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
                 'name' => $client->name,
+                'primary_domain' => 'own.example',
                 'superops_account_id' => 'acc-own',
                 'huntress_organization_id' => '99',
                 'is_active' => '1',

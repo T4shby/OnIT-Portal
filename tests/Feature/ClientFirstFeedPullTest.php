@@ -87,6 +87,7 @@ class ClientFirstFeedPullTest extends TestCase
     {
         return [
             'name' => 'Finishing Design',
+            'primary_domain' => 'finishingdesign.co.uk',
             'superops_account_id' => '3425667307281944576',
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
             'huntress_organization_id' => '123456',

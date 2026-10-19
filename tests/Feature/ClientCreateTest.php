@@ -19,6 +19,7 @@ class ClientCreateTest extends TestCase
         $response = $this->actingAs($admin)
             ->post(route('admin.clients.store'), [
                 'name' => 'Acme Ltd',
+                'primary_domain' => 'acme.example',
                 'superops_account_id' => '3425667307281944576',
                 'superops_sso_enabled' => '1',
                 'is_active' => '1',
@@ -58,6 +59,7 @@ class ClientCreateTest extends TestCase
         $this->actingAs($admin)
             ->post(route('admin.clients.store'), [
                 'name' => 'MXVI',
+                'primary_domain' => 'mxvi.example',
                 'entra_tenant_id' => '664302e2-8885-4ec1-9958-12233cbbeedb',
                 'entra_group_id' => 'd77ea486-e2fb-4dbe-b0a9-f322fd8cf1c3',
                 'entra_superops_app_id' => '8c46a344-a010-4c78-99b9-df8b9caaba2f',
@@ -97,6 +99,7 @@ class ClientCreateTest extends TestCase
         $response = $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
                 'name' => 'Acme Ltd',
+                'primary_domain' => 'acme.example',
                 'superops_account_id' => '3425667307281944576',
                 'superops_sso_enabled' => '1',
                 'entra_superops_sso_app_id' => '4d8b28c0-79ae-4fa6-b7ef-5bd03e704296',
@@ -143,6 +146,7 @@ class ClientCreateTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.clients.update', $client), [
                 'name' => 'Acme Ltd',
+                'primary_domain' => 'acme.example',
                 'entra_tenant_id' => 'f95a6006-f34e-4634-8678-32ab856d9756',
                 'entra_group_id' => ' '.$groupId.' ',
                 'entra_sync_enabled' => '1',
@@ -167,13 +171,13 @@ class ClientCreateTest extends TestCase
         Client::factory()->create(['name' => 'Acme Ltd', 'slug' => 'acme-ltd']);
 
         $this->actingAs($admin)
-            ->post(route('admin.clients.store'), ['name' => 'Acme Ltd.', 'is_active' => '1'])
+            ->post(route('admin.clients.store'), ['name' => 'Acme Ltd.', 'primary_domain' => 'acme2.example', 'is_active' => '1'])
             ->assertRedirect();
         $this->actingAs($admin)
-            ->post(route('admin.clients.store'), ['name' => '!!!', 'is_active' => '1'])
+            ->post(route('admin.clients.store'), ['name' => '!!!', 'primary_domain' => 'bang.example', 'is_active' => '1'])
             ->assertRedirect();
         $this->actingAs($admin)
-            ->post(route('admin.clients.store'), ['name' => '???', 'is_active' => '1'])
+            ->post(route('admin.clients.store'), ['name' => '???', 'primary_domain' => 'qmark.example', 'is_active' => '1'])
             ->assertRedirect();
 
         $this->assertSame('acme-ltd-2', Client::where('name', 'Acme Ltd.')->value('slug'));
@@ -188,12 +192,12 @@ class ClientCreateTest extends TestCase
         $client = Client::factory()->create(['name' => 'Mine Co', 'slug' => 'mine-co']);
 
         $this->actingAs($admin)
-            ->put(route('admin.clients.update', $client), ['name' => 'Mine Co', 'entra_license_tier' => 'free', 'is_active' => '1'])
+            ->put(route('admin.clients.update', $client), ['name' => 'Mine Co', 'primary_domain' => 'mine.example', 'entra_license_tier' => 'free', 'is_active' => '1'])
             ->assertRedirect(route('admin.clients.edit', $client));
         $this->assertSame('mine-co', $client->fresh()->slug);
 
         $this->actingAs($admin)
-            ->put(route('admin.clients.update', $client), ['name' => 'Taken Co', 'entra_license_tier' => 'free', 'is_active' => '1'])
+            ->put(route('admin.clients.update', $client), ['name' => 'Taken Co', 'primary_domain' => 'mine.example', 'entra_license_tier' => 'free', 'is_active' => '1'])
             ->assertRedirect(route('admin.clients.edit', $client));
         $this->assertSame('taken-co-2', $client->fresh()->slug);
     }

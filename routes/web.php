@@ -153,6 +153,14 @@ Route::middleware('auth')->group(function () {
             Route::get('graph-reconsent', [ClientController::class, 'graphReconsent'])
                 ->name('clients.graph-reconsent');
             Route::resource('clients', ClientController::class)->except(['show']);
+            Route::post('clients/{client}/domains', [ClientController::class, 'storeDomain'])
+                ->middleware('throttle:30,1')
+                ->name('clients.domains.store');
+            Route::post('clients/{client}/domains/{domain}/check', [ClientController::class, 'checkDomain'])
+                ->middleware('throttle:30,1')
+                ->name('clients.domains.check');
+            Route::delete('clients/{client}/domains/{domain}', [ClientController::class, 'destroyDomain'])
+                ->name('clients.domains.destroy');
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])
                 ->middleware('throttle:entra-sync')
                 ->name('clients.sync-entra');

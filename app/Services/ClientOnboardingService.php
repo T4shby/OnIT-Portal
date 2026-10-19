@@ -129,7 +129,56 @@ class ClientOnboardingService
 
         $connectWhere = 'This checklist → orange Connect Microsoft tenant (private browser / GDAP)';
 
+        $mailDnsComplete = filled($client->primary_domain)
+            && (
+                (bool) ($checklist['mail_domains_dns'] ?? false)
+                || app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
+            );
+        $mailDnsStillRed = app(\App\Services\MailDns\ClientDomainService::class)->anyDomainStillRed($client);
+
         $steps = [
+            $this->withManual([
+                'key' => 'mail_domains_dns',
+                'title' => 'Confirm mail domain + DNS',
+                'who' => self::RESPONSIBLE_ON_IT_PORTAL,
+                'complete' => $mailDnsComplete,
+                'manual' => true,
+                'auto_detected' => app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client),
+                'blocked' => ! filled($client->primary_domain),
+            ], OnboardingManual::build(
+                automated: filled($client->primary_domain)
+                    ? [
+                        '**Main domain** is saved: **'.$client->primary_domain.'**.',
+                        app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
+                            ? 'Last DNS check has no red lights (yellow is OK).'
+                            : 'DNS check still has red, or has not finished yet.',
+                    ]
+                    : [
+                        'Create Client requires a main domain - this should already be set.',
+                    ],
+                notes: [
+                    'Green = correct. Yellow = present but weak/wrong. Red = missing.',
+                    'Hand-off warns if anything is still red - it does not block.',
+                    'Add extra domains and custom DKIM selectors on the left Mail domains panel.',
+                ],
+                sections: [
+                    OnboardingManual::section(
+                        'Remaining: check DNS',
+                        'Edit Client → Mail domains (left)',
+                        [
+                            'Confirm the main domain is correct.',
+                            'Click **Check DNS** on each domain (or wait for the queued check after create).',
+                            'Fix red items at the DNS host, then Check DNS again.',
+                            'If mail is intentionally incomplete, tick **Mark this step complete** and leave a note for hand-off.',
+                        ],
+                    ),
+                ],
+                verify: [
+                    'Primary domain saved.',
+                    'MX / SPF / DKIM / DMARC show green or yellow (no red), or step ticked with a reason.',
+                ],
+            )),
+
             $this->withManual([
                 'key' => 'superops_linked',
                 'title' => 'Link SuperOps client',
@@ -730,9 +779,14 @@ class ClientOnboardingService
                 automated: [
                     'All setup was done by On IT - customer never received Accept links or checklist tasks.',
                 ],
-                notes: (bool) ($checklist['handed_off'] ?? false)
-                    ? ['Hand-off already marked complete.']
-                    : ['Remaining: short message with sign-in URL only - then tick this step.'],
+                notes: array_values(array_filter([
+                    (bool) ($checklist['handed_off'] ?? false)
+                        ? 'Hand-off already marked complete.'
+                        : 'Remaining: short message with sign-in URL only - then tick this step.',
+                    $mailDnsStillRed
+                        ? 'Warning: mail DNS still has red checks. You can hand off anyway - fix DNS when you can.'
+                        : null,
+                ])),
                 sections: (bool) ($checklist['handed_off'] ?? false)
                     ? []
                     : [
@@ -1269,6 +1323,12 @@ class ClientOnboardingService
         if ($client->entra_synced_at !== null && ($current['portal_sync_run'] ?? false) !== true) {
             $changed = true;
             $current['portal_sync_run'] = true;
+        }
+
+        if (app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
+            && ($current['mail_domains_dns'] ?? false) !== true) {
+            $changed = true;
+            $current['mail_domains_dns'] = true;
         }
 
         if ($changed) {

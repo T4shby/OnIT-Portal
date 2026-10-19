@@ -6,13 +6,9 @@ Full programme: [MailDomainDns.md](MailDomainDns.md) (Phases A, B, C, and after)
 
 ## Build now: Phase A
 
-1. Required **main domain** on Create Client (with company name).
-2. `client_domains` + Edit panel (extra domains, custom DKIM selectors, Check DNS).
-3. Public DNS checks: MX, SPF, DKIM (broad selectors), DMARC with green / yellow / red bands.
-4. Checklist step + hand-off **warns** on red (does not block).
-5. Staff only.
+Phase A code is on `main` (required main domain, DNS checks, checklist, staff Edit panel). **Deploy when Tom asks.** Then onboard the six customers.
 
-Stop after Phase A is verified, committed, and pushed. Do not start Phase B until asked.
+Do not start Phase B until asked.
 
 ## Then (same programme)
 

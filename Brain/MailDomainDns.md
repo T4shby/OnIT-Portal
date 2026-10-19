@@ -1,6 +1,6 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Next big feature. Replaces Pax8 deeper as product priority until Phases A-C land.  
+**Status:** Phase A implemented on `main` (required domain + DNS checks). Deploy when asked. Phases B-C and after remain queued. Replaces Pax8 deeper as product priority until the programme lands.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
 **Customer UI:** Staff only in Phase A. Later: Client Admin may see (not requesters).
 

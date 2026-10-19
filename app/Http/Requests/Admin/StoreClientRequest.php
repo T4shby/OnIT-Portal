@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\MailDomain;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreClientRequest extends FormRequest
 {
@@ -15,6 +17,7 @@ class StoreClientRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'primary_domain' => ['required', 'string', 'max:255'],
             'superops_account_id' => ['nullable', 'string', 'max:255'],
             'superops_sso_enabled' => ['boolean'],
             'pax8_company_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
@@ -56,9 +59,18 @@ class StoreClientRequest extends FormRequest
      * one customer another customer's tickets. Only values that change are checked,
      * so a client with a pre-existing duplicate can still be saved and fixed.
      */
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function ($validator): void {
+        $validator->after(function (Validator $validator): void {
+            if (! $validator->errors()->has('primary_domain') && filled($this->input('primary_domain'))) {
+                if (! MailDomain::isValid((string) $this->input('primary_domain'))) {
+                    $validator->errors()->add(
+                        'primary_domain',
+                        'Enter a valid main domain such as clientco.co.uk (no @ or https).',
+                    );
+                }
+            }
+
             $current = $this->route('client');
             $current = $current instanceof \App\Models\Client ? $current : null;
 
@@ -89,12 +101,16 @@ class StoreClientRequest extends FormRequest
     {
         $trimmed = [];
 
-        foreach (['entra_tenant_id', 'entra_group_id', 'entra_superops_app_id', 'entra_superops_sso_app_id', 'pax8_company_id', 'superops_account_id', 'dropsuite_organization_id', 'huntress_organization_id'] as $field) {
+        foreach (['entra_tenant_id', 'entra_group_id', 'entra_superops_app_id', 'entra_superops_sso_app_id', 'pax8_company_id', 'superops_account_id', 'dropsuite_organization_id', 'huntress_organization_id', 'primary_domain'] as $field) {
             $value = $this->input($field);
 
             if (is_string($value)) {
                 $trimmed[$field] = trim($value) === '' ? null : trim($value);
             }
+        }
+
+        if (isset($trimmed['primary_domain']) && is_string($trimmed['primary_domain'])) {
+            $trimmed['primary_domain'] = MailDomain::normalize($trimmed['primary_domain']);
         }
 
         $products = $this->input('products');
