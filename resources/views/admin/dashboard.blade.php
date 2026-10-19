@@ -36,7 +36,17 @@
         </x-card>
     </div>
 
-    @php $coverage = $productCoverage ?? null; @endphp
+    @php
+        $coverage = $productCoverage ?? null;
+        $coverageManagers = $coverageAccountManagers ?? collect();
+        $coverageFilter = $coverageAccountManagerFilter ?? null;
+        $coverageFilterActive = (bool) ($coverageFilterActive ?? false);
+        $coverageRows = is_array($coverage) ? ($coverage['rows'] ?? []) : [];
+        $coverageVisibleRows = $coverageFilterActive ? $coverageRows : array_slice($coverageRows, 0, 15);
+        $coverageQuery = array_filter([
+            'account_manager' => $coverageFilter,
+        ], fn ($value) => $value !== null && $value !== '');
+    @endphp
     @if(is_array($coverage))
         <div class="mb-8">
             <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -49,8 +59,35 @@
                         See composition on <a href="{{ route('admin.clients.index') }}" class="text-onit hover:text-white">each client’s Edit</a> page.
                     </p>
                 </div>
-                <a href="{{ route('admin.integration-health.index') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Detail →</a>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ route('admin.dashboard.coverage-export', $coverageQuery) }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">
+                        Export CSV
+                    </a>
+                    <a href="{{ route('admin.integration-health.index') }}" class="text-xs text-onit hover:text-white uppercase tracking-wide">Detail →</a>
+                </div>
             </div>
+            @can('manage-all-clients')
+                <form method="get" action="{{ route('admin.dashboard') }}" class="mb-6 flex flex-wrap items-end gap-3">
+                    <div>
+                        <label for="account_manager" class="mb-1 block text-xs uppercase tracking-wide text-white/50">Account manager</label>
+                        <select
+                            id="account_manager"
+                            name="account_manager"
+                            class="min-w-[14rem] border border-white/15 bg-onit-ink px-3 py-2 text-sm text-white"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="">All clients</option>
+                            <option value="none" @selected($coverageFilter === 'none')>No account manager</option>
+                            @foreach($coverageManagers as $manager)
+                                <option value="{{ $manager->id }}" @selected($coverageFilter === $manager->id)>{{ $manager->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @if($coverageFilterActive)
+                        <a href="{{ route('admin.dashboard') }}" class="text-xs text-white/55 hover:text-white">Clear filter</a>
+                    @endif
+                </form>
+            @endcan
             <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
                 <x-card>
                     <p class="admin-stat-label">Live %</p>
@@ -77,12 +114,13 @@
                     </p>
                 </x-card>
             </div>
-            @if(($coverage['rows'] ?? []) !== [])
+            @if($coverageRows !== [])
                 <div class="admin-table-wrap">
                     <table class="min-w-full">
                         <thead>
                             <tr>
                                 <th>Client</th>
+                                <th>Account manager</th>
                                 <th>Sold</th>
                                 <th>Live</th>
                                 <th>Setup</th>
@@ -91,7 +129,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(array_slice($coverage['rows'], 0, 15) as $row)
+                            @foreach($coverageVisibleRows as $row)
                                 <tr>
                                     <td>
                                         @if(! empty($row['client_id']))
@@ -102,6 +140,7 @@
                                             {{ $row['client_name'] }}
                                         @endif
                                     </td>
+                                    <td class="text-white/70">{{ $row['account_managers'] ?? '-' }}</td>
                                     <td>{{ $row['sold'] }}</td>
                                     <td>{{ $row['live'] }}</td>
                                     <td>{{ $row['setup'] }}</td>
@@ -111,9 +150,15 @@
                             @endforeach
                         </tbody>
                     </table>
-                    @if(count($coverage['rows']) > 15)
-                        <p class="px-6 py-3 text-xs text-white/45">Showing 15 of {{ count($coverage['rows']) }} clients with sold feeds.</p>
+                    @if(! $coverageFilterActive && count($coverageRows) > 15)
+                        <p class="px-6 py-3 text-xs text-white/45">Showing 15 of {{ count($coverageRows) }} clients with sold feeds. Export CSV for the full list, or filter by account manager.</p>
+                    @elseif($coverageFilterActive)
+                        <p class="px-6 py-3 text-xs text-white/45">Showing {{ count($coverageRows) }} client{{ count($coverageRows) === 1 ? '' : 's' }} for this filter.</p>
                     @endif
+                </div>
+            @elseif($coverageFilterActive)
+                <div class="admin-table-wrap px-6 py-10">
+                    <x-empty-state title="No sold feeds for this filter" />
                 </div>
             @endif
         </div>

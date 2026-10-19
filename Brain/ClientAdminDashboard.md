@@ -64,7 +64,7 @@ All **Dashboard glance** integrations implement `App\Contracts\DashboardFeed` an
   - **Cold optional** (no snapshot yet for sold/mapped feed): **still queue** when jobs ≥40  
   - **Warm optional** (already has cache, only requeue for age): **skipped** when jobs ≥40  
 
-Ops KPI: **sold feed cold cells → 0**. Staff **Admin → Dashboard** shows **Sold product coverage** (`IntegrationHealthService::productCoverage()`): live %, setup, cold, failed - not email reports (ADR-023).
+Ops KPI: **sold feed cold cells → 0**. Staff **Admin → Dashboard** shows **Sold product coverage** (`IntegrationHealthService::productCoverage()`): live %, setup, cold, failed - not email reports (ADR-023). Super admins can filter that matrix by account manager (or clients with no AM), and anyone on Staff Admin can **Export CSV** of the current filter. Account managers already only see their assigned clients; the AM filter is for super admins.
 
 **Cache keys:** Integration Health and prewarm cold-detection call each metrics service’s public `cacheKey($clientId)` (SuperOps, Huntress, Dropsuite, M365 insights). **Never** hardcode or fallback to older `…:vN` keys - version skew causes false “Never loaded” (2026-08-10 Dropsuite v3 incident).
 
@@ -595,6 +595,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-10-19 | Sold product coverage: Export CSV, account-manager column, and super-admin filter by AM (or no AM). |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before the minute checker queues it again. Dropsuite SharePoint and sites 404s are optional and are not logged as failures. |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |
 | 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. It no longer waits an hour after a sweep that skipped a still-fresh client. |

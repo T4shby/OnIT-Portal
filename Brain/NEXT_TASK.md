@@ -2,7 +2,7 @@
 
 Do not start this until Tom asks for it.
 
-**Portfolio reporting polish.** Export the sold-coverage matrix, and filter it by account manager. The admin dashboard already shows the base matrix. See [Roadmap.md](Roadmap.md).
+**Pax8 deeper.** Billed catalogue / usage beyond the SSO launch tile. Needs the partner API. See [Roadmap.md](Roadmap.md) and [Pax8Integration.md](Pax8Integration.md).
 
 Still waiting on a person, not on code:
 
@@ -10,4 +10,7 @@ Still waiting on a person, not on code:
 - usecure: partner API key in the team vault, then a probe. Leave `USECURE_ENABLED=false`. Do not commit the local usecure skeleton.
 - CoPilot Ready secrets, if not already rotated.
 
-Last month compare shipped on 16 October 2026. It is not the next task.
+Shipped recently and not the next task:
+
+- Last-month compare (16 October 2026)
+- Sold product coverage CSV export and account-manager filter (19 October 2026)

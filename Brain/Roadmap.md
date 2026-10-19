@@ -16,7 +16,7 @@ Status as of **2026-08-21**. Shipped work is live product; backlog is ordered by
 | M365 | Async directory + licence insights; free/trial SKUs excluded from paid util |
 | Product entitlements | Sold vs mapped; tiles / prewarm / IH honour entitlements |
 | Technician Integration Health | Live pipeline, cold (Never loaded), stuck/due/aging; adaptive idle vs hot; **reads current feed `cacheKey()` only** |
-| Staff Admin dashboard | Clients / users stats (notices tile retired 2026-09-29, F9) + **Sold product coverage** KPI matrix |
+| Staff Admin dashboard | Clients / users stats (notices tile retired 2026-09-29, F9) + **Sold product coverage** KPI matrix with AM filter and CSV export |
 | Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
 | Client home / Reports | Glance + Reports on **`main`**; Last month switches the home and Reports to the stored end-of-month figures - [UIOverhaul.md](UIOverhaul.md) |
 | Client portal mobile | Bottom tab nav, slide-up menu, ticket cards, glance scroll strips - [UIOverhaul.md](UIOverhaul.md) |
@@ -26,13 +26,12 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Near-term backlog (next value)
 
-1. **Portfolio reporting polish** - export / AM digest of sold coverage matrix; filter by AM assignment (admin dashboard cards already land base KPI).
-2. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API).
-3. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
-4. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
-5. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
-6. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
-7. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
+1. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API).
+2. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
+3. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
+4. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
+5. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
+6. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
 
 ## Later / optional
 

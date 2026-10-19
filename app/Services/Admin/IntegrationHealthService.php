@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Enums\UserRole;
 use App\Models\Client;
 use App\Services\EntraSync\MicrosoftGraphClient;
 use Carbon\Carbon;
@@ -202,7 +203,7 @@ class IntegrationHealthService
             ];
         }
 
-        return [
+        $coverage = [
             'clients' => count($rows),
             'sold_feed_cells' => $sold,
             'live_feed_cells' => $live,
@@ -212,6 +213,164 @@ class IntegrationHealthService
             'live_pct' => $sold > 0 ? round(($live / $sold) * 100, 1) : null,
             'cold_pct' => $sold > 0 ? round(($cold / $sold) * 100, 1) : null,
             'rows' => $rows,
+        ];
+
+        return $this->withAccountManagerLabels($coverage);
+    }
+
+    /**
+     * Keep only clients in the given id list and rebuild the KPI totals.
+     *
+     * @param  array<string, mixed>  $coverage
+     * @param  list<int>  $clientIds
+     * @return array<string, mixed>
+     */
+    public function filterCoverageByClientIds(array $coverage, array $clientIds): array
+    {
+        $allowed = array_fill_keys(array_map('intval', $clientIds), true);
+        $rows = [];
+        foreach ($coverage['rows'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (! isset($allowed[(int) ($row['client_id'] ?? 0)])) {
+                continue;
+            }
+            $rows[] = $row;
+        }
+
+        return $this->rebuildCoverageTotals($rows);
+    }
+
+    /**
+     * Keep only clients that have no active account manager assigned.
+     *
+     * @param  array<string, mixed>  $coverage
+     * @return array<string, mixed>
+     */
+    public function filterCoverageWithoutAccountManager(array $coverage): array
+    {
+        $rows = [];
+        foreach ($coverage['rows'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $managers = trim((string) ($row['account_managers'] ?? ''));
+            if ($managers === '' || $managers === '-') {
+                $rows[] = $row;
+            }
+        }
+
+        return $this->rebuildCoverageTotals($rows);
+    }
+
+    /**
+     * @param  array<string, mixed>  $coverage
+     */
+    public function productCoverageCsv(array $coverage): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to open temp stream for coverage CSV.');
+        }
+
+        fputcsv($handle, ['Client', 'Account managers', 'Sold', 'Live', 'Setup', 'Cold', 'Failed']);
+        foreach ($coverage['rows'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            fputcsv($handle, [
+                (string) ($row['client_name'] ?? ''),
+                (string) ($row['account_managers'] ?? '-'),
+                (int) ($row['sold'] ?? 0),
+                (int) ($row['live'] ?? 0),
+                (int) ($row['setup'] ?? 0),
+                (int) ($row['cold'] ?? 0),
+                (int) ($row['failed'] ?? 0),
+            ]);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle) ?: '';
+        fclose($handle);
+
+        return $csv;
+    }
+
+    /**
+     * @param  array<string, mixed>  $coverage
+     * @return array<string, mixed>
+     */
+    public function withAccountManagerLabels(array $coverage): array
+    {
+        $clientIds = [];
+        foreach ($coverage['rows'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $id = (int) ($row['client_id'] ?? 0);
+            if ($id > 0) {
+                $clientIds[] = $id;
+            }
+        }
+        $clientIds = array_values(array_unique($clientIds));
+
+        $byClient = [];
+        if ($clientIds !== []) {
+            $pairs = DB::table('client_user')
+                ->join('users', 'users.id', '=', 'client_user.user_id')
+                ->whereIn('client_user.client_id', $clientIds)
+                ->where('users.role', UserRole::AccountManager->value)
+                ->where('users.is_active', true)
+                ->orderBy('users.name')
+                ->get(['client_user.client_id', 'users.name']);
+
+            foreach ($pairs as $pair) {
+                $byClient[(int) $pair->client_id][] = (string) $pair->name;
+            }
+        }
+
+        foreach ($coverage['rows'] as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $names = $byClient[(int) ($row['client_id'] ?? 0)] ?? [];
+            $coverage['rows'][$index]['account_managers'] = $names === [] ? '-' : implode(', ', $names);
+        }
+
+        return $coverage;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<string, mixed>
+     */
+    private function rebuildCoverageTotals(array $rows): array
+    {
+        $sold = 0;
+        $live = 0;
+        $setup = 0;
+        $cold = 0;
+        $failed = 0;
+
+        foreach ($rows as $row) {
+            $sold += (int) ($row['sold'] ?? 0);
+            $live += (int) ($row['live'] ?? 0);
+            $setup += (int) ($row['setup'] ?? 0);
+            $cold += (int) ($row['cold'] ?? 0);
+            $failed += (int) ($row['failed'] ?? 0);
+        }
+
+        return [
+            'clients' => count($rows),
+            'sold_feed_cells' => $sold,
+            'live_feed_cells' => $live,
+            'setup_feed_cells' => $setup,
+            'cold_feed_cells' => $cold,
+            'failed_feed_cells' => $failed,
+            'live_pct' => $sold > 0 ? round(($live / $sold) * 100, 1) : null,
+            'cold_pct' => $sold > 0 ? round(($cold / $sold) * 100, 1) : null,
+            'rows' => array_values($rows),
         ];
     }
 

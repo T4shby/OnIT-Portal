@@ -123,6 +123,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:'.implode(',', UserRole::adminRoles()))
         ->group(function () {
             Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('sold-product-coverage/export', [AdminDashboardController::class, 'exportProductCoverage'])
+                ->name('dashboard.coverage-export');
             Route::get('integration-health', [IntegrationHealthController::class, 'index'])
                 ->name('integration-health.index');
             Route::get('integration-health/live', [IntegrationHealthController::class, 'live'])

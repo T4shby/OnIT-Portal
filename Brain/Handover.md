@@ -43,6 +43,7 @@ As of 15 October 2026 this guide is commit `9023f1d`. The last code change is `5
 - **SuperOps ticket statuses.** `Waiting on third party` is open, and it is not "waiting on you". `Still Issue`, and any later status whose name contains Still Issue, is open and waiting on the client (emailed, no reply after 24 hours).
 - **Entra portal sync** creates portal users for licensed member accounts, and keeps unlicensed shared mailboxes as rows that cannot sign in. A shared mailbox that still has a licence can sign in. The Active badge means the row is active, not that sign-in is allowed.
 - **Last month.** On the client home and Reports, This month and Last month are links once a prior month has been stored. Last month shows those stored service figures. The activity list stays recent work. The control stays hidden until that history exists.
+- **Sold product coverage.** Staff Admin Dashboard shows the matrix with account managers. Super admins can filter by AM (or no AM). Export CSV downloads the current filter.
 
 ## Who is using it
 
@@ -68,8 +69,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md), in order:
 
-1. Portfolio export and an account-manager filter on the sold-coverage matrix.
-2. Pax8 billed catalogue, which needs the partner API.
+1. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.
 5. Average first response, patch posture, and restore retention.
