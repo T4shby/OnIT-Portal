@@ -44,6 +44,7 @@ As of 15 October 2026 this guide is commit `9023f1d`. The last code change is `5
 - **Entra portal sync** creates portal users for licensed member accounts, and keeps unlicensed shared mailboxes as rows that cannot sign in. A shared mailbox that still has a licence can sign in. The Active badge means the row is active, not that sign-in is allowed.
 - **Last month.** On the client home and Reports, This month and Last month are links once a prior month has been stored. Last month shows those stored service figures. The activity list stays recent work. The control stays hidden until that history exists.
 - **Sold product coverage.** Staff Admin Dashboard shows the matrix with account managers. Super admins can filter by AM (or no AM). Export CSV downloads the current filter.
+- **Mail domains Phase A (code on GitHub `main`, not live until deploy).** Create Client requires name + main domain. Edit has Mail domains panel, checklist step 00, and a red-DNS warning on the setup guide / hand-off. Needs `php artisan migrate` on deploy. Phase B waits until asked. - [MailDomainDns.md](MailDomainDns.md)
 
 ## Who is using it
 
@@ -51,9 +52,10 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 ## Still waiting on Tom
 
-1. **YorPower, in SuperOps.** Two requesters share one email. Leave it on the correct person and clear it from the other. Until then every Entra sync skips that rename and logs a warning. See [AccessAndSync.md](AccessAndSync.md).
-2. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
-3. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
+1. **Deploy mail domains Phase A** when ready. Pull `main`, `git archive`, then `php artisan migrate` (adds `primary_domain` + `client_domains`). Do not start Phase B until you ask.
+2. **YorPower, in SuperOps.** Two requesters share one email. Leave it on the correct person and clear it from the other. Until then every Entra sync skips that rename and logs a warning. See [AccessAndSync.md](AccessAndSync.md).
+3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
+4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## Do not do these
 
@@ -69,7 +71,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md) and [NEXT_TASK.md](NEXT_TASK.md), in order:
 
-1. **Mail domains + DNS health** (Phases A-C and after) - [MailDomainDns.md](MailDomainDns.md). Required main domain on create; DNS traffic lights. Pax8 waits.
+1. **Mail domains Phase A deploy**, then Phase B only when asked - [MailDomainDns.md](MailDomainDns.md). Pax8 waits.
 2. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.

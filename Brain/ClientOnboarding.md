@@ -50,7 +50,7 @@ Same playbook for every client: **Admin → Clients → Add → Edit** → work 
 
 | Page | What you see |
 |------|----------------|
-| **Add Client** | Form only - fill in details and click **Create** once |
+| **Add Client** | Form only - **name + main domain** required; click **Create** once |
 | **Edit Client** (opens after Create) | Form on the left (**Update** saves fields) + setup checklist on the right |
 
 The checklist does not appear until the client is saved. **Add Client** (form only) → **Create** → **Edit Client** opens with this guide on the right. There is no “create client” step in the checklist - you cannot see it without already having a client record.
@@ -66,10 +66,13 @@ The checklist does not appear until the client is saved. **Add Client** (form on
 
 Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md).
 
-### Checklist steps (01-12, Edit page only)
+### Checklist steps (00-12, Edit page only)
+
+Mail domains / DNS: [MailDomainDns.md](MailDomainDns.md).
 
 | # | Step | Who |
 |---|------|-----|
+| 00 | Confirm mail domain + DNS | On IT technician (portal) |
 | 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
 | 02 | Link Pax8 (or skip) | On IT technician (portal / SuperOps) |
 | 03 | Connect Microsoft tenant (tenant / licence / group auto) | On IT technician (customer Entra / GDAP) |
@@ -85,7 +88,7 @@ Full click-by-click text lives in the app. Mirror: [TechnicianTenantOnboarding.m
 
 Deployment resets existing step 08 completions because they represented the retired Global SSO Accept, not a working customer Client SSO configuration.
 
-**Before step 01:** **Admin → Clients → Add Client** → **Create client**.
+**Before step 00:** **Admin → Clients → Add Client** → name + main domain → **Create client**.
 
 **Steps 03-04 (preferred):** one orange **Connect Microsoft tenant** at the top of the setup guide - private browser / GDAP → Accept once. After Accept the portal **waits and retries Graph**, then bootstraps (progress saved after each stage): `entra_tenant_id`, Free/P1, portal group, SuperOps SCIM + Client SSO Entra apps. **Retry Graph setup** (same button, no second Accept) also re-runs bootstrap - if the SCIM app is broken (Graph reports zero provisioning templates), the portal **deletes and recreates** that Entra app automatically; you only **Apply SCIM** again with SuperOps tokens. **Reload Edit Client** after Connect - do not Save from a form that still shows Free when Graph already wrote P1.
 
@@ -93,6 +96,7 @@ Deployment resets existing step 08 completions because they represented the reti
 
 | Step | Completes automatically when… | Manual tick only if… |
 |------|------------------------------|----------------------|
+| 00 Mail domain + DNS | Primary domain saved and last DNS check has no red (yellow OK) | Tick deferred with note if hand-off cannot wait |
 | 01 SuperOps linked | SuperOps Account ID saved | - |
 | 02 Pax8 | Pax8 off, or company ID saved | - |
 | 03 Tenant + group | Tenant ID + group ID saved (Connect bootstrap) | Legacy paste if Graph create failed |
@@ -345,6 +349,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | Step **00** Confirm mail domain + DNS; Add Client requires name + main domain; hand-off warns on red DNS - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-08-13 | M365/Entra automation in portal only; SuperOps console for SCIM tokens + SSO paste |
 | 2026-08-13 | **Retry Graph setup** auto-resets broken SCIM Entra app - no Azure UI delete; SCIM apps via template instantiate |
 | 2026-08-13 | Checklist step 07 **Failed** when live SCIM export unhealthy; step auto-expands on failure |

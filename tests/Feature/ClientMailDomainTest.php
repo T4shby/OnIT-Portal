@@ -89,4 +89,44 @@ class ClientMailDomainTest extends TestCase
             ->assertSee('Mail domains')
             ->assertSee('dnsco.example');
     }
+
+    public function test_create_intro_and_hand_off_warn_when_dns_still_red(): void
+    {
+        Bus::fake();
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.create'))
+            ->assertOk()
+            ->assertSee('main domain')
+            ->assertSee('both required', false);
+
+        $client = Client::factory()->create([
+            'name' => 'Red DNS Co',
+            'primary_domain' => 'reddns.example',
+        ]);
+        ClientDomain::query()->create([
+            'client_id' => $client->id,
+            'domain' => 'reddns.example',
+            'is_primary' => true,
+            'source' => 'manual',
+            'last_checked_at' => now(),
+            'last_result' => [
+                'overall' => 'red',
+                'checks' => [
+                    'mx' => ['band' => 'red', 'summary' => 'missing'],
+                    'spf' => ['band' => 'red', 'summary' => 'missing'],
+                    'dkim' => ['band' => 'red', 'summary' => 'missing'],
+                    'dmarc' => ['band' => 'red', 'summary' => 'missing'],
+                ],
+            ],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client))
+            ->assertOk()
+            ->assertSee('Mail DNS still has')
+            ->assertSee('hand off anyway', false);
+    }
 }
+

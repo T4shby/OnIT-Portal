@@ -89,6 +89,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | Phase A mail domains polish: create intro states name + main domain required; ClientOnboarding step 00; Edit guide warns on red DNS; SPF/DMARC band unit tests. Deploy when asked. - [MailDomainDns.md](MailDomainDns.md), [ClientOnboarding.md](ClientOnboarding.md) |
 | 2026-10-19 | Mail domains + DNS health is the next programme (A-C and after). Create will require main domain. Pax8 deeper waits. - [MailDomainDns.md](MailDomainDns.md), [NEXT_TASK.md](NEXT_TASK.md) |
 | 2026-10-19 | Sold product coverage on Staff Admin: Export CSV, account-manager column, and super-admin filter by AM. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-16 | Last month on the client home and Reports shows the stored end-of-month figures. The control stays hidden until that history exists. - [UIOverhaul.md](UIOverhaul.md) |

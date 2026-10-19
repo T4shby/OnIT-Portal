@@ -308,9 +308,11 @@ class MailDnsHealthService
     }
 
     /**
+     * Overridable in tests. Production uses PHP dns_get_record.
+     *
      * @return list<array<string, mixed>>
      */
-    private function dnsRecords(string $name, int $type): array
+    protected function dnsRecords(string $name, int $type): array
     {
         if ($name === '') {
             return [];

@@ -17,6 +17,13 @@
             <strong class="text-white/80">Save client</strong> (left) only stores IDs and flags.
         </p>
 
+        @if($mailDnsStillRed ?? false)
+            <div class="mt-4 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+                Mail DNS still has <strong class="text-white">red</strong> checks.
+                Fix them in the Mail domains panel (left), or hand off anyway - hand-off warns and does not block.
+            </div>
+        @endif
+
         @if(! empty($adminConsentUrl))
             <div class="mt-4 space-y-3">
                 @if(! filled($client->entra_tenant_id))
