@@ -367,3 +367,18 @@ Socialite's own state lives in the session. Sign-in failed in production with "s
 
 Consequences:
 There is no switch to turn the check off. If sign-ins fail with `Microsoft OAuth state check failed` (`reason=missing_cookie`) at scale, roll back the code and investigate; do not reintroduce a stateless switch. `APP_URL` and `MICROSOFT_REDIRECT_URI` must share a host (`/auth/microsoft` bounces once to the redirect URI host). See `docs/SECURITY.md` and `docs/SYSTEM_AUDIT.md` (eighth pass).
+
+---
+
+## ADR-026
+
+Date: 2026-10-19
+
+Decision:
+Customer onboarding captures **mail domains in the portal** and runs **public DNS health checks** (MX, SPF, DKIM, DMARC). Create Client requires **name + main domain**. Extra domains and checks live on Edit. Traffic lights: green = correct, yellow = present but weak/wrong, red = missing. Hand-off **warns** on red and does not block. Staff-only until a later Client Admin read-only surface. Full programme is Phases A-C then after - [MailDomainDns.md](MailDomainDns.md).
+
+Reason:
+On IT Portal is the main onboarding guide. Six customers need mail readiness checked without a separate spreadsheet. Domain capture must happen at create time so technicians cannot skip it.
+
+Consequences:
+Pax8 deeper is deferred until this programme is done. DomainEmailChange (user SMTP cutover) stays separate. Portal reports DNS only; it does not change registrar records.

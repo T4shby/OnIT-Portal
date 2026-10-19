@@ -26,12 +26,13 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Near-term backlog (next value)
 
-1. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API).
-2. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
-3. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
-4. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
-5. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
-6. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
+1. **Mail domains + DNS health (A → C → after)** - required main domain on create; MX/SPF/DKIM/DMARC traffic lights; Entra cross-check; history; later Client Admin view - [MailDomainDns.md](MailDomainDns.md). **Current NEXT_TASK.**
+2. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API). Wait until mail-domain programme is done.
+3. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
+4. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
+5. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
+6. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
+7. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
 
 ## Later / optional
 

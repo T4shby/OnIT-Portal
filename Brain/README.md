@@ -15,6 +15,7 @@ Read these documents before changing application code. **Update Brain for every 
 |---|---|
 | [Handover.md](Handover.md) | **Start here in a new chat** - what the app is, what is live, what is still waiting |
 | [NEXT_TASK.md](NEXT_TASK.md) | The one next product task. Do not start it until asked |
+| [MailDomainDns.md](MailDomainDns.md) | **Mail domains + DNS health** - create requires main domain; MX/SPF/DKIM/DMARC; Phases A-C |
 | [ProjectVision.md](ProjectVision.md) | Strategic goals and product positioning |
 | [ProductRequirements.md](ProductRequirements.md) | MVP scope, user stories, functional requirements |
 | [Architecture.md](Architecture.md) | Layers, flows, directory structure |
@@ -88,6 +89,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | Mail domains + DNS health is the next programme (A-C and after). Create will require main domain. Pax8 deeper waits. - [MailDomainDns.md](MailDomainDns.md), [NEXT_TASK.md](NEXT_TASK.md) |
 | 2026-10-19 | Sold product coverage on Staff Admin: Export CSV, account-manager column, and super-admin filter by AM. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-16 | Last month on the client home and Reports shows the stored end-of-month figures. The control stays hidden until that history exists. - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-10-15 | Handover guide for a new chat: [Handover.md](Handover.md). |

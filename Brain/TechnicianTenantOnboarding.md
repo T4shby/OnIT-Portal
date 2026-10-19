@@ -12,9 +12,9 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 1. Sign in to https://app.onit.ltd as an On IT technician.
 2. Go to **Admin → Clients → Add Client**.
-3. Enter the company name (optional SuperOps/Pax8 fields if you already have them).
+3. Enter the **company name** and the **main domain** (both required). Optional SuperOps/Pax8 fields if you already have them.
 4. Click **Create client**.
-5. The **Edit Client** page opens. Work the **Client setup Guide** on the **right**.
+5. The **Edit Client** page opens. Work the **Client setup Guide** on the **right** (includes mail domain DNS health - [MailDomainDns.md](MailDomainDns.md)).
 
 | Button | Where | What it saves |
 |---|---|---|

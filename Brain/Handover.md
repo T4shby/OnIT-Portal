@@ -67,9 +67,10 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 ## Next product work, when asked
 
-From [Roadmap.md](Roadmap.md), in order:
+From [Roadmap.md](Roadmap.md) and [NEXT_TASK.md](NEXT_TASK.md), in order:
 
-1. Pax8 billed catalogue, which needs the partner API.
+1. **Mail domains + DNS health** (Phases A-C and after) - [MailDomainDns.md](MailDomainDns.md). Required main domain on create; DNS traffic lights. Pax8 waits.
+2. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.
 5. Average first response, patch posture, and restore retention.
@@ -84,5 +85,5 @@ This is On IT Portal, Laravel 11, production branch main, live at https://app.on
 Continue from the handover. Do not enable usecure. Do not commit any uncommitted usecure files unless I say the partner key is in the vault and I ask you to probe it.
 ASCII hyphens only. Update Brain in the same turn as any code change.
 The two open human tasks are the YorPower SuperOps email clash and the usecure partner key.
-The next approved task is in Brain/NEXT_TASK.md. Do not start it unless I ask.
+The next approved task is in Brain/NEXT_TASK.md (mail domains + DNS). Do not start Phase B until Phase A is done and I ask.
 ```
