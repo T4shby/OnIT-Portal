@@ -2,7 +2,7 @@
 
 **Audience:** ServerManager / ProjectManager (or any generic deployer).  
 **Generated:** 2026-10-21  
-**Source commit:** `e64320a` (local `main` at handoff authoring; confirm with `git rev-parse HEAD` before deploy)  
+**Source commit:** `7f0ade1` (GitHub `main` at export; confirm with `git rev-parse HEAD` before deploy)  
 **Export location (workstation):** `C:\Dev\EXPORTS\OnIT-Portal\` (not committed)  
 **Not a ServerManager contract:** this file describes how *this* app runs. It does not invent a platform manifest format.
 
