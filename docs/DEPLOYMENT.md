@@ -1,5 +1,10 @@
 # Deployment - On IT Portal
 
+**Generic deployer handoff:** see repository root [`DEPLOYMENT_HANDOFF.md`](../DEPLOYMENT_HANDOFF.md)
+(commands, env vars, workers, health checks, what a multi-project platform must provide).
+Exports for ServerManager-style tooling live under `C:\Dev\EXPORTS\OnIT-Portal\` on the
+build workstation (not committed).
+
 Production target: **Plesk on Ubuntu**, PHP-FPM, MySQL/MariaDB, no Docker,
 no Redis, no queue broker. This is a condensed, audit-oriented version of
 the full runbook in `Brain/Deployment.md` - read that file for the

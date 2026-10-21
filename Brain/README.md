@@ -89,6 +89,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Added root `DEPLOYMENT_HANDOFF.md` for generic ServerManager-style deploy prep (PHP-FPM Laravel, no Docker). Workstation exports under `C:\Dev\EXPORTS\OnIT-Portal\`. |
 | 2026-10-19 | Phase A complete on GitHub (`39fa34a`); live still pre-Phase-A. Waiting on Tom to authorise deploy. Phase B gated. - [NEXT_TASK.md](NEXT_TASK.md), [Handover.md](Handover.md) |
 | 2026-10-19 | Phase A mail domains polish: create intro states name + main domain required; ClientOnboarding step 00; Edit guide warns on red DNS; SPF/DMARC band unit tests. Deploy when asked. - [MailDomainDns.md](MailDomainDns.md), [ClientOnboarding.md](ClientOnboarding.md) |
 | 2026-10-19 | Mail domains + DNS health is the next programme (A-C and after). Create will require main domain. Pax8 deeper waits. - [MailDomainDns.md](MailDomainDns.md), [NEXT_TASK.md](NEXT_TASK.md) |

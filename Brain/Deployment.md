@@ -2,6 +2,8 @@
 
 Production hosting on Plesk/Ubuntu. For local Windows development, see [LocalDevelopment.md](LocalDevelopment.md).
 
+**Generic / multi-project deployer:** use repository root [`DEPLOYMENT_HANDOFF.md`](../DEPLOYMENT_HANDOFF.md) (framework, commands, env, workers, health). This file remains the **Plesk host** runbook.
+
 ## Target Environment
 
 | Component | Requirement |
