@@ -309,12 +309,17 @@ class SuperOpsUserSyncService
             }
 
             if (isset($byEmail[$to]) && $byEmail[$to] !== $userId) {
-                Log::warning('SuperOps email align skipped: target email already on another requester', [
-                    'client_id' => $client->id,
-                    'to' => $to,
-                    'from_user_id' => $userId,
-                    'holder_user_id' => $byEmail[$to],
-                ]);
+                // One warning per client+email per day - Entra sync otherwise floods the log
+                // every run until SuperOps duplicates are cleared by hand.
+                $warnKey = 'superops.email_align_skip.'.$client->id.'.'.sha1($to);
+                if (Cache::add($warnKey, true, now()->addDay())) {
+                    Log::warning('SuperOps email align skipped: target email already on another requester', [
+                        'client_id' => $client->id,
+                        'to' => $to,
+                        'from_user_id' => $userId,
+                        'holder_user_id' => $byEmail[$to],
+                    ]);
+                }
                 $unmatched[] = $label.' (new email already on another SuperOps requester)';
 
                 continue;
