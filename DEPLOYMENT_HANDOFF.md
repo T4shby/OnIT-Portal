@@ -2,7 +2,8 @@
 
 **Audience:** ServerManager / ProjectManager (or any generic deployer).  
 **Generated:** 2026-10-21  
-**Source commit:** `eac3a6f` (GitHub `main` at export time; confirm with `git rev-parse HEAD` before deploy)  
+**Source commit:** `e64320a` (local `main` at handoff authoring; confirm with `git rev-parse HEAD` before deploy)  
+**Export location (workstation):** `C:\Dev\EXPORTS\OnIT-Portal\` (not committed)  
 **Not a ServerManager contract:** this file describes how *this* app runs. It does not invent a platform manifest format.
 
 ---
@@ -69,7 +70,10 @@ php artisan test
 php artisan test tests/Unit/Support/MailDomainTest.php
 ```
 
-PHPUnit uses SQLite in-memory (`phpunit.xml`). Local result 2026-10-21: MailDomain unit test **passed**. Full suite not re-run in this preparation pass.
+PHPUnit uses SQLite in-memory (`phpunit.xml`). Local results 2026-10-21:
+- `ClientMailDomainTest` - **4 passed**
+- `MailDnsHealthServiceTest` / `MailDomainTest` - **passed** in earlier same-day runs
+- Full `php artisan test` suite - **not** re-run in this preparation pass (report as unverified)
 
 ### Production “start”
 
@@ -151,6 +155,13 @@ Copy from `.env.example`. **Never commit real `.env`.** Mark **SECRET** where va
 | `QUEUE_CONNECTION` | No | `database` |
 | `CACHE_STORE` | No | `database` |
 | `CACHE_PREFIX` | No | |
+| `DB_QUEUE_RETRY_AFTER` | No | Default 900; must stay above longest job `$timeout` (600) |
+
+### Bootstrap admin
+
+| Variable | Secret? | Notes |
+|---|---|---|
+| `SUPER_ADMIN_EMAIL` | No (PII-ish) | UPN seeded as first `super_admin`; SSO-only so a fresh DB needs this |
 
 ### Microsoft Entra (required for login)
 

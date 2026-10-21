@@ -1,0 +1,13 @@
+# Placeholder unit - replace {{APP_ROOT}}, {{PHP_BIN}}, {{APP_USER}}
+# Prefer two workers (or Supervisor numprocs=2) for parallel clients.
+[Unit]
+Description=Laravel database queue worker (generic)
+After=network.target
+
+[Service]
+Type=simple
+User={{APP_USER}}
+WorkingDirectory={{APP_ROOT}}
+ExecStart={{PHP_BIN}} {{APP_ROOT}}/artisan queue:work database --queue=high,default --sleep=1 --tries=3
+Restart=always
+RestartSec=3
