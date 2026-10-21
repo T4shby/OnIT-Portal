@@ -6,7 +6,7 @@ Full programme: [MailDomainDns.md](MailDomainDns.md) (Phases A, B, C, and after)
 
 ## Build now: Phase A
 
-Phase A is **complete on GitHub `main`**. **Deploy when Tom asks** (or after an authorised deploy, confirm live SHA has mail domains + `migrate`). Then onboard the six customers.
+Phase A is **live** (`34e3a88`, migrated). Onboard the six customers with main domain + DNS checks.
 
 Do not start Phase B until asked.
 

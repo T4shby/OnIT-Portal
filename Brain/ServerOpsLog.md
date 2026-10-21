@@ -33,6 +33,18 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-21 ~16:25 UK - Deploy main (last-month, coverage, mail DNS Phase A, email-align throttle)
+
+| | |
+|---|---|
+| Intent | Deploy pending `main` after Tom asked to sort log noise items and go live. SuperOps 15m backoff + quiet Dropsuite SharePoint/sites 404s were already on live from 14 Oct. This release adds last-month compare, sold-coverage CSV/AM filter, mail domains Phase A (`migrate`), and once-per-day throttle on SuperOps email-align skip warnings. |
+| Operator | agent |
+| SHA before -> after | `8d314d8` -> `34e3a88` |
+| Steps | `git push origin main` (`34e3a88`). SSH: bare fetch, `git archive refs/heads/main` into live tree, `composer install --no-dev`, `migrate --force` (ran `2026_10_19_120000_add_client_mail_domains`), route/config/view clear, PortalLinkSeeder, optimize. Did **not** `cache:clear`. Removed `/tmp/deploy-main.sh`. |
+| Result | Live `.deployed-commit` `34e3a88`. `MailDns` present. `/up` 200, `/login` 200. |
+| Rollback / watch | Redeploy `8d314d8`. Watch Integration Health scheduler, Edit Client mail domains, last-month links once snapshots exist. |
+| YorPower manual fix | Client **10**. Many SuperOps requesters share the M365 primary. For each address below, keep it on the **correct** person and clear it from the other requester (`from_user_id` wants the address; `holder_user_id` already has it). Seen 2026-10-21 15:16 UTC: `phoebe.slater@yorpower.com`, `stacy.laycock@yorpower.com`, `jack.mcmean@yorpower.com`, `mike.patching@yorpower.com`, `silvia@yorpower.com`, `peter.fort@yorpower.com`, `michaela.johnson@yorpower.com`, `dawn.barlow@yorpower.com`, `mike.patching@glenace.co.uk`, `james.palmer@yorpower.com`, `workshop@yorpower.com`, `harry.brimble@yorpower.com`, `tori.brimble@yorpower.com`, `andrew.lambourne@yorpower.com`, `sales@yorpower.com`, `carrie.lloydstork@generatorwarehouse.co.uk`, `geoff.miles@generatorwarehouse.co.uk`, `maddy.burton@generatorwarehouse.co.uk`, `stacy.laycock@generatorwarehouse.co.uk`, `steve.gill@generatorwarehouse.co.uk`. usecure still off / not deployed. |
+
 ### 2026-10-15 00:32 UK - Handover guide
 
 | | |

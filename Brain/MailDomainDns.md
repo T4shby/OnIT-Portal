@@ -1,6 +1,6 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A complete on `main` (required domain, DNS checks, checklist step 00, create intro, hand-off red warning). **Deploy when Tom asks** (`migrate` required). Phases B-C and after remain queued until asked.  
+**Status:** Phase A **live** on production (`34e3a88`, migrated 2026-10-21). Phases B-C and after remain queued until asked.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
 **Customer UI:** Staff only in Phase A. Later: Client Admin may see (not requesters).
 

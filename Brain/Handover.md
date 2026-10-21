@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** see newest row in [ServerOpsLog.md](ServerOpsLog.md). Mail domains Phase A needs `migrate` on first deploy that includes it.
+**GitHub / live:** `34e3a88` (21 Oct 2026 deploy - last-month, sold coverage, mail domains Phase A, email-align throttle). Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 
@@ -52,10 +52,10 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 ## Still waiting on Tom
 
-1. **Deploy mail domains Phase A** when ready. Pull `main`, `git archive`, then `php artisan migrate` (adds `primary_domain` + `client_domains`). Do not start Phase B until you ask.
-2. **YorPower, in SuperOps.** Two requesters share one email. Leave it on the correct person and clear it from the other. Until then every Entra sync skips that rename and logs a warning. See [AccessAndSync.md](AccessAndSync.md).
-3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
-4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
+1. **YorPower, in SuperOps (client 10).** Many requesters share M365 primaries - full address list in [ServerOpsLog.md](ServerOpsLog.md) 21 Oct entry. Keep each address on the correct person; clear it from the other. Skip warnings are once/day until cleared. See [AccessAndSync.md](AccessAndSync.md).
+2. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
+3. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
+4. Ask when you want **mail domains Phase B**.
 
 ## Do not do these
 
