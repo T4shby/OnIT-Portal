@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `34e3a88` (21 Oct 2026 deploy - last-month, sold coverage, mail domains Phase A, email-align throttle). Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** `f403fcb` (21 Oct 2026 deploy - last-month, sold coverage, mail domains Phase A, email-align throttle). Plesk PHP for the app is **8.4** as of 26 Oct 2026 check. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 
@@ -52,10 +52,11 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 ## Still waiting on Tom
 
-1. **YorPower, in SuperOps (client 10).** Many requesters share M365 primaries - full address list in [ServerOpsLog.md](ServerOpsLog.md) 21 Oct entry. Keep each address on the correct person; clear it from the other. Skip warnings are once/day until cleared. See [AccessAndSync.md](AccessAndSync.md).
-2. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
-3. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
-4. Ask when you want **mail domains Phase B**.
+1. **Fill main domains** on Edit Client for live customers (all 9 still empty as of 26 Oct 2026), then Check DNS.
+2. **YorPower, in SuperOps (client 10).** Many requesters share M365 primaries - full address list in [ServerOpsLog.md](ServerOpsLog.md) 21 Oct entry. Keep each address on the correct person; clear it from the other. Skip warnings are once/day until cleared. See [AccessAndSync.md](AccessAndSync.md).
+3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
+4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
+5. Ask when you want **mail domains Phase B**.
 
 ## Do not do these
 
@@ -71,7 +72,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md) and [NEXT_TASK.md](NEXT_TASK.md), in order:
 
-1. **Mail domains Phase A deploy**, then Phase B only when asked - [MailDomainDns.md](MailDomainDns.md). Pax8 waits.
+1. **Mail domains Phase B** only when asked (Phase A is live; existing clients still need main domains filled by hand) - [MailDomainDns.md](MailDomainDns.md). Pax8 waits.
 2. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.

@@ -84,7 +84,7 @@ Laptop → git push origin main → GitHub
 
 ```bash
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
-export PATH="/opt/plesk/php/8.3/bin:$PATH"
+export PATH="/opt/plesk/php/8.4/bin:$PATH"
 composer install --no-dev --optimize-autoloader
 ```
 
@@ -190,7 +190,7 @@ php artisan optimize
 
 ### 10. Configure Cron / systemd timers
 
-**Production note (app.onit.ltd on Plesk):** Plesk UI **Scheduled Tasks → Run a command** fails for `/opt/plesk/php/8.3/bin/php` with:
+**Production note (app.onit.ltd on Plesk):** Plesk UI **Scheduled Tasks → Run a command** fails for the Plesk PHP binary (historically `/opt/plesk/php/8.3/bin/php`; live is **8.4** as of 2026-10-26) with:
 
 `Inconsistency detected by ld.so: … _dl_call_libc_early_init … Assertion 'sym != NULL' failed!`
 
@@ -215,9 +215,9 @@ If `cron` RSS is huge again: `systemctl restart cron` (safe; does not touch othe
 Use **absolute** log paths. Relative `>> storage/logs/...` only works if `cd` succeeds:
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan schedule:run >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/scheduler.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-1.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-2.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.4/bin/php artisan schedule:run >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/scheduler.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.4/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.4/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=55 --sleep=1 --tries=3 >> /var/www/vhosts/onit.ltd/app.onit.ltd/storage/logs/queue-worker-2.log 2>&1
 ```
 
 **Do not use `onOneServer()`** for scheduled commands on this single host with `CACHE_STORE=database`. A stuck row in `cache_locks` can skip `portal:prewarm-client-dashboards` for tens of minutes (data ages with empty queue). Prewarm clears expired / absurdly long schedule locks on each run.
@@ -263,7 +263,7 @@ Run this **continuously** - choose one:
 ```ini
 [program:onit-portal-queue]
 process_name=%(program_name)s_%(process_num)02d
-command=/opt/plesk/php/8.3/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --queue=high,default --sleep=1 --tries=3
+command=/opt/plesk/php/8.4/bin/php /var/www/vhosts/onit.ltd/app.onit.ltd/artisan queue:work database --queue=high,default --sleep=1 --tries=3
 autostart=true
 autorestart=true
 user=www-data
@@ -277,8 +277,8 @@ Then: `supervisorctl reread && supervisorctl update && supervisorctl start onit-
 **Plesk / cron fallback** (two workers):
 
 ```
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
-* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.3/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.4/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-1.log 2>&1
+* * * * * cd /var/www/vhosts/onit.ltd/app.onit.ltd && /opt/plesk/php/8.4/bin/php artisan queue:work database --queue=high,default --stop-when-empty --max-time=300 --sleep=1 --tries=3 >> storage/logs/queue-worker-2.log 2>&1
 ```
 
 `--queue=high,default` so dashboard/directory jobs win over Entra when both are pending.
@@ -410,7 +410,7 @@ After **every** deploy, run **all** of the artisan steps below - not “just fet
 
 ```bash
 ls /opt/plesk/php/*/bin/php
-PHP=/opt/plesk/php/8.3/bin/php    # example - use 8.2 or 8.3, not 8.1
+PHP=/opt/plesk/php/8.4/bin/php    # match Plesk domain PHP (live 8.4 as of 2026-10-26); not 8.1
 $PHP -v
 ```
 
@@ -422,7 +422,7 @@ $PHP -v
 cd /var/www/vhosts/onit.ltd/app.onit.ltd
 
 # php is NOT on root PATH - composer and artisan both need Plesk's PHP
-export PATH="/opt/plesk/php/8.3/bin:$PATH"    # match Plesk PHP Settings for app.onit.ltd
+export PATH="/opt/plesk/php/8.4/bin:$PATH"    # match Plesk PHP Settings for app.onit.ltd
 export COMPOSER_ALLOW_SUPERUSER=1              # skip "Continue as root?" prompt on Plesk SSH
 php -v
 

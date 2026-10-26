@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-26 ~11:35 UK - Fix schedule unit after PHP 8.4 upgrade
+
+| | |
+|---|---|
+| Intent | `onit-portal-schedule.service` still called removed `/opt/plesk/php/8.3/bin/php` (exit 203). Queue units already on 8.4. Scheduler was failing every minute - prewarm/Entra cadence stalled. |
+| Operator | agent |
+| SHA before -> after | n/a (host systemd only). App still `f403fcb`. |
+| Steps | Confirmed only `/opt/plesk/php/8.4/bin/php` exists. Updated `ExecStart` on `onit-portal-schedule.service` to 8.4. `daemon-reload`. Manual `systemctl start onit-portal-schedule.service` → status 0; ran `portal:prewarm-client-dashboards` + scheduler tick. Root crontab already on 8.4. Updated Brain/Deployment.md paths. |
+| Result | Schedule service SUCCESS. Timers still active. |
+| Rollback / watch | Revert unit to previous path only if 8.3 is reinstalled. Watch Integration Health scheduler tick age. |
+
 ### 2026-10-21 ~16:25 UK - Deploy main (last-month, coverage, mail DNS Phase A, email-align throttle)
 
 | | |

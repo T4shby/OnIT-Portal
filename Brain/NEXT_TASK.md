@@ -4,9 +4,11 @@
 
 Full programme: [MailDomainDns.md](MailDomainDns.md) (Phases A, B, C, and after).
 
-## Build now: Phase A
+## Build now: Phase A (code done)
 
-Phase A is **live** (`34e3a88`, migrated). Onboard the six customers with main domain + DNS checks.
+Phase A is **live** (`f403fcb` / feature `34e3a88`, migrated). Code milestone is finished.
+
+**Human follow-up:** every existing client still has an empty `primary_domain` (checked 2026-10-26: all 9 active clients). On Edit Client, set **Main domain** and run **Check DNS** for the customers being onboarded. New creates already require a domain.
 
 Do not start Phase B until asked.
 
