@@ -1,20 +1,25 @@
 # Next task
 
-**Mail domains and DNS health** - the next big feature. Do this before Pax8 deeper.
+**Mail domains and DNS health** - Phases A+B done in code. Pax8 deeper still waits.
 
-Full programme: [MailDomainDns.md](MailDomainDns.md) (Phases A, B, C, and after).
+Full programme: [MailDomainDns.md](MailDomainDns.md).
 
-## Build now: Phase A (code done)
+## Just finished: Phase B
 
-Phase A is **live** (`f403fcb` / feature `34e3a88`, migrated). Code milestone is finished.
+Entra **Import from Microsoft** (verified domains, or mailbox email suffixes without Domain.Read.All), seeds empty primary after Connect, cross-check on Edit, nightly DNS recheck, Integration Health notices.
 
-**Human follow-up:** every existing client still has an empty `primary_domain` (checked 2026-10-26: all 9 active clients). On Edit Client, set **Main domain** and run **Check DNS** for the customers being onboarded. New creates already require a domain.
+**Deploy when Tom asks.** Then run once on production:
 
-Do not start Phase B until asked.
+```bash
+php artisan portal:sync-entra-mail-domains --empty-primary-only
+```
+
+(or click Import on each Edit Client). Optionally add Graph **Domain.Read.All** + Grant + customer re-consent for the full verified-domain list.
+
+Do not start Phase C until asked.
 
 ## Then (same programme)
 
-- **Phase B** - Entra verified-domain cross-check, nightly recheck, Integration Health notice.
 - **Phase C** - Provider profiles, check history, optional CSV export.
 - **After C** - Client Admin read-only view; optional Autodiscover / MTA-STS / BIMI.
 

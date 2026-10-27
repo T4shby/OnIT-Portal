@@ -1,6 +1,7 @@
 @php
     /** @var \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection $mailDomains */
     $mailDomains = collect($mailDomains ?? []);
+    $entraMailDomains = is_array($entraMailDomains ?? null) ? $entraMailDomains : null;
     $bandColor = fn (string $band) => match ($band) {
         'green' => 'text-emerald-400',
         'yellow' => 'text-amber-300',
@@ -15,12 +16,62 @@
             <p class="text-xs text-white/50 max-w-2xl">
                 Green = correct. Yellow = present but weak or wrong. Red = missing.
                 Hand-off warns on red; it does not block.
+                After Connect Microsoft, pull Entra verified domains (or mailbox suffixes) to fill empty main domains.
             </p>
         </div>
-        @if($mailDnsStillRed ?? false)
-            <span class="text-xs uppercase tracking-wide text-rose-300">DNS still has red</span>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            @if($mailDnsStillRed ?? false)
+                <span class="text-xs uppercase tracking-wide text-rose-300">DNS still has red</span>
+            @endif
+            @if(filled($client->entra_tenant_id))
+                <form method="POST" action="{{ route('admin.clients.domains.sync-entra', $client) }}">
+                    @csrf
+                    <button type="submit" class="cta-btn-ghost text-xs px-3 py-2 uppercase tracking-wide">
+                        Import from Microsoft
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
+
+    @if(is_array($entraMailDomains))
+        <div class="mb-4 border border-white/10 bg-black/20 px-3 py-3 text-xs text-white/65 space-y-2">
+            <p class="text-white/80">
+                Last Microsoft pull
+                @if(! empty($entraMailDomains['fetched_at']))
+                    ({{ \Illuminate\Support\Carbon::parse($entraMailDomains['fetched_at'])->diffForHumans() }})
+                @endif
+                : {{ $entraMailDomains['summary'] ?? '' }}
+            </p>
+            @php
+                $cross = is_array($entraMailDomains['cross_check'] ?? null) ? $entraMailDomains['cross_check'] : [];
+            @endphp
+            @if(! empty($cross['entra_only']))
+                <p>
+                    In Entra / mailboxes but not listed here:
+                    <span class="text-amber-200">{{ implode(', ', $cross['entra_only']) }}</span>
+                    - use Import again or Add domain.
+                </p>
+            @endif
+            @if(! empty($cross['portal_only']))
+                <p>
+                    In portal but not seen in Entra / mailboxes:
+                    <span class="text-amber-200">{{ implode(', ', $cross['portal_only']) }}</span>
+                </p>
+            @endif
+            @if(! empty($entraMailDomains['domains_api_error']))
+                <p class="text-white/45">
+                    Verified-domain API unavailable (add Domain.Read.All and re-consent for the full list).
+                    Mailbox email suffixes still work with existing User.Read.All.
+                </p>
+            @endif
+        </div>
+    @elseif(filled($client->entra_tenant_id) && $mailDomains->isEmpty())
+        <p class="mb-4 text-sm text-amber-100/90">
+            Tenant is connected but no mail domains are stored yet.
+            Click <strong class="text-white">Import from Microsoft</strong> to read verified domains / mailbox suffixes and set the main domain.
+        </p>
+    @endif
 
     @if($mailDomains->isNotEmpty())
         <div class="mb-4 overflow-x-auto">

@@ -156,6 +156,9 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/domains', [ClientController::class, 'storeDomain'])
                 ->middleware('throttle:30,1')
                 ->name('clients.domains.store');
+            Route::post('clients/{client}/domains/sync-entra', [ClientController::class, 'syncEntraDomains'])
+                ->middleware('throttle:10,1')
+                ->name('clients.domains.sync-entra');
             Route::post('clients/{client}/domains/{domain}/check', [ClientController::class, 'checkDomain'])
                 ->middleware('throttle:30,1')
                 ->name('clients.domains.check');

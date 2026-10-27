@@ -89,6 +89,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-27 | Mail domains Phase B: Import from Microsoft (verified domains or mailbox suffixes), seed empty primary, nightly DNS recheck, Integration Health notices. Deploy when asked. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-10-26 | Phase A live; all 9 clients still missing `primary_domain` (human fill on Edit). Phase B gated. Live PHP is 8.4. - [NEXT_TASK.md](NEXT_TASK.md), [Handover.md](Handover.md) |
 | 2026-10-21 | Deploy `main` (last-month, sold coverage, mail domains Phase A, email-align skip log throttle). YorPower has many SuperOps duplicate emails to clear by hand - [AccessAndSync.md](AccessAndSync.md), [ServerOpsLog.md](ServerOpsLog.md). |
 | 2026-10-21 | Deployer handoff + placeholder systemd units for ServerManager-style prep (PHP-FPM Laravel, no Docker) - [../DEPLOYMENT_HANDOFF.md](../DEPLOYMENT_HANDOFF.md), [../deploy/README.md](../deploy/README.md). Workstation exports under `C:\Dev\EXPORTS\OnIT-Portal\` (not in git). |

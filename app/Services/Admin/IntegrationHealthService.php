@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Services\EntraSync\MicrosoftGraphClient;
+use App\Services\MailDns\ClientDomainService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,7 @@ class IntegrationHealthService
         'entra_sync' => 'SyncEntraClientJob',
         'huntress' => 'RefreshHuntressSecurityJob',
         'dropsuite' => 'RefreshDropsuiteBackupJob',
+        'usecure' => 'RefreshUsecureMetricsJob',
     ];
 
     /**
@@ -57,6 +59,7 @@ class IntegrationHealthService
         'entra_sync' => 'Entra sync',
         'huntress' => 'Huntress',
         'dropsuite' => 'Dropsuite',
+        'usecure' => 'usecure',
     ];
 
     /**
@@ -660,6 +663,10 @@ class IntegrationHealthService
             }
         }
 
+        foreach ($this->mailDnsHealthNotices() as $notice) {
+            $notices[] = $notice;
+        }
+
         foreach ($rows as $row) {
             foreach ($row['integrations'] as $cell) {
                 if (($cell['status'] ?? '') === 'failed') {
@@ -679,6 +686,63 @@ class IntegrationHealthService
         }
 
         return array_values(array_unique($notices));
+    }
+
+    /**
+     * Phase B: sold/active clients with missing main domain or still-red DNS.
+     *
+     * @return list<string>
+     */
+    private function mailDnsHealthNotices(): array
+    {
+        if (! Schema::hasTable('client_domains') || ! Schema::hasColumn('clients', 'primary_domain')) {
+            return [];
+        }
+
+        $notices = [];
+        $domains = app(ClientDomainService::class);
+
+        $missingPrimary = Client::query()
+            ->where('is_active', true)
+            ->where(function ($q): void {
+                $q->whereNull('primary_domain')->orWhere('primary_domain', '');
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->pluck('name');
+
+        if ($missingPrimary->isNotEmpty()) {
+            $extra = Client::query()
+                ->where('is_active', true)
+                ->where(function ($q): void {
+                    $q->whereNull('primary_domain')->orWhere('primary_domain', '');
+                })
+                ->count() - $missingPrimary->count();
+            $list = $missingPrimary->implode(', ');
+            if ($extra > 0) {
+                $list .= " (+{$extra} more)";
+            }
+            $notices[] = "Mail domain missing (Edit Client → Import from Microsoft or set Main domain): {$list}";
+        }
+
+        $redClients = Client::query()
+            ->where('is_active', true)
+            ->whereNotNull('primary_domain')
+            ->where('primary_domain', '!=', '')
+            ->whereHas('domains')
+            ->with('domains')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Client $client): bool => $domains->anyDomainStillRed($client))
+            ->take(8)
+            ->pluck('name');
+
+        if ($redClients->isNotEmpty()) {
+            $notices[] = 'Mail DNS still red for: '.$redClients->implode(', ')
+                .' (nightly recheck runs; fix MX/SPF/DKIM/DMARC or defer on checklist).';
+        }
+
+        return $notices;
     }
 
     /**
@@ -704,6 +768,7 @@ class IntegrationHealthService
             $this->entraSync($client, $clearedOrphans),
             $this->huntress($client, $clearedOrphans),
             $this->dropsuite($client, $clearedOrphans),
+            $this->usecure($client, $clearedOrphans),
         ]);
 
         $active = collect($integrations)->first(
@@ -1097,6 +1162,50 @@ class IntegrationHealthService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function usecure(Client $client, int &$clearedOrphans): array
+    {
+        if (! app(\App\Services\Portal\ClientProductService::class)->isEntitled($client, 'usecure')) {
+            return $this->disabled('usecure', 'usecure human risk', 'Not sold');
+        }
+
+        if (! (bool) config('services.usecure.enabled')) {
+            return $this->disabled('usecure', 'usecure human risk', 'API disabled');
+        }
+
+        if (! filled(config('services.usecure.api_url')) || ! filled(config('services.usecure.api_key'))) {
+            return $this->disabled('usecure', 'usecure human risk', 'API not configured');
+        }
+
+        if (! filled($client->usecure_company_id)) {
+            return $this->disabled('usecure', 'usecure human risk', 'Setup needed');
+        }
+
+        $payload = Cache::get(app(\App\Services\Usecure\UsecureClientMetricsService::class)->cacheKey($client->id));
+        $last = is_array($payload) && filled($payload['last_refreshed_at'] ?? null)
+            ? Carbon::parse($payload['last_refreshed_at'])
+            : null;
+        $result = Cache::get('usecure_metrics.last_result.'.$client->id);
+        $requeueAfter = max(0.5, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveRequeueMinutes());
+        $clientWindow = max(1, app(\App\Services\Portal\PortalFreshnessService::class)->effectiveSoftWindowMinutes());
+
+        return $this->integrationStatus(
+            key: 'usecure',
+            label: 'usecure human risk',
+            clientId: $client->id,
+            queuedKey: 'usecure_metrics.refresh_queued.'.$client->id,
+            startedKey: 'usecure_metrics.refresh_started.'.$client->id,
+            lastSuccessAt: $last,
+            lastResult: is_array($result) ? $result : null,
+            processHint: 'RefreshUsecureMetricsJob (partner GraphQL)',
+            requeueAfterMinutes: $requeueAfter,
+            clientWindowMinutes: $clientWindow,
+            clearedOrphans: $clearedOrphans,
+        );
+    }
+
+    /**
      * @param  array<string, mixed>|null  $lastResult
      * @return array<string, mixed>
      */
@@ -1237,6 +1346,7 @@ class IntegrationHealthService
             'entra_sync' => 'Entra user sync',
             'huntress' => 'Huntress security',
             'dropsuite' => 'Dropsuite backups',
+            'usecure' => 'usecure human risk',
             default => $fallback,
         };
     }

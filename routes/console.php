@@ -64,3 +64,8 @@ Schedule::command('queue:prune-failed', ['--hours' => 720])
 Schedule::command('portal:prune-expired-cache')
     ->dailyAt('03:40')
     ->withoutOverlapping(30);
+
+// Phase B: nightly DNS recheck for active clients' mail domains.
+Schedule::command('portal:recheck-client-domain-dns')
+    ->dailyAt('04:10')
+    ->withoutOverlapping(120);

@@ -20,6 +20,7 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\MailDns\ClientDomainService;
+use App\Services\MailDns\EntraMailDomainSyncService;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,7 @@ class ClientController extends Controller
         private ClientProductService $products,
         private ClientHomeOverviewService $homeOverview,
         private ClientDomainService $domains,
+        private EntraMailDomainSyncService $entraDomains,
     ) {}
 
     public function index(Request $request): View
@@ -115,7 +117,30 @@ class ClientController extends Controller
             'scimProvisioningHealth' => $this->scimProvisioningHealth($client),
             'mailDomains' => $client->domains,
             'mailDnsStillRed' => $this->domains->anyDomainStillRed($client),
+            'entraMailDomains' => $this->entraDomains->cached($client),
         ];
+    }
+
+    public function syncEntraDomains(Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id)) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'Connect Microsoft first so the tenant ID is saved.');
+        }
+
+        // Prefer sync so the Edit page shows suggestions immediately after redirect.
+        $result = $this->entraDomains->sync($client, importMissing: true, seedPrimaryIfEmpty: true);
+        $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
+        $this->activityLog->log('client.entra_mail_domains_synced', $client, clientId: $client->id, properties: [
+            'seeded_primary' => $result['seeded_primary'],
+            'imported' => $result['imported'],
+        ]);
+
+        return redirect()
+            ->to(route('admin.clients.edit', $client).'#mail-domains')
+            ->with($result['ok'] ? 'success' : 'error', $result['summary']);
     }
 
     public function storeDomain(Request $request, Client $client): RedirectResponse
@@ -214,6 +239,7 @@ class ClientController extends Controller
             'pax8_sso_enabled' => filled($request->pax8_company_id),
             'dropsuite_organization_id' => $request->dropsuite_organization_id,
             'huntress_organization_id' => $request->huntress_organization_id,
+            'usecure_company_id' => $request->usecure_company_id,
             'entra_tenant_id' => null,
             'entra_license_tier' => ClientOnboardingService::ENTRA_LICENSE_FREE,
             'entra_group_id' => null,
@@ -265,6 +291,7 @@ class ClientController extends Controller
             'pax8_sso_enabled' => filled($request->pax8_company_id),
             'dropsuite_organization_id' => $request->dropsuite_organization_id,
             'huntress_organization_id' => $request->huntress_organization_id,
+            'usecure_company_id' => $request->usecure_company_id,
             'entra_tenant_id' => $request->entra_tenant_id,
             'entra_license_tier' => $request->input('entra_license_tier', ClientOnboardingService::ENTRA_LICENSE_FREE),
             'entra_group_id' => $request->entra_group_id,

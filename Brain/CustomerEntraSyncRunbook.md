@@ -145,6 +145,7 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | `SecurityEvents` | **SecurityEvents.Read.All** | Microsoft Secure Score on client Dashboard / Reports (M365 column) |
 | `AuditLog` | **AuditLog.Read.All** | MFA registration coverage (auth methods report) |
 | `Reports.Read` | **Reports.Read.All** | MFA registration coverage (auth methods report) |
+| `Domain.Read` | **Domain.Read.All** (recommended Phase B) | List Entra **verified domains** for mail-domain import. Without it, portal still infers domains from user mailbox / UPN suffixes via `User.Read.All`. |
 
 5. Click **Add permissions** at the bottom of the panel
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
@@ -159,7 +160,7 @@ All **Application** rows must show:
 Expected Microsoft Graph permissions:
 
 **Delegated (4):** email, openid, profile, User.Read  
-**Application (14):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All, **SecurityEvents.Read.All**, **AuditLog.Read.All**, **Reports.Read.All**
+**Application (14 + optional Domain.Read.All):** User.Read.All, User.ReadWrite.All, LicenseAssignment.Read.All, MailboxSettings.Read, Group.Read.All, **Group.ReadWrite.All**, GroupMember.ReadWrite.All, AppRoleAssignment.ReadWrite.All, Application.Read.All, **Application.ReadWrite.All**, Synchronization.ReadWrite.All, **SecurityEvents.Read.All**, **AuditLog.Read.All**, **Reports.Read.All**, and optionally **Domain.Read.All** for verified mail-domain import
 
 > **Connect Microsoft** (checklist 03/04) and customer **re-consent** only pick up permissions that already exist on the app in the **On IT** tenant. After adding or changing Application permissions: (1) Grant consent in On IT, (2) **re-run Accept** once per customer - do **not** delete the client record or SuperOps Entra apps.
 

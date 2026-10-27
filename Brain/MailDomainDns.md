@@ -1,8 +1,8 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A **live** on production (`34e3a88`, migrated 2026-10-21). Phases B-C and after remain queued until asked.  
+**Status:** Phase A **live**. Phase B **implemented on GitHub** (Entra import, nightly DNS recheck, Integration Health notices) - deploy when asked. Phase C and after remain queued.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
-**Customer UI:** Staff only in Phase A. Later: Client Admin may see (not requesters).
+**Customer UI:** Staff only through Phase B. Later: Client Admin may see (not requesters).
 
 Portal is the main onboarding guide. Every new customer needs a **main domain** at create time. DNS health (MX / SPF / DKIM / DMARC) is checked in-app so mail readiness is not a separate spreadsheet.
 
@@ -42,12 +42,15 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 6. Hand-off step shows a warning banner if any domain still has red.
 7. Staff-only. Tests + Brain.
 
-### Phase B - After the six are moving
+### Phase B - After the six are moving (implemented)
 
-1. After Connect Microsoft, pull Entra **verified domains** and suggest "add to portal".
-2. Cross-check: in DNS but not in Entra / in Entra but not listed.
-3. Nightly recheck for clients still in onboarding (or all active).
-4. Integration Health notice when sold clients stay red on DNS.
+1. After Connect Microsoft / bootstrap, queue `SyncClientEntraMailDomainsJob`. Edit Client → **Import from Microsoft**.
+2. Prefer Graph **verified domains** (`GET /domains`). If `Domain.Read.All` is missing, fall back to **mailbox email suffixes** from `User.Read.All` (answers: yes, we can see the main domain from tenant mailboxes).
+3. Seed empty `primary_domain` from default verified custom domain, else most common mailbox domain. Import other verified custom domains as rows (`source=entra` / `entra_mail`).
+4. Cross-check on Edit: Entra-only vs portal-only.
+5. Nightly `portal:recheck-client-domain-dns` at 04:10.
+6. Integration Health notices for missing primary / still-red DNS.
+7. Optional: add **Domain.Read.All** Application permission + Grant + customer re-consent for the full verified-domain list (mailbox fallback works without it).
 
 ### Phase C - Hardening
 
@@ -73,7 +76,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 | `domain` | Unique per client |
 | `is_primary` | Exactly one primary |
 | `dkim_selectors` | JSON list of extra selectors to try |
-| `source` | `manual` / later `entra` |
+| `source` | `manual` / `entra` / `entra_mail` |
 | `last_checked_at` | Last DNS run |
 | `last_result` | JSON: per-check band, detail, selectors found |
 | `notes` | Optional technician note |
@@ -96,19 +99,24 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 - Does not require `p=reject` for checklist Done (quarantine is enough for green).
 - Customer requesters never see this panel in A-C.
 
-## Code map (Phase A)
+## Code map
 
 | Piece | Path |
 |---|---|
 | Normalise / validate domain | `App\Support\MailDomain` |
 | DNS checks | `App\Services\MailDns\MailDnsHealthService` |
-| Async refresh | `App\Jobs\CheckClientDomainDnsJob` |
+| Entra import / seed / cross-check | `App\Services\MailDns\EntraMailDomainSyncService` |
+| Graph domains + mailbox suffixes | `MicrosoftGraphClient::listTenantDomains`, `listMailDomainsFromUsers` |
+| After Connect | `SyncClientEntraMailDomainsJob` from `BootstrapClientEntraJob` |
+| Nightly DNS | `portal:recheck-client-domain-dns` |
+| Bulk backfill | `portal:sync-entra-mail-domains --empty-primary-only` |
 | Checklist | `ClientOnboardingService` step `mail_domains_dns` |
-| Create / Edit UI | `admin/clients/create`, Edit domains partial |
+| Create / Edit UI | `admin/clients/create`, `_mail-domains` (Import from Microsoft) |
 | Docs | This file; TechnicianTenantOnboarding; ClientOnboarding |
 
 ## Changelog
 
 | Date | Note |
 |---|---|
+| 2026-10-27 | Phase B: Entra verified domains + mailbox-suffix fallback, seed empty primary, nightly recheck, IH notices. |
 | 2026-10-19 | Programme approved: A-C + after. Decisions locked. Replaces Pax8 as NEXT_TASK. |

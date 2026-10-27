@@ -31,6 +31,7 @@
                     'client' => $client,
                     'mailDomains' => $mailDomains ?? $client->domains,
                     'mailDnsStillRed' => $mailDnsStillRed ?? false,
+                    'entraMailDomains' => $entraMailDomains ?? null,
                 ])
                 @include('admin.clients._products', [
                     'client' => $client,

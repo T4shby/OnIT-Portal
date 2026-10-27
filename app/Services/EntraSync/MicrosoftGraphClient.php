@@ -261,6 +261,122 @@ class MicrosoftGraphClient
     }
 
     /**
+     * Tenant domains from Graph GET /domains (needs Domain.Read.All or Directory.Read.All).
+     *
+     * @return list<array{
+     *   id: string,
+     *   domain: string,
+     *   is_verified: bool,
+     *   is_default: bool,
+     *   is_initial: bool,
+     *   is_onmicrosoft: bool,
+     * }>
+     */
+    public function listTenantDomains(string $tenantId): array
+    {
+        $out = [];
+        $url = 'https://graph.microsoft.com/v1.0/domains';
+        $query = [
+            '$select' => 'id,isVerified,isDefault,isInitial',
+            '$top' => 999,
+        ];
+
+        while ($url) {
+            $response = $this->graphGet(
+                $tenantId,
+                $url,
+                $url === 'https://graph.microsoft.com/v1.0/domains' ? $query : [],
+            );
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph domains request failed: '.$response->status().' '.$response->body()
+                );
+            }
+
+            $data = $response->json();
+            foreach ($data['value'] ?? [] as $row) {
+                $id = strtolower(trim((string) ($row['id'] ?? '')));
+                if ($id === '') {
+                    continue;
+                }
+                $out[] = [
+                    'id' => $id,
+                    'domain' => $id,
+                    'is_verified' => (bool) ($row['isVerified'] ?? false),
+                    'is_default' => (bool) ($row['isDefault'] ?? false),
+                    'is_initial' => (bool) ($row['isInitial'] ?? false),
+                    'is_onmicrosoft' => str_ends_with($id, '.onmicrosoft.com'),
+                ];
+            }
+
+            $url = $data['@odata.nextLink'] ?? null;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Mail domains seen on member user mail / UPN (User.Read.All - no Domain.Read.All needed).
+     * Counts how often each domain appears so we can pick a primary candidate.
+     *
+     * @return list<array{domain: string, mailbox_count: int}>
+     */
+    public function listMailDomainsFromUsers(string $tenantId): array
+    {
+        $counts = [];
+        $url = 'https://graph.microsoft.com/v1.0/users';
+        $query = [
+            '$filter' => "userType eq 'Member'",
+            '$select' => 'mail,userPrincipalName',
+            '$top' => 999,
+        ];
+
+        while ($url) {
+            $response = $this->graphGet(
+                $tenantId,
+                $url,
+                $url === 'https://graph.microsoft.com/v1.0/users' ? $query : [],
+            );
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Microsoft Graph users (mail domains) request failed: '.$response->status().' '.$response->body()
+                );
+            }
+
+            $data = $response->json();
+            foreach ($data['value'] ?? [] as $user) {
+                foreach (['mail', 'userPrincipalName'] as $key) {
+                    $email = strtolower(trim((string) ($user[$key] ?? '')));
+                    if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        continue;
+                    }
+                    $domain = substr(strrchr($email, '@') ?: '', 1);
+                    if ($domain === '' || str_ends_with($domain, '.onmicrosoft.com')) {
+                        continue;
+                    }
+                    $counts[$domain] = ($counts[$domain] ?? 0) + 1;
+                }
+            }
+
+            $url = $data['@odata.nextLink'] ?? null;
+        }
+
+        arsort($counts);
+
+        $out = [];
+        foreach ($counts as $domain => $count) {
+            $out[] = [
+                'domain' => $domain,
+                'mailbox_count' => (int) $count,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Entra directory tier used by portal Free vs P1 assignment path (not M365 "user licence" marketing alone).
      * Entra ID P1 rights show up as standalone AAD_PREMIUM* SKUs or embedded in M365 suites (e.g. Business Premium / SPB).
      */

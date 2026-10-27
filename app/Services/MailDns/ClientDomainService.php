@@ -12,11 +12,16 @@ class ClientDomainService
 {
     public function __construct(private MailDnsHealthService $dns) {}
 
-    public function setPrimaryDomain(Client $client, string $domain, bool $queueCheck = true): ClientDomain
-    {
+    public function setPrimaryDomain(
+        Client $client,
+        string $domain,
+        bool $queueCheck = true,
+        string $source = 'manual',
+    ): ClientDomain {
         $domain = MailDomain::requireValid($domain, 'primary_domain');
+        $source = $this->normaliseSource($source);
 
-        return DB::transaction(function () use ($client, $domain, $queueCheck): ClientDomain {
+        return DB::transaction(function () use ($client, $domain, $queueCheck, $source): ClientDomain {
             $client->forceFill(['primary_domain' => $domain])->save();
 
             ClientDomain::query()
@@ -32,7 +37,7 @@ class ClientDomainService
                 ],
                 [
                     'is_primary' => true,
-                    'source' => 'manual',
+                    'source' => $source,
                 ],
             );
 
@@ -48,13 +53,19 @@ class ClientDomainService
         });
     }
 
-    public function addDomain(Client $client, string $domain, bool $makePrimary = false, array $dkimSelectors = []): ClientDomain
-    {
+    public function addDomain(
+        Client $client,
+        string $domain,
+        bool $makePrimary = false,
+        array $dkimSelectors = [],
+        string $source = 'manual',
+    ): ClientDomain {
         $domain = MailDomain::requireValid($domain, 'domain');
+        $source = $this->normaliseSource($source);
 
-        return DB::transaction(function () use ($client, $domain, $makePrimary, $dkimSelectors): ClientDomain {
+        return DB::transaction(function () use ($client, $domain, $makePrimary, $dkimSelectors, $source): ClientDomain {
             if ($makePrimary) {
-                return $this->setPrimaryDomain($client, $domain, true);
+                return $this->setPrimaryDomain($client, $domain, true, $source);
             }
 
             $row = ClientDomain::query()->firstOrCreate(
@@ -64,15 +75,24 @@ class ClientDomainService
                 ],
                 [
                     'is_primary' => false,
-                    'source' => 'manual',
+                    'source' => $source,
                     'dkim_selectors' => $dkimSelectors === [] ? null : array_values($dkimSelectors),
                 ],
             );
+
+            if ($row->wasRecentlyCreated === false && $row->source !== $source && in_array($source, ['entra', 'entra_mail'], true)) {
+                $row->forceFill(['source' => $source])->save();
+            }
 
             CheckClientDomainDnsJob::dispatch($row->id);
 
             return $row->refresh();
         });
+    }
+
+    private function normaliseSource(string $source): string
+    {
+        return in_array($source, ['manual', 'entra', 'entra_mail'], true) ? $source : 'manual';
     }
 
     public function removeDomain(ClientDomain $domain): void

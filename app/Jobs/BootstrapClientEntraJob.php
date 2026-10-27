@@ -88,6 +88,12 @@ class BootstrapClientEntraJob implements ShouldQueue, ShouldBeUnique
             clientId: $client->id,
         );
 
+        // Phase B: after Connect/bootstrap, pull verified domains / mailbox suffixes
+        // and seed primary_domain when empty.
+        if ($result['ok'] && filled($client->fresh()->entra_tenant_id)) {
+            SyncClientEntraMailDomainsJob::dispatch($client->id);
+        }
+
         $message = $result['summary'];
         if ($result['details'] !== []) {
             $message .= ' '.implode(' · ', array_slice($result['details'], 0, 6));
