@@ -1,6 +1,6 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A **live**. Phase B **implemented on GitHub** (Entra import, nightly DNS recheck, Integration Health notices) - deploy when asked. Phase C and after remain queued.  
+**Status:** Phase A + Phase B **live** (`2d34082`, 2026-10-27). Phase C and after remain queued until asked.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
 **Customer UI:** Staff only through Phase B. Later: Client Admin may see (not requesters).
 

@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `f403fcb` (21 Oct 2026 deploy - last-month, sold coverage, mail domains Phase A, email-align throttle). Plesk PHP for the app is **8.4** as of 26 Oct 2026 check. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** `2d34082` (27 Oct 2026 - mail domains Phase B). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 
@@ -52,7 +52,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 ## Still waiting on Tom
 
-1. **Deploy Phase B** when ready, then `portal:sync-entra-mail-domains --empty-primary-only` (or Edit → Import from Microsoft) to fill empty main domains from the tenant.
+1. **Fill empty main domains:** Edit Client → **Import from Microsoft**, or run `portal:sync-entra-mail-domains --empty-primary-only` on the server.
 2. **YorPower, in SuperOps (client 10).** Many requesters share M365 primaries - full address list in [ServerOpsLog.md](ServerOpsLog.md) 21 Oct entry. Keep each address on the correct person; clear it from the other. Skip warnings are once/day until cleared. See [AccessAndSync.md](AccessAndSync.md).
 3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).

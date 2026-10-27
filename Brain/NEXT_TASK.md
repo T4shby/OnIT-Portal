@@ -8,13 +8,13 @@ Full programme: [MailDomainDns.md](MailDomainDns.md).
 
 Entra **Import from Microsoft** (verified domains, or mailbox email suffixes without Domain.Read.All), seeds empty primary after Connect, cross-check on Edit, nightly DNS recheck, Integration Health notices.
 
-**Deploy when Tom asks.** Then run once on production:
+**Live** as of 2026-10-27 (`2d34082`). To fill empty primaries:
 
 ```bash
 php artisan portal:sync-entra-mail-domains --empty-primary-only
 ```
 
-(or click Import on each Edit Client). Optionally add Graph **Domain.Read.All** + Grant + customer re-consent for the full verified-domain list.
+(or Edit Client → **Import from Microsoft**). Optionally add Graph **Domain.Read.All** + Grant + customer re-consent for the full verified-domain list.
 
 Do not start Phase C until asked.
 

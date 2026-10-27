@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-10-27 ~14:50 UK - Deploy mail domains Phase B
+
+| | |
+|---|---|
+| Intent | Deploy Phase B so Tom can test Import from Microsoft / empty primary seed / IH notices. |
+| Operator | agent |
+| SHA before -> after | `ca60705` -> `2d34082` |
+| Steps | SSH: bare fetch, `git archive refs/heads/main`, composer install, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. No `cache:clear`. PHP 8.4. Removed `/tmp/deploy-phase-b.sh`. |
+| Result | Live `.deployed-commit` `2d34082`. Phase B service present. Artisan commands registered. `/up` 200, `/login` 200. |
+| Rollback / watch | Redeploy `ca60705`. Test Edit Client → Import from Microsoft on a connected tenant. Optional: `portal:sync-entra-mail-domains --empty-primary-only`. |
+
 ### 2026-10-26 ~11:35 UK - Fix schedule unit after PHP 8.4 upgrade
 
 | | |
