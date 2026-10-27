@@ -3907,44 +3907,54 @@ class MicrosoftGraphClient
     }
 
     /**
-     * MFA / passwordless registration coverage from auth methods reports.
-     * Needs Reports.Read.All (or ReportsReader) + AuditLog.Read.All depending on tenant.
+     * Per-user authentication method registration (Entra ID P1/P2 report).
+     * Needs AuditLog.Read.All / Reports.Read.All.
      *
-     * @return array{registered_pct: ?float, capable_pct: ?float, total_users: ?int, available: bool, reason: ?string}
+     * @return array{
+     *   available: bool,
+     *   reason: ?string,
+     *   users: list<array{
+     *     id: string,
+     *     user_principal_name: ?string,
+     *     user_display_name: ?string,
+     *     user_type: string,
+     *     is_admin: bool,
+     *     is_mfa_registered: bool,
+     *     is_mfa_capable: bool,
+     *     is_passwordless_capable: bool,
+     *     methods_registered: list<string>,
+     *     system_preferred_methods: list<string>,
+     *     last_updated_at: ?string,
+     *   }>
+     * }
      */
-    public function getMfaRegistrationSummary(string $tenantId): array
+    public function listMfaUserRegistrationDetails(string $tenantId): array
     {
-        $registered = 0;
-        $capable = 0;
-        $total = 0;
+        $users = [];
         $url = 'https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails';
         $query = [
-            '$select' => 'id,isMfaRegistered,isMfaCapable,userType',
+            '$select' => 'id,userPrincipalName,userDisplayName,userType,isAdmin,isMfaRegistered,isMfaCapable,isPasswordlessCapable,methodsRegistered,systemPreferredAuthenticationMethods,lastUpdatedDateTime',
             '$top' => 999,
         ];
 
         try {
             do {
                 $response = $this->request($tenantId)->get($url, $query);
-                $query = []; // nextLink already absolute
+                $query = [];
 
                 if ($response->status() === 403 || $response->status() === 401) {
                     return [
-                        'registered_pct' => null,
-                        'capable_pct' => null,
-                        'total_users' => null,
                         'available' => false,
                         'reason' => 'mfa_permission_missing',
+                        'users' => [],
                     ];
                 }
 
                 if ($response->failed()) {
                     return [
-                        'registered_pct' => null,
-                        'capable_pct' => null,
-                        'total_users' => null,
                         'available' => false,
                         'reason' => 'mfa_unavailable',
+                        'users' => [],
                     ];
                 }
 
@@ -3952,18 +3962,37 @@ class MicrosoftGraphClient
                     if (! is_array($row)) {
                         continue;
                     }
-                    // Member users only - skip guests when Graph marks them.
                     $type = strtolower((string) ($row['userType'] ?? 'member'));
                     if ($type !== '' && $type !== 'member') {
                         continue;
                     }
-                    $total++;
-                    if (! empty($row['isMfaRegistered'])) {
-                        $registered++;
+
+                    $methods = [];
+                    foreach ($row['methodsRegistered'] ?? [] as $method) {
+                        if (is_string($method) && $method !== '') {
+                            $methods[] = $method;
+                        }
                     }
-                    if (! empty($row['isMfaCapable'])) {
-                        $capable++;
+                    $systemPreferred = [];
+                    foreach ($row['systemPreferredAuthenticationMethods'] ?? [] as $method) {
+                        if (is_string($method) && $method !== '') {
+                            $systemPreferred[] = $method;
+                        }
                     }
+
+                    $users[] = [
+                        'id' => (string) ($row['id'] ?? ''),
+                        'user_principal_name' => isset($row['userPrincipalName']) ? (string) $row['userPrincipalName'] : null,
+                        'user_display_name' => isset($row['userDisplayName']) ? (string) $row['userDisplayName'] : null,
+                        'user_type' => $type !== '' ? $type : 'member',
+                        'is_admin' => (bool) ($row['isAdmin'] ?? false),
+                        'is_mfa_registered' => (bool) ($row['isMfaRegistered'] ?? false),
+                        'is_mfa_capable' => (bool) ($row['isMfaCapable'] ?? false),
+                        'is_passwordless_capable' => (bool) ($row['isPasswordlessCapable'] ?? false),
+                        'methods_registered' => array_values(array_unique($methods)),
+                        'system_preferred_methods' => array_values(array_unique($systemPreferred)),
+                        'last_updated_at' => isset($row['lastUpdatedDateTime']) ? (string) $row['lastUpdatedDateTime'] : null,
+                    ];
                 }
 
                 $next = $response->json('@odata.nextLink');
@@ -3971,22 +4000,56 @@ class MicrosoftGraphClient
             } while ($url !== '');
         } catch (Throwable) {
             return [
-                'registered_pct' => null,
-                'capable_pct' => null,
-                'total_users' => null,
                 'available' => false,
                 'reason' => 'mfa_request_failed',
+                'users' => [],
             ];
         }
 
-        if ($total === 0) {
+        if ($users === []) {
+            return [
+                'available' => false,
+                'reason' => 'mfa_empty',
+                'users' => [],
+            ];
+        }
+
+        return [
+            'available' => true,
+            'reason' => null,
+            'users' => $users,
+        ];
+    }
+
+    /**
+     * MFA / passwordless registration coverage from auth methods reports.
+     * Needs Reports.Read.All (or ReportsReader) + AuditLog.Read.All depending on tenant.
+     *
+     * @return array{registered_pct: ?float, capable_pct: ?float, total_users: ?int, available: bool, reason: ?string}
+     */
+    public function getMfaRegistrationSummary(string $tenantId): array
+    {
+        $details = $this->listMfaUserRegistrationDetails($tenantId);
+        if (! ($details['available'] ?? false)) {
             return [
                 'registered_pct' => null,
                 'capable_pct' => null,
-                'total_users' => 0,
+                'total_users' => ($details['reason'] ?? null) === 'mfa_empty' ? 0 : null,
                 'available' => false,
-                'reason' => 'mfa_empty',
+                'reason' => $details['reason'] ?? 'mfa_unavailable',
             ];
+        }
+
+        $total = count($details['users']);
+        $registered = 0;
+        $capable = 0;
+        foreach ($details['users'] as $user) {
+            if (! empty($user['is_mfa_registered'])) {
+                $registered++;
+            }
+            if (! empty($user['is_mfa_capable'])) {
+                $capable++;
+            }
         }
 
         return [

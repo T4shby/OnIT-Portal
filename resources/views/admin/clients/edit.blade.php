@@ -61,6 +61,13 @@
                         <a href="{{ route('admin.clients.microsoft-365', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
                             View Microsoft 365 directory
                         </a>
+                        <a href="{{ route('admin.clients.mfa-methods', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            MFA methods / passkey readiness
+                        </a>
+                    @elseif(filled($client->entra_tenant_id) && config('services.entra_sync.client_id'))
+                        <a href="{{ route('admin.clients.mfa-methods', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">
+                            MFA methods / passkey readiness
+                        </a>
                     @endif
                     @if($client->isProductEntitled('huntress') && filled($client->huntress_organization_id) && config('services.huntress.enabled'))
                         <a href="{{ route('admin.clients.security.huntress', $client) }}" class="cta-btn-ghost text-sm px-6 py-3 inline-block">

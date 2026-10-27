@@ -26,13 +26,14 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 
 ## Near-term backlog (next value)
 
-1. **Mail domains + DNS health (A → C → after)** - required main domain on create; MX/SPF/DKIM/DMARC traffic lights; Entra cross-check; history; later Client Admin view - [MailDomainDns.md](MailDomainDns.md). **Current NEXT_TASK.**
-2. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API). Wait until mail-domain programme is done.
-3. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
-4. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
-5. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
-6. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
-7. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
+1. **Passkey / SMS-voice MFA retirement** - per-user methods, SMS risk, campaigns before Feb 2027 - [PasskeyMfaMigration.md](PasskeyMfaMigration.md). **Current NEXT_TASK (Phase 1).**
+2. **Mail domains Phase C** - provider profiles, check history, CSV - [MailDomainDns.md](MailDomainDns.md) (A+B live).
+3. **Pax8 deeper** - billed catalogue / usage beyond SSO launch tile (partner API). Wait until mail-domain programme is done.
+4. **Notification hooks** - email or Teams when IH severity stays warning (cold / stuck) beyond threshold.
+5. **Client-facing branding** - per-tenant logo / colour when multiportal presentation needs it.
+6. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
+7. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
+8. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
 
 ## Later / optional
 

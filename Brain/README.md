@@ -16,6 +16,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [Handover.md](Handover.md) | **Start here in a new chat** - what the app is, what is live, what is still waiting |
 | [NEXT_TASK.md](NEXT_TASK.md) | The one next product task. Do not start it until asked |
 | [MailDomainDns.md](MailDomainDns.md) | **Mail domains + DNS health** - create requires main domain; MX/SPF/DKIM/DMARC; Phases A-C |
+| [PasskeyMfaMigration.md](PasskeyMfaMigration.md) | **Passkey / SMS-voice MFA retirement** - per-user methods, SMS risk, staff CSV; Microsoft Feb 2027 |
 | [ProjectVision.md](ProjectVision.md) | Strategic goals and product positioning |
 | [ProductRequirements.md](ProductRequirements.md) | MVP scope, user stories, functional requirements |
 | [Architecture.md](Architecture.md) | Layers, flows, directory structure |
@@ -89,6 +90,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-10-27 | Passkey / SMS-voice MFA Phase 1: per-user methods inventory, SMS/voice flags, staff page + CSV. NEXT_TASK. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
 | 2026-10-27 | Mail domains Phase B: Import from Microsoft (verified domains or mailbox suffixes), seed empty primary, nightly DNS recheck, Integration Health notices. Deploy when asked. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-10-26 | Phase A live; all 9 clients still missing `primary_domain` (human fill on Edit). Phase B gated. Live PHP is 8.4. - [NEXT_TASK.md](NEXT_TASK.md), [Handover.md](Handover.md) |
 | 2026-10-21 | Deploy `main` (last-month, sold coverage, mail domains Phase A, email-align skip log throttle). YorPower has many SuperOps duplicate emails to clear by hand - [AccessAndSync.md](AccessAndSync.md), [ServerOpsLog.md](ServerOpsLog.md). |

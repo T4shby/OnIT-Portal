@@ -57,6 +57,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. Ask when you want **mail domains Phase C**.
+6. Ask when to **deploy Passkey MFA Phase 1** (per-user MFA methods / SMS-voice inventory) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
 ## Do not do these
 
@@ -72,7 +73,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md) and [NEXT_TASK.md](NEXT_TASK.md), in order:
 
-1. **Deploy mail domains Phase B**, then Phase C only when asked - [MailDomainDns.md](MailDomainDns.md). Pax8 waits.
+1. **Passkey / SMS-voice MFA Phase 1** deploy when asked - [PasskeyMfaMigration.md](PasskeyMfaMigration.md). Then mail Phase C / Pax8 when asked.
 2. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.

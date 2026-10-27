@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientMfaMethodsController;
 use App\Http\Controllers\Admin\ClientMicrosoft365DirectoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\IntegrationHealthController;
@@ -138,6 +139,13 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.microsoft-365.live');
             Route::get('clients/{client}/microsoft-365/export', [ClientMicrosoft365DirectoryController::class, 'exportForClient'])
                 ->name('clients.microsoft-365.export');
+            Route::get('clients/{client}/mfa-methods', [ClientMfaMethodsController::class, 'show'])
+                ->name('clients.mfa-methods');
+            Route::post('clients/{client}/mfa-methods/refresh', [ClientMfaMethodsController::class, 'refresh'])
+                ->middleware('throttle:10,1')
+                ->name('clients.mfa-methods.refresh');
+            Route::get('clients/{client}/mfa-methods/export', [ClientMfaMethodsController::class, 'export'])
+                ->name('clients.mfa-methods.export');
             Route::get('clients/{client}/security/huntress', [ClientHuntressSecurityController::class, 'showForClient'])
                 ->name('clients.security.huntress');
             Route::get('clients/{client}/security/huntress/cases/{incident}', [ClientHuntressSecurityController::class, 'incidentForClient'])
