@@ -89,4 +89,50 @@ class IntegrationHealthScimTest extends TestCase
 
         $this->assertNotContains('superops_scim', $keys);
     }
+
+    public function test_staff_admin_overview_skips_live_scim_graph_when_cache_empty(): void
+    {
+        $client = Client::factory()->create([
+            'is_active' => true,
+            'entra_sync_enabled' => true,
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_superops_app_id' => '22222222-2222-2222-2222-222222222222',
+            'superops_account_id' => 'acc-fast',
+        ]);
+
+        $graph = \Mockery::mock(\App\Services\EntraSync\MicrosoftGraphClient::class);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')->never();
+        $this->app->instance(\App\Services\EntraSync\MicrosoftGraphClient::class, $graph);
+
+        $overview = app(IntegrationHealthService::class)->overview(null, liveScimHealth: false);
+        $scim = collect($overview['clients'][0]['integrations'])->firstWhere('key', 'superops_scim');
+
+        $this->assertSame($client->id, (int) $overview['clients'][0]['client_id']);
+        $this->assertSame('ok', $scim['status']);
+        $this->assertSame('Not checked', $scim['status_label']);
+    }
+
+    public function test_mail_dns_notices_do_not_leak_out_of_scope_client_names(): void
+    {
+        Client::factory()->create([
+            'name' => 'Foreign Tenant Ltd',
+            'slug' => 'foreign-tenant-ltd',
+            'is_active' => true,
+            'primary_domain' => null,
+        ]);
+        $mine = Client::factory()->create([
+            'name' => 'Managed Client Co',
+            'slug' => 'managed-client-co',
+            'is_active' => true,
+            'primary_domain' => null,
+        ]);
+
+        $scoped = implode("\n", app(IntegrationHealthService::class)->overview([(int) $mine->id], false)['notices']);
+        $this->assertStringContainsString('Managed Client Co', $scoped);
+        $this->assertStringNotContainsString('Foreign Tenant Ltd', $scoped);
+
+        $empty = implode("\n", app(IntegrationHealthService::class)->overview([], false)['notices']);
+        $this->assertStringNotContainsString('Foreign Tenant Ltd', $empty);
+        $this->assertStringNotContainsString('Managed Client Co', $empty);
+    }
 }

@@ -51,7 +51,9 @@ All **Dashboard glance** integrations implement `App\Contracts\DashboardFeed` an
 
 **Integration Health is the technician refresh dashboard** (`/admin/integration-health`): Huntress and Dropsuite are full columns next to SuperOps / M365 / Entra - same live poll, orphan clear, stuck/due/aging statuses, and adaptive prewarm.
 
-**SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) - cached Graph health ~5m - separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices.
+**SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) - cached Graph health ~30m - separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices.
+
+**Staff Admin speed (2026-11-02):** `/admin` sold-coverage + pipeline summary calls `overview(..., liveScimHealth: false)` so it never fans out live Graph SCIM checks across every tenant (that made Staff Admin hang for minutes). Live SCIM Graph runs only on **Integration Health**. Without a cache entry, dashboard SCIM shows **Not checked** (not Failed). Mail-domain IH notices are scoped to the viewer’s clients (account managers never see other tenant names there).
 
 **Repair:**
 - Credentials missing → Edit Client → **Apply SCIM**

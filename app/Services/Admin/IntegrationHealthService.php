@@ -66,6 +66,9 @@ class IntegrationHealthService
      * @param  list<int>|null  $accessibleClientIds  null = all clients (console / internal callers);
      *                                                   an empty list means the viewer may see no clients
      *                                                   (e.g. an account manager with no assignments) - never "all".
+     * @param  bool  $liveScimHealth  When false (Staff Admin dashboard), reuse cached SCIM Graph
+     *                                results only - never call Microsoft mid-request. Live Graph
+     *                                stays on the Integration Health page.
      * @return array{
      *     queue: array<string, mixed>,
      *     pipeline: array<string, mixed>,
@@ -78,7 +81,7 @@ class IntegrationHealthService
      *     cleared_orphans: int,
      * }
      */
-    public function overview(?array $accessibleClientIds = null): array
+    public function overview(?array $accessibleClientIds = null, bool $liveScimHealth = true): array
     {
         $clearedOrphans = 0;
 
@@ -91,8 +94,8 @@ class IntegrationHealthService
             ->orderBy('name')
             ->get();
 
-        $rows = $clients->map(function (Client $client) use (&$clearedOrphans): array {
-            return $this->clientRow($client, $clearedOrphans);
+        $rows = $clients->map(function (Client $client) use (&$clearedOrphans, $liveScimHealth): array {
+            return $this->clientRow($client, $clearedOrphans, $liveScimHealth);
         })->values()->all();
 
         $stuckCount = collect($rows)->where('is_stuck', true)->count();
@@ -104,7 +107,16 @@ class IntegrationHealthService
         // rows name clients and carry error text, so they are scoped too.
         $queue = $this->queueSummary($accessibleClientIds);
         $pipeline = $this->pipelineSummary($queue, $coldCount);
-        $notices = $this->buildNotices($pipeline, $rows, $clearedOrphans, $stuckCount, $agingCount, $dueCount, $coldCount);
+        $notices = $this->buildNotices(
+            $pipeline,
+            $rows,
+            $clearedOrphans,
+            $stuckCount,
+            $agingCount,
+            $dueCount,
+            $coldCount,
+            $accessibleClientIds,
+        );
 
         return [
             'queue' => $queue,
@@ -595,6 +607,9 @@ class IntegrationHealthService
      * @param  list<array<string, mixed>>  $rows
      * @return list<string>
      */
+    /**
+     * @param  list<int>|null  $accessibleClientIds
+     */
     private function buildNotices(
         array $pipeline,
         array $rows,
@@ -603,6 +618,7 @@ class IntegrationHealthService
         int $agingCount,
         int $dueCount,
         int $coldCount = 0,
+        ?array $accessibleClientIds = null,
     ): array {
         $notices = [];
 
@@ -663,7 +679,7 @@ class IntegrationHealthService
             }
         }
 
-        foreach ($this->mailDnsHealthNotices() as $notice) {
+        foreach ($this->mailDnsHealthNotices($accessibleClientIds) as $notice) {
             $notices[] = $notice;
         }
 
@@ -690,20 +706,35 @@ class IntegrationHealthService
 
     /**
      * Phase B: sold/active clients with missing main domain or still-red DNS.
+     * Must honour the same client scope as the rest of Integration Health (AMs never see other tenants).
      *
+     * @param  list<int>|null  $accessibleClientIds
      * @return list<string>
      */
-    private function mailDnsHealthNotices(): array
+    private function mailDnsHealthNotices(?array $accessibleClientIds = null): array
     {
         if (! Schema::hasTable('client_domains') || ! Schema::hasColumn('clients', 'primary_domain')) {
+            return [];
+        }
+
+        // Empty assignment list = no clients in scope (never treat as "all").
+        if ($accessibleClientIds !== null && $accessibleClientIds === []) {
             return [];
         }
 
         $notices = [];
         $domains = app(ClientDomainService::class);
 
-        $missingPrimary = Client::query()
-            ->where('is_active', true)
+        $scoped = function ($query) use ($accessibleClientIds) {
+            $query->where('is_active', true);
+            if ($accessibleClientIds !== null) {
+                $query->whereIn('id', $accessibleClientIds);
+            }
+
+            return $query;
+        };
+
+        $missingPrimary = $scoped(Client::query())
             ->where(function ($q): void {
                 $q->whereNull('primary_domain')->orWhere('primary_domain', '');
             })
@@ -712,8 +743,7 @@ class IntegrationHealthService
             ->pluck('name');
 
         if ($missingPrimary->isNotEmpty()) {
-            $extra = Client::query()
-                ->where('is_active', true)
+            $extra = $scoped(Client::query())
                 ->where(function ($q): void {
                     $q->whereNull('primary_domain')->orWhere('primary_domain', '');
                 })
@@ -725,8 +755,7 @@ class IntegrationHealthService
             $notices[] = "Mail domain missing (Edit Client → Import from Microsoft or set Main domain): {$list}";
         }
 
-        $redClients = Client::query()
-            ->where('is_active', true)
+        $redClients = $scoped(Client::query())
             ->whereNotNull('primary_domain')
             ->where('primary_domain', '!=', '')
             ->whereHas('domains')
@@ -748,7 +777,7 @@ class IntegrationHealthService
     /**
      * @return array<string, mixed>
      */
-    public function clientRow(Client $client, int &$clearedOrphans = 0): array
+    public function clientRow(Client $client, int &$clearedOrphans = 0, bool $liveScimHealth = true): array
     {
         $products = app(\App\Services\Portal\ClientProductService::class);
 
@@ -759,7 +788,7 @@ class IntegrationHealthService
         if ($products->isEntitled($client, 'superops')
             && $client->entra_sync_enabled
             && filled($client->entra_tenant_id)) {
-            $integrations[] = $this->superOpsScimExport($client);
+            $integrations[] = $this->superOpsScimExport($client, $liveScimHealth);
         }
 
         $integrations = array_merge($integrations, [
@@ -853,7 +882,7 @@ class IntegrationHealthService
      *
      * @return array<string, mixed>
      */
-    private function superOpsScimExport(Client $client): array
+    private function superOpsScimExport(Client $client, bool $liveScimHealth = true): array
     {
         $key = 'superops_scim';
         $label = 'SuperOps SCIM export';
@@ -871,13 +900,41 @@ class IntegrationHealthService
             );
         }
 
-        $health = Cache::remember('scim.health.'.$client->id, now()->addMinutes(5), function () use ($client): array {
-            return app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
+        $cacheKey = 'scim.health.'.$client->id;
+        $health = Cache::get($cacheKey);
+
+        if (! is_array($health)) {
+            if (! $liveScimHealth) {
+                // Staff Admin must stay fast - do not fan out Graph to every tenant here.
+                return $this->scimHealthCell(
+                    key: $key,
+                    label: $label,
+                    status: 'ok',
+                    statusLabel: 'Not checked',
+                    whatItIsDoing: 'SCIM status not cached. Open Integration Health for a live Microsoft check.',
+                    whatNext: 'Open Integration Health (or wait for a prior check) to refresh SCIM export status.',
+                    blockers: [],
+                    error: null,
+                );
+            }
+
+            $health = app(MicrosoftGraphClient::class)->getSuperOpsScimProvisioningHealth(
                 (string) $client->entra_tenant_id,
                 (string) $client->entra_superops_app_id,
             );
-        });
+            // 30m (was 5m) so Integration Health live polling does not re-hit Graph often.
+            Cache::put($cacheKey, $health, now()->addMinutes(30));
+        }
 
+        return $this->scimCellFromHealth($key, $label, $health, $client->id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $health
+     * @return array<string, mixed>
+     */
+    private function scimCellFromHealth(string $key, string $label, array $health, int $clientId): array
+    {
         if (filled($health['error'] ?? null)) {
             return $this->scimHealthCell(
                 key: $key,
@@ -913,7 +970,7 @@ class IntegrationHealthService
                 status: 'failed',
                 statusLabel: 'Export stopped',
                 whatItIsDoing: $hint,
-                whatNext: 'Customer Entra → SuperOps app → Provisioning → Start, or php artisan portal:repair-superops-scim --client='.$client->id,
+                whatNext: 'Customer Entra → SuperOps app → Provisioning → Start, or php artisan portal:repair-superops-scim --client='.$clientId,
                 blockers: ['SuperOps SCIM export stopped - '.$hint],
                 error: 'SCIM provisioning job missing or not running',
             );
@@ -926,7 +983,7 @@ class IntegrationHealthService
             label: $label,
             status: 'ok',
             statusLabel: 'Export active',
-            whatItIsDoing: 'Entra provisioning job running'.$jobState.'. Checked within ~5m.',
+            whatItIsDoing: 'Entra provisioning job running'.$jobState.'. Cached up to ~30m.',
             whatNext: 'New M365 users in SCIM scope become SuperOps requesters via Entra export.',
             blockers: [],
             error: null,

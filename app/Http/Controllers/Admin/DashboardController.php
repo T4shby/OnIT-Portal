@@ -38,8 +38,11 @@ class DashboardController extends Controller
         // null = unscoped (super admin: every client, plus client-less queue rows).
         $healthScope = $user->can('manage-all-clients') ? null : $clientIds;
 
+        // Skip live SCIM Graph fan-out - that made Staff Admin take minutes when many
+        // tenants needed a fresh Microsoft check. Integration Health still does live SCIM.
         $overview = $this->integrationHealth->overview(
             $healthScope,
+            liveScimHealth: false,
         );
 
         $healthSummary = [
@@ -68,7 +71,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $clientIds = $user->accessibleClientIds();
         $healthScope = $user->can('manage-all-clients') ? null : $clientIds;
-        $overview = $this->integrationHealth->overview($healthScope);
+        $overview = $this->integrationHealth->overview($healthScope, liveScimHealth: false);
         $coverageContext = $this->coverageForRequest($request, $user, $healthScope, $overview);
         $csv = $this->integrationHealth->productCoverageCsv($coverageContext['coverage']);
 
