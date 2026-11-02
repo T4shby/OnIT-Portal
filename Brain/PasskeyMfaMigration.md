@@ -1,6 +1,6 @@
 # Passkey / SMS-voice MFA retirement (customer readiness)
 
-**Status:** Phase 1 implemented on GitHub (per-user methods + SMS/voice flags + staff CSV). Deploy when asked.  
+**Status:** Phase 1 **live** on production (`e301dea`, 2026-11-02) - per-user methods + SMS/voice flags + staff CSV.  
 **Audience:** On IT technicians preparing customers for Microsoft's passkey default and SMS/voice MFA retirement.  
 **Customer UI:** Staff only in Phase 1. Client Admin read-only later if useful.
 

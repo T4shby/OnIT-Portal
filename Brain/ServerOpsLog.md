@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-02 ~11:35 UK - Deploy Staff Admin SCIM speed fix + MFA Phase 1
+
+| | |
+|---|---|
+| Intent | Fix Staff Admin hang (skip live SCIM Graph on `/admin`); also ship MFA methods inventory already on GitHub. |
+| Operator | agent |
+| SHA before -> after | `0736e07` -> `e301dea` |
+| Steps | Push `e301dea`. SSH: bare fetch (refs/heads/main), `git archive refs/heads/main`, composer install, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. No `cache:clear`. Reloaded `plesk-php84-fpm`; restarted `onit-portal-*.timer`. Removed `/tmp/deploy-staff-admin-fix.sh`. |
+| Result | Live `.deployed-commit` `e301dea`. MFA controller present. Dashboard uses `liveScimHealth: false`. `/up` 200, `/login` 200. PHP-FPM active; timers listed. **No Docker** on this host - FPM + systemd timers restarted instead. |
+| Rollback / watch | Redeploy `0736e07`. Click Staff Admin - should load quickly. Edit Client → MFA methods / passkey readiness → Refresh. |
+
 ### 2026-10-27 ~14:50 UK - Deploy mail domains Phase B
 
 | | |

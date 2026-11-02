@@ -1,16 +1,14 @@
 # Next task
 
-**Passkey / SMS-voice MFA retirement readiness** - ahead of mail domains Phase C and Pax8 deeper.
+**Passkey / SMS-voice MFA Phase 2** when Tom asks - stored findings / campaigns. Phase 1 is **live** (`e301dea`).
 
 Full programme: [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
-## Build now: Phase 1
+## Live now: Phase 1
 
-Per-user MFA methods from Graph `userRegistrationDetails`, SMS/voice risk flags, Authenticator/passkey flags, staff page + CSV.
+Admin → Clients → Edit → **MFA methods / passkey readiness** → Refresh → CSV.
 
-**On GitHub** - deploy when Tom asks. Then open Admin → Clients → Edit → **MFA methods / passkey readiness** → Refresh.
-
-Do not start Phase 2 (stored findings / campaigns) until asked.
+Do not start Phase 2 until asked.
 
 ## Waiting
 

@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `2d34082` (27 Oct 2026 - mail domains Phase B). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** `e301dea` (2 Nov 2026 - Staff Admin SCIM speed fix + MFA Phase 1 inventory). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 
@@ -57,7 +57,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. Ask when you want **mail domains Phase C**.
-6. Ask when to **deploy Passkey MFA Phase 1** (per-user MFA methods / SMS-voice inventory) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
+6. MFA Phase 1 is **live** - use Edit Client → MFA methods / passkey readiness. Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
 ## Do not do these
 
@@ -73,7 +73,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 
 From [Roadmap.md](Roadmap.md) and [NEXT_TASK.md](NEXT_TASK.md), in order:
 
-1. **Passkey / SMS-voice MFA Phase 1** deploy when asked - [PasskeyMfaMigration.md](PasskeyMfaMigration.md). Then mail Phase C / Pax8 when asked.
+1. **Passkey MFA Phase 2** (stored findings / campaigns) when asked - [PasskeyMfaMigration.md](PasskeyMfaMigration.md). Mail Phase C / Pax8 when asked.
 2. Pax8 billed catalogue, which needs the partner API.
 3. Email or Teams when Integration Health stays on a warning.
 4. Per-client logo and colour.
