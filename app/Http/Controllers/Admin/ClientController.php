@@ -271,6 +271,12 @@ class ClientController extends Controller
     {
         $this->authorize('update', $client);
 
+        // Older rows may have clients.primary_domain without a client_domains DNS row.
+        if (filled($client->primary_domain) && ! $client->domains()->exists()) {
+            $this->domains->setPrimaryDomain($client, (string) $client->primary_domain, queueCheck: true);
+            $client->refresh();
+        }
+
         $this->onboarding->syncAutoCheckpointsFromClient($client);
         $client->refresh();
 

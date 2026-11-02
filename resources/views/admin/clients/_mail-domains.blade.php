@@ -7,17 +7,22 @@
         'yellow' => 'text-amber-300',
         default => 'text-rose-400',
     };
+    $hasPrimaryField = filled($client->primary_domain);
 @endphp
 
-<div class="mt-6 border border-white/10 bg-white/5 p-4 sm:p-5" id="mail-domains">
+<div id="mail-domains">
     <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h3 class="admin-section-title mb-1 text-base">Mail domains</h3>
             <p class="text-xs text-white/50 max-w-2xl">
-                Green = correct. Yellow = present but weak or wrong. Red = missing.
+                Step 00 of setup. Green = correct. Yellow = weak or wrong. Red = missing.
                 Hand-off warns on red; it does not block.
-                After Connect Microsoft, pull Entra verified domains (or mailbox suffixes) to fill empty main domains.
             </p>
+            <ol class="mt-3 list-decimal pl-4 text-xs text-white/55 space-y-1 max-w-2xl">
+                <li>Set <strong class="text-white/70">Main domain</strong> in the Save client form above, then click <strong class="text-white/70">Save client</strong>.</li>
+                <li>Or click <strong class="text-white/70">Import from Microsoft</strong> (tenant must be connected) to pull verified domains / mailbox suffixes.</li>
+                <li>Add any extra domains here. Use Check DNS when you need a fresh read.</li>
+            </ol>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             @if($mailDnsStillRed ?? false)
@@ -68,8 +73,8 @@
         </div>
     @elseif(filled($client->entra_tenant_id) && $mailDomains->isEmpty())
         <p class="mb-4 text-sm text-amber-100/90">
-            Tenant is connected but no mail domains are stored yet.
-            Click <strong class="text-white">Import from Microsoft</strong> to read verified domains / mailbox suffixes and set the main domain.
+            Tenant is connected but no DNS rows are stored yet.
+            Click <strong class="text-white">Import from Microsoft</strong>, or Save client with a main domain above.
         </p>
     @endif
 
@@ -134,15 +139,22 @@
                 </tbody>
             </table>
         </div>
+    @elseif($hasPrimaryField)
+        <p class="mb-4 text-sm text-amber-100/90">
+            Main domain is <strong class="text-white">{{ $client->primary_domain }}</strong> but no DNS row exists yet.
+            Click <strong class="text-white">Save client</strong> above (or Import from Microsoft) to create it.
+        </p>
     @else
-        <p class="mb-4 text-sm text-white/55">No domains stored yet. Save a main domain above.</p>
+        <p class="mb-4 text-sm text-white/55">
+            No domains stored yet. Enter a main domain above and click Save client, or Import from Microsoft.
+        </p>
     @endif
 
     <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         @csrf
         <div class="sm:col-span-1">
             <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
-            <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="mail.clientco.co.uk">
+            <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="mail.clientco.co.uk" required>
         </div>
         <div class="sm:col-span-1">
             <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>

@@ -13,8 +13,10 @@
         </div>
 
         <p class="portal-body-muted text-sm leading-relaxed">
-            Work the open step on the right. Action forms for SCIM (07) and Client SSO (08) live inside those steps.
-            <strong class="text-white/80">Save client</strong> (left) only stores IDs and flags.
+            Work the open step on the right. Step <strong class="text-white/80">00</strong> is mail domain + DNS
+            (Save client for main domain, then Mail domains panel for Import / extras).
+            SCIM (07) and Client SSO (08) action forms live inside those steps.
+            <strong class="text-white/80">Save client</strong> stores name, main domain, products, and Entra IDs.
         </p>
 
         @if($mailDnsStillRed ?? false)

@@ -72,7 +72,7 @@ Mail domains / DNS: [MailDomainDns.md](MailDomainDns.md).
 
 | # | Step | Who |
 |---|------|-----|
-| 00 | Confirm mail domain + DNS | On IT technician (portal) |
+| 00 | Confirm mail domain + DNS | On IT technician (portal). Save client stores main domain; Mail domains panel (separate forms) is Import / Add / Check DNS |
 | 01 | Link SuperOps client | On IT technician (portal / SuperOps) |
 | 02 | Link Pax8 (or skip) | On IT technician (portal / SuperOps) |
 | 03 | Connect Microsoft tenant (tenant / licence / group auto) | On IT technician (customer Entra / GDAP) |
@@ -349,6 +349,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-11-02 | Step **00** UX: Save client for main domain; Mail domains panel is separate forms (Import/Add/Check). Nested-form bug fixed. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-10-19 | Step **00** Confirm mail domain + DNS; Add Client requires name + main domain; hand-off warns on red DNS - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-08-13 | M365/Entra automation in portal only; SuperOps console for SCIM tokens + SSO paste |
 | 2026-08-13 | **Retry Graph setup** auto-resets broken SCIM Entra app - no Azure UI delete; SCIM apps via template instantiate |

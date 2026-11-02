@@ -1,10 +1,20 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A + Phase B **live** (`2d34082`, 2026-10-27). Phase C and after remain queued until asked.  
+**Status:** Phase A + Phase B **live**. Phase C waits until asked.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
 **Customer UI:** Staff only through Phase B. Later: Client Admin may see (not requesters).
 
 Portal is the main onboarding guide. Every new customer needs a **main domain** at create time. DNS health (MX / SPF / DKIM / DMARC) is checked in-app so mail readiness is not a separate spreadsheet.
+
+## Edit Client UX (2026-11-02)
+
+| Action | Where |
+|---|---|
+| Set / change **main domain** | Top of Edit → field → **Save client** (creates `client_domains` primary row + queues DNS) |
+| **Import from Microsoft** | Mail domains card **below** Save form (own POST - not nested in Save) |
+| **Add domain** / Check DNS / Remove | Same Mail domains card (own forms) |
+
+**Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 
 ## Locked decisions (2026-10-19)
 
@@ -118,5 +128,6 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-02 | Edit UX: Mail domains card outside Save form (nested forms broke Import/Add). Heal primary without DNS row on Edit. |
 | 2026-10-27 | Phase B: Entra verified domains + mailbox-suffix fallback, seed empty primary, nightly recheck, IH notices. |
 | 2026-10-19 | Programme approved: A-C + after. Decisions locked. Replaces Pax8 as NEXT_TASK. |

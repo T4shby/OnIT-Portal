@@ -90,6 +90,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-02 | Edit Client mail domains: fixed nested forms so Import / Add domain work; Save client stores main domain; heal primary without DNS row. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-02 | Deployed `e301dea`: Staff Admin SCIM speed fix + MFA Phase 1 inventory live. Reloaded PHP-FPM 8.4 + onit-portal timers (no Docker). - [ServerOpsLog.md](ServerOpsLog.md), [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
 | 2026-11-02 | Staff Admin no longer runs live Graph SCIM checks per client (was hanging on load). SCIM cache 30m; live check stays on Integration Health. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-27 | Passkey / SMS-voice MFA Phase 1: per-user methods inventory, SMS/voice flags, staff page + CSV. NEXT_TASK. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |

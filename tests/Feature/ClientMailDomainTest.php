@@ -128,5 +128,82 @@ class ClientMailDomainTest extends TestCase
             ->assertSee('Mail DNS still has')
             ->assertSee('hand off anyway', false);
     }
+
+    public function test_edit_heals_primary_domain_without_dns_row(): void
+    {
+        Bus::fake();
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'name' => '3R Systems Limited',
+            'primary_domain' => '3r.co.uk',
+        ]);
+        $this->assertSame(0, ClientDomain::query()->where('client_id', $client->id)->count());
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client))
+            ->assertOk()
+            ->assertSee('3r.co.uk');
+
+        $this->assertDatabaseHas('client_domains', [
+            'client_id' => $client->id,
+            'domain' => '3r.co.uk',
+            'is_primary' => 1,
+        ]);
+        Bus::assertDispatched(CheckClientDomainDnsJob::class);
+    }
+
+    public function test_add_domain_works_as_standalone_form(): void
+    {
+        Bus::fake();
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'name' => 'Multi Domain Co',
+            'primary_domain' => 'primary.example',
+        ]);
+        ClientDomain::query()->create([
+            'client_id' => $client->id,
+            'domain' => 'primary.example',
+            'is_primary' => true,
+            'source' => 'manual',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.domains.store', $client), [
+                'domain' => 'mail.primary.example',
+            ])
+            ->assertRedirect(route('admin.clients.edit', $client));
+
+        $this->assertDatabaseHas('client_domains', [
+            'client_id' => $client->id,
+            'domain' => 'mail.primary.example',
+            'is_primary' => 0,
+        ]);
+    }
+
+    public function test_edit_page_separates_mail_domain_actions_from_save_form(): void
+    {
+        Bus::fake();
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'name' => 'Form Layout Co',
+            'primary_domain' => 'layout.example',
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client))
+            ->assertOk()
+            ->assertSee('Save client')
+            ->assertSee('Import from Microsoft')
+            ->assertSee('Add domain')
+            ->assertSee('Main domain is stored only when you click', false)
+            ->getContent();
+
+        // Nested forms break Add domain / Import in browsers - mail panel must sit outside Save.
+        $this->assertMatchesRegularExpression(
+            '/id="client-edit-form"[\s\S]*<\/form>[\s\S]*id="mail-domains"/',
+            $html,
+        );
+    }
 }
 
