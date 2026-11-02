@@ -16,6 +16,8 @@ Portal is the main onboarding guide. Every new customer needs a **main domain** 
 
 **Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 
+**Layout (2026-11-02):** Edit Client `admin-split` is **wide work column + sticky setup guide on the right** (was reversed: form stuck in a ~22rem left column). Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
+
 ## Locked decisions (2026-10-19)
 
 | Topic | Decision |
@@ -128,6 +130,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-02 | Edit layout: wide form + right guide (`admin-split` column order fixed). Mail domains card outside Save; heal primary without DNS row. |
 | 2026-11-02 | Edit UX: Mail domains card outside Save form (nested forms broke Import/Add). Heal primary without DNS row on Edit. |
 | 2026-10-27 | Phase B: Entra verified domains + mailbox-suffix fallback, seed empty primary, nightly recheck, IH notices. |
 | 2026-10-19 | Programme approved: A-C + after. Decisions locked. Replaces Pax8 as NEXT_TASK. |

@@ -12,32 +12,36 @@
         </x-alert>
     @endif
 
+    {{-- Wide form column + sticky Client setup guide (right). Mail domain actions stay outside Save form. --}}
     <div class="admin-split">
-        <div class="space-y-6">
+        <div class="admin-split__main">
             <x-card>
-                {{--
-                    One Save form only. Mail domain Import / Add / Check / Remove are separate
-                    forms below - nested <form> tags inside Save were ignored by browsers, so
-                    Add domain and Import appeared to do nothing.
-                --}}
                 <form method="POST" action="{{ route('admin.clients.update', $client) }}" id="client-edit-form">
                     @csrf @method('PUT')
-                    @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $client->name])
-                    @include('admin.partials.form-field', [
-                        'label' => 'Main domain',
-                        'name' => 'primary_domain',
-                        'required' => true,
-                        'value' => $client->primary_domain,
-                        'help' => [
-                            'Primary mail domain for this customer (e.g. clientco.co.uk).',
-                            'Click Save client to store it and create the DNS checklist row.',
-                            'Then use Mail domains (below) to Import from Microsoft, add extras, or re-check DNS.',
-                        ],
-                    ])
-                    <p class="mb-6 text-xs text-white/50 leading-relaxed">
-                        Main domain is stored only when you click <strong class="text-white/70">Save client</strong>.
-                        Import / Add domain are separate actions in the Mail domains panel under this form - not inside Save.
-                    </p>
+
+                    <div class="mb-2 flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                            <h3 class="admin-section-title mb-1 text-base">Identity</h3>
+                            <p class="text-xs text-white/50">Name and main domain. Save stores both and creates the DNS row for step 00.</p>
+                        </div>
+                        <button type="submit" class="cta-btn text-sm px-5 py-2.5">Save client</button>
+                    </div>
+
+                    <div class="admin-form-grid mb-2">
+                        @include('admin.partials.form-field', ['label' => 'Name', 'name' => 'name', 'required' => true, 'value' => $client->name])
+                        @include('admin.partials.form-field', [
+                            'label' => 'Main domain',
+                            'name' => 'primary_domain',
+                            'required' => true,
+                            'value' => $client->primary_domain,
+                            'help' => [
+                                'Primary mail domain (e.g. clientco.co.uk).',
+                                'Save client stores it and queues DNS checks.',
+                                'Import extras and re-check DNS in Mail domains below.',
+                            ],
+                        ])
+                    </div>
+
                     @include('admin.clients._products', [
                         'client' => $client,
                         'fieldHelps' => $fieldHelps,
@@ -49,14 +53,14 @@
                     ])
                     @include('admin.partials.form-field', ['label' => 'Active', 'name' => 'is_active', 'type' => 'checkbox', 'value' => $client->is_active])
                     @include('admin.clients._entra-sync-fields', ['client' => $client])
+
                     <div class="mt-6 flex flex-wrap gap-3">
                         <button type="submit" class="cta-btn text-sm px-6 py-3">Save client</button>
                         <a href="{{ route('admin.clients.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Cancel</a>
                         <a href="{{ route('admin.integration-health.index') }}" class="cta-btn-ghost text-sm px-6 py-3">Integration Health</a>
                     </div>
                     <p class="portal-body-muted mt-3 text-xs leading-relaxed">
-                        Saves name, main domain, product entitlements, mappings, and Entra fields.
-                        Checklist ticks are on the right and save when you tick them.
+                        Saves identity, products, mappings, and Entra fields. Checklist ticks are in the guide on the right.
                     </p>
                 </form>
             </x-card>

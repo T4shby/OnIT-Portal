@@ -199,12 +199,17 @@
         @apply w-full min-w-0;
     }
 
+    /* Edit Client: wide work column first, sticky setup guide on the right. */
     .admin-split {
-        @apply grid w-full min-w-0 gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)];
+        @apply grid w-full min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)] xl:gap-10;
     }
 
     .admin-split > * {
         @apply min-w-0;
+    }
+
+    .admin-split__main {
+        @apply flex w-full min-w-0 flex-col gap-6;
     }
 
     .admin-form-grid {

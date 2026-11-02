@@ -11,20 +11,16 @@
 @endphp
 
 <div id="mail-domains">
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 flex-1">
             <h3 class="admin-section-title mb-1 text-base">Mail domains</h3>
-            <p class="text-xs text-white/50 max-w-2xl">
-                Step 00 of setup. Green = correct. Yellow = weak or wrong. Red = missing.
-                Hand-off warns on red; it does not block.
+            <p class="text-xs text-white/50 max-w-3xl">
+                Step 00. Green = correct · Yellow = weak · Red = missing.
+                Main domain is saved with <strong class="text-white/70">Save client</strong> above.
+                This card is Import, extra domains, and DNS checks only.
             </p>
-            <ol class="mt-3 list-decimal pl-4 text-xs text-white/55 space-y-1 max-w-2xl">
-                <li>Set <strong class="text-white/70">Main domain</strong> in the Save client form above, then click <strong class="text-white/70">Save client</strong>.</li>
-                <li>Or click <strong class="text-white/70">Import from Microsoft</strong> (tenant must be connected) to pull verified domains / mailbox suffixes.</li>
-                <li>Add any extra domains here. Use Check DNS when you need a fresh read.</li>
-            </ol>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex shrink-0 flex-wrap items-center gap-3">
             @if($mailDnsStillRed ?? false)
                 <span class="text-xs uppercase tracking-wide text-rose-300">DNS still has red</span>
             @endif
@@ -55,7 +51,6 @@
                 <p>
                     In Entra / mailboxes but not listed here:
                     <span class="text-amber-200">{{ implode(', ', $cross['entra_only']) }}</span>
-                    - use Import again or Add domain.
                 </p>
             @endif
             @if(! empty($cross['portal_only']))
@@ -66,15 +61,13 @@
             @endif
             @if(! empty($entraMailDomains['domains_api_error']))
                 <p class="text-white/45">
-                    Verified-domain API unavailable (add Domain.Read.All and re-consent for the full list).
-                    Mailbox email suffixes still work with existing User.Read.All.
+                    Verified-domain API unavailable (Domain.Read.All). Mailbox suffixes still work with User.Read.All.
                 </p>
             @endif
         </div>
     @elseif(filled($client->entra_tenant_id) && $mailDomains->isEmpty())
         <p class="mb-4 text-sm text-amber-100/90">
-            Tenant is connected but no DNS rows are stored yet.
-            Click <strong class="text-white">Import from Microsoft</strong>, or Save client with a main domain above.
+            Connected tenant, no DNS rows yet - Import from Microsoft, or Save client with a main domain.
         </p>
     @endif
 
@@ -97,7 +90,7 @@
                         @php
                             $result = is_array($domain->last_result) ? $domain->last_result : [];
                             $checks = is_array($result['checks'] ?? null) ? $result['checks'] : [];
-                            $overall = (string) ($result['overall'] ?? ($domain->last_checked_at ? 'red' : 'red'));
+                            $overall = (string) ($result['overall'] ?? 'red');
                         @endphp
                         <tr class="border-t border-white/10 align-top">
                             <td class="py-3 pr-3">
@@ -141,26 +134,25 @@
         </div>
     @elseif($hasPrimaryField)
         <p class="mb-4 text-sm text-amber-100/90">
-            Main domain is <strong class="text-white">{{ $client->primary_domain }}</strong> but no DNS row exists yet.
-            Click <strong class="text-white">Save client</strong> above (or Import from Microsoft) to create it.
+            Main domain is <strong class="text-white">{{ $client->primary_domain }}</strong> but no DNS row yet - Save client above (or Import).
         </p>
     @else
         <p class="mb-4 text-sm text-white/55">
-            No domains stored yet. Enter a main domain above and click Save client, or Import from Microsoft.
+            No domains yet. Set main domain above and Save client, or Import from Microsoft.
         </p>
     @endif
 
     <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         @csrf
-        <div class="sm:col-span-1">
+        <div>
             <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
             <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="mail.clientco.co.uk" required>
         </div>
-        <div class="sm:col-span-1">
+        <div>
             <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>
             <input id="dkim_selectors" type="text" name="dkim_selectors" value="{{ old('dkim_selectors') }}" class="admin-input" placeholder="optional, comma-separated">
         </div>
-        <div class="flex items-end gap-3 sm:col-span-2 lg:col-span-2">
+        <div class="flex items-end gap-3 sm:col-span-2">
             <label class="flex items-center gap-2 text-sm text-white/70">
                 <input type="checkbox" name="make_primary" value="1" class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
                 Make primary

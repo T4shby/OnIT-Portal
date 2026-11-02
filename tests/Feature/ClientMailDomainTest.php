@@ -196,7 +196,8 @@ class ClientMailDomainTest extends TestCase
             ->assertSee('Save client')
             ->assertSee('Import from Microsoft')
             ->assertSee('Add domain')
-            ->assertSee('Main domain is stored only when you click', false)
+            ->assertSee('admin-split__main', false)
+            ->assertSee('This card is Import, extra domains, and DNS checks only', false)
             ->getContent();
 
         // Nested forms break Add domain / Import in browsers - mail panel must sit outside Save.
