@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-02 ~11:56 UK - Deploy Edit Client mail domain form fix
+
+| | |
+|---|---|
+| Intent | Fix nested forms so Import / Add domain / Check DNS work; heal primary without DNS row. |
+| Operator | agent |
+| SHA before -> after | `e301dea` -> `b263c4b` |
+| Steps | Push `b263c4b`. SSH: bare fetch, `git archive refs/heads/main`, composer install, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. No `cache:clear`. Reloaded `plesk-php84-fpm`. Removed `/tmp/deploy-mail-domains-ux.sh`. |
+| Result | Live `.deployed-commit` `b263c4b`. `client-edit-form` present. `/up` 200, `/login` 200. |
+| Rollback / watch | Redeploy `e301dea`. Open Edit Client (e.g. 3R) - Save client for main domain; Mail domains card for Import/Add. |
+
 ### 2026-11-02 ~11:35 UK - Deploy Staff Admin SCIM speed fix + MFA Phase 1
 
 | | |

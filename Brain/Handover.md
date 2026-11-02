@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `e301dea` (2 Nov 2026 - Staff Admin SCIM speed fix + MFA Phase 1 inventory). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** `b263c4b` (2 Nov 2026 - Edit Client mail domain forms fixed + MFA Phase 1 + Staff Admin SCIM speed). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 
