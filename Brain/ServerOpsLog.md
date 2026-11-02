@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-02 ~12:10 UK - Deploy Edit Client wide layout
+
+| | |
+|---|---|
+| Intent | Fix admin-split so the form uses full width and the setup guide sits on the right (was reversed ~22rem form column). |
+| Operator | agent |
+| SHA before -> after | `b263c4b` -> `e21c979` |
+| Steps | Push `e21c979` (Vite rebuild). SSH: bare fetch, archive, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Reloaded PHP-FPM 8.4. Removed `/tmp/deploy-edit-layout.sh`. |
+| Result | Live `.deployed-commit` `e21c979`. New CSS `app-Cak8oOAo.css` present. `/up` 200. |
+| Rollback / watch | Redeploy `b263c4b`. Hard-refresh Edit Client - wide identity/products column + sticky Client setup guide on the right. |
+
 ### 2026-11-02 ~11:56 UK - Deploy Edit Client mail domain form fix
 
 | | |
