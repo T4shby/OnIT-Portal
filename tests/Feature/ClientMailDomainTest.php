@@ -3,22 +3,19 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Jobs\CheckClientDomainDnsJob;
 use App\Models\Client;
 use App\Models\ClientDomain;
 use App\Models\User;
 use App\Services\MailDns\MailDnsHealthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
 class ClientMailDomainTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_create_requires_main_domain_and_queues_dns_check(): void
+    public function test_create_requires_main_domain_and_runs_dns_check(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
 
         $this->actingAs($admin)
@@ -38,13 +35,10 @@ class ClientMailDomainTest extends TestCase
 
         $client = Client::where('name', 'Acme Ltd')->firstOrFail();
         $this->assertSame('acme.co.uk', $client->primary_domain);
-        $this->assertDatabaseHas('client_domains', [
-            'client_id' => $client->id,
-            'domain' => 'acme.co.uk',
-            'is_primary' => 1,
-        ]);
-
-        Bus::assertDispatched(CheckClientDomainDnsJob::class);
+        $row = ClientDomain::query()->where('client_id', $client->id)->where('domain', 'acme.co.uk')->firstOrFail();
+        $this->assertTrue((bool) $row->is_primary);
+        $this->assertNotNull($row->last_checked_at);
+        $this->assertIsArray($row->last_result);
     }
 
     public function test_missing_dns_records_are_red(): void
@@ -59,7 +53,6 @@ class ClientMailDomainTest extends TestCase
 
     public function test_checklist_step_appears_on_edit(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'name' => 'DNS Co',
@@ -92,7 +85,6 @@ class ClientMailDomainTest extends TestCase
 
     public function test_create_intro_and_hand_off_warn_when_dns_still_red(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
 
         $this->actingAs($admin)
@@ -131,7 +123,6 @@ class ClientMailDomainTest extends TestCase
 
     public function test_edit_heals_primary_domain_without_dns_row(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'name' => '3R Systems Limited',
@@ -144,17 +135,13 @@ class ClientMailDomainTest extends TestCase
             ->assertOk()
             ->assertSee('3r.co.uk');
 
-        $this->assertDatabaseHas('client_domains', [
-            'client_id' => $client->id,
-            'domain' => '3r.co.uk',
-            'is_primary' => 1,
-        ]);
-        Bus::assertDispatched(CheckClientDomainDnsJob::class);
+        $row = ClientDomain::query()->where('client_id', $client->id)->where('domain', '3r.co.uk')->firstOrFail();
+        $this->assertTrue((bool) $row->is_primary);
+        $this->assertNotNull($row->last_checked_at);
     }
 
     public function test_add_domain_works_as_standalone_form(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'name' => 'Multi Domain Co',
@@ -165,6 +152,8 @@ class ClientMailDomainTest extends TestCase
             'domain' => 'primary.example',
             'is_primary' => true,
             'source' => 'manual',
+            'last_checked_at' => now(),
+            'last_result' => ['overall' => 'green', 'checks' => []],
         ]);
 
         $this->actingAs($admin)
@@ -173,21 +162,53 @@ class ClientMailDomainTest extends TestCase
             ])
             ->assertRedirect(route('admin.clients.edit', $client));
 
-        $this->assertDatabaseHas('client_domains', [
-            'client_id' => $client->id,
-            'domain' => 'mail.primary.example',
-            'is_primary' => 0,
+        $row = ClientDomain::query()->where('client_id', $client->id)->where('domain', 'mail.primary.example')->firstOrFail();
+        $this->assertFalse((bool) $row->is_primary);
+        $this->assertNotNull($row->last_checked_at);
+    }
+
+    public function test_unchecked_domain_is_pending_not_red(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        $client = Client::factory()->create([
+            'name' => 'Pending DNS Co',
+            'primary_domain' => 'pending.example',
         ]);
+        ClientDomain::query()->create([
+            'client_id' => $client->id,
+            'domain' => 'pending.example',
+            'is_primary' => true,
+            'source' => 'manual',
+            'last_checked_at' => null,
+            'last_result' => null,
+        ]);
+
+        $row = ClientDomain::query()->where('client_id', $client->id)->firstOrFail();
+        $this->assertSame('pending', $row->overallBand());
+        $this->assertFalse($row->hasRedChecks());
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.edit', $client))
+            ->assertOk()
+            ->assertSee('PENDING')
+            ->assertDontSee('DNS still has red', false);
     }
 
     public function test_edit_page_separates_mail_domain_actions_from_save_form(): void
     {
-        Bus::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'name' => 'Form Layout Co',
             'primary_domain' => 'layout.example',
             'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+        ]);
+        ClientDomain::query()->create([
+            'client_id' => $client->id,
+            'domain' => 'layout.example',
+            'is_primary' => true,
+            'source' => 'manual',
+            'last_checked_at' => now(),
+            'last_result' => ['overall' => 'green', 'checks' => []],
         ]);
 
         $html = $this->actingAs($admin)
@@ -207,4 +228,3 @@ class ClientMailDomainTest extends TestCase
         );
     }
 }
-

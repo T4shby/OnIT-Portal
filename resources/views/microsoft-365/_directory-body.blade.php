@@ -9,6 +9,8 @@
         : route('microsoft-365.directory.live');
 @endphp
 
+@include('microsoft-365._m365-subnav', ['adminContext' => $adminContext ?? false, 'client' => $client])
+
 @if(! $adminContext)
     <section class="mb-8 sm:mb-10">
         <div class="orange-rule"></div>

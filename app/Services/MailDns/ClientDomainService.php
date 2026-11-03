@@ -141,8 +141,9 @@ class ClientDomainService
     public function anyDomainStillRed(Client $client): bool
     {
         $domains = ClientDomain::query()->where('client_id', $client->id)->get();
+        // No DNS rows yet (or only unchecked) is not "still red" - that is pending.
         if ($domains->isEmpty()) {
-            return filled($client->primary_domain);
+            return false;
         }
 
         foreach ($domains as $domain) {

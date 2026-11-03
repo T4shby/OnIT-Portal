@@ -1,8 +1,8 @@
 # Passkey / SMS-voice MFA retirement (customer readiness)
 
-**Status:** Phase 1 **live** on production (`e301dea`, 2026-11-02) - per-user methods + SMS/voice flags + staff CSV.  
-**Audience:** On IT technicians preparing customers for Microsoft's passkey default and SMS/voice MFA retirement.  
-**Customer UI:** Staff only in Phase 1. Client Admin read-only later if useful.
+**Status:** Phase 1 inventory **live** for staff; Client Admin portal page added (deploy when asked).  
+**Audience:** On IT technicians **and** customer Client Admins preparing for Microsoft's passkey default and SMS/voice MFA retirement.  
+**Customer UI:** Client Admin full inventory + CSV (same data as staff). Not requesters / billing.
 
 ## Microsoft deadlines (locked context)
 
@@ -19,8 +19,8 @@ Portal goal: each customer has a **documented view** of who still uses SMS/voice
 |---|---|
 | Data source | Graph `reports/authenticationMethods/userRegistrationDetails` (already used for aggregate MFA %). Needs `AuditLog.Read.All` / `Reports.Read.All` + Entra ID P1/P2 for the report. |
 | Per-user fields | Display name, UPN, MFA registered/capable, passwordless capable, methods registered, SMS/voice risk flag, passkey/Authenticator flags. |
-| Who sees it (now) | **Staff only** on Admin → Clients → MFA methods. |
-| Who sees it (later) | Optional Client Admin summary; not requesters. |
+| Who sees it (now) | **Staff:** Admin → Clients → Edit → **MFA methods / passkey readiness**. **Client Admin:** Services → **MFA methods** (`/microsoft-365/mfa-methods`) + Directory/MFA tabs on Microsoft 365 pages. Gate `view-mfa-methods` (Client Admin + M365 entitled). |
+| Who does **not** | Requesters and billing admins - org-wide auth-method inventory stays Client Admin / staff. |
 | Findings / plans | Phase 1 = live inventory + CSV. Later: per-client notes / recommended passkey method / campaign status stored in portal. |
 | Priority | **NEXT_TASK** ahead of mail domains Phase C and Pax8 deeper. |
 
@@ -40,11 +40,17 @@ Portal goal: each customer has a **documented view** of who still uses SMS/voice
 2. Technician notes + campaign status on the client record.
 3. Integration Health or sold-coverage style notice when SMS/voice share stays high.
 
+### Phase 1b - Client Admin portal (done in repo; deploy when asked)
+
+1. Same inventory + refresh + CSV for Client Admin on `/microsoft-365/mfa-methods`.
+2. Services nav item **MFA methods**; Directory ↔ MFA subnav on Microsoft 365 pages.
+3. Requesters / billing remain blocked.
+
 ### Phase 3 - Campaign ops
 
-1. Client Admin-facing summary (optional).
-2. Diff vs last refresh (who newly registered / still on SMS).
-3. Export pack for QBR / project opportunity tracking.
+1. Diff vs last refresh (who newly registered / still on SMS).
+2. Export pack for QBR / project opportunity tracking.
+3. Optional glance SMS-risk callout on Dashboard.
 
 ## Method classification (Phase 1)
 
@@ -70,10 +76,13 @@ Exact Graph string sets are centralised in `App\Services\M365\MfaAuthenticationM
 | Classify + cache | `App\Services\M365\MfaAuthenticationMethodsService` |
 | Refresh job | `RefreshMfaAuthMethodsJob` |
 | Staff UI + CSV | `ClientMfaMethodsController`, `admin/clients/mfa-methods` |
+| Client Admin UI + CSV | `Microsoft365MfaMethodsController`, `microsoft-365/mfa-methods` (shared `_mfa-methods-body`) |
+| Gate | `view-mfa-methods` in `AuthServiceProvider` |
 | Aggregate % (unchanged) | M365 insights Secure Score / MFA tile |
 
 ## Changelog
 
 | Date | Note |
 |---|---|
+| 2026-11-02 | Client Admin can view / refresh / export MFA methods on the portal (not requesters). |
 | 2026-10-27 | Programme approved; Phase 1 inventory built. |

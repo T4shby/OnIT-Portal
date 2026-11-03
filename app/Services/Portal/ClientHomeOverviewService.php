@@ -840,7 +840,7 @@ class ClientHomeOverviewService
             plan_label: 'Microsoft 365 Management',
             source: 'Microsoft Graph',
             href: route('microsoft-365.directory'),
-            href_label: 'View people and licences →',
+            href_label: $orgWide ? 'View Microsoft 365 and MFA →' : 'View people and licences →',
             client: $client,
             user: $user,
         );

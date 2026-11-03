@@ -5,7 +5,8 @@
     $hasSupport = $user?->can('view-client-admin-dashboard');
     $hasSecurity = $user?->can('view-huntress-security');
     $hasM365 = $user?->can('view-m365-directory');
-    $showServices = $hasSupport || $hasSecurity || $hasM365;
+    $hasMfaMethods = $user?->can('view-mfa-methods');
+    $showServices = $hasSupport || $hasSecurity || $hasM365 || $hasMfaMethods;
     $servicesActive = request()->routeIs('client-admin.*')
         || request()->routeIs('security.*')
         || request()->routeIs('microsoft-365.*');
@@ -27,8 +28,15 @@
         @if($hasM365)
             <a href="{{ route('microsoft-365.directory') }}"
                @click="menuOpen = false"
-               class="{{ $linkClass }} {{ request()->routeIs('microsoft-365.*') ? 'portal-nav-link-active' : '' }}">
+               class="{{ $linkClass }} {{ request()->routeIs('microsoft-365.directory*') ? 'portal-nav-link-active' : '' }}">
                 Microsoft 365
+            </a>
+        @endif
+        @if($hasMfaMethods)
+            <a href="{{ route('microsoft-365.mfa-methods') }}"
+               @click="menuOpen = false"
+               class="{{ $linkClass }} {{ request()->routeIs('microsoft-365.mfa-methods*') ? 'portal-nav-link-active' : '' }}">
+                MFA methods
             </a>
         @endif
         @if($hasSupport)
@@ -58,8 +66,14 @@
                 @endif
                 @if($hasM365)
                     <a href="{{ route('microsoft-365.directory') }}"
-                       class="portal-nav-drop__item {{ request()->routeIs('microsoft-365.*') ? 'is-active' : '' }}">
+                       class="portal-nav-drop__item {{ request()->routeIs('microsoft-365.directory*') ? 'is-active' : '' }}">
                         Microsoft 365
+                    </a>
+                @endif
+                @if($hasMfaMethods)
+                    <a href="{{ route('microsoft-365.mfa-methods') }}"
+                       class="portal-nav-drop__item {{ request()->routeIs('microsoft-365.mfa-methods*') ? 'is-active' : '' }}">
+                        MFA methods
                     </a>
                 @endif
                 @if($hasSupport)

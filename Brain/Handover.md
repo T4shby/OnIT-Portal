@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `e21c979` (2 Nov 2026 - Edit Client wide layout + mail domain forms + MFA Phase 1 + Staff Admin SCIM speed). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** deploy in progress / see ServerOpsLog (3 Nov 2026 - Client Admin MFA methods + mail DNS pending/sync). Plesk PHP **8.4**.
 
 ## What already works
 
@@ -57,7 +57,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. Ask when you want **mail domains Phase C**.
-6. MFA Phase 1 is **live** - use Edit Client → MFA methods / passkey readiness. Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
+6. MFA inventory is on Staff Admin **and** Client Admin (Services → MFA methods). Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
 ## Do not do these
 

@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\ClientDropsuiteBackupController;
 use App\Http\Controllers\Admin\ClientHuntressSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
+use App\Http\Controllers\Microsoft365MfaMethodsController;
 use App\Http\Controllers\Integrations\Pax8LaunchController;
 use App\Http\Controllers\Integrations\SuperOpsLaunchController;
 use App\Http\Controllers\ContactSupportController;
@@ -87,6 +88,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/microsoft-365/directory/refresh', [Microsoft365DirectoryController::class, 'refresh'])
         ->middleware(['can:view-m365-directory', 'throttle:6,1'])
         ->name('microsoft-365.directory.refresh');
+
+    Route::get('/microsoft-365/mfa-methods', [Microsoft365MfaMethodsController::class, 'show'])
+        ->middleware('can:view-mfa-methods')
+        ->name('microsoft-365.mfa-methods');
+
+    Route::post('/microsoft-365/mfa-methods/refresh', [Microsoft365MfaMethodsController::class, 'refresh'])
+        ->middleware(['can:view-mfa-methods', 'throttle:6,1'])
+        ->name('microsoft-365.mfa-methods.refresh');
+
+    Route::get('/microsoft-365/mfa-methods/export', [Microsoft365MfaMethodsController::class, 'export'])
+        ->middleware('can:view-mfa-methods')
+        ->name('microsoft-365.mfa-methods.export');
 
     Route::get('/services/support-devices', [ClientAdminDashboardController::class, 'index'])
         ->middleware('can:view-client-admin-dashboard')

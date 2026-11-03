@@ -1,12 +1,13 @@
 # Next task
 
-**Passkey / SMS-voice MFA Phase 2** when Tom asks - stored findings / campaigns. Phase 1 is **live** (`e301dea`).
+**Passkey / SMS-voice MFA Phase 2** when Tom asks - stored findings / campaigns. Phase 1 + Client Admin portal page are on `main` (deploy 3 Nov 2026).
 
 Full programme: [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
-## Live now: Phase 1
+## Live now: Phase 1 + Client Admin
 
-Admin → Clients → Edit → **MFA methods / passkey readiness** → Refresh → CSV.
+- Staff: Admin → Clients → Edit → **MFA methods / passkey readiness**
+- Client Admin: Services → **MFA methods** (`/microsoft-365/mfa-methods`) → Refresh → CSV
 
 Do not start Phase 2 until asked.
 

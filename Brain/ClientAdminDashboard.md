@@ -9,6 +9,7 @@
 | Client-facing | **Services → Support & Devices** (`/services/support-devices`) | SuperOps tickets + devices (org-wide for Client Admin; personal tickets for requester/billing) |
 | If Huntress entitled | **Services → Security** | Huntress cases |
 | If M365 entitled | **Services → Microsoft 365** | Directory + licence utilisation |
+| Client Admin + M365 | **Services → MFA methods** (`/microsoft-365/mfa-methods`) | Per-user MFA / passkey / SMS-voice readiness + CSV (same inventory as staff) |
 | Client Admin | **Online backups** (`/client-admin/backups`) from Dashboard Backup tile | Dropsuite inventory |
 
 Legacy `/client-admin` redirects to `/services/support-devices`. Named route remains `client-admin.dashboard`.

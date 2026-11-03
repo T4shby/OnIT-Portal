@@ -72,6 +72,20 @@ class AuthServiceProvider extends ServiceProvider
             return $products->shouldRefresh($client, 'm365');
         });
 
+        // Org-wide MFA / passkey inventory - Client Admin only (not requesters / billing).
+        Gate::define('view-mfa-methods', function (User $user) {
+            if (! $user->canViewOrganisationWide() || ! filled($user->client_id)) {
+                return false;
+            }
+
+            $client = $user->client;
+            if ($client === null) {
+                return false;
+            }
+
+            return app(\App\Services\Portal\ClientProductService::class)->shouldRefresh($client, 'm365');
+        });
+
         Gate::define('view-huntress-security', function (User $user) {
             if (! filled($user->client_id) || ! $user->role->isClientFacing()) {
                 return false;

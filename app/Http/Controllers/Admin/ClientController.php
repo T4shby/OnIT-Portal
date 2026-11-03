@@ -159,17 +159,20 @@ class ClientController extends Controller
             ->values()
             ->all();
 
-        $this->domains->addDomain(
+        $row = $this->domains->addDomain(
             $client,
             (string) $validated['domain'],
             makePrimary: $request->boolean('make_primary'),
             dkimSelectors: $selectors,
         );
+        // Sync so Edit does not flash "queued" then paint unchecked rows as red/pending.
+        $this->domains->checkNow($row->fresh(), sync: true);
+        $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
 
         $this->activityLog->log('client.domain_added', $client, clientId: $client->id);
 
         return redirect()->route('admin.clients.edit', $client)
-            ->with('success', 'Domain saved. DNS check queued.');
+            ->with('success', 'Domain saved. DNS checked.');
     }
 
     public function checkDomain(Client $client, ClientDomain $domain): RedirectResponse
@@ -249,7 +252,8 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        $this->domains->setPrimaryDomain($client, (string) $request->primary_domain, queueCheck: true);
+        $primaryRow = $this->domains->setPrimaryDomain($client, (string) $request->primary_domain, queueCheck: false);
+        $this->domains->checkNow($primaryRow, sync: true);
 
         $productToggles = $request->input('products', []);
         if (is_array($productToggles) && $productToggles !== []) {
@@ -273,7 +277,8 @@ class ClientController extends Controller
 
         // Older rows may have clients.primary_domain without a client_domains DNS row.
         if (filled($client->primary_domain) && ! $client->domains()->exists()) {
-            $this->domains->setPrimaryDomain($client, (string) $client->primary_domain, queueCheck: true);
+            $row = $this->domains->setPrimaryDomain($client, (string) $client->primary_domain, queueCheck: false);
+            $this->domains->checkNow($row, sync: true);
             $client->refresh();
         }
 
@@ -307,7 +312,9 @@ class ClientController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
-        $this->domains->setPrimaryDomain($client->fresh(), (string) $request->primary_domain, queueCheck: true);
+        // Sync DNS for the primary so Edit shows real bands immediately (not "red / not checked").
+        $primaryRow = $this->domains->setPrimaryDomain($client->fresh(), (string) $request->primary_domain, queueCheck: false);
+        $this->domains->checkNow($primaryRow, sync: true);
         $client->refresh();
 
         $productToggles = $request->input('products', []);

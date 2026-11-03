@@ -29,6 +29,7 @@ class ClientMfaMethodsController extends Controller
         return view('admin.clients.mfa-methods', [
             'client' => $client,
             'snapshot' => $snapshot,
+            'adminContext' => true,
         ]);
     }
 

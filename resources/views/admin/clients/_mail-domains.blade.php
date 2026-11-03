@@ -5,6 +5,7 @@
     $bandColor = fn (string $band) => match ($band) {
         'green' => 'text-emerald-400',
         'yellow' => 'text-amber-300',
+        'pending' => 'text-sky-300',
         default => 'text-rose-400',
     };
     $hasPrimaryField = filled($client->primary_domain);
@@ -90,7 +91,8 @@
                         @php
                             $result = is_array($domain->last_result) ? $domain->last_result : [];
                             $checks = is_array($result['checks'] ?? null) ? $result['checks'] : [];
-                            $overall = (string) ($result['overall'] ?? 'red');
+                            $pending = $domain->last_checked_at === null;
+                            $overall = $pending ? 'pending' : (string) ($result['overall'] ?? 'pending');
                         @endphp
                         <tr class="border-t border-white/10 align-top">
                             <td class="py-3 pr-3">
@@ -101,17 +103,20 @@
                                 @if($domain->last_checked_at)
                                     <div class="text-xs text-white/40">Checked {{ $domain->last_checked_at->diffForHumans() }}</div>
                                 @else
-                                    <div class="text-xs text-white/40">Not checked yet</div>
+                                    <div class="text-xs text-sky-300/80">Queued / click Check DNS</div>
                                 @endif
                             </td>
                             <td class="py-3 pr-3 {{ $bandColor($overall) }}">{{ strtoupper($overall) }}</td>
                             @foreach(['mx', 'spf', 'dkim', 'dmarc'] as $key)
-                                @php $check = is_array($checks[$key] ?? null) ? $checks[$key] : []; @endphp
+                                @php
+                                    $check = is_array($checks[$key] ?? null) ? $checks[$key] : [];
+                                    $band = $pending ? 'pending' : (string) ($check['band'] ?? 'pending');
+                                @endphp
                                 <td class="py-3 pr-3">
-                                    <div class="{{ $bandColor((string) ($check['band'] ?? 'red')) }}">
-                                        {{ strtoupper((string) ($check['band'] ?? 'red')) }}
+                                    <div class="{{ $bandColor($band) }}">
+                                        {{ strtoupper($band) }}
                                     </div>
-                                    <div class="text-xs text-white/50 max-w-[10rem]">{{ $check['summary'] ?? 'Not checked' }}</div>
+                                    <div class="text-xs text-white/50 max-w-[10rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
                                 </td>
                             @endforeach
                             <td class="py-3 pr-0 whitespace-nowrap">

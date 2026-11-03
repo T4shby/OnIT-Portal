@@ -10,9 +10,10 @@ Portal is the main onboarding guide. Every new customer needs a **main domain** 
 
 | Action | Where |
 |---|---|
-| Set / change **main domain** | Top of Edit → field → **Save client** (creates `client_domains` primary row + queues DNS) |
+| Set / change **main domain** | Top of Edit → field → **Save client** (creates `client_domains` primary row + **runs DNS check now**) |
+| Unchecked domains | Show **PENDING** (not red). Red only after a real check fails. Hand-off / "DNS still has red" ignore pending. |
+| **Add domain** / Check DNS | Same card; Add and Check DNS run the lookup **now** (not only queue). |
 | **Import from Microsoft** | Mail domains card **below** Save form (own POST - not nested in Save) |
-| **Add domain** / Check DNS / Remove | Same Mail domains card (own forms) |
 
 **Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 

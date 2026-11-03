@@ -35,14 +35,19 @@ class ClientDomain extends Model
 
     public function overallBand(): string
     {
+        if ($this->last_checked_at === null) {
+            return 'pending';
+        }
+
         $result = is_array($this->last_result) ? $this->last_result : [];
         $band = (string) ($result['overall'] ?? '');
 
-        return in_array($band, ['green', 'yellow', 'red'], true) ? $band : 'red';
+        return in_array($band, ['green', 'yellow', 'red'], true) ? $band : 'pending';
     }
 
     public function hasRedChecks(): bool
     {
-        return $this->overallBand() === 'red' || $this->last_checked_at === null;
+        // Unchecked / queued is not "red" - that false alarm made step 00 look broken.
+        return $this->overallBand() === 'red';
     }
 }
