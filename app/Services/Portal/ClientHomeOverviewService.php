@@ -95,10 +95,6 @@ class ClientHomeOverviewService
             $this->dropsuiteColumn($client, $user, $byKey['dropsuite'] ?? null, $orgWide),
         ];
 
-        if ($this->products->isEntitled($client, ClientProductService::KEY_USECURE)) {
-            $columns[] = $this->usecureColumn($client, $user, $byKey['usecure'] ?? null, $orgWide);
-        }
-
         $hero = $this->heroFromColumns($client, $columns, $orgWide);
 
         return [
@@ -145,7 +141,6 @@ class ClientHomeOverviewService
             'm365' => 'Microsoft 365',
             'huntress' => 'Security',
             'dropsuite' => 'Backup',
-            'usecure' => 'Human risk',
         ];
 
         $columns = [];
@@ -1139,73 +1134,6 @@ class ClientHomeOverviewService
     }
 
     /**
-     * Shown only when the client buys usecure. Requesters stay on the four-card home.
-     *
-     * @return array<string, mixed>
-     */
-    private function usecureColumn(Client $client, User $user, mixed $summary, bool $orgWide): array
-    {
-        $base = $this->baseColumn(
-            key: 'usecure',
-            title: 'Human risk',
-            plan_label: 'Training & phishing',
-            source: 'usecure',
-            href: route('dashboard'),
-            href_label: 'Dashboard →',
-            client: $client,
-            user: $user,
-        );
-
-        if (! $orgWide) {
-            return $this->markState($base, 'hidden', 'Human risk figures are available to Client Admins.');
-        }
-
-        if ($base['state'] !== 'live_candidate') {
-            return $base;
-        }
-
-        if (! is_object($summary) || empty($summary->available) || empty($summary->lastRefreshedAt)) {
-            if (! empty($summary->refreshInProgress)) {
-                return $this->markState($base, 'loading', 'Loading human risk figures...');
-            }
-
-            $reason = (string) ($summary->unavailableReason ?? 'Human risk figures are not available yet.');
-
-            return $this->markState($base, 'cold', $reason);
-        }
-
-        if (empty($summary->fieldsMapped)) {
-            return array_merge($base, [
-                'state' => 'live',
-                'tone' => 'ok',
-                'status_label' => 'Connected',
-                'status_reason' => 'Training and phishing figures will show here once the summary fields are confirmed.',
-                'message' => null,
-                'metrics' => [],
-                'as_of' => $summary->lastRefreshedAt,
-            ]);
-        }
-
-        $metrics = [
-            $this->metric('Risk score', $summary->riskScore, null),
-            $this->metric('Training complete', $summary->trainingCompletion, null),
-            $this->metric('Overdue training', $summary->overdueTraining, null),
-            $this->metric('Phish fail rate', $summary->phishFailRate, null),
-            $this->metric('Open breach alerts', $summary->openBreaches, null),
-        ];
-
-        return array_merge($base, [
-            'state' => 'live',
-            'tone' => 'ok',
-            'status_label' => 'Healthy',
-            'status_reason' => null,
-            'message' => null,
-            'metrics' => $metrics,
-            'as_of' => $summary->lastRefreshedAt,
-        ]);
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function baseColumn(
@@ -1299,10 +1227,6 @@ class ClientHomeOverviewService
             'dropsuite' => [
                 'label' => 'Add-on',
                 'reason' => 'Cloud backup is an optional extra on your plan. We can still help with recovery questions through the Service Desk.',
-            ],
-            'usecure' => [
-                'label' => 'Add-on',
-                'reason' => 'Security awareness training is an optional extra on your plan. We can still help with security questions through the Service Desk.',
             ],
             'm365', 'm365_insights' => [
                 'label' => 'Not on plan',
