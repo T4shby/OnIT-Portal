@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `2c8c538` (3 Nov 2026 - Client Admin MFA methods + mail DNS pending/sync). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** `ee7456c` (3 Nov 2026 - mail DNS Phase C, IH alert hook, ColleagueDemo). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
 
 ## What already works
 

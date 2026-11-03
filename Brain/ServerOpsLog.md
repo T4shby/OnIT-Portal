@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-03 ~14:40 UK - Deploy mail DNS Phase C + IH alerts + demo guide
+
+| | |
+|---|---|
+| Intent | Ship Phase C mail DNS (provider, history, CSV, extended checks), optional IH Teams/email alerts, colleague demo MD. |
+| Operator | agent |
+| SHA before -> after | `2c8c538` -> `ee7456c` |
+| Steps | Push `ee7456c` (usecure left uncommitted). SSH: bare `fetch origin main:main`, archive, composer, **migrate** (`client_domain_dns_checks`), route/config/view clear, PortalLinkSeeder, optimize. Reloaded PHP-FPM 8.4. Removed `/tmp/deploy-phase-c.sh`. |
+| Result | Live `.deployed-commit` `ee7456c`. Migration done. Export route + `portal:notify-integration-health` present. `/up` 200, `/login` 200. Alerts remain **off** until `.env` webhook/email enabled. |
+| Rollback / watch | Redeploy `2c8c538`. Demo: [ColleagueDemo.md](ColleagueDemo.md). Edit Client mail domains - extended columns + history + CSV. |
+
 ### 2026-11-03 ~10:00 UK - Deploy Client Admin MFA + mail DNS pending fix
 
 | | |
