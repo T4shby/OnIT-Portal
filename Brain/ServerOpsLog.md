@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-03 ~16:10 UK - Hotfix dashboard 500 (usecure glance leak)
+
+| | |
+|---|---|
+| Intent | Live `/dashboard` 500 after MTD deploy - unfinished usecure column referenced `ClientProductService::KEY_USECURE` which was never shipped. |
+| Operator | agent |
+| SHA before -> after | `c511690` -> `96cf1e3` |
+| Steps | Strip usecure glance/staff composition wiring from `ClientHomeOverviewService`. Push; bare fetch + archive; composer/artisan post-deploy; reload PHP-FPM 8.4. Smoke: `forUser(83)` returns 4 columns; tickets closed MTD 0. |
+| Result | Live `.deployed-commit` `96cf1e3`. Dashboard overview OK. IH overview still OK (usecure feed stays “not sold” without product key/column). |
+| Rollback / watch | Redeploy `c511690` only if needed (that SHA still 500s dashboard). Hard-refresh `/dashboard`. Leave local usecure skeleton uncommitted. |
+
 ### 2026-11-03 ~16:05 UK - Deploy glance calendar MTD tickets/SLA
 
 | | |
