@@ -91,6 +91,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-03 | Deployed `447f96e`: glance tickets/SLA calendar MTD (not rolling 30d). 3R verified mtd=0 / prev=14. - [ServerOpsLog.md](ServerOpsLog.md), [UIOverhaul.md](UIOverhaul.md) |
 | 2026-11-03 | Fix glance “this month” tickets/SLA: calendar MTD not rolling 30d (demo false match). - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-11-03 | Deployed `ee7456c`: mail DNS Phase C + IH alert hook + colleague demo. - [ServerOpsLog.md](ServerOpsLog.md), [ColleagueDemo.md](ColleagueDemo.md) |
 | 2026-11-03 | Colleague demo walkthrough. - [ColleagueDemo.md](ColleagueDemo.md) |

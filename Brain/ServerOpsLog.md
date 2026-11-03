@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-03 ~16:05 UK - Deploy glance calendar MTD tickets/SLA
+
+| | |
+|---|---|
+| Intent | Demo bug: "this month" tickets matched last month because closed count was rolling 30d labeled as MTD. Ship calendar-month SuperOps dashboard v6. |
+| Operator | agent |
+| SHA before -> after | `ee7456c` -> `447f96e` |
+| Steps | Push `447f96e` (usecure left uncommitted). SSH: bare `fetch origin main:main`, archive, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Reloaded PHP-FPM 8.4. `RefreshSuperOpsDashboardJob::dispatchSync(7)` for 3R. Removed `/tmp/deploy-mtd-glance.sh`. |
+| Result | Live `.deployed-commit` `447f96e`. `/up` 200, `/login` 200. 3R closed: `mtd=0`, `prev_month=14`, rolling `30=14` (explains the old false match). |
+| Rollback / watch | Redeploy `ee7456c`. Hard-refresh Client Admin `/dashboard`; other clients cold-miss into v6 on next prewarm/visit. |
+
 ### 2026-11-03 ~14:40 UK - Deploy mail DNS Phase C + IH alerts + demo guide
 
 | | |

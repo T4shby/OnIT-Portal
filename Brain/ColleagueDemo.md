@@ -66,6 +66,7 @@ Sign in as a **Client Admin** for a tenant with Microsoft connected (or use a co
 
 ### Dashboard
 - Glance cards for sold services
+- **This month / Last month** toggle - tickets closed and SLA are London **calendar** month (not rolling 30 days). Early in the month, “this month” can be low while “last month” still shows the full prior month (e.g. 3R: mtd 0 vs prev 14 after `447f96e`).
 - Microsoft 365 card → “View Microsoft 365 and MFA”
 
 ### Services menu
