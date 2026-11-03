@@ -90,7 +90,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-11-02 | Client Admin portal MFA methods page (Services → MFA methods); staff inventory unchanged. Deploy when asked. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
+| 2026-11-03 | Deployed `2c8c538`: Client Admin MFA methods + mail DNS PENDING/sync. - [ServerOpsLog.md](ServerOpsLog.md), [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
+| 2026-11-02 | Client Admin portal MFA methods page (Services → MFA methods); staff inventory unchanged. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-02 | Mail DNS: unchecked domains show PENDING (not red); Save / Add / heal run DNS check sync so Edit shows real bands. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-02 | Edit Client layout: form uses full width; setup guide sticky on the right (admin-split was reversed). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-02 | Deployed `b263c4b`: Edit Client mail domain nested-form fix live. - [ServerOpsLog.md](ServerOpsLog.md), [MailDomainDns.md](MailDomainDns.md) |

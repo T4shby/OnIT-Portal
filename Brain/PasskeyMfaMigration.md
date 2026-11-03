@@ -1,6 +1,6 @@
 # Passkey / SMS-voice MFA retirement (customer readiness)
 
-**Status:** Phase 1 inventory **live** for staff; Client Admin portal page added (deploy when asked).  
+**Status:** Phase 1 inventory **live** for staff and Client Admins (`2c8c538`, 2026-11-03).  
 **Audience:** On IT technicians **and** customer Client Admins preparing for Microsoft's passkey default and SMS/voice MFA retirement.  
 **Customer UI:** Client Admin full inventory + CSV (same data as staff). Not requesters / billing.
 

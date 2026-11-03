@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-03 ~10:00 UK - Deploy Client Admin MFA + mail DNS pending fix
+
+| | |
+|---|---|
+| Intent | Ship Client Admin MFA methods page (`/microsoft-365/mfa-methods`) and stop unchecked mail domains painting as red (PENDING + sync DNS on Save/Add/heal). |
+| Operator | agent |
+| SHA before -> after | `e21c979` -> `2c8c538` |
+| Steps | Push `2c8c538` (usecure skeleton left uncommitted). SSH: bare `fetch origin main:main`, `git archive main`, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Reloaded PHP-FPM 8.4. Removed `/tmp/deploy-mfa-client-admin.sh`. |
+| Result | Live `.deployed-commit` `2c8c538`. MFA controller + 3 `microsoft-365.mfa-methods*` routes present. `/up` 200, `/login` 200. |
+| Rollback / watch | Redeploy `e21c979`. Client Admin: Services → MFA methods. Edit Client mail domains: unchecked = PENDING; Save runs check now. |
+
 ### 2026-11-02 ~12:10 UK - Deploy Edit Client wide layout
 
 | | |
