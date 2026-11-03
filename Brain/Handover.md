@@ -56,7 +56,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 2. **YorPower, in SuperOps (client 10).** Many requesters share M365 primaries - full address list in [ServerOpsLog.md](ServerOpsLog.md) 21 Oct entry. Keep each address on the correct person; clear it from the other. Skip warnings are once/day until cleared. See [AccessAndSync.md](AccessAndSync.md).
 3. **usecure.** Put the partner API key, API URL, and one company id in the team password vault. Do not paste them into chat or git. Then ask for a probe. Steps: [UsecureIntegration.md](UsecureIntegration.md#next-steps). Leave `USECURE_ENABLED=false` until that probe is green.
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
-5. **Mail Phase C + IH alerts** are in the working tree / ready to ship when you ask to commit+deploy. Enable alerts only after Teams webhook (or alert email) is set - [MailDomainDns.md](MailDomainDns.md).
+5. **Mail Phase C + IH alert hook** are **live** (`ee7456c`). Enable alerts only after Teams webhook (or alert email) is set in production `.env`. Demo script: [ColleagueDemo.md](ColleagueDemo.md).
 6. MFA inventory is on Staff Admin **and** Client Admin (Services → MFA methods). Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
 
 ## Do not do these

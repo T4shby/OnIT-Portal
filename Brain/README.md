@@ -91,6 +91,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-03 | Deployed `ee7456c`: mail DNS Phase C + IH alert hook + colleague demo. - [ServerOpsLog.md](ServerOpsLog.md), [ColleagueDemo.md](ColleagueDemo.md) |
 | 2026-11-03 | Colleague demo walkthrough. - [ColleagueDemo.md](ColleagueDemo.md) |
 | 2026-11-03 | Mail domains Phase C (provider, history, CSV, extended DNS) + optional IH Teams/email alerts. - [MailDomainDns.md](MailDomainDns.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-03 | Deployed `2c8c538`: Client Admin MFA methods + mail DNS PENDING/sync. - [ServerOpsLog.md](ServerOpsLog.md), [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
