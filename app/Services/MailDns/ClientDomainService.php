@@ -104,10 +104,14 @@ class ClientDomainService
         $domain->delete();
     }
 
-    public function checkNow(ClientDomain $domain, bool $sync = false): ClientDomain
-    {
+    public function checkNow(
+        ClientDomain $domain,
+        bool $sync = false,
+        ?int $userId = null,
+        string $source = 'manual',
+    ): ClientDomain {
         if ($sync) {
-            return $this->dns->refresh($domain);
+            return $this->dns->refresh($domain, userId: $userId, source: $source);
         }
 
         CheckClientDomainDnsJob::dispatch($domain->id);

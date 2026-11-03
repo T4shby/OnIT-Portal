@@ -56,6 +56,8 @@ All **Dashboard glance** integrations implement `App\Contracts\DashboardFeed` an
 
 **Staff Admin speed (2026-11-02):** `/admin` sold-coverage + pipeline summary calls `overview(..., liveScimHealth: false)` so it never fans out live Graph SCIM checks across every tenant (that made Staff Admin hang for minutes). Live SCIM Graph runs only on **Integration Health**. Without a cache entry, dashboard SCIM shows **Not checked** (not Failed). Mail-domain IH notices are scoped to the viewer’s clients (account managers never see other tenant names there).
 
+**Optional push alerts (2026-11-03):** `portal:notify-integration-health` every 15 minutes. When severity stays `warning`/`critical` for `INTEGRATION_HEALTH_ALERT_SUSTAINED_MINUTES` (default 15), send once to Teams webhook and/or email, then cooldown (`INTEGRATION_HEALTH_ALERT_COOLDOWN_MINUTES`, default 180). Off until `INTEGRATION_HEALTH_ALERTS_ENABLED=true` plus a channel. In-app IH remains the primary surface (ADR-023).
+
 **Repair:**
 - Credentials missing → Edit Client → **Apply SCIM**
 - Job stopped but templates OK → **Retry SCIM export** or `portal:repair-superops-scim --client={id}`

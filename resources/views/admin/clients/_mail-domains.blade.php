@@ -1,6 +1,7 @@
 @php
     /** @var \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection $mailDomains */
     $mailDomains = collect($mailDomains ?? []);
+    $mailDnsHistory = collect($mailDnsHistory ?? []);
     $entraMailDomains = is_array($entraMailDomains ?? null) ? $entraMailDomains : null;
     $bandColor = fn (string $band) => match ($band) {
         'green' => 'text-emerald-400',
@@ -9,6 +10,8 @@
         default => 'text-rose-400',
     };
     $hasPrimaryField = filled($client->primary_domain);
+    $coreKeys = ['mx', 'spf', 'dkim', 'dmarc'];
+    $extendedKeys = ['autodiscover', 'mta_sts', 'tls_rpt', 'bimi'];
 @endphp
 
 <div id="mail-domains">
@@ -16,14 +19,19 @@
         <div class="min-w-0 flex-1">
             <h3 class="admin-section-title mb-1 text-base">Mail domains</h3>
             <p class="text-xs text-white/50 max-w-3xl">
-                Step 00. Green = correct · Yellow = weak · Red = missing.
+                Step 00. Green = correct · Yellow = weak / optional missing · Red = core record missing.
+                Core = MX / SPF / DKIM / DMARC. Extended = Autodiscover / MTA-STS / TLS-RPT / BIMI (advisory).
                 Main domain is saved with <strong class="text-white/70">Save client</strong> above.
-                This card is Import, extra domains, and DNS checks only.
             </p>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-3">
             @if($mailDnsStillRed ?? false)
                 <span class="text-xs uppercase tracking-wide text-rose-300">DNS still has red</span>
+            @endif
+            @if($mailDomains->isNotEmpty())
+                <a href="{{ route('admin.clients.domains.export', $client) }}" class="cta-btn-ghost text-xs px-3 py-2 uppercase tracking-wide">
+                    Export CSV
+                </a>
             @endif
             @if(filled($client->entra_tenant_id))
                 <form method="POST" action="{{ route('admin.clients.domains.sync-entra', $client) }}">
@@ -79,10 +87,12 @@
                     <tr class="text-left text-xs uppercase tracking-wide text-white/45">
                         <th class="py-2 pr-3">Domain</th>
                         <th class="py-2 pr-3">Overall</th>
-                        <th class="py-2 pr-3">MX</th>
-                        <th class="py-2 pr-3">SPF</th>
-                        <th class="py-2 pr-3">DKIM</th>
-                        <th class="py-2 pr-3">DMARC</th>
+                        @foreach($coreKeys as $key)
+                            <th class="py-2 pr-3">{{ strtoupper(str_replace('_', '-', $key)) }}</th>
+                        @endforeach
+                        @foreach($extendedKeys as $key)
+                            <th class="py-2 pr-3">{{ strtoupper(str_replace('_', '-', $key)) }}</th>
+                        @endforeach
                         <th class="py-2 pr-3"></th>
                     </tr>
                 </thead>
@@ -93,12 +103,16 @@
                             $checks = is_array($result['checks'] ?? null) ? $result['checks'] : [];
                             $pending = $domain->last_checked_at === null;
                             $overall = $pending ? 'pending' : (string) ($result['overall'] ?? 'pending');
+                            $provider = $domain->providerLabel();
                         @endphp
                         <tr class="border-t border-white/10 align-top">
                             <td class="py-3 pr-3">
                                 <div class="font-medium text-white">{{ $domain->domain }}</div>
                                 @if($domain->is_primary)
                                     <div class="text-xs text-onit">Primary</div>
+                                @endif
+                                @if($provider)
+                                    <div class="text-xs text-white/45">{{ $provider }}</div>
                                 @endif
                                 @if($domain->last_checked_at)
                                     <div class="text-xs text-white/40">Checked {{ $domain->last_checked_at->diffForHumans() }}</div>
@@ -107,7 +121,7 @@
                                 @endif
                             </td>
                             <td class="py-3 pr-3 {{ $bandColor($overall) }}">{{ strtoupper($overall) }}</td>
-                            @foreach(['mx', 'spf', 'dkim', 'dmarc'] as $key)
+                            @foreach(array_merge($coreKeys, $extendedKeys) as $key)
                                 @php
                                     $check = is_array($checks[$key] ?? null) ? $checks[$key] : [];
                                     $band = $pending ? 'pending' : (string) ($check['band'] ?? 'pending');
@@ -116,7 +130,7 @@
                                     <div class="{{ $bandColor($band) }}">
                                         {{ strtoupper($band) }}
                                     </div>
-                                    <div class="text-xs text-white/50 max-w-[10rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
+                                    <div class="text-xs text-white/50 max-w-[9rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
                                 </td>
                             @endforeach
                             <td class="py-3 pr-0 whitespace-nowrap">
@@ -145,6 +159,28 @@
         <p class="mb-4 text-sm text-white/55">
             No domains yet. Set main domain above and Save client, or Import from Microsoft.
         </p>
+    @endif
+
+    @if($mailDnsHistory->isNotEmpty())
+        <div class="mb-6 border border-white/10 bg-black/20 px-3 py-3">
+            <h4 class="text-xs uppercase tracking-wide text-white/45 mb-2">Recent DNS checks</h4>
+            <ul class="space-y-1 text-xs text-white/65">
+                @foreach($mailDnsHistory as $row)
+                    <li>
+                        <span class="{{ $bandColor((string) $row->overall) }}">{{ strtoupper((string) $row->overall) }}</span>
+                        · {{ $row->domain?->domain ?? 'domain' }}
+                        · {{ $row->checked_at?->diffForHumans() ?? '-' }}
+                        · {{ $row->source }}
+                        @if($row->checkedBy)
+                            · {{ $row->checkedBy->name }}
+                        @endif
+                        @if($row->provider_key)
+                            · {{ $row->provider_key }}
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     @endif
 
     <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

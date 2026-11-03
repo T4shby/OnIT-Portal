@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClientDomain extends Model
 {
@@ -31,6 +32,19 @@ class ClientDomain extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function dnsChecks(): HasMany
+    {
+        return $this->hasMany(ClientDomainDnsCheck::class)->orderByDesc('checked_at');
+    }
+
+    public function providerLabel(): ?string
+    {
+        $result = is_array($this->last_result) ? $this->last_result : [];
+        $label = $result['provider']['label'] ?? null;
+
+        return is_string($label) && $label !== '' ? $label : null;
     }
 
     public function overallBand(): string

@@ -69,3 +69,8 @@ Schedule::command('portal:prune-expired-cache')
 Schedule::command('portal:recheck-client-domain-dns')
     ->dailyAt('04:10')
     ->withoutOverlapping(120);
+
+// Optional Teams/email when Integration Health stays warning/critical.
+Schedule::command('portal:notify-integration-health')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(10);

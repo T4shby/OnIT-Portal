@@ -3,11 +3,26 @@
 namespace App\Services\MailDns;
 
 use App\Models\ClientDomain;
+use App\Models\ClientDomainDnsCheck;
 use App\Support\MailDomain;
 use Carbon\Carbon;
 
 class MailDnsHealthService
 {
+    /**
+     * Core checks that drive overall / checklist / hand-off red warnings.
+     *
+     * @var list<string>
+     */
+    public const CORE_CHECK_KEYS = ['mx', 'spf', 'dkim', 'dmarc'];
+
+    /**
+     * Advisory hardening checks (Phase C). Missing → yellow, not red.
+     *
+     * @var list<string>
+     */
+    public const EXTENDED_CHECK_KEYS = ['autodiscover', 'mta_sts', 'tls_rpt', 'bimi'];
+
     /**
      * Known DKIM selectors across common mail/security platforms.
      *
@@ -36,8 +51,10 @@ class MailDnsHealthService
     /**
      * @return array{
      *   overall: string,
+     *   overall_extended: string,
      *   checked_at: string,
      *   domain: string,
+     *   provider: array{key: string, label: string, confidence: string},
      *   checks: array<string, array{band: string, summary: string, detail: ?string, records?: list<string>}>
      * }
      */
@@ -48,24 +65,50 @@ class MailDnsHealthService
         $spf = $this->checkSpf($domain);
         $dmarc = $this->checkDmarc($domain);
         $dkim = $this->checkDkim($domain, $extraSelectors);
+        $autodiscover = $this->checkAutodiscover($domain);
+        $mtaSts = $this->checkMtaSts($domain);
+        $tlsRpt = $this->checkTlsRpt($domain);
+        $bimi = $this->checkBimi($domain);
 
         $checks = [
             'mx' => $mx,
             'spf' => $spf,
             'dkim' => $dkim,
             'dmarc' => $dmarc,
+            'autodiscover' => $autodiscover,
+            'mta_sts' => $mtaSts,
+            'tls_rpt' => $tlsRpt,
+            'bimi' => $bimi,
         ];
 
+        $coreBands = [];
+        foreach (self::CORE_CHECK_KEYS as $key) {
+            $coreBands[] = (string) ($checks[$key]['band'] ?? 'red');
+        }
+
+        $allBands = array_map(
+            fn (array $check): string => (string) ($check['band'] ?? 'red'),
+            array_values($checks),
+        );
+
         return [
-            'overall' => $this->worstBand(array_column($checks, 'band')),
+            'overall' => $this->worstBand($coreBands),
+            'overall_extended' => $this->worstBand($allBands),
             'checked_at' => now()->toIso8601String(),
             'domain' => $domain,
+            'provider' => $this->detectProvider(is_array($mx['records'] ?? null) ? $mx['records'] : []),
             'checks' => $checks,
         ];
     }
 
-    public function refresh(ClientDomain $clientDomain): ClientDomain
-    {
+    /**
+     * @param  'manual'|'sync'|'nightly'|'heal'|'import'  $source
+     */
+    public function refresh(
+        ClientDomain $clientDomain,
+        ?int $userId = null,
+        string $source = 'manual',
+    ): ClientDomain {
         $extra = is_array($clientDomain->dkim_selectors) ? $clientDomain->dkim_selectors : [];
         $result = $this->checkDomain($clientDomain->domain, $extra);
 
@@ -73,6 +116,18 @@ class MailDnsHealthService
             'last_checked_at' => Carbon::parse($result['checked_at']),
             'last_result' => $result,
         ])->save();
+
+        ClientDomainDnsCheck::query()->create([
+            'client_id' => $clientDomain->client_id,
+            'client_domain_id' => $clientDomain->id,
+            'checked_by_user_id' => $userId,
+            'source' => in_array($source, ['manual', 'sync', 'nightly', 'heal', 'import'], true) ? $source : 'manual',
+            'overall' => (string) ($result['overall'] ?? 'red'),
+            'overall_extended' => (string) ($result['overall_extended'] ?? $result['overall'] ?? 'red'),
+            'provider_key' => (string) ($result['provider']['key'] ?? 'unknown'),
+            'result' => $result,
+            'checked_at' => Carbon::parse($result['checked_at']),
+        ]);
 
         return $clientDomain->refresh();
     }
@@ -287,6 +342,168 @@ class MailDnsHealthService
             'records' => [],
             'selectors_found' => [],
         ];
+    }
+
+    /**
+     * @return array{band: string, summary: string, detail: ?string, records: list<string>}
+     */
+    private function checkAutodiscover(string $domain): array
+    {
+        $cnameName = 'autodiscover.'.$domain;
+        $cnameTargets = [];
+        foreach ($this->dnsRecords($cnameName, DNS_CNAME) as $row) {
+            $target = rtrim((string) ($row['target'] ?? ''), '.');
+            if ($target !== '') {
+                $cnameTargets[] = $target;
+            }
+        }
+
+        $srvName = '_autodiscover._tcp.'.$domain;
+        $srvTargets = [];
+        foreach ($this->dnsRecords($srvName, DNS_SRV) as $row) {
+            $target = rtrim((string) ($row['target'] ?? ''), '.');
+            if ($target !== '') {
+                $srvTargets[] = $target;
+            }
+        }
+
+        $records = array_values(array_unique(array_merge($cnameTargets, $srvTargets)));
+        if ($records !== []) {
+            return [
+                'band' => 'green',
+                'summary' => $cnameTargets !== [] ? 'Autodiscover CNAME present' : 'Autodiscover SRV present',
+                'detail' => implode(', ', $records),
+                'records' => $records,
+            ];
+        }
+
+        return [
+            'band' => 'yellow',
+            'summary' => 'No Autodiscover CNAME/SRV',
+            'detail' => 'Optional for clients; M365 usually uses autodiscover.'.$domain.' CNAME.',
+            'records' => [],
+        ];
+    }
+
+    /**
+     * @return array{band: string, summary: string, detail: ?string, records: list<string>}
+     */
+    private function checkMtaSts(string $domain): array
+    {
+        $txt = $this->txtStrings('_mta-sts.'.$domain);
+        $records = array_values(array_filter(
+            $txt,
+            fn (string $v) => str_contains(strtolower($v), 'v=stsv1'),
+        ));
+
+        if ($records !== []) {
+            return [
+                'band' => 'green',
+                'summary' => 'MTA-STS DNS record present',
+                'detail' => $records[0],
+                'records' => $records,
+            ];
+        }
+
+        return [
+            'band' => 'yellow',
+            'summary' => 'No MTA-STS TXT',
+            'detail' => 'Optional hardening. Publish TXT on _mta-sts.'.$domain.' when ready.',
+            'records' => [],
+        ];
+    }
+
+    /**
+     * @return array{band: string, summary: string, detail: ?string, records: list<string>}
+     */
+    private function checkTlsRpt(string $domain): array
+    {
+        $txt = $this->txtStrings('_smtp._tls.'.$domain);
+        $records = array_values(array_filter(
+            $txt,
+            fn (string $v) => str_contains(strtolower($v), 'v=tlsrpt'),
+        ));
+
+        if ($records !== []) {
+            return [
+                'band' => 'green',
+                'summary' => 'TLS-RPT present',
+                'detail' => $records[0],
+                'records' => $records,
+            ];
+        }
+
+        return [
+            'band' => 'yellow',
+            'summary' => 'No TLS-RPT TXT',
+            'detail' => 'Optional. Publish TXT on _smtp._tls.'.$domain.' for TLS failure reports.',
+            'records' => [],
+        ];
+    }
+
+    /**
+     * @return array{band: string, summary: string, detail: ?string, records: list<string>}
+     */
+    private function checkBimi(string $domain): array
+    {
+        $txt = $this->txtStrings('default._bimi.'.$domain);
+        $records = array_values(array_filter(
+            $txt,
+            fn (string $v) => str_contains(strtolower($v), 'v=bimi1'),
+        ));
+
+        if ($records !== []) {
+            return [
+                'band' => 'green',
+                'summary' => 'BIMI record present',
+                'detail' => $records[0],
+                'records' => $records,
+            ];
+        }
+
+        return [
+            'band' => 'yellow',
+            'summary' => 'No BIMI record',
+            'detail' => 'Optional brand mark. Needs DMARC enforcement first.',
+            'records' => [],
+        ];
+    }
+
+    /**
+     * @param  list<string>  $mxHosts
+     * @return array{key: string, label: string, confidence: string}
+     */
+    private function detectProvider(array $mxHosts): array
+    {
+        $joined = strtolower(implode(' ', $mxHosts));
+
+        $profiles = [
+            ['key' => 'm365', 'label' => 'Microsoft 365', 'needles' => ['mail.protection.outlook.com', 'protection.outlook.com']],
+            ['key' => 'google', 'label' => 'Google Workspace', 'needles' => ['aspmx.l.google.com', 'google.com', 'googlemail.com']],
+            ['key' => 'mimecast', 'label' => 'Mimecast', 'needles' => ['mimecast.com']],
+            ['key' => 'proofpoint', 'label' => 'Proofpoint', 'needles' => ['pphosted.com', 'proofpoint.com']],
+            ['key' => 'barracuda', 'label' => 'Barracuda', 'needles' => ['barracudanetworks.com', 'cuda']],
+            ['key' => 'mailgun', 'label' => 'Mailgun', 'needles' => ['mailgun.org']],
+            ['key' => 'sendgrid', 'label' => 'SendGrid', 'needles' => ['sendgrid.net']],
+        ];
+
+        foreach ($profiles as $profile) {
+            foreach ($profile['needles'] as $needle) {
+                if (str_contains($joined, $needle)) {
+                    return [
+                        'key' => $profile['key'],
+                        'label' => $profile['label'],
+                        'confidence' => 'mx',
+                    ];
+                }
+            }
+        }
+
+        if ($mxHosts === []) {
+            return ['key' => 'unknown', 'label' => 'Unknown', 'confidence' => 'none'];
+        }
+
+        return ['key' => 'other', 'label' => 'Other / custom MX', 'confidence' => 'mx'];
     }
 
     /**

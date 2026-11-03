@@ -13,7 +13,7 @@ Do not start Phase 2 until asked.
 
 ## Waiting
 
-- Mail domains Phase C (provider profiles / history / CSV) - after this programme or when asked.
+- Deploy Mail Phase C + IH alerts when Tom asks (migration `client_domain_dns_checks`; set Teams webhook / alert email then enable).
 - Pax8 billed catalogue.
 - YorPower SuperOps duplicate email (human).
 - usecure partner key in vault (human). Leave `USECURE_ENABLED=false`. Do not commit the local usecure skeleton.

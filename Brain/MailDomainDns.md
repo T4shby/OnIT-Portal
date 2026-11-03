@@ -1,8 +1,8 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A + Phase B **live**. Phase C waits until asked.  
+**Status:** Phase A + B **live**. Phase C (provider profiles, history, CSV, extended DNS) built - deploy when asked.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
-**Customer UI:** Staff only through Phase B. Later: Client Admin may see (not requesters).
+**Customer UI:** Staff Edit Client for DNS. Client Admin MFA is separate.
 
 Portal is the main onboarding guide. Every new customer needs a **main domain** at create time. DNS health (MX / SPF / DKIM / DMARC) is checked in-app so mail readiness is not a separate spreadsheet.
 
@@ -65,17 +65,19 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 6. Integration Health notices for missing primary / still-red DNS.
 7. Optional: add **Domain.Read.All** Application permission + Grant + customer re-consent for the full verified-domain list (mailbox fallback works without it).
 
-### Phase C - Hardening
+### Phase C - Hardening (implemented in repo)
 
-1. Provider profiles (M365 vs Google vs Mimecast / other relay).
-2. History of check results (who ran, when).
-3. Optional export for customer pack (CSV).
+1. Provider profiles from MX (M365 / Google / Mimecast / Proofpoint / Barracuda / Mailgun / SendGrid / other).
+2. History table `client_domain_dns_checks` (who, when, source, overall, full result JSON). Shown on Edit Client.
+3. Export CSV on Edit Client → Mail domains.
+4. Extended DNS checks (advisory yellow when missing - do **not** drive checklist red): Autodiscover, MTA-STS, TLS-RPT, BIMI.
+5. `overall` = worst of core MX/SPF/DKIM/DMARC. `overall_extended` includes advisory checks.
 
-### After C (backlog, not started)
+### After C (backlog)
 
 1. Client Admin read-only mail health on home/Reports (staff remain source of truth for fixes).
-2. Autodiscover / MTA-STS / TLS-RPT / BIMI if ops ask.
-3. Pax8 deeper and the rest of the former near-term backlog resume after this programme.
+2. HTTPS fetch of MTA-STS policy file (DNS TXT only today).
+3. Pax8 deeper and the rest of the former near-term backlog.
 
 ## Data model
 
@@ -102,6 +104,10 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 | SPF | TXT apex | One `v=spf1` with `~all` or `-all` | Multiple SPF, or `+all`, or broken | No SPF |
 | DMARC | TXT `_dmarc.{domain}` | `v=DMARC1` with `p=quarantine` or `p=reject` | `p=none` or odd policy | No DMARC |
 | DKIM | TXT `{selector}._domainkey.{domain}` (+ CNAME follow) | ≥1 valid public key | Selector present but unusable | No selector found |
+| Autodiscover | CNAME `autodiscover.` or SRV `_autodiscover._tcp.` | Present | Missing (advisory) | - |
+| MTA-STS | TXT `_mta-sts.` with `v=STSv1` | Present | Missing (advisory) | - |
+| TLS-RPT | TXT `_smtp._tls.` with `v=TLSRPT` | Present | Missing (advisory) | - |
+| BIMI | TXT `default._bimi.` with `v=BIMI1` | Present | Missing (advisory) | - |
 
 **DKIM selector list (v1):** `selector1`, `selector2` (M365), `s1`, `s2`, `s3`, `google`, `default`, `dkim`, `k1`, `k2`, `k3`, `cm`, `sm`, `mimecast`, `s1024`, `s2048`, `mailgun`, `mg`, `sendgrid`, `smtpapi`, `everlytick`, `zendesk1`, `zendesk2`, `amazonses`, plus any custom selectors on the domain row.
 
@@ -123,14 +129,17 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 | After Connect | `SyncClientEntraMailDomainsJob` from `BootstrapClientEntraJob` |
 | Nightly DNS | `portal:recheck-client-domain-dns` |
 | Bulk backfill | `portal:sync-entra-mail-domains --empty-primary-only` |
+| History | `client_domain_dns_checks` / `ClientDomainDnsCheck` |
+| CSV | `admin.clients.domains.export` |
 | Checklist | `ClientOnboardingService` step `mail_domains_dns` |
-| Create / Edit UI | `admin/clients/create`, `_mail-domains` (Import from Microsoft) |
+| Create / Edit UI | `admin/clients/create`, `_mail-domains` (Import / Export / history) |
 | Docs | This file; TechnicianTenantOnboarding; ClientOnboarding |
 
 ## Changelog
 
 | Date | Note |
 |---|---|
+| 2026-11-03 | Phase C: provider profiles, check history, CSV export, Autodiscover/MTA-STS/TLS-RPT/BIMI (advisory). |
 | 2026-11-02 | Edit layout: wide form + right guide (`admin-split` column order fixed). Mail domains card outside Save; heal primary without DNS row. |
 | 2026-11-02 | Edit UX: Mail domains card outside Save form (nested forms broke Import/Add). Heal primary without DNS row on Edit. |
 | 2026-10-27 | Phase B: Entra verified domains + mailbox-suffix fallback, seed empty primary, nightly recheck, IH notices. |

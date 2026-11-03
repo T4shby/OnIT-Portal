@@ -14,6 +14,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Document | Purpose |
 |---|---|
 | [Handover.md](Handover.md) | **Start here in a new chat** - what the app is, what is live, what is still waiting |
+| [ColleagueDemo.md](ColleagueDemo.md) | **Colleague walkthrough** - what to show on live (IH, mail DNS, MFA, Client Admin) |
 | [NEXT_TASK.md](NEXT_TASK.md) | The one next product task. Do not start it until asked |
 | [MailDomainDns.md](MailDomainDns.md) | **Mail domains + DNS health** - create requires main domain; MX/SPF/DKIM/DMARC; Phases A-C |
 | [PasskeyMfaMigration.md](PasskeyMfaMigration.md) | **Passkey / SMS-voice MFA retirement** - per-user methods, SMS risk, staff CSV; Microsoft Feb 2027 |
@@ -90,6 +91,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-03 | Colleague demo walkthrough. - [ColleagueDemo.md](ColleagueDemo.md) |
+| 2026-11-03 | Mail domains Phase C (provider, history, CSV, extended DNS) + optional IH Teams/email alerts. - [MailDomainDns.md](MailDomainDns.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-03 | Deployed `2c8c538`: Client Admin MFA methods + mail DNS PENDING/sync. - [ServerOpsLog.md](ServerOpsLog.md), [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
 | 2026-11-02 | Client Admin portal MFA methods page (Services → MFA methods); staff inventory unchanged. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-02 | Mail DNS: unchecked domains show PENDING (not red); Save / Add / heal run DNS check sync so Edit shows real bands. - [MailDomainDns.md](MailDomainDns.md) |

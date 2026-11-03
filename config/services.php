@@ -150,4 +150,13 @@ return [
         'insights_refresh_cooldown_seconds' => env('M365_INSIGHTS_REFRESH_COOLDOWN_SECONDS', 60),
     ],
 
+    // Optional push when IH stays warning/critical. In-app IH remains primary (ADR-023).
+    'integration_health_alerts' => [
+        'enabled' => filter_var(env('INTEGRATION_HEALTH_ALERTS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'teams_webhook_url' => env('INTEGRATION_HEALTH_TEAMS_WEBHOOK_URL'),
+        'email_to' => env('INTEGRATION_HEALTH_ALERT_EMAIL_TO', ''),
+        'sustained_minutes' => max(5, (int) env('INTEGRATION_HEALTH_ALERT_SUSTAINED_MINUTES', 15)),
+        'cooldown_minutes' => max(30, (int) env('INTEGRATION_HEALTH_ALERT_COOLDOWN_MINUTES', 180)),
+    ],
+
 ];

@@ -71,6 +71,7 @@
                     'mailDomains' => $mailDomains ?? $client->domains,
                     'mailDnsStillRed' => $mailDnsStillRed ?? false,
                     'entraMailDomains' => $entraMailDomains ?? null,
+                    'mailDnsHistory' => $mailDnsHistory ?? collect(),
                 ])
             </x-card>
 

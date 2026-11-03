@@ -336,7 +336,9 @@ Reason:
 Sold→live/cold state is already computed live; email is stale, unauthenticated, and duplicates IH. Ops target is **cold sold cells = 0**, visible in one place operators already open.
 
 Consequences:
-`IntegrationHealthService::productCoverage()` + admin dashboard matrix. Email digests only if a future backlog item explicitly requests push alerts (see [Roadmap.md](Roadmap.md)).
+`IntegrationHealthService::productCoverage()` + admin dashboard matrix. Email digests are not the primary KPI surface.
+
+**Update 2026-11-03:** Optional **threshold push** (Teams webhook and/or email) when IH severity stays warning/critical is allowed via `portal:notify-integration-health`. That is an ops hook, not a sold-coverage digest. Keep `INTEGRATION_HEALTH_ALERTS_ENABLED=false` until webhook/mail is configured.
 
 ---
 

@@ -23,7 +23,7 @@ class MailDnsHealthServiceTest extends TestCase
         $domain = 'mail-health.example';
         $service->map = [
             $domain => [
-                DNS_MX => [['target' => 'mx1.mail-health.example.']],
+                DNS_MX => [['target' => 'mail-health-example.mail.protection.outlook.com.']],
                 DNS_TXT => [
                     ['txt' => 'v=spf1 include:spf.protection.outlook.com -all'],
                 ],
@@ -46,6 +46,10 @@ class MailDnsHealthServiceTest extends TestCase
         $this->assertSame('green', $green['checks']['dmarc']['band']);
         $this->assertSame('green', $green['checks']['dkim']['band']);
         $this->assertSame('green', $green['overall']);
+        // Extended checks missing → yellow advisory; core overall stays green.
+        $this->assertSame('yellow', $green['checks']['mta_sts']['band']);
+        $this->assertSame('yellow', $green['overall_extended']);
+        $this->assertSame('m365', $green['provider']['key']);
 
         $service->map[$domain][DNS_TXT] = [
             ['txt' => 'v=spf1 include:spf.protection.outlook.com +all'],

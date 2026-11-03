@@ -33,7 +33,7 @@ class CheckClientDomainDnsJob implements ShouldQueue
         }
 
         try {
-            $dns->refresh($domain);
+            $dns->refresh($domain, userId: null, source: 'nightly');
         } catch (\Throwable $e) {
             Log::warning('Client domain DNS check failed', [
                 'client_domain_id' => $this->clientDomainId,

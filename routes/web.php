@@ -183,6 +183,8 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/domains/{domain}/check', [ClientController::class, 'checkDomain'])
                 ->middleware('throttle:30,1')
                 ->name('clients.domains.check');
+            Route::get('clients/{client}/domains/export', [ClientController::class, 'exportDomains'])
+                ->name('clients.domains.export');
             Route::delete('clients/{client}/domains/{domain}', [ClientController::class, 'destroyDomain'])
                 ->name('clients.domains.destroy');
             Route::post('clients/{client}/sync-entra', [ClientController::class, 'syncEntra'])

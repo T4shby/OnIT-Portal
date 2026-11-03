@@ -16,6 +16,7 @@ use App\Jobs\SyncEntraClientJob;
 use App\Jobs\WarmClientOnboardingChecksJob;
 use App\Models\Client;
 use App\Models\ClientDomain;
+use App\Models\ClientDomainDnsCheck;
 use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
@@ -28,6 +29,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientController extends Controller
 {
@@ -118,6 +120,12 @@ class ClientController extends Controller
             'mailDomains' => $client->domains,
             'mailDnsStillRed' => $this->domains->anyDomainStillRed($client),
             'entraMailDomains' => $this->entraDomains->cached($client),
+            'mailDnsHistory' => ClientDomainDnsCheck::query()
+                ->where('client_id', $client->id)
+                ->with(['domain', 'checkedBy'])
+                ->orderByDesc('checked_at')
+                ->limit(12)
+                ->get(),
         ];
     }
 
@@ -166,7 +174,7 @@ class ClientController extends Controller
             dkimSelectors: $selectors,
         );
         // Sync so Edit does not flash "queued" then paint unchecked rows as red/pending.
-        $this->domains->checkNow($row->fresh(), sync: true);
+        $this->domains->checkNow($row->fresh(), sync: true, userId: $request->user()?->id, source: 'manual');
         $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
 
         $this->activityLog->log('client.domain_added', $client, clientId: $client->id);
@@ -180,11 +188,68 @@ class ClientController extends Controller
         $this->authorize('update', $client);
         abort_unless($domain->client_id === $client->id, 404);
 
-        $this->domains->checkNow($domain, sync: true);
+        $this->domains->checkNow($domain, sync: true, userId: request()->user()?->id, source: 'manual');
         $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
 
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', 'DNS checked for '.$domain->domain.'.');
+    }
+
+    public function exportDomains(Client $client): StreamedResponse|RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        $domains = $client->domains()->orderByDesc('is_primary')->orderBy('domain')->get();
+        if ($domains->isEmpty()) {
+            return redirect()->route('admin.clients.edit', $client)
+                ->with('error', 'No mail domains to export yet.');
+        }
+
+        $filename = 'mail-dns-'.$client->slug.'-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($domains): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, [
+                'domain',
+                'is_primary',
+                'provider',
+                'overall',
+                'overall_extended',
+                'mx',
+                'spf',
+                'dkim',
+                'dmarc',
+                'autodiscover',
+                'mta_sts',
+                'tls_rpt',
+                'bimi',
+                'last_checked_at',
+            ]);
+            foreach ($domains as $domain) {
+                $result = is_array($domain->last_result) ? $domain->last_result : [];
+                $checks = is_array($result['checks'] ?? null) ? $result['checks'] : [];
+                $band = static fn (string $key): string => (string) ($checks[$key]['band'] ?? '');
+                fputcsv($out, [
+                    $domain->domain,
+                    $domain->is_primary ? 'yes' : 'no',
+                    (string) ($result['provider']['label'] ?? ''),
+                    (string) ($result['overall'] ?? ''),
+                    (string) ($result['overall_extended'] ?? ''),
+                    $band('mx'),
+                    $band('spf'),
+                    $band('dkim'),
+                    $band('dmarc'),
+                    $band('autodiscover'),
+                    $band('mta_sts'),
+                    $band('tls_rpt'),
+                    $band('bimi'),
+                    optional($domain->last_checked_at)?->toIso8601String() ?? '',
+                ]);
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function destroyDomain(Client $client, ClientDomain $domain): RedirectResponse
@@ -253,7 +318,7 @@ class ClientController extends Controller
         ]);
 
         $primaryRow = $this->domains->setPrimaryDomain($client, (string) $request->primary_domain, queueCheck: false);
-        $this->domains->checkNow($primaryRow, sync: true);
+        $this->domains->checkNow($primaryRow, sync: true, userId: $request->user()?->id, source: 'heal');
 
         $productToggles = $request->input('products', []);
         if (is_array($productToggles) && $productToggles !== []) {
@@ -278,7 +343,7 @@ class ClientController extends Controller
         // Older rows may have clients.primary_domain without a client_domains DNS row.
         if (filled($client->primary_domain) && ! $client->domains()->exists()) {
             $row = $this->domains->setPrimaryDomain($client, (string) $client->primary_domain, queueCheck: false);
-            $this->domains->checkNow($row, sync: true);
+            $this->domains->checkNow($row, sync: true, userId: request()->user()?->id, source: 'heal');
             $client->refresh();
         }
 
@@ -314,7 +379,7 @@ class ClientController extends Controller
 
         // Sync DNS for the primary so Edit shows real bands immediately (not "red / not checked").
         $primaryRow = $this->domains->setPrimaryDomain($client->fresh(), (string) $request->primary_domain, queueCheck: false);
-        $this->domains->checkNow($primaryRow, sync: true);
+        $this->domains->checkNow($primaryRow, sync: true, userId: $request->user()?->id, source: 'sync');
         $client->refresh();
 
         $productToggles = $request->input('products', []);
