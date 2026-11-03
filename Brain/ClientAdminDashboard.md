@@ -222,7 +222,7 @@ PHP is not multi-threaded inside one worker. Parallelism = **multiple queue work
 
 Service: `App\Services\SuperOps\SuperOpsClientMetricsService`
 
-Cache key: `client:{client_id}:superops-dashboard:v5`
+Cache key: `client:{client_id}:superops-dashboard:v6`
 
 Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, purchase age), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (30 days), and ticket logged/closed ranges.
 

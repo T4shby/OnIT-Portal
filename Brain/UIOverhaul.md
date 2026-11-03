@@ -53,11 +53,12 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 
 | Field | Source | Notes |
 |-------|--------|--------|
-| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` / `Still Issue` (and a later status whose name contains Still Issue) | Cache `superops-dashboard:v5` |
+| **Waiting on you** | SuperOps open ticket statuses `Waiting on Client` / `Waiting on Customer` / `Still Issue` (and a later status whose name contains Still Issue) | Cache `superops-dashboard:v6` |
 | **Threats stopped (MTD)** | Huntress incident list closed this calendar month (London) | Value strip **only when Huntress is sold/live** - never empty “-” when not sold |
 | **Threat responses (MTD)** | Remediation actions on cases touched this month | ITDR-ish narrative only when &gt; 0 |
 | **Activity feed** | SuperOps open + recently closed tickets, Huntress cases (actions nested), Dropsuite mailbox errors | One clickable ticket or case. Public replies are on the ticket page. Internal notes are not shown. See below. |
-| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control. When it exists, This month and Last month are links. Last month replaces service figures with that stored day. The activity list stays recent work. |
+| **Tickets we closed / SLA** | SuperOps closed tickets **calendar month-to-date** (Europe/London), cache `superops-dashboard:v6` | Was wrongly rolling **30 days**, so early-month “this month” matched “last month”. Rolling 7/14/30 still stored on the payload for Support & Devices detail. |
+| **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control. When it exists, This month and Last month are links. Last month prefers live previous-calendar-month SuperOps closed/SLA when available (beats legacy 30d snapshots). Activity list stays recent work. |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
 | **Device patch / need updates** | SuperOps `patchStatus` on asset list (Support & Devices) | Restart uses 2+ day `sysUptime` with paginated names; RAM/disk not shown |
@@ -167,6 +168,7 @@ Do **not** use Tailwind `flex` / `lg:flex-row` / `w-full` for the 1c rail+main s
 
 | Date | Note |
 |------|------|
+| 2026-11-03 | Glance tickets closed + SLA use calendar MTD (not rolling 30d). Last-month compare uses previous calendar month from the live SuperOps feed when present. |
 | 2026-10-16 | Last month on the client home and Reports is a real period. It shows the stored end-of-month figures. The control stays hidden until that row exists. |
 | 2026-10-09 | Activity copy: Waiting on third party is someone outside the ticket. Still Issue (and a later Still Issue chase) is waiting on you. |
 | 2026-09-08 | Activity feed: action headlines + high-contrast status badge; include closed tickets; SuperOps `updatedTime` on dashboard ticket rows. |

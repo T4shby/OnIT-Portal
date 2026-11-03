@@ -403,8 +403,10 @@ class SuperOpsClientMetricsService
                 'closed_tickets_table' => $this->closedTicketsTable($tickets),
                 'requester_tickets' => $this->requesterTicketRows($tickets),
                 'tickets_by_category' => $this->ticketsByCategory($tickets),
-                'sla_met_percent' => $this->slaMetPercent($tickets),
-                'sla_sample_size' => $this->slaSampleSize($tickets),
+                'sla_met_percent' => $this->slaMetPercent($tickets, 'mtd'),
+                'sla_sample_size' => $this->slaSampleSize($tickets, 'mtd'),
+                'sla_met_percent_prev_month' => $this->slaMetPercent($tickets, 'prev_month'),
+                'sla_sample_size_prev_month' => $this->slaSampleSize($tickets, 'prev_month'),
                 'tickets_created' => $this->countTicketsCreated($tickets),
                 'tickets_closed' => $this->countTicketsClosed($tickets),
                 'last_refreshed_at' => now()->toIso8601String(),
@@ -829,20 +831,22 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * Resolution SLA met % for tickets closed in the last 30 days.
+     * Resolution SLA met % for closed tickets in a window.
+     * Default window is calendar month-to-date (London) so glance "this month" matches the label.
      *
      * @param  list<array{status: string, resolutionTime: ?string, resolutionViolated: ?bool}>  $tickets
+     * @param  'mtd'|'prev_month'|'30'  $window
      */
-    private function slaMetPercent(array $tickets): ?int
+    private function slaMetPercent(array $tickets, string $window = 'mtd'): ?int
     {
-        $sample = $this->slaSampleSize($tickets);
+        $sample = $this->slaSampleSize($tickets, $window);
 
         if ($sample === null || $sample === 0) {
             return null;
         }
 
         $met = 0;
-        $since = now()->subDays(30)->startOfDay();
+        [$from, $to] = $this->resolutionWindowBounds($window);
 
         foreach ($tickets as $ticket) {
             if ($this->classifyStatus($ticket['status']) !== 'closed') {
@@ -850,7 +854,7 @@ class SuperOpsClientMetricsService
             }
 
             $resolved = $this->parseTimestamp($ticket['resolutionTime']);
-            if ($resolved === null || $resolved->lt($since)) {
+            if ($resolved === null || ! $this->timestampInWindow($resolved, $from, $to)) {
                 continue;
             }
 
@@ -864,10 +868,11 @@ class SuperOpsClientMetricsService
 
     /**
      * @param  list<array{status: string, resolutionTime: ?string, resolutionViolated: ?bool}>  $tickets
+     * @param  'mtd'|'prev_month'|'30'  $window
      */
-    private function slaSampleSize(array $tickets): ?int
+    private function slaSampleSize(array $tickets, string $window = 'mtd'): ?int
     {
-        $since = now()->subDays(30)->startOfDay();
+        [$from, $to] = $this->resolutionWindowBounds($window);
         $count = 0;
 
         foreach ($tickets as $ticket) {
@@ -876,7 +881,7 @@ class SuperOpsClientMetricsService
             }
 
             $resolved = $this->parseTimestamp($ticket['resolutionTime']);
-            if ($resolved === null || $resolved->lt($since)) {
+            if ($resolved === null || ! $this->timestampInWindow($resolved, $from, $to)) {
                 continue;
             }
 
@@ -912,8 +917,68 @@ class SuperOpsClientMetricsService
             '7' => $this->countClosedSince($tickets, 7),
             '14' => $this->countClosedSince($tickets, 14),
             '30' => $this->countClosedSince($tickets, 30),
+            // Calendar months (Europe/London) - used by glance "this month" / last-month compare.
+            'mtd' => $this->countClosedInWindow($tickets, 'mtd'),
+            'prev_month' => $this->countClosedInWindow($tickets, 'prev_month'),
             'all' => $this->countClosedSince($tickets, null),
         ];
+    }
+
+    /**
+     * @param  list<array{status: string, resolutionTime: ?string}>  $tickets
+     * @param  'mtd'|'prev_month'  $window
+     */
+    private function countClosedInWindow(array $tickets, string $window): int
+    {
+        [$from, $to] = $this->resolutionWindowBounds($window);
+        $count = 0;
+
+        foreach ($tickets as $ticket) {
+            if ($this->classifyStatus($ticket['status']) !== 'closed') {
+                continue;
+            }
+
+            $resolved = $this->parseTimestamp($ticket['resolutionTime']);
+            if ($resolved !== null && $this->timestampInWindow($resolved, $from, $to)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * @param  'mtd'|'prev_month'|'30'  $window
+     * @return array{0: \Carbon\CarbonInterface, 1: \Carbon\CarbonInterface}
+     */
+    private function resolutionWindowBounds(string $window): array
+    {
+        $now = now()->timezone('Europe/London');
+
+        return match ($window) {
+            'prev_month' => [
+                $now->copy()->subMonthNoOverflow()->startOfMonth()->startOfDay(),
+                $now->copy()->subMonthNoOverflow()->endOfMonth()->endOfDay(),
+            ],
+            '30' => [
+                $now->copy()->subDays(30)->startOfDay(),
+                $now->copy()->endOfDay(),
+            ],
+            default => [
+                $now->copy()->startOfMonth()->startOfDay(),
+                $now->copy()->endOfDay(),
+            ],
+        };
+    }
+
+    private function timestampInWindow(
+        \Carbon\CarbonInterface $at,
+        \Carbon\CarbonInterface $from,
+        \Carbon\CarbonInterface $to,
+    ): bool {
+        $at = $at->timezone('Europe/London');
+
+        return $at->gte($from) && $at->lte($to);
     }
 
     /**
@@ -1075,6 +1140,12 @@ class SuperOpsClientMetricsService
             deviceInsights: is_array($payload['device_insights'] ?? null)
                 ? $payload['device_insights']
                 : $this->emptyDeviceInsights(),
+            slaMetPercentPrevMonth: isset($payload['sla_met_percent_prev_month']) && is_numeric($payload['sla_met_percent_prev_month'])
+                ? (int) $payload['sla_met_percent_prev_month']
+                : null,
+            slaSampleSizePrevMonth: isset($payload['sla_sample_size_prev_month']) && is_numeric($payload['sla_sample_size_prev_month'])
+                ? (int) $payload['sla_sample_size_prev_month']
+                : null,
         );
     }
 
@@ -1104,7 +1175,14 @@ class SuperOpsClientMetricsService
      */
     private function emptyRangeCounts(): array
     {
-        return ['7' => null, '14' => null, '30' => null, 'all' => null];
+        return [
+            '7' => null,
+            '14' => null,
+            '30' => null,
+            'mtd' => null,
+            'prev_month' => null,
+            'all' => null,
+        ];
     }
 
     /**
@@ -1205,7 +1283,8 @@ class SuperOpsClientMetricsService
 
     public function cacheKey(int $clientId): string
     {
-        return "client:{$clientId}:superops-dashboard:v5";
+        // v6: calendar-month closed/SLA (mtd + prev_month) for glance this/last month.
+        return "client:{$clientId}:superops-dashboard:v6";
     }
 
     /**

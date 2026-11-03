@@ -95,6 +95,10 @@ class ClientHomeOverviewService
             $this->dropsuiteColumn($client, $user, $byKey['dropsuite'] ?? null, $orgWide),
         ];
 
+        if ($this->products->isEntitled($client, ClientProductService::KEY_USECURE)) {
+            $columns[] = $this->usecureColumn($client, $user, $byKey['usecure'] ?? null, $orgWide);
+        }
+
         $hero = $this->heroFromColumns($client, $columns, $orgWide);
 
         return [
@@ -141,6 +145,7 @@ class ClientHomeOverviewService
             'm365' => 'Microsoft 365',
             'huntress' => 'Security',
             'dropsuite' => 'Backup',
+            'usecure' => 'Human risk',
         ];
 
         $columns = [];
@@ -290,6 +295,31 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Calendar previous-month SuperOps figures from the live feed (not the stored snapshot).
+     *
+     * @param  list<array<string, mixed>>  $columns
+     * @return array{threats: ?string, resolved: ?string, sla: ?string}
+     */
+    private function priorMonthValueStripFromColumns(array $columns): array
+    {
+        $byKey = [];
+        foreach ($columns as $col) {
+            if (is_array($col) && filled($col['key'] ?? null)) {
+                $byKey[(string) $col['key']] = $col;
+            }
+        }
+
+        $superops = $byKey['superops'] ?? null;
+        $prior = is_array($superops['prior_month_metrics'] ?? null) ? $superops['prior_month_metrics'] : [];
+
+        return [
+            'threats' => null,
+            'resolved' => isset($prior['Tickets we closed']) ? (string) $prior['Tickets we closed'] : null,
+            'sla' => isset($prior['Resolved on time']) ? (string) $prior['Resolved on time'] : null,
+        ];
+    }
+
+    /**
      * @return array{status: string, message: string, items: list<array{at: ?string, source: string, text: string, title?: string, badge?: string, ref?: string, href?: ?string, actions?: list<array{title: string, badge: string}>}>}
      */
     private function activityFor(Client $client, User $user): array
@@ -348,11 +378,13 @@ class ClientHomeOverviewService
 
         $currentValue = $this->valueStripFromColumns($columns);
         $priorValue = is_array($compare['value'] ?? null) ? $compare['value'] : [];
+        $livePrior = $this->priorMonthValueStripFromColumns($columns);
 
         $deltas = [];
         foreach (['threats' => 'Threats stopped', 'resolved' => 'Tickets we closed', 'sla' => 'Resolved on time'] as $key => $label) {
             $cur = $currentValue[$key] ?? null;
-            $prev = $priorValue[$key] ?? null;
+            // Prefer live previous-calendar-month SuperOps counts over legacy 30d snapshots.
+            $prev = $livePrior[$key] ?? ($priorValue[$key] ?? null);
             if ($cur === null && $prev === null) {
                 continue;
             }
@@ -432,6 +464,14 @@ class ClientHomeOverviewService
         }
 
         $priorMetrics = is_array($prior['metrics'] ?? null) ? $prior['metrics'] : [];
+        // Live previous-calendar-month SuperOps counts beat legacy rolling-30d snapshots.
+        $livePrior = is_array($col['prior_month_metrics'] ?? null) ? $col['prior_month_metrics'] : [];
+        foreach ($livePrior as $label => $value) {
+            if (is_string($label) && $label !== '' && (is_string($value) || is_numeric($value))) {
+                $priorMetrics[$label] = (string) $value;
+            }
+        }
+
         $metrics = [];
         foreach ($col['metrics'] ?? [] as $metric) {
             if (! is_array($metric)) {
@@ -471,7 +511,11 @@ class ClientHomeOverviewService
             $col['status_label'] = (string) $prior['label'];
         }
         if (filled($prior['status_reason'] ?? null)) {
-            $col['status_reason'] = (string) $prior['status_reason'];
+            $col['status_reason'] = str_replace(
+                'this month',
+                'last month',
+                (string) $prior['status_reason'],
+            );
         }
 
         return $col;
@@ -798,14 +842,18 @@ class ClientHomeOverviewService
             return $this->markState($base, 'cold', $reason);
         }
 
-        $closed30 = is_array($summary->ticketsClosed ?? null)
-            ? ($summary->ticketsClosed['30'] ?? null)
+        // Calendar month-to-date (London), not rolling 30d - matches "this month" copy.
+        $closedMtd = is_array($summary->ticketsClosed ?? null)
+            ? ($summary->ticketsClosed['mtd'] ?? null)
+            : null;
+        $closedPrevMonth = is_array($summary->ticketsClosed ?? null)
+            ? ($summary->ticketsClosed['prev_month'] ?? null)
             : null;
 
         $metrics = [
             $this->metric('Open tickets', $summary->openTicketsTotal, null),
             $this->metric('Waiting on you', $summary->waitingOnClientTotal ?? null, null),
-            $this->metric('Tickets we closed', $closed30, null),
+            $this->metric('Tickets we closed', $closedMtd, null),
             $this->metric('Devices', $summary->assetsTotal, null),
             $this->metric('Online', $summary->assetsOnline, null),
             $this->metric('Not online', $summary->assetsOffline, null),
@@ -818,6 +866,14 @@ class ClientHomeOverviewService
 
         $health = $this->superOpsHealth($summary);
 
+        $priorMonthMetrics = [];
+        if ($closedPrevMonth !== null) {
+            $priorMonthMetrics['Tickets we closed'] = (string) $closedPrevMonth;
+        }
+        if (($summary->slaMetPercentPrevMonth ?? null) !== null) {
+            $priorMonthMetrics['Resolved on time'] = $summary->slaMetPercentPrevMonth.'%';
+        }
+
         return array_merge($base, [
             'state' => 'live',
             'tone' => $health['tone'],
@@ -826,6 +882,8 @@ class ClientHomeOverviewService
             'message' => null,
             'metrics' => $metrics,
             'as_of' => $summary->lastRefreshedAt,
+            // Not shown on the card - used for last-month compare / overlay (calendar month).
+            'prior_month_metrics' => $priorMonthMetrics,
         ]);
     }
 
@@ -1081,6 +1139,73 @@ class ClientHomeOverviewService
     }
 
     /**
+     * Shown only when the client buys usecure. Requesters stay on the four-card home.
+     *
+     * @return array<string, mixed>
+     */
+    private function usecureColumn(Client $client, User $user, mixed $summary, bool $orgWide): array
+    {
+        $base = $this->baseColumn(
+            key: 'usecure',
+            title: 'Human risk',
+            plan_label: 'Training & phishing',
+            source: 'usecure',
+            href: route('dashboard'),
+            href_label: 'Dashboard →',
+            client: $client,
+            user: $user,
+        );
+
+        if (! $orgWide) {
+            return $this->markState($base, 'hidden', 'Human risk figures are available to Client Admins.');
+        }
+
+        if ($base['state'] !== 'live_candidate') {
+            return $base;
+        }
+
+        if (! is_object($summary) || empty($summary->available) || empty($summary->lastRefreshedAt)) {
+            if (! empty($summary->refreshInProgress)) {
+                return $this->markState($base, 'loading', 'Loading human risk figures...');
+            }
+
+            $reason = (string) ($summary->unavailableReason ?? 'Human risk figures are not available yet.');
+
+            return $this->markState($base, 'cold', $reason);
+        }
+
+        if (empty($summary->fieldsMapped)) {
+            return array_merge($base, [
+                'state' => 'live',
+                'tone' => 'ok',
+                'status_label' => 'Connected',
+                'status_reason' => 'Training and phishing figures will show here once the summary fields are confirmed.',
+                'message' => null,
+                'metrics' => [],
+                'as_of' => $summary->lastRefreshedAt,
+            ]);
+        }
+
+        $metrics = [
+            $this->metric('Risk score', $summary->riskScore, null),
+            $this->metric('Training complete', $summary->trainingCompletion, null),
+            $this->metric('Overdue training', $summary->overdueTraining, null),
+            $this->metric('Phish fail rate', $summary->phishFailRate, null),
+            $this->metric('Open breach alerts', $summary->openBreaches, null),
+        ];
+
+        return array_merge($base, [
+            'state' => 'live',
+            'tone' => 'ok',
+            'status_label' => 'Healthy',
+            'status_reason' => null,
+            'message' => null,
+            'metrics' => $metrics,
+            'as_of' => $summary->lastRefreshedAt,
+        ]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function baseColumn(
@@ -1174,6 +1299,10 @@ class ClientHomeOverviewService
             'dropsuite' => [
                 'label' => 'Add-on',
                 'reason' => 'Cloud backup is an optional extra on your plan. We can still help with recovery questions through the Service Desk.',
+            ],
+            'usecure' => [
+                'label' => 'Add-on',
+                'reason' => 'Security awareness training is an optional extra on your plan. We can still help with security questions through the Service Desk.',
             ],
             'm365', 'm365_insights' => [
                 'label' => 'Not on plan',

@@ -34,6 +34,8 @@ class ClientOperationsSummary
         public readonly array $closedTicketsTable = [],
         public readonly array $ticketsByCategory = [],
         public readonly array $deviceInsights = [],
+        public readonly ?int $slaMetPercentPrevMonth = null,
+        public readonly ?int $slaSampleSizePrevMonth = null,
     ) {}
 
     public function hasData(): bool

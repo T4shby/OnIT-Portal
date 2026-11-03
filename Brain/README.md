@@ -91,6 +91,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-03 | Fix glance “this month” tickets/SLA: calendar MTD not rolling 30d (demo false match). - [UIOverhaul.md](UIOverhaul.md) |
 | 2026-11-03 | Deployed `ee7456c`: mail DNS Phase C + IH alert hook + colleague demo. - [ServerOpsLog.md](ServerOpsLog.md), [ColleagueDemo.md](ColleagueDemo.md) |
 | 2026-11-03 | Colleague demo walkthrough. - [ColleagueDemo.md](ColleagueDemo.md) |
 | 2026-11-03 | Mail domains Phase C (provider, history, CSV, extended DNS) + optional IH Teams/email alerts. - [MailDomainDns.md](MailDomainDns.md), [ClientAdminDashboard.md](ClientAdminDashboard.md) |

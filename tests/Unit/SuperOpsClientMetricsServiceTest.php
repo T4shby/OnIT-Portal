@@ -62,7 +62,8 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                     'priority' => 'Low',
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
-                                    'resolutionTime' => now()->subDays(3)->toIso8601String(),
+                                    // Current calendar month (London) for MTD assertions.
+                                    'resolutionTime' => now()->timezone('Europe/London')->startOfMonth()->addDay()->toIso8601String(),
                                     'resolutionViolated' => false,
                                 ],
                                 [
@@ -72,7 +73,8 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                     'priority' => 'Low',
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
-                                    'resolutionTime' => now()->subDays(20)->toIso8601String(),
+                                    // Previous calendar month for prev_month assertions.
+                                    'resolutionTime' => now()->timezone('Europe/London')->subMonthNoOverflow()->startOfMonth()->addDays(10)->toIso8601String(),
                                     'resolutionViolated' => true,
                                 ],
                                 [
@@ -133,7 +135,11 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame('High', array_key_first($summary->openTicketsByPriority));
         $this->assertCount(2, $summary->openTicketsTable);
         $this->assertSame('1', $summary->openTicketsTable[0]['ticketId']);
-        $this->assertSame(50, $summary->slaMetPercent);
+        // SLA / closed MTD = calendar month (ticket 3 only). Ticket 4 is prior month.
+        $this->assertSame(100, $summary->slaMetPercent);
+        $this->assertSame(1, $summary->slaSampleSize);
+        $this->assertSame(0, $summary->slaMetPercentPrevMonth);
+        $this->assertSame(1, $summary->slaSampleSizePrevMonth);
         $this->assertSame(2, $summary->ticketsCreated['7']);
         $this->assertSame(3, $summary->ticketsCreated['14']);
         $this->assertSame(3, $summary->ticketsCreated['30']);
@@ -141,6 +147,8 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertSame(1, $summary->ticketsClosed['7']);
         $this->assertSame(1, $summary->ticketsClosed['14']);
         $this->assertSame(2, $summary->ticketsClosed['30']);
+        $this->assertSame(1, $summary->ticketsClosed['mtd']);
+        $this->assertSame(1, $summary->ticketsClosed['prev_month']);
         $this->assertSame(2, $summary->ticketsClosed['all']);
         $this->assertSame(1, $summary->deviceInsights['offline_30d']['count']);
         $this->assertSame(['DESKTOP-HOME'], $summary->deviceInsights['offline_30d']['names']);
@@ -184,7 +192,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $clientA = Client::factory()->create(['superops_account_id' => '111']);
         $clientB = Client::factory()->create(['superops_account_id' => '222']);
 
-        Cache::put("client:{$clientA->id}:superops-dashboard:v5", [
+        Cache::put("client:{$clientA->id}:superops-dashboard:v6", [
             'assets_total' => 10,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -192,7 +200,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v5", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v6", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],
@@ -213,7 +221,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -245,7 +253,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'last_refreshed_at' => now()->subMinutes(5)->toIso8601String(),
@@ -260,7 +268,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $result = Cache::get('superops_dashboard.last_result.'.$client->id);
         $this->assertIsArray($result);
         $this->assertFalse($result['success']);
-        $this->assertSame(14, Cache::get("client:{$client->id}:superops-dashboard:v5")['assets_total']);
+        $this->assertSame(14, Cache::get("client:{$client->id}:superops-dashboard:v6")['assets_total']);
     }
 
     public function test_page_view_serves_cache_without_requeueing_when_stale(): void
@@ -269,7 +277,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -293,7 +301,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -304,7 +312,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertTrue($service->needsBackgroundRefresh($client));
         $this->assertFalse($service->summaryForClient($client)->isStale);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -320,7 +328,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v5", [
+        Cache::put("client:{$client->id}:superops-dashboard:v6", [
             'assets_total' => 1,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
