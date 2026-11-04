@@ -91,6 +91,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-04 | Edit Client: Customer tools and checkers at top (tools + Mail DNS); Recent/Advanced collapsed; alignment fixes. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-04 | Mail DNS UX aligned to MXToolbox model: core MX/SPF/DKIM/DMARC primary; advisory + Add domain collapsed. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-04 | Edit Client layout rebalance: wider setup guide (~28-38rem), capped paste fields, collapsed guide chrome. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-03 | Hotfix `96cf1e3`: dashboard 500 from unfinished usecure glance wiring. - [ServerOpsLog.md](ServerOpsLog.md) |

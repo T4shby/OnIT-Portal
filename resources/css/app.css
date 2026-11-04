@@ -199,10 +199,18 @@
         @apply w-full min-w-0;
     }
 
+    /* Edit Client page stack: tools/checkers full width, then form + guide. */
+    .admin-edit-stack {
+        @apply flex w-full min-w-0 flex-col gap-6;
+    }
+
+    .admin-edit-tools {
+        @apply min-w-0;
+    }
+
     /*
-     * Edit Client: work column + sticky setup guide.
-     * Guide needs ~28-38rem to keep step titles readable; form fields stay capped
-     * so paste inputs do not stretch across the leftover width.
+     * Identity form + sticky setup guide.
+     * Guide needs ~28-38rem; form column may scroll horizontally for long IDs.
      */
     .admin-split {
         @apply grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(30rem,38rem)] xl:gap-10;
@@ -216,13 +224,29 @@
         @apply flex w-full min-w-0 flex-col gap-6;
     }
 
-    /* Keep identity / mapping inputs at a readable paste width. */
     .admin-split__main .admin-form-grid {
-        @apply max-w-3xl;
+        @apply max-w-4xl grid-cols-1 sm:grid-cols-2 xl:grid-cols-2;
+    }
+
+    .admin-split__main .admin-form-span-full {
+        @apply sm:col-span-2 xl:col-span-2;
+    }
+
+    .admin-split__main .admin-input {
+        @apply max-w-full break-all;
     }
 
     .admin-form-grid {
         @apply grid w-full gap-x-6 gap-y-0 sm:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .mail-dns-table th,
+    .mail-dns-table td {
+        @apply align-top;
+    }
+
+    .mail-dns-table td {
+        @apply max-w-[14rem];
     }
 
     .admin-form-span-full {

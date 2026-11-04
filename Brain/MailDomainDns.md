@@ -37,7 +37,9 @@ Portal is the in-app **MXToolbox-style DNS tester** for onboarding - not a place
 
 **Layout (2026-11-02 / rebalanced 2026-11-04):** Edit Client `admin-split` is work column + sticky setup guide on the right. Guide is ~28-38rem so step titles stay readable; form grids cap at `max-w-3xl` so paste fields do not stretch across ultra-wide leftover space. Guide chrome (how-to, Graph tools when tenant already linked) collapses behind `<details>` so only the open step detail is on screen. Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
 
-**Mail domains card (aligned 2026-11-04):** Primary table shows **domain + overall + MX/SPF/DKIM/DMARC + Check DNS**. Advisory checks (Autodiscover / MTA-STS / TLS-RPT / BIMI) sit in a collapsed “Advisory” cell. **Add domain / custom DKIM** sit under Advanced. Hand-off / checklist still use **core overall only**.
+**Edit Client page order (2026-11-04):** Top full-width **Customer tools and checkers** (M365 / MFA / Huntress / Dropsuite / Entra sync + Mail DNS checker). Then **Identity and products** + sticky **Client setup guide**.
+
+**Mail DNS checker:** Table shows **domain + overall + MX/SPF/DKIM/DMARC + Check DNS**. Advisory cell and **Recent DNS checks** / **Advanced - Add domain / custom DKIM** are collapsed until opened. Hand-off / checklist still use **core overall only**.
 
 ## Locked decisions (2026-10-19)
 

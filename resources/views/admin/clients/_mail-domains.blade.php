@@ -20,15 +20,15 @@
     ];
 @endphp
 
-<div id="mail-domains">
+<div id="mail-domains" class="min-w-0">
     <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0 flex-1">
-            <h3 class="admin-section-title mb-1 text-base">Mail domains</h3>
+            <h4 class="portal-label mb-1">Mail domains</h4>
             <p class="text-xs text-white/50 max-w-3xl">
-                DNS health check for onboarding (MXToolbox-style). Look at
-                <strong class="text-white/75">Core = MX / SPF / DKIM / DMARC</strong>
+                Core =
+                <strong class="text-white/75">MX / SPF / DKIM / DMARC</strong>
                 (green = good · yellow = weak · red = fix or knowingly hand off).
-                Main domain comes from <strong class="text-white/70">Save client</strong> above - you do not need Add domain for that.
+                Main domain is set with <strong class="text-white/70">Save client</strong> in Identity below.
             </p>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-3">
@@ -52,7 +52,7 @@
     </div>
 
     @if(is_array($entraMailDomains))
-        <div class="mb-4 border border-white/10 bg-black/20 px-3 py-3 text-xs text-white/65 space-y-2">
+        <div class="mb-4 border border-white/10 bg-black/20 px-3 py-3 text-xs text-white/65 space-y-2 break-words">
             <p class="text-white/80">
                 Last Microsoft pull
                 @if(! empty($entraMailDomains['fetched_at']))
@@ -83,13 +83,13 @@
         </div>
     @elseif(filled($client->entra_tenant_id) && $mailDomains->isEmpty())
         <p class="mb-4 text-sm text-amber-100/90">
-            Connected tenant, no DNS rows yet - Import from Microsoft, or Save client with a main domain.
+            Connected tenant, no DNS rows yet - Import from Microsoft, or Save client with a main domain below.
         </p>
     @endif
 
     @if($mailDomains->isNotEmpty())
         <div class="mb-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="mail-dns-table min-w-full text-sm">
                 <thead>
                     <tr class="text-left text-xs uppercase tracking-wide text-white/45">
                         <th class="py-2 pr-3">Domain</th>
@@ -125,7 +125,7 @@
                         @endphp
                         <tr class="border-t border-white/10 align-top">
                             <td class="py-3 pr-3">
-                                <div class="font-medium text-white">{{ $domain->domain }}</div>
+                                <div class="font-medium text-white break-all">{{ $domain->domain }}</div>
                                 @if($domain->is_primary)
                                     <div class="text-xs text-onit">Primary</div>
                                 @endif
@@ -148,7 +148,7 @@
                                     <div class="{{ $bandColor($band) }}">
                                         {{ strtoupper($band) }}
                                     </div>
-                                    <div class="text-xs text-white/50 max-w-[10rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
+                                    <div class="text-xs text-white/50">{{ $pending ? 'Waiting' : ($check['summary'] ?? '-') }}</div>
                                 </td>
                             @endforeach
                             <td class="py-3 pr-3 text-xs text-white/55">
@@ -172,13 +172,13 @@
                                                 </li>
                                             @endforeach
                                         </ul>
+                                        <p class="mt-2 text-white/40">
+                                            Nice to have - not onboarding blockers.
+                                        </p>
                                     </details>
-                                    <p class="mt-1 text-[10px] text-white/35">
-                                        Autodiscover / MTA-STS / TLS-RPT / BIMI - nice to have, not onboarding blockers.
-                                    </p>
                                 @endif
                             </td>
-                            <td class="py-3 pr-0 whitespace-nowrap">
+                            <td class="py-3 pl-3 pr-0 whitespace-nowrap text-right">
                                 <form method="POST" action="{{ route('admin.clients.domains.check', [$client, $domain]) }}" class="inline">
                                     @csrf
                                     <button type="submit" class="text-xs text-onit hover:text-white uppercase tracking-wide">Check DNS</button>
@@ -198,61 +198,65 @@
         </div>
     @elseif($hasPrimaryField)
         <p class="mb-4 text-sm text-amber-100/90">
-            Main domain is <strong class="text-white">{{ $client->primary_domain }}</strong> but no DNS row yet - Save client above (or Import).
+            Main domain is <strong class="text-white">{{ $client->primary_domain }}</strong> but no DNS row yet - Save client in Identity below (or Import).
         </p>
     @else
         <p class="mb-4 text-sm text-white/55">
-            No domains yet. Set main domain above and Save client, or Import from Microsoft.
+            No domains yet. Set main domain in Identity below and Save client, or Import from Microsoft.
         </p>
     @endif
 
-    @if($mailDnsHistory->isNotEmpty())
-        <div class="mb-6 border border-white/10 bg-black/20 px-3 py-3">
-            <h4 class="text-xs uppercase tracking-wide text-white/45 mb-2">Recent DNS checks</h4>
-            <ul class="space-y-1 text-xs text-white/65">
-                @foreach($mailDnsHistory as $row)
-                    <li>
-                        <span class="{{ $bandColor((string) $row->overall) }}">{{ strtoupper((string) $row->overall) }}</span>
-                        · {{ $row->domain?->domain ?? 'domain' }}
-                        · {{ $row->checked_at?->diffForHumans() ?? '-' }}
-                        · {{ $row->source }}
-                        @if($row->checkedBy)
-                            · {{ $row->checkedBy->name }}
-                        @endif
-                        @if($row->provider_key)
-                            · {{ $row->provider_key }}
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    <div class="space-y-3">
+        @if($mailDnsHistory->isNotEmpty())
+            <details class="border border-white/10 bg-black/20 px-3 py-3">
+                <summary class="cursor-pointer select-none text-xs font-condensed uppercase tracking-wide text-onit">
+                    Recent DNS checks ({{ $mailDnsHistory->count() }})
+                </summary>
+                <ul class="mt-3 space-y-1 text-xs text-white/65 break-words">
+                    @foreach($mailDnsHistory as $row)
+                        <li>
+                            <span class="{{ $bandColor((string) $row->overall) }}">{{ strtoupper((string) $row->overall) }}</span>
+                            · {{ $row->domain?->domain ?? 'domain' }}
+                            · {{ $row->checked_at?->diffForHumans() ?? '-' }}
+                            · {{ $row->source }}
+                            @if($row->checkedBy)
+                                · {{ $row->checkedBy->name }}
+                            @endif
+                            @if($row->provider_key)
+                                · {{ $row->provider_key }}
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </details>
+        @endif
 
-    <details class="border border-white/10 bg-black/20 px-3 py-3">
-        <summary class="cursor-pointer select-none text-xs font-condensed uppercase tracking-wide text-onit">
-            Advanced - Add domain / custom DKIM
-        </summary>
-        <p class="mt-2 text-xs text-white/50 max-w-3xl">
-            Only for extra domains (second brand, legacy domain). Primary is Save client above.
-            Custom DKIM selectors are rarely needed - Check DNS already tries M365 selector1/selector2 and common gateways.
-        </p>
-        <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            @csrf
-            <div>
-                <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
-                <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="other.clientco.co.uk" required>
-            </div>
-            <div>
-                <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>
-                <input id="dkim_selectors" type="text" name="dkim_selectors" value="{{ old('dkim_selectors') }}" class="admin-input" placeholder="optional, only if unusual">
-            </div>
-            <div class="flex items-end gap-3 sm:col-span-2">
-                <label class="flex items-center gap-2 text-sm text-white/70">
-                    <input type="checkbox" name="make_primary" value="1" class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
-                    Make primary
-                </label>
-                <button type="submit" class="cta-btn-ghost text-sm px-4 py-2">Add domain</button>
-            </div>
-        </form>
-    </details>
+        <details class="border border-white/10 bg-black/20 px-3 py-3">
+            <summary class="cursor-pointer select-none text-xs font-condensed uppercase tracking-wide text-onit">
+                Advanced - Add domain / custom DKIM
+            </summary>
+            <p class="mt-2 text-xs text-white/50 max-w-3xl">
+                Only for extra domains (second brand, legacy domain). Primary is Save client in Identity below.
+                Custom DKIM selectors are rarely needed - Check DNS already tries common selectors.
+            </p>
+            <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                @csrf
+                <div class="min-w-0">
+                    <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
+                    <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="other.clientco.co.uk" required>
+                </div>
+                <div class="min-w-0">
+                    <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>
+                    <input id="dkim_selectors" type="text" name="dkim_selectors" value="{{ old('dkim_selectors') }}" class="admin-input" placeholder="optional, only if unusual">
+                </div>
+                <div class="flex flex-wrap items-end gap-3 sm:col-span-2">
+                    <label class="flex items-center gap-2 text-sm text-white/70">
+                        <input type="checkbox" name="make_primary" value="1" class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
+                        Make primary
+                    </label>
+                    <button type="submit" class="cta-btn-ghost text-sm px-4 py-2">Add domain</button>
+                </div>
+            </form>
+        </details>
+    </div>
 </div>

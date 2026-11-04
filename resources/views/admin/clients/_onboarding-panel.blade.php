@@ -30,7 +30,7 @@
         @if($mailDnsStillRed ?? false)
             <div class="mt-3 border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-50">
                 Mail DNS still has <strong class="text-white">red</strong> core checks (MX / SPF / DKIM / DMARC).
-                Fix them in Mail domains (left), or hand off anyway - hand-off warns and does not block.
+                Fix them in Customer tools and checkers above, or hand off anyway - hand-off warns and does not block.
             </div>
         @endif
 

@@ -214,17 +214,23 @@ class ClientMailDomainTest extends TestCase
         $html = $this->actingAs($admin)
             ->get(route('admin.clients.edit', $client))
             ->assertOk()
+            ->assertSee('Customer tools and checkers')
             ->assertSee('Save client')
             ->assertSee('Import from Microsoft')
             ->assertSee('Add domain')
             ->assertSee('admin-split__main', false)
             ->assertSee('Export CSV')
-            ->assertSee('Core = MX', false)
+            ->assertSee('Core =', false)
+            ->assertSee('MX / SPF / DKIM / DMARC', false)
             ->getContent();
 
         // Nested forms break Add domain / Import in browsers - mail panel must sit outside Save.
         $this->assertMatchesRegularExpression(
-            '/id="client-edit-form"[\s\S]*<\/form>[\s\S]*id="mail-domains"/',
+            '/id="mail-domains"[\s\S]*id="client-edit-form"/',
+            $html,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/id="client-edit-form"[\s\S]*id="mail-domains"[\s\S]*<\/form>/',
             $html,
         );
     }
