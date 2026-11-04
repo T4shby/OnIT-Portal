@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-04 ~16:30 UK - Deploy mail DNS MXToolbox UX alignment
+
+| | |
+|---|---|
+| Intent | Align Mail domains card to onboarding DNS tester: core MX/SPF/DKIM/DMARC primary; advisory + Add domain collapsed. |
+| Operator | agent |
+| SHA before -> after | `00be430` -> `6ad5034` |
+| Steps | Push; bare fetch + archive; composer; migrate (nothing); route/config/view clear; PortalLinkSeeder; optimize. **Restarted** `plesk-php84-fpm` (+ portal timers best-effort). |
+| Result | Live `.deployed-commit` `6ad5034`. FPM active. `/up` 200, `/login` 200. ClientMailDomainTest 8/8 local. |
+| Rollback / watch | Redeploy `00be430`. Hard-refresh Edit Client Mail domains card. |
+
 ### 2026-11-04 ~13:30 UK - Deploy Edit Client guide/form rebalance
 
 | | |
