@@ -199,9 +199,13 @@
         @apply w-full min-w-0;
     }
 
-    /* Edit Client: wide work column first, sticky setup guide on the right. */
+    /*
+     * Edit Client: work column + sticky setup guide.
+     * Guide needs ~28-38rem to keep step titles readable; form fields stay capped
+     * so paste inputs do not stretch across the leftover width.
+     */
     .admin-split {
-        @apply grid w-full min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)] xl:gap-10;
+        @apply grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(30rem,38rem)] xl:gap-10;
     }
 
     .admin-split > * {
@@ -210,6 +214,11 @@
 
     .admin-split__main {
         @apply flex w-full min-w-0 flex-col gap-6;
+    }
+
+    /* Keep identity / mapping inputs at a readable paste width. */
+    .admin-split__main .admin-form-grid {
+        @apply max-w-3xl;
     }
 
     .admin-form-grid {
@@ -431,15 +440,15 @@
     }
 
     .onboarding-panel__header {
-        @apply border-b border-white/10 p-6 sm:p-8;
+        @apply border-b border-white/10 p-5 sm:p-6;
     }
 
     .onboarding-panel__progress {
-        @apply mt-8 border border-onit-border bg-onit-ink/50 p-5;
+        @apply mt-5 border border-onit-border bg-onit-ink/50 p-4;
     }
 
     .onboarding-panel__progress-bar {
-        @apply mt-4 h-1 w-full bg-white/10;
+        @apply mt-3 h-1 w-full bg-white/10;
     }
 
     .onboarding-panel__progress-fill {
@@ -447,16 +456,28 @@
     }
 
     .onboarding-panel__body {
-        @apply p-6 sm:p-8;
+        @apply p-4 sm:p-5;
     }
 
     .onboarding-panel__actions {
-        @apply mt-8 border-t border-white/10 pt-6;
+        @apply border-t border-white/10 p-5 pt-5;
+    }
+
+    .onboarding-panel__help {
+        @apply mt-3 border border-white/10 bg-onit-ink/40 px-3 py-2 text-xs leading-relaxed text-white/60;
+    }
+
+    .onboarding-panel__help summary {
+        @apply cursor-pointer select-none font-condensed text-[0.7rem] font-bold uppercase tracking-wider text-onit;
+    }
+
+    .onboarding-panel__help-body {
+        @apply mt-2 space-y-2 text-xs leading-relaxed text-white/60;
     }
 
     /* Brain/design/components.md - agenda + FAQ patterns */
     .agenda-title {
-        @apply font-condensed text-base font-semibold uppercase tracking-wide text-white sm:text-[1.05rem];
+        @apply font-condensed text-sm font-semibold uppercase tracking-wide text-white sm:text-[0.95rem];
     }
 
     .support-list {
@@ -509,11 +530,11 @@
     }
 
     .onboarding-guide__trigger {
-        @apply flex w-full items-start gap-5 py-6 pl-6 pr-4 text-left;
+        @apply flex w-full items-start gap-3 py-3.5 pl-3 pr-3 text-left sm:gap-4 sm:pl-4;
     }
 
     .onboarding-guide__num {
-        @apply shrink-0 font-condensed text-[2rem] font-extrabold leading-none text-onit;
+        @apply shrink-0 font-condensed text-[1.35rem] font-extrabold leading-none text-onit sm:text-[1.5rem];
     }
 
     .onboarding-guide__copy {
@@ -521,7 +542,7 @@
     }
 
     .onboarding-guide__meta {
-        @apply mt-2 block text-sm font-light text-white/60;
+        @apply mt-1 block text-xs font-light text-white/55 sm:text-sm;
     }
 
     .onboarding-status {
@@ -554,12 +575,13 @@
     }
 
     .onboarding-guide__panel {
-        @apply ml-0 border-t border-white/[0.05] pb-10 pl-4 pr-4 pt-5 sm:ml-[3.75rem] sm:pl-6 sm:pr-6;
+        @apply ml-0 border-t border-white/[0.05] pb-6 pl-3 pr-3 pt-4 sm:ml-10 sm:pl-4 sm:pr-4;
     }
 
     @media (min-width: 640px) {
         .onboarding-guide__panel {
-            margin-left: 4.75rem;
+            /* Align under title: number (~1.5rem) + gap-4 */
+            margin-left: 2.5rem;
         }
     }
 

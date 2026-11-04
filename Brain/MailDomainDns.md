@@ -17,7 +17,7 @@ Portal is the main onboarding guide. Every new customer needs a **main domain** 
 
 **Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 
-**Layout (2026-11-02):** Edit Client `admin-split` is **wide work column + sticky setup guide on the right** (was reversed: form stuck in a ~22rem left column). Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
+**Layout (2026-11-02 / rebalanced 2026-11-04):** Edit Client `admin-split` is work column + sticky setup guide on the right. Guide is ~28-38rem so step titles stay readable; form grids cap at `max-w-3xl` so paste fields do not stretch across ultra-wide leftover space. Guide chrome (how-to, Graph tools when tenant already linked) collapses behind `<details>` so only the open step detail is on screen. Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
 
 ## Locked decisions (2026-10-19)
 

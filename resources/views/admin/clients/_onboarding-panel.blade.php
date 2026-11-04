@@ -7,67 +7,85 @@
 <div class="onboarding-panel lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
     <div class="onboarding-panel__header">
         <div class="orange-rule"></div>
-        <div class="heading-stack mb-5">
-            <h2 class="section-heading-white !text-[1.35rem] sm:!text-[1.6rem]">Client setup</h2>
-            <h2 class="section-heading-orange !text-[1.35rem] sm:!text-[1.6rem]">Guide</h2>
+        <div class="heading-stack mb-3">
+            <h2 class="section-heading-white !text-[1.2rem] sm:!text-[1.4rem]">Client setup</h2>
+            <h2 class="section-heading-orange !text-[1.2rem] sm:!text-[1.4rem]">Guide</h2>
         </div>
 
-        <p class="portal-body-muted text-sm leading-relaxed">
-            Work the open step on the right. Step <strong class="text-white/80">00</strong> is mail domain + DNS
-            (Save client for main domain, then Mail domains panel for Import / extras).
-            SCIM (07) and Client SSO (08) action forms live inside those steps.
-            <strong class="text-white/80">Save client</strong> stores name, main domain, products, and Entra IDs.
-        </p>
+        <details class="onboarding-panel__help">
+            <summary>How this guide works</summary>
+            <div class="onboarding-panel__help-body">
+                <p>
+                    Open one step at a time. Step <strong class="text-white/80">00</strong> is mail domain + DNS
+                    (Save client for main domain, then Mail domains on the left for Import / extras).
+                    SCIM (07) and Client SSO (08) action forms live inside those steps.
+                </p>
+                <p>
+                    <strong class="text-white/80">Save client</strong> stores name, main domain, products, and Entra IDs.
+                    Checklist ticks save from this panel.
+                </p>
+            </div>
+        </details>
 
         @if($mailDnsStillRed ?? false)
-            <div class="mt-4 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+            <div class="mt-3 border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-50">
                 Mail DNS still has <strong class="text-white">red</strong> checks.
-                Fix them in the Mail domains panel (left), or hand off anyway - hand-off warns and does not block.
+                Fix them in Mail domains (left), or hand off with the warning.
             </div>
         @endif
 
         @if(! empty($adminConsentUrl))
-            <div class="mt-4 space-y-3">
+            <div class="mt-4 space-y-2">
                 @if(! filled($client->entra_tenant_id))
                     <a
                         href="{{ $adminConsentUrl }}"
                         target="_blank"
                         rel="noopener"
-                        class="cta-btn inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
+                        class="cta-btn inline-flex w-full items-center justify-center px-4 py-2.5 text-center text-sm"
                     >Connect Microsoft tenant</a>
-                    <p class="portal-body-muted text-xs leading-relaxed">
-                        Only button that opens Microsoft Accept (private browser · GDAP into
-                        <strong class="text-white/80">{{ $client->name }}</strong>).
-                        After Accept the portal waits for Graph and creates group + SuperOps app IDs automatically.
-                    </p>
+                    <details class="onboarding-panel__help">
+                        <summary>About Connect</summary>
+                        <div class="onboarding-panel__help-body">
+                            <p>
+                                Only button that opens Microsoft Accept (private browser · GDAP into
+                                <strong class="text-white/80">{{ $client->name }}</strong>).
+                                After Accept the portal waits for Graph and creates group + SuperOps app IDs automatically.
+                            </p>
+                        </div>
+                    </details>
                 @else
                     @php($bootstrapInFlight = \App\Jobs\BootstrapClientEntraJob::isInFlight($client->id))
-                    <form method="POST" action="{{ route('admin.clients.bootstrap-entra', $client) }}">
-                        @csrf
-                        <button type="submit" class="cta-btn w-full px-5 py-3 text-center text-sm" @disabled($bootstrapInFlight)>
-                            @if($bootstrapInFlight) Graph setup running… @else Retry Graph setup @endif
-                        </button>
-                    </form>
-                    @if($bootstrapInFlight)
-                        <p class="text-xs leading-relaxed text-amber-100">
-                            Graph setup is running in the background. Refresh in about a minute.
-                        </p>
-                    @endif
-                    <p class="portal-body-muted text-xs leading-relaxed">
-                        Tenant ID is saved. Use this only if group or SuperOps app IDs are still empty
-                        (Azure lag after Accept - not a second Microsoft login).
-                    </p>
-                    <a
-                        href="{{ $adminConsentUrl }}"
-                        target="_blank"
-                        rel="noopener"
-                        class="cta-btn-ghost inline-flex w-full items-center justify-center px-5 py-3 text-center text-sm"
-                    >Re-consent Graph permissions</a>
-                    <p class="portal-body-muted text-xs leading-relaxed">
-                        Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong>.
-                        Use after On IT adds Application permissions (Secure Score / MFA, etc.).
-                        Does <strong class="text-white/80">not</strong> require redoing SCIM or Client SSO.
-                    </p>
+                    <details class="onboarding-panel__help" @if($bootstrapInFlight) open @endif>
+                        <summary>Graph tools</summary>
+                        <div class="onboarding-panel__help-body space-y-3">
+                            <form method="POST" action="{{ route('admin.clients.bootstrap-entra', $client) }}">
+                                @csrf
+                                <button type="submit" class="cta-btn w-full px-4 py-2.5 text-center text-sm" @disabled($bootstrapInFlight)>
+                                    @if($bootstrapInFlight) Graph setup running… @else Retry Graph setup @endif
+                                </button>
+                            </form>
+                            @if($bootstrapInFlight)
+                                <p class="text-xs leading-relaxed text-amber-100">
+                                    Graph setup is running in the background. Refresh in about a minute.
+                                </p>
+                            @else
+                                <p>
+                                    Tenant ID is saved. Use Retry only if group or SuperOps app IDs are still empty
+                                    (Azure lag after Accept - not a second Microsoft login).
+                                </p>
+                            @endif
+                            <a
+                                href="{{ $adminConsentUrl }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="cta-btn-ghost inline-flex w-full items-center justify-center px-4 py-2.5 text-center text-sm"
+                            >Re-consent Graph permissions</a>
+                            <p>
+                                Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong>.
+                                Use after On IT adds Application permissions. Does not redo SCIM or Client SSO.
+                            </p>
+                        </div>
+                    </details>
                 @endif
             </div>
         @endif
@@ -76,11 +94,11 @@
             <div class="flex items-end justify-between gap-4">
                 <div>
                     <p class="portal-label mb-1">Progress</p>
-                    <p class="font-condensed text-lg font-bold uppercase tracking-wide text-white">
+                    <p class="font-condensed text-base font-bold uppercase tracking-wide text-white">
                         {{ $onboardingProgress['complete'] }} of {{ $onboardingProgress['total'] }} steps
                     </p>
                 </div>
-                <p class="font-condensed text-2xl font-extrabold text-onit">{{ $onboardingProgress['percent'] }}%</p>
+                <p class="font-condensed text-xl font-extrabold text-onit">{{ $onboardingProgress['percent'] }}%</p>
             </div>
             <div class="onboarding-panel__progress-bar">
                 <div class="onboarding-panel__progress-fill" style="width: {{ $onboardingProgress['percent'] }}%"></div>

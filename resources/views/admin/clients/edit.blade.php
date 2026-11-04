@@ -12,7 +12,7 @@
         </x-alert>
     @endif
 
-    {{-- Wide form column + sticky Client setup guide (right). Mail domain actions stay outside Save form. --}}
+    {{-- Form (readable paste width) + sticky setup guide (~28-38rem). Mail domains stay outside Save form. --}}
     <div class="admin-split">
         <div class="admin-split__main">
             <x-card>
