@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-04 ~16:40 UK - Deploy Edit Client tools-at-top layout
+
+| | |
+|---|---|
+| Intent | Move tools + Mail DNS into top **Customer tools and checkers**; collapse Recent DNS / Advanced; fix overflow/squish. |
+| Operator | agent |
+| SHA before -> after | `314fab8` -> `fd99255` |
+| Steps | Push Vite rebuild. SSH: bare fetch, archive, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Restarted `plesk-php84-fpm`. Removed stale CSS hashes. |
+| Result | Live `.deployed-commit` `fd99255`. FPM active. `/up` 200. ClientMailDomainTest 8/8. |
+| Rollback / watch | Redeploy `314fab8`. Hard-refresh Edit Client (Ctrl+F5). |
+
 ### 2026-11-04 ~16:30 UK - Deploy mail DNS MXToolbox UX alignment
 
 | | |
