@@ -12,6 +12,12 @@
     $hasPrimaryField = filled($client->primary_domain);
     $coreKeys = ['mx', 'spf', 'dkim', 'dmarc'];
     $extendedKeys = ['autodiscover', 'mta_sts', 'tls_rpt', 'bimi'];
+    $extendedLabels = [
+        'autodiscover' => 'Autodiscover',
+        'mta_sts' => 'MTA-STS',
+        'tls_rpt' => 'TLS-RPT',
+        'bimi' => 'BIMI',
+    ];
 @endphp
 
 <div id="mail-domains">
@@ -19,14 +25,15 @@
         <div class="min-w-0 flex-1">
             <h3 class="admin-section-title mb-1 text-base">Mail domains</h3>
             <p class="text-xs text-white/50 max-w-3xl">
-                Step 00. Green = correct · Yellow = weak / optional missing · Red = core record missing.
-                Core = MX / SPF / DKIM / DMARC. Extended = Autodiscover / MTA-STS / TLS-RPT / BIMI (advisory).
-                Main domain is saved with <strong class="text-white/70">Save client</strong> above.
+                DNS health check for onboarding (MXToolbox-style). Look at
+                <strong class="text-white/75">Core = MX / SPF / DKIM / DMARC</strong>
+                (green = good · yellow = weak · red = fix or knowingly hand off).
+                Main domain comes from <strong class="text-white/70">Save client</strong> above - you do not need Add domain for that.
             </p>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-3">
             @if($mailDnsStillRed ?? false)
-                <span class="text-xs uppercase tracking-wide text-rose-300">DNS still has red</span>
+                <span class="text-xs uppercase tracking-wide text-rose-300">Core DNS still has red</span>
             @endif
             @if($mailDomains->isNotEmpty())
                 <a href="{{ route('admin.clients.domains.export', $client) }}" class="cta-btn-ghost text-xs px-3 py-2 uppercase tracking-wide">
@@ -88,12 +95,10 @@
                         <th class="py-2 pr-3">Domain</th>
                         <th class="py-2 pr-3">Overall</th>
                         @foreach($coreKeys as $key)
-                            <th class="py-2 pr-3">{{ strtoupper(str_replace('_', '-', $key)) }}</th>
+                            <th class="py-2 pr-3">{{ strtoupper($key) }}</th>
                         @endforeach
-                        @foreach($extendedKeys as $key)
-                            <th class="py-2 pr-3">{{ strtoupper(str_replace('_', '-', $key)) }}</th>
-                        @endforeach
-                        <th class="py-2 pr-3"></th>
+                        <th class="py-2 pr-3">Advisory</th>
+                        <th class="py-2 pr-0"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -104,6 +109,19 @@
                             $pending = $domain->last_checked_at === null;
                             $overall = $pending ? 'pending' : (string) ($result['overall'] ?? 'pending');
                             $provider = $domain->providerLabel();
+                            $extendedPresent = 0;
+                            $extendedMissing = 0;
+                            foreach ($extendedKeys as $extKey) {
+                                $extBand = (string) (($checks[$extKey]['band'] ?? null) ?: 'yellow');
+                                if ($pending) {
+                                    continue;
+                                }
+                                if ($extBand === 'green') {
+                                    $extendedPresent++;
+                                } else {
+                                    $extendedMissing++;
+                                }
+                            }
                         @endphp
                         <tr class="border-t border-white/10 align-top">
                             <td class="py-3 pr-3">
@@ -121,7 +139,7 @@
                                 @endif
                             </td>
                             <td class="py-3 pr-3 {{ $bandColor($overall) }}">{{ strtoupper($overall) }}</td>
-                            @foreach(array_merge($coreKeys, $extendedKeys) as $key)
+                            @foreach($coreKeys as $key)
                                 @php
                                     $check = is_array($checks[$key] ?? null) ? $checks[$key] : [];
                                     $band = $pending ? 'pending' : (string) ($check['band'] ?? 'pending');
@@ -130,9 +148,36 @@
                                     <div class="{{ $bandColor($band) }}">
                                         {{ strtoupper($band) }}
                                     </div>
-                                    <div class="text-xs text-white/50 max-w-[9rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
+                                    <div class="text-xs text-white/50 max-w-[10rem]">{{ $pending ? 'Waiting for check' : ($check['summary'] ?? '-') }}</div>
                                 </td>
                             @endforeach
+                            <td class="py-3 pr-3 text-xs text-white/55">
+                                @if($pending)
+                                    <span class="text-sky-300">PENDING</span>
+                                @else
+                                    <details>
+                                        <summary class="cursor-pointer text-white/70 hover:text-white">
+                                            {{ $extendedPresent }} present · {{ $extendedMissing }} optional
+                                        </summary>
+                                        <ul class="mt-2 space-y-1 text-white/50">
+                                            @foreach($extendedKeys as $key)
+                                                @php
+                                                    $check = is_array($checks[$key] ?? null) ? $checks[$key] : [];
+                                                    $band = (string) ($check['band'] ?? 'yellow');
+                                                @endphp
+                                                <li>
+                                                    <span class="{{ $bandColor($band) }}">{{ strtoupper($band) }}</span>
+                                                    {{ $extendedLabels[$key] ?? $key }}
+                                                    - {{ $check['summary'] ?? '-' }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </details>
+                                    <p class="mt-1 text-[10px] text-white/35">
+                                        Autodiscover / MTA-STS / TLS-RPT / BIMI - nice to have, not onboarding blockers.
+                                    </p>
+                                @endif
+                            </td>
                             <td class="py-3 pr-0 whitespace-nowrap">
                                 <form method="POST" action="{{ route('admin.clients.domains.check', [$client, $domain]) }}" class="inline">
                                     @csrf
@@ -183,22 +228,31 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        @csrf
-        <div>
-            <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
-            <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="mail.clientco.co.uk" required>
-        </div>
-        <div>
-            <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>
-            <input id="dkim_selectors" type="text" name="dkim_selectors" value="{{ old('dkim_selectors') }}" class="admin-input" placeholder="optional, comma-separated">
-        </div>
-        <div class="flex items-end gap-3 sm:col-span-2">
-            <label class="flex items-center gap-2 text-sm text-white/70">
-                <input type="checkbox" name="make_primary" value="1" class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
-                Make primary
-            </label>
-            <button type="submit" class="cta-btn-ghost text-sm px-4 py-2">Add domain</button>
-        </div>
-    </form>
+    <details class="border border-white/10 bg-black/20 px-3 py-3">
+        <summary class="cursor-pointer select-none text-xs font-condensed uppercase tracking-wide text-onit">
+            Advanced - Add domain / custom DKIM
+        </summary>
+        <p class="mt-2 text-xs text-white/50 max-w-3xl">
+            Only for extra domains (second brand, legacy domain). Primary is Save client above.
+            Custom DKIM selectors are rarely needed - Check DNS already tries M365 selector1/selector2 and common gateways.
+        </p>
+        <form method="POST" action="{{ route('admin.clients.domains.store', $client) }}" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @csrf
+            <div>
+                <label for="extra_domain" class="portal-label mb-1 block">Add domain</label>
+                <input id="extra_domain" type="text" name="domain" value="{{ old('domain') }}" class="admin-input" placeholder="other.clientco.co.uk" required>
+            </div>
+            <div>
+                <label for="dkim_selectors" class="portal-label mb-1 block">Extra DKIM selectors</label>
+                <input id="dkim_selectors" type="text" name="dkim_selectors" value="{{ old('dkim_selectors') }}" class="admin-input" placeholder="optional, only if unusual">
+            </div>
+            <div class="flex items-end gap-3 sm:col-span-2">
+                <label class="flex items-center gap-2 text-sm text-white/70">
+                    <input type="checkbox" name="make_primary" value="1" class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
+                    Make primary
+                </label>
+                <button type="submit" class="cta-btn-ghost text-sm px-4 py-2">Add domain</button>
+            </div>
+        </form>
+    </details>
 </div>

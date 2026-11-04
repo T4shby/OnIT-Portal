@@ -1,10 +1,28 @@
 # Mail domains and DNS health (onboarding)
 
-**Status:** Phase A + B **live**. Phase C (provider profiles, history, CSV, extended DNS) built - deploy when asked.  
+**Status:** Phase A + B + C **live**.  
 **Audience:** Staff technicians onboarding customers in On IT Portal.  
 **Customer UI:** Staff Edit Client for DNS. Client Admin MFA is separate.
 
-Portal is the main onboarding guide. Every new customer needs a **main domain** at create time. DNS health (MX / SPF / DKIM / DMARC) is checked in-app so mail readiness is not a separate spreadsheet.
+Portal is the in-app **MXToolbox-style DNS tester** for onboarding - not a place to invent DNS. Every new customer needs a **main domain** at create time. Technicians Check DNS and read traffic lights so they know what to fix at the registrar.
+
+## What technicians should care about
+
+| Priority | Checks | Drives hand-off red? |
+|---|---|---|
+| **Core (always)** | **MX, SPF, DKIM, DMARC** | **Yes** - overall / checklist / “DNS still has red” |
+| Advisory (optional) | Autodiscover, MTA-STS, TLS-RPT, BIMI | **No** - collapsed under Advisory; yellow when missing is fine |
+
+**You do not need Add domain** for the primary - Create / Save client owns that. **Add domain** / custom DKIM selectors are Advanced only (extra brands, unusual DKIM selector names). Check DNS already tries M365 `selector1`/`selector2` and common gateways.
+
+### Advisory records (plain English)
+
+| Record | What it is |
+|---|---|
+| Autodiscover | Helps Outlook find the mailbox settings |
+| MTA-STS | Policy so mail servers prefer encrypted delivery |
+| TLS-RPT | Reports about TLS delivery problems |
+| BIMI | Brand logo in some inboxes (needs solid DMARC) |
 
 ## Edit Client UX (2026-11-02)
 
@@ -18,6 +36,8 @@ Portal is the main onboarding guide. Every new customer needs a **main domain** 
 **Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 
 **Layout (2026-11-02 / rebalanced 2026-11-04):** Edit Client `admin-split` is work column + sticky setup guide on the right. Guide is ~28-38rem so step titles stay readable; form grids cap at `max-w-3xl` so paste fields do not stretch across ultra-wide leftover space. Guide chrome (how-to, Graph tools when tenant already linked) collapses behind `<details>` so only the open step detail is on screen. Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
+
+**Mail domains card (aligned 2026-11-04):** Primary table shows **domain + overall + MX/SPF/DKIM/DMARC + Check DNS**. Advisory checks (Autodiscover / MTA-STS / TLS-RPT / BIMI) sit in a collapsed “Advisory” cell. **Add domain / custom DKIM** sit under Advanced. Hand-off / checklist still use **core overall only**.
 
 ## Locked decisions (2026-10-19)
 
@@ -139,6 +159,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-04 | UX aligned: core four columns primary; advisory collapsed; Add domain / DKIM under Advanced. Product framing = DNS tester for onboarding. |
 | 2026-11-03 | Phase C: provider profiles, check history, CSV export, Autodiscover/MTA-STS/TLS-RPT/BIMI (advisory). |
 | 2026-11-02 | Edit layout: wide form + right guide (`admin-split` column order fixed). Mail domains card outside Save; heal primary without DNS row. |
 | 2026-11-02 | Edit UX: Mail domains card outside Save form (nested forms broke Import/Add). Heal primary without DNS row on Edit. |

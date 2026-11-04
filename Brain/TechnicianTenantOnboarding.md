@@ -46,7 +46,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 
 | # | Step | Remaining for you (if not auto-Done) | Done when |
 |---|---|---|---|
-| 00 | Confirm mail domain + DNS | Main domain on create; Check DNS on Edit | No red DNS (yellow OK) or tick with note |
+| 00 | Confirm mail domain + DNS | Main domain on create; Check DNS on Edit (core MX/SPF/DKIM/DMARC) | No red **core** DNS (yellow OK; advisory optional) or tick with note |
 | 01 | Link SuperOps client | SuperOps Account ID → portal left → Save | Account ID saved (auto) |
 | 02 | Link Pax8 (or skip) | Skip, or Pax8 UUID + access → Save | Pax8 off or UUID saved (auto) |
 | 03 | Connect Microsoft tenant | **Connect Microsoft tenant** once | Tenant ID + group ID saved |

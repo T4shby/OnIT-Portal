@@ -25,22 +25,19 @@ Use this as a walkthrough. Hard-refresh (Ctrl+F5) if a page looks stale.
 
 ---
 
-## 2. Staff - Edit Client mail domains (full DNS)
+## 2. Staff - Edit Client mail domains (DNS tester)
 
 **Where:** Staff Admin → **Clients** → pick a client (e.g. 3R) → Edit
 
 **Show:**
-1. **Main domain** at the top → **Save client** (creates/updates primary + runs DNS check now)
-2. **Mail domains** card below Save (own forms - Import / Add / Check DNS)
-3. Traffic lights:
-   - **Core (drive red / hand-off):** MX, SPF, DKIM, DMARC
-   - **Extended (advisory yellow if missing):** Autodiscover, MTA-STS, TLS-RPT, BIMI
-4. **Provider** label from MX (e.g. Microsoft 365, Mimecast, Google)
-5. **PENDING** (sky) when not checked yet - not false red
-6. **Recent DNS checks** history (who / when / source)
-7. **Export CSV** for a customer pack
+1. **Main domain** at the top → **Save client** (creates/updates primary + runs DNS check now) - no need for Add domain
+2. **Mail domains** card → **Check DNS** (MXToolbox-style)
+3. Traffic lights that matter: **MX / SPF / DKIM / DMARC** (drive red / hand-off)
+4. **Advisory** cell collapsed - Autodiscover / MTA-STS / TLS-RPT / BIMI are optional niceties
+5. **Advanced** collapsed - Add domain / custom DKIM only for extras or unusual selectors
+6. **Provider** from MX, **PENDING** until checked, history + **Export CSV**
 
-**Talking point:** Onboarding step 00 is in-portal. Hand-off warns on red core DNS; it does not hard-block.
+**Talking point:** Onboarding step 00 is “do we need to fix DNS?” not “configure DNS in the portal”. Hand-off warns on red core; it does not hard-block.
 
 **Try:** **Check DNS** on the primary, or **Import from Microsoft** if the tenant is connected.
 
