@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-04 ~13:30 UK - Deploy Edit Client guide/form rebalance
+
+| | |
+|---|---|
+| Intent | Setup guide too narrow after wide-form change; step titles unreadable. Rebalance guide width + collapse chrome. |
+| Operator | agent |
+| SHA before -> after | `30e2860` -> `6f28b38` |
+| Steps | Push Vite rebuild. SSH: bare fetch, archive, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Reloaded PHP-FPM 8.4. Removed stale `app-Cak8oOAo.css`. |
+| Result | Live `.deployed-commit` `6f28b38`. Guide ~28-38rem; form grids `max-w-3xl`; how-to / Graph tools behind `<details>`. `/up` 200. |
+| Rollback / watch | Redeploy `30e2860`. Hard-refresh Edit Client (Ctrl+F5) for new CSS hash. |
+
 ### 2026-11-03 ~16:10 UK - Hotfix dashboard 500 (usecure glance leak)
 
 | | |
