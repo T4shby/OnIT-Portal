@@ -240,6 +240,27 @@
         @apply grid w-full gap-x-6 gap-y-0 sm:grid-cols-2 xl:grid-cols-3;
     }
 
+    /* Edit / Create: SuperOps, M365, Huntress, Dropsuite (and vendors) as 2-up condensed cards. */
+    .admin-product-grid {
+        @apply grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2;
+    }
+
+    .admin-product-card {
+        @apply flex h-full min-w-0 flex-col gap-2 rounded border border-onit-border bg-onit-ink p-3;
+    }
+
+    .admin-product-card__fields {
+        @apply min-w-0;
+    }
+
+    .admin-product-card__fields > .mb-4 {
+        @apply mb-2 last:mb-0;
+    }
+
+    .admin-product-card__fields .portal-body-muted {
+        @apply text-[11px] leading-snug text-white/60;
+    }
+
     .mail-dns-table th,
     .mail-dns-table td {
         @apply align-top;

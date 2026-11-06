@@ -55,6 +55,8 @@ Graph Exchange `GET /exchange/v1.0/dkimSigningConfigs/{domain}` (`Enabled`, `Sta
 
 **Edit Client page order (2026-11-04):** Top full-width **Customer tools and checkers** (M365 / MFA / Huntress / Dropsuite / Entra sync + Mail DNS checker). Then **Identity and products** + sticky **Client setup guide**.
 
+**Products (2026-11-06):** Portal products render as a **2-column condensed grid** (SuperOps, Microsoft 365, Huntress, Dropsuite), not full-width stacks. Pax8 sits in the same 2-up grid under Licence vendor. Paste IDs stay in the card.
+
 **Mail DNS checker:** Table shows **domain + overall + MX/SPF/DKIM/DMARC + Check DNS**. Advisory cell and **Recent DNS checks** / **Advanced - Add domain / custom DKIM** are collapsed until opened. Hand-off / checklist still use **core overall only**.
 
 ## Locked decisions (2026-10-19)

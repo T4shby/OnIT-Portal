@@ -91,6 +91,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-06 | Edit Client products: 2-up condensed cards (SuperOps / M365 / Huntress / Dropsuite). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-06 | Mail onboarding: M365 DKIM signing + test-email verification (DNS alone cannot auto-complete step 00). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-04 | Edit Client: Customer tools and checkers at top (tools + Mail DNS); Recent/Advanced collapsed; alignment fixes. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-04 | Mail DNS UX aligned to MXToolbox model: core MX/SPF/DKIM/DMARC primary; advisory + Add domain collapsed. - [MailDomainDns.md](MailDomainDns.md) |

@@ -21,7 +21,7 @@
                 </span>
             </p>
         </div>
-        <div class="space-y-4">
+        <div class="admin-product-grid">
             @foreach($services as $key => $meta)
                 @include('admin.clients._product-card', [
                     'key' => $key,
@@ -44,7 +44,7 @@
                 the same way as Pax8.
             </p>
         </div>
-        <div class="space-y-4">
+        <div class="admin-product-grid">
             @forelse($vendors as $key => $meta)
                 @include('admin.clients._product-card', [
                     'key' => $key,
@@ -55,7 +55,7 @@
                     'showEntra' => $showEntra,
                 ])
             @empty
-                <p class="portal-body-muted text-xs">No licence vendors in the catalog yet.</p>
+                <p class="portal-body-muted text-xs sm:col-span-2">No licence vendors in the catalog yet.</p>
             @endforelse
         </div>
     </section>
