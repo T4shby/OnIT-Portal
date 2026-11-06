@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-06 ~14:10 UK - Deploy M365 DKIM signing onboarding verification
+
+| | |
+|---|---|
+| Intent | Close Rayner Smith gap: DNS DKIM CNAMEs green while Defender NoDKIMKeys / dkim=none. Require Defender Enabled + test email for M365 step 00. |
+| Operator | agent |
+| SHA before -> after | `f7e587c` -> `9b528fe` |
+| Steps | Push; bare fetch + archive; composer; migrate (nothing); route/config/view clear; PortalLinkSeeder; optimize. Restarted `plesk-php84-fpm`. |
+| Result | Live `.deployed-commit` `9b528fe`. FPM active. `/up` 200. MailDnsEmailAuthVerificationTest + ClientMailDomainTest green. |
+| Rollback / watch | Redeploy `f7e587c`. Hard-refresh Edit Client → Customer tools → Mail domains. Graph auto-read of dkimSigningConfigs is backlog. |
+
 ### 2026-11-04 ~16:40 UK - Deploy Edit Client tools-at-top layout
 
 | | |
