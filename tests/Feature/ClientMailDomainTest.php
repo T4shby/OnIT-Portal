@@ -222,6 +222,8 @@ class ClientMailDomainTest extends TestCase
             ->assertSee('Export CSV')
             ->assertSee('Core =', false)
             ->assertSee('MX / SPF / DKIM / DMARC', false)
+            ->assertSee('Email authentication verification', false)
+            ->assertSee('NoDKIMKeys', false)
             ->getContent();
 
         // Nested forms break Add domain / Import in browsers - mail panel must sit outside Save.

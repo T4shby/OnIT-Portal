@@ -10,10 +10,26 @@ Portal is the in-app **MXToolbox-style DNS tester** for onboarding - not a place
 
 | Priority | Checks | Drives hand-off red? |
 |---|---|---|
-| **Core (always)** | **MX, SPF, DKIM, DMARC** | **Yes** - overall / checklist / “DNS still has red” |
+| **Core (always)** | **MX, SPF, DKIM, DMARC** (public DNS) | **Yes** - overall / checklist / “DNS still has red” |
+| **M365 email auth (required when M365 / Entra)** | Defender DKIM **Enabled + Valid** + test email SPF/DKIM/DMARC pass | Blocks step 00 auto-complete (not DNS red) |
 | Advisory (optional) | Autodiscover, MTA-STS, TLS-RPT, BIMI | **No** - collapsed under Advisory; yellow when missing is fine |
 
+### Lesson learned (Rayner Smith / 2026-11)
+
+Adding DKIM CNAMEs in DNS does **not** enable signing in Microsoft 365. Defender can show `NoDKIMKeys` and outbound headers `dkim=none` while selector1/selector2 CNAMEs resolve. Portal DNS green for DKIM only means the public key path exists.
+
+**Onboarding fix:** For M365 / Entra-linked clients, step 00 also requires two ticks under Customer tools → Mail domains:
+
+1. `mail_dkim_signing_enabled` - Defender DKIM Enabled, status Valid  
+2. `mail_auth_test_passed` - real send test: SPF + DKIM + DMARC pass  
+
+DNS alone no longer auto-completes step 00 on that path.
+
 **You do not need Add domain** for the primary - Create / Save client owns that. **Add domain** / custom DKIM selectors are Advanced only (extra brands, unusual DKIM selector names). Check DNS already tries M365 `selector1`/`selector2` and common gateways.
+
+### Later (backlog)
+
+Graph Exchange `GET /exchange/v1.0/dkimSigningConfigs/{domain}` (`Enabled`, `Status`) could auto-fill the Defender tick when App permission / TCM access is available - not required for the checklist gap fix.
 
 ### Advisory records (plain English)
 
@@ -161,6 +177,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-06 | M365 email auth verification: DNS ≠ signing. Step 00 needs Defender DKIM Enabled + test email ticks (Rayner Smith gap). |
 | 2026-11-04 | UX aligned: core four columns primary; advisory collapsed; Add domain / DKIM under Advanced. Product framing = DNS tester for onboarding. |
 | 2026-11-03 | Phase C: provider profiles, check history, CSV export, Autodiscover/MTA-STS/TLS-RPT/BIMI (advisory). |
 | 2026-11-02 | Edit layout: wide form + right guide (`admin-split` column order fixed). Mail domains card outside Save; heal primary without DNS row. |

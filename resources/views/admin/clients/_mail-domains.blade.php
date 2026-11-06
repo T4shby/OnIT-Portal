@@ -206,6 +206,85 @@
         </p>
     @endif
 
+    @php
+        $mailDomainsService = app(\App\Services\MailDns\ClientDomainService::class);
+        $emailAuthRequired = $mailDomainsService->emailAuthVerificationRequired($client);
+        $checklist = $client->onboarding_checklist ?? [];
+        $dkimSigningDone = (bool) ($checklist['mail_dkim_signing_enabled'] ?? false);
+        $authTestDone = (bool) ($checklist['mail_auth_test_passed'] ?? false);
+        $primaryDns = $mailDomains->firstWhere('is_primary', true) ?? $mailDomains->first();
+        $primaryChecks = is_array(($primaryDns?->last_result['checks'] ?? null)) ? $primaryDns->last_result['checks'] : [];
+        $bandOf = function (string $key) use ($primaryChecks, $primaryDns): string {
+            if ($primaryDns === null || $primaryDns->last_checked_at === null) {
+                return 'pending';
+            }
+            $check = is_array($primaryChecks[$key] ?? null) ? $primaryChecks[$key] : [];
+
+            return (string) ($check['band'] ?? 'pending');
+        };
+    @endphp
+
+    @if($emailAuthRequired)
+        <div class="mb-4 border border-amber-400/30 bg-amber-400/10 px-3 py-3 space-y-3">
+            <div>
+                <p class="text-xs font-condensed uppercase tracking-wide text-amber-100">Email authentication verification (M365)</p>
+                <p class="mt-1 text-xs text-amber-50/90 max-w-3xl">
+                    DNS records can look correct while Microsoft 365 is still not signing mail
+                    (Defender <strong class="text-white">NoDKIMKeys</strong> / headers <code class="text-white/80">dkim=none</code>).
+                    Tick both boxes after you verify in Defender and with a real send test.
+                </p>
+            </div>
+            <ul class="space-y-1 text-xs text-white/70">
+                <li>
+                    <span class="{{ $bandColor($bandOf('spf')) }}">{{ strtoupper($bandOf('spf')) }}</span>
+                    SPF DNS
+                </li>
+                <li>
+                    <span class="{{ $bandColor($bandOf('dkim')) }}">{{ strtoupper($bandOf('dkim')) }}</span>
+                    DKIM DNS (selector1 / selector2 CNAMEs)
+                </li>
+                <li>
+                    <span class="{{ $bandColor($bandOf('dmarc')) }}">{{ strtoupper($bandOf('dmarc')) }}</span>
+                    DMARC DNS
+                </li>
+            </ul>
+            <div class="space-y-2 text-sm text-white/85">
+                <input type="hidden" name="checkpoints[mail_dkim_signing_enabled]" value="0" form="onboarding-checklist-form">
+                <label class="flex items-start gap-2">
+                    <input
+                        type="checkbox"
+                        name="checkpoints[mail_dkim_signing_enabled]"
+                        value="1"
+                        form="onboarding-checklist-form"
+                        class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                        @checked($dkimSigningDone)
+                    >
+                    <span>
+                        DKIM signing Enabled in Microsoft Defender for this domain
+                        (both CNAMEs published, status <strong class="text-white">Valid</strong> - not NoDKIMKeys).
+                    </span>
+                </label>
+                <input type="hidden" name="checkpoints[mail_auth_test_passed]" value="0" form="onboarding-checklist-form">
+                <label class="flex items-start gap-2">
+                    <input
+                        type="checkbox"
+                        name="checkpoints[mail_auth_test_passed]"
+                        value="1"
+                        form="onboarding-checklist-form"
+                        class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                        @checked($authTestDone)
+                    >
+                    <span>
+                        Test email sent from this domain - SPF, DKIM, and DMARC all pass.
+                    </span>
+                </label>
+            </div>
+            <p class="text-[11px] text-white/45">
+                Ticks save immediately via the setup guide checklist form. Step 00 stays open until both are done (or you explicitly defer).
+            </p>
+        </div>
+    @endif
+
     <div class="space-y-3">
         @if($mailDnsHistory->isNotEmpty())
             <details class="border border-white/10 bg-black/20 px-3 py-3">

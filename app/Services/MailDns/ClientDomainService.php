@@ -120,26 +120,77 @@ class ClientDomainService
     }
 
     /**
-     * Checklist Done when primary exists and last check has no red (yellow OK),
-     * or every domain that has been checked is non-red.
+     * Core DNS Done when primary exists and last check has no red (yellow OK).
+     * Does not prove M365 DKIM signing is Enabled - see emailAuthVerification*.
      */
     public function dnsChecklistComplete(Client $client): bool
     {
-        if (! filled($client->primary_domain)) {
-            return false;
-        }
-
-        $domains = ClientDomain::query()->where('client_id', $client->id)->get();
-        if ($domains->isEmpty()) {
-            return false;
-        }
-
-        $primary = $domains->firstWhere('is_primary', true) ?? $domains->firstWhere('domain', $client->primary_domain);
+        $primary = $this->primaryDomain($client);
         if ($primary === null || $primary->last_checked_at === null) {
             return false;
         }
 
         return $primary->overallBand() !== 'red';
+    }
+
+    /**
+     * M365 (and Entra-linked) customers need Defender DKIM signing + a real send test.
+     * Public DNS can show green selector CNAMEs while signing is still off (NoDKIMKeys).
+     */
+    public function emailAuthVerificationRequired(Client $client): bool
+    {
+        if (! filled($client->primary_domain)) {
+            return false;
+        }
+
+        if (filled($client->entra_tenant_id)) {
+            return true;
+        }
+
+        $primary = $this->primaryDomain($client);
+        if ($primary === null) {
+            return false;
+        }
+
+        $result = is_array($primary->last_result) ? $primary->last_result : [];
+        $providerKey = (string) ($result['provider']['key'] ?? '');
+        if ($providerKey === 'm365') {
+            return true;
+        }
+
+        $found = $result['checks']['dkim']['selectors_found'] ?? [];
+        if (! is_array($found)) {
+            return false;
+        }
+
+        return (bool) array_intersect(['selector1', 'selector2'], array_map('strval', $found));
+    }
+
+    public function emailAuthVerificationComplete(Client $client): bool
+    {
+        if (! $this->emailAuthVerificationRequired($client)) {
+            return true;
+        }
+
+        $checklist = $client->onboarding_checklist ?? [];
+
+        return (bool) ($checklist['mail_dkim_signing_enabled'] ?? false)
+            && (bool) ($checklist['mail_auth_test_passed'] ?? false);
+    }
+
+    public function primaryDomain(Client $client): ?ClientDomain
+    {
+        if (! filled($client->primary_domain)) {
+            return null;
+        }
+
+        $domains = ClientDomain::query()->where('client_id', $client->id)->get();
+        if ($domains->isEmpty()) {
+            return null;
+        }
+
+        return $domains->firstWhere('is_primary', true)
+            ?? $domains->firstWhere('domain', $client->primary_domain);
     }
 
     public function anyDomainStillRed(Client $client): bool

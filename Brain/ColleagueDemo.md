@@ -33,10 +33,11 @@ Use this as a walkthrough. Hard-refresh (Ctrl+F5) if a page looks stale.
 1. **Customer tools and checkers** - M365 directory, MFA methods, Huntress, sync actions
 2. **Mail DNS checker** inside that card - **Check DNS** (MXToolbox-style)
 3. Traffic lights that matter: **MX / SPF / DKIM / DMARC**
-4. Collapsed until clicked: **Advisory**, **Recent DNS checks**, **Advanced - Add domain / custom DKIM**
-5. Below: **Identity and products** (Save client / main domain) + **Client setup guide** on the right
+4. **Email authentication verification (M365)** - DNS green ≠ signing on; tick Defender DKIM Enabled + test email
+5. Collapsed until clicked: **Advisory**, **Recent DNS checks**, **Advanced - Add domain / custom DKIM**
+6. Below: **Identity and products** (Save client / main domain) + **Client setup guide** on the right
 
-**Talking point:** Onboarding step 00 is “do we need to fix DNS?” not “configure DNS in the portal”. Hand-off warns on red core; it does not hard-block.
+**Talking point:** Onboarding step 00 is “is mail auth actually working?” - not only “are DNS records present?”. Hand-off warns on red core; it does not hard-block.
 
 **Try:** **Check DNS** on the primary, or **Import from Microsoft** if the tenant is connected.
 

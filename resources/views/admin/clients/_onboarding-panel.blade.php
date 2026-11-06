@@ -133,22 +133,25 @@
             <p class="portal-body-muted mt-2 text-xs leading-relaxed">
                 Tick “Mark this step complete” and it saves immediately.
                 SCIM / Client SSO action buttons are inside steps 07 and 08.
+                Mail DNS email-auth ticks (Defender DKIM + test email) also save from Customer tools and checkers.
             </p>
         </div>
-        <script>
-            (function () {
-                var form = document.getElementById('onboarding-checklist-form');
-                if (!form) return;
-                document.querySelectorAll('input[type="checkbox"][name^="checkpoints"][form="onboarding-checklist-form"]').forEach(function (box) {
-                    box.addEventListener('change', function () {
-                        if (typeof form.requestSubmit === 'function') {
-                            form.requestSubmit();
-                        } else {
-                            form.submit();
-                        }
-                    });
-                });
-            })();
-        </script>
     @endif
+
+    {{-- Always bind: email-auth ticks live in Customer tools (above) and use this form id. --}}
+    <script>
+        (function () {
+            var form = document.getElementById('onboarding-checklist-form');
+            if (!form) return;
+            document.querySelectorAll('input[type="checkbox"][name^="checkpoints"][form="onboarding-checklist-form"]').forEach(function (box) {
+                box.addEventListener('change', function () {
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                });
+            });
+        })();
+    </script>
 </div>

@@ -314,14 +314,24 @@ class MailDnsHealthService
         $weak = array_values(array_unique(array_diff($weak, $found)));
 
         if ($found !== []) {
+            $m365Selectors = array_values(array_intersect($found, ['selector1', 'selector2']));
+            $summary = count($found) === 1
+                ? 'DKIM key on '.$found[0]
+                : 'DKIM keys on '.count($found).' selectors';
+            $detail = 'Found: '.implode(', ', $found);
+            // M365: published CNAMEs do not mean signing is Enabled (Defender NoDKIMKeys / dkim=none).
+            if ($m365Selectors !== []) {
+                $summary .= ' - confirm signing Enabled in Defender';
+                $detail .= '. DNS alone is not enough for Microsoft 365: enable DKIM for this domain in Defender (Status Valid), then send a test email.';
+            }
+
             return [
                 'band' => 'green',
-                'summary' => count($found) === 1
-                    ? 'DKIM key on '.$found[0]
-                    : 'DKIM keys on '.count($found).' selectors',
-                'detail' => 'Found: '.implode(', ', $found),
+                'summary' => $summary,
+                'detail' => $detail,
                 'records' => $found,
                 'selectors_found' => $found,
+                'signing_verification_needed' => $m365Selectors !== [],
             ];
         }
 

@@ -30,6 +30,9 @@ class ClientOnboardingService
      * @var list<string>
      */
     public const MANUAL_CHECKPOINTS = [
+        'mail_domains_dns',
+        'mail_dkim_signing_enabled',
+        'mail_auth_test_passed',
         'entra_group_created',
         'entra_admin_consent_granted',
         'superops_scim_tokens',
@@ -129,12 +132,17 @@ class ClientOnboardingService
 
         $connectWhere = 'This checklist → orange Connect Microsoft tenant (private browser / GDAP)';
 
+        $mailDomains = app(\App\Services\MailDns\ClientDomainService::class);
+        $dnsOk = $mailDomains->dnsChecklistComplete($client);
+        $emailAuthRequired = $mailDomains->emailAuthVerificationRequired($client);
+        $emailAuthOk = $mailDomains->emailAuthVerificationComplete($client);
         $mailDnsComplete = filled($client->primary_domain)
             && (
                 (bool) ($checklist['mail_domains_dns'] ?? false)
-                || app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
+                || ($dnsOk && $emailAuthOk)
             );
-        $mailDnsStillRed = app(\App\Services\MailDns\ClientDomainService::class)->anyDomainStillRed($client);
+        $mailDnsStillRed = $mailDomains->anyDomainStillRed($client);
+        $mailAutoDetected = $dnsOk && $emailAuthOk;
 
         $steps = [
             $this->withManual([
@@ -143,40 +151,54 @@ class ClientOnboardingService
                 'who' => self::RESPONSIBLE_ON_IT_PORTAL,
                 'complete' => $mailDnsComplete,
                 'manual' => true,
-                'auto_detected' => app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client),
+                'auto_detected' => $mailAutoDetected,
                 'blocked' => ! filled($client->primary_domain),
             ], OnboardingManual::build(
                 automated: filled($client->primary_domain)
-                    ? [
+                    ? array_values(array_filter([
                         '**Main domain** is saved: **'.$client->primary_domain.'**.',
-                        app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
-                            ? 'Last DNS check has no red lights (yellow is OK).'
+                        $dnsOk
+                            ? 'Core DNS (MX / SPF / DKIM / DMARC) has no red lights (yellow is OK).'
                             : 'DNS check still has red, or has not finished yet.',
-                    ]
+                        $emailAuthRequired
+                            ? ($emailAuthOk
+                                ? 'M365 email auth verification ticks are done (DKIM signing + test email).'
+                                : 'M365 path: still need DKIM signing Enabled in Defender + a test email that passes SPF/DKIM/DMARC.')
+                            : null,
+                    ]))
                     : [
                         'Create Client requires a main domain - this should already be set.',
                     ],
                 notes: [
+                    'DNS green for DKIM only means the CNAME/key is published - **not** that Microsoft 365 is signing mail.',
+                    'Rayner Smith class of ticket: Defender showed NoDKIMKeys / headers `dkim=none` while DNS CNAMEs were correct.',
                     'Green = correct. Yellow = present but weak/wrong. Red = missing.',
-                    'Hand-off warns if anything is still red - it does not block.',
-                    'Add extra domains and custom DKIM selectors on the left Mail domains panel.',
+                    'Hand-off warns if core DNS is still red - it does not block.',
                 ],
                 sections: [
                     OnboardingManual::section(
-                        'Remaining: check DNS',
-                        'Edit Client → Mail domains (left)',
-                        [
+                        'Remaining: DNS + email auth',
+                        'Edit Client → Customer tools and checkers → Mail domains',
+                        array_values(array_filter([
                             'Confirm the main domain is correct.',
-                            'Click **Check DNS** on each domain (or wait for the queued check after create).',
+                            'Click **Check DNS** (core = MX / SPF / DKIM / DMARC).',
                             'Fix red items at the DNS host, then Check DNS again.',
-                            'If mail is intentionally incomplete, tick **Mark this step complete** and leave a note for hand-off.',
-                        ],
+                            $emailAuthRequired
+                                ? 'In Microsoft Defender (GDAP): open DKIM for this domain - both selectors published, **Enabled**, status **Valid** (not NoDKIMKeys).'
+                                : null,
+                            $emailAuthRequired
+                                ? 'Send a test email from this domain and confirm SPF, DKIM, and DMARC all pass (headers or MXToolbox).'
+                                : null,
+                            'Tick the verification boxes under Mail domains (or Mark this step complete only if mail is intentionally deferred).',
+                        ])),
                     ),
                 ],
-                verify: [
+                verify: array_values(array_filter([
                     'Primary domain saved.',
-                    'MX / SPF / DKIM / DMARC show green or yellow (no red), or step ticked with a reason.',
-                ],
+                    'MX / SPF / DKIM / DMARC show green or yellow (no red).',
+                    $emailAuthRequired ? 'DKIM signing Enabled + Valid in Defender (not DNS alone).' : null,
+                    $emailAuthRequired ? 'Test email: SPF, DKIM, and DMARC pass.' : null,
+                ])),
             )),
 
             $this->withManual([
@@ -1325,7 +1347,11 @@ class ClientOnboardingService
             $current['portal_sync_run'] = true;
         }
 
-        if (app(\App\Services\MailDns\ClientDomainService::class)->dnsChecklistComplete($client)
+        $mailDomains = app(\App\Services\MailDns\ClientDomainService::class);
+        // Do not auto-complete on DNS alone when M365 signing verification is still required
+        // (DNS CNAMEs can be green while Defender shows NoDKIMKeys / dkim=none).
+        if ($mailDomains->dnsChecklistComplete($client)
+            && $mailDomains->emailAuthVerificationComplete($client)
             && ($current['mail_domains_dns'] ?? false) !== true) {
             $changed = true;
             $current['mail_domains_dns'] = true;
