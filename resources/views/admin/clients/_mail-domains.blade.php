@@ -225,64 +225,81 @@
     @endphp
 
     @if($emailAuthRequired)
-        <div class="mb-4 border border-amber-400/30 bg-amber-400/10 px-3 py-3 space-y-3">
-            <div>
-                <p class="text-xs font-condensed uppercase tracking-wide text-amber-100">Email authentication verification (M365)</p>
-                <p class="mt-1 text-xs text-amber-50/90 max-w-3xl">
+        @php
+            $emailAuthDone = $dkimSigningDone && $authTestDone;
+            $emailAuthBand = fn (string $band) => match ($band) {
+                'green' => 'font-semibold text-emerald-300',
+                'yellow' => 'font-semibold text-amber-200',
+                'pending' => 'font-semibold text-sky-300',
+                default => 'font-semibold text-rose-300',
+            };
+            $emailAuthSummary = $emailAuthDone
+                ? 'Both ticks done'
+                : (($dkimSigningDone ? 1 : 0) + ($authTestDone ? 1 : 0)).' of 2 ticks done';
+        @endphp
+        <details class="mb-4 border border-onit-border bg-onit-ink px-3 py-3">
+            <summary class="cursor-pointer select-none text-xs font-condensed uppercase tracking-wide text-onit">
+                Email authentication verification (M365)
+                <span class="ml-2 font-sans normal-case tracking-normal {{ $emailAuthDone ? 'text-emerald-300' : 'text-amber-200' }}">
+                    - {{ $emailAuthSummary }}
+                </span>
+            </summary>
+            <div class="mt-3 space-y-3 border-t border-white/10 pt-3">
+                <p class="text-xs leading-relaxed text-white/75 max-w-3xl">
                     DNS records can look correct while Microsoft 365 is still not signing mail
-                    (Defender <strong class="text-white">NoDKIMKeys</strong> / headers <code class="text-white/80">dkim=none</code>).
+                    (Defender <strong class="text-white">NoDKIMKeys</strong> / headers <code class="text-white/90">dkim=none</code>).
                     Tick both boxes after you verify in Defender and with a real send test.
                 </p>
+                <ul class="space-y-1.5 text-xs text-white/80">
+                    <li>
+                        <span class="{{ $emailAuthBand($bandOf('spf')) }}">{{ strtoupper($bandOf('spf')) }}</span>
+                        <span class="text-white/70"> SPF DNS</span>
+                    </li>
+                    <li>
+                        <span class="{{ $emailAuthBand($bandOf('dkim')) }}">{{ strtoupper($bandOf('dkim')) }}</span>
+                        <span class="text-white/70"> DKIM DNS (selector1 / selector2 CNAMEs)</span>
+                    </li>
+                    <li>
+                        <span class="{{ $emailAuthBand($bandOf('dmarc')) }}">{{ strtoupper($bandOf('dmarc')) }}</span>
+                        <span class="text-white/70"> DMARC DNS</span>
+                    </li>
+                </ul>
+                <div class="space-y-2 text-sm text-white/90">
+                    <input type="hidden" name="checkpoints[mail_dkim_signing_enabled]" value="0" form="onboarding-checklist-form">
+                    <label class="flex items-start gap-2">
+                        <input
+                            type="checkbox"
+                            name="checkpoints[mail_dkim_signing_enabled]"
+                            value="1"
+                            form="onboarding-checklist-form"
+                            class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                            @checked($dkimSigningDone)
+                        >
+                        <span>
+                            DKIM signing Enabled in Microsoft Defender for this domain
+                            (both CNAMEs published, status <strong class="text-white">Valid</strong> - not NoDKIMKeys).
+                        </span>
+                    </label>
+                    <input type="hidden" name="checkpoints[mail_auth_test_passed]" value="0" form="onboarding-checklist-form">
+                    <label class="flex items-start gap-2">
+                        <input
+                            type="checkbox"
+                            name="checkpoints[mail_auth_test_passed]"
+                            value="1"
+                            form="onboarding-checklist-form"
+                            class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                            @checked($authTestDone)
+                        >
+                        <span>
+                            Test email sent from this domain - SPF, DKIM, and DMARC all pass.
+                        </span>
+                    </label>
+                </div>
+                <p class="text-[11px] text-white/55">
+                    Ticks save immediately via the setup guide checklist form. Step 00 stays open until both are done (or you explicitly defer).
+                </p>
             </div>
-            <ul class="space-y-1 text-xs text-white/70">
-                <li>
-                    <span class="{{ $bandColor($bandOf('spf')) }}">{{ strtoupper($bandOf('spf')) }}</span>
-                    SPF DNS
-                </li>
-                <li>
-                    <span class="{{ $bandColor($bandOf('dkim')) }}">{{ strtoupper($bandOf('dkim')) }}</span>
-                    DKIM DNS (selector1 / selector2 CNAMEs)
-                </li>
-                <li>
-                    <span class="{{ $bandColor($bandOf('dmarc')) }}">{{ strtoupper($bandOf('dmarc')) }}</span>
-                    DMARC DNS
-                </li>
-            </ul>
-            <div class="space-y-2 text-sm text-white/85">
-                <input type="hidden" name="checkpoints[mail_dkim_signing_enabled]" value="0" form="onboarding-checklist-form">
-                <label class="flex items-start gap-2">
-                    <input
-                        type="checkbox"
-                        name="checkpoints[mail_dkim_signing_enabled]"
-                        value="1"
-                        form="onboarding-checklist-form"
-                        class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
-                        @checked($dkimSigningDone)
-                    >
-                    <span>
-                        DKIM signing Enabled in Microsoft Defender for this domain
-                        (both CNAMEs published, status <strong class="text-white">Valid</strong> - not NoDKIMKeys).
-                    </span>
-                </label>
-                <input type="hidden" name="checkpoints[mail_auth_test_passed]" value="0" form="onboarding-checklist-form">
-                <label class="flex items-start gap-2">
-                    <input
-                        type="checkbox"
-                        name="checkpoints[mail_auth_test_passed]"
-                        value="1"
-                        form="onboarding-checklist-form"
-                        class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
-                        @checked($authTestDone)
-                    >
-                    <span>
-                        Test email sent from this domain - SPF, DKIM, and DMARC all pass.
-                    </span>
-                </label>
-            </div>
-            <p class="text-[11px] text-white/45">
-                Ticks save immediately via the setup guide checklist form. Step 00 stays open until both are done (or you explicitly defer).
-            </p>
-        </div>
+        </details>
     @endif
 
     <div class="space-y-3">

@@ -177,6 +177,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-06 | Email auth verification panel collapsed by default; solid `bg-onit-ink` + higher-contrast status colours. |
 | 2026-11-06 | M365 email auth verification: DNS ≠ signing. Step 00 needs Defender DKIM Enabled + test email ticks (Rayner Smith gap). |
 | 2026-11-04 | UX aligned: core four columns primary; advisory collapsed; Add domain / DKIM under Advanced. Product framing = DNS tester for onboarding. |
 | 2026-11-03 | Phase C: provider profiles, check history, CSV export, Autodiscover/MTA-STS/TLS-RPT/BIMI (advisory). |
