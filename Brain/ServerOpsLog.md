@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-06 ~22:50 UK - Deploy email-auth panel collapse + contrast
+
+| | |
+|---|---|
+| Intent | Collapse huge M365 email-auth box; solid background; readable status colours. |
+| Operator | agent |
+| SHA before -> after | `4db3e08` -> `bb5d9e4` |
+| Steps | Push; bare fetch + archive; composer; migrate (nothing); route/config/view clear; PortalLinkSeeder; optimize. Restarted `plesk-php84-fpm`. |
+| Result | Live `.deployed-commit` `bb5d9e4`. FPM active. `/up` 200. |
+| Rollback / watch | Redeploy `4db3e08`. Hard-refresh Edit Client Mail domains. |
+
 ### 2026-11-06 ~14:10 UK - Deploy M365 DKIM signing onboarding verification
 
 | | |
