@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-06 ~23:05 UK - Deploy 2-up condensed product cards
+
+| | |
+|---|---|
+| Intent | Identity and products: SuperOps / M365 / Huntress / Dropsuite as a 2-column condensed grid instead of full-width stacks. |
+| Operator | agent |
+| SHA before -> after | `970f1a1` -> `b481795` |
+| Steps | Push Vite rebuild. SSH: bare fetch, archive, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Restarted `plesk-php84-fpm`. Removed stale CSS hash. |
+| Result | Live `.deployed-commit` `b481795`. FPM active. `/up` 200. |
+| Rollback / watch | Redeploy `970f1a1`. Hard-refresh Edit Client (Ctrl+F5). |
+
 ### 2026-11-06 ~22:50 UK - Deploy email-auth panel collapse + contrast
 
 | | |
