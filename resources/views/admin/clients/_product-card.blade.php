@@ -41,6 +41,7 @@
             'client' => $client,
             'fieldHelps' => $fieldHelps ?? [],
             'showEntra' => $showEntra ?? true,
+            'dropsuiteOrganizations' => $dropsuiteOrganizations ?? [],
         ])
     </div>
 </div>

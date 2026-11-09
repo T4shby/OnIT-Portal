@@ -184,7 +184,7 @@ class ClientOnboardingService
                             'Click **Check DNS** (core = MX / SPF / DKIM / DMARC).',
                             'Fix red items at the DNS host, then Check DNS again.',
                             $emailAuthRequired
-                                ? 'In Microsoft Defender (GDAP): open DKIM for this domain - both selectors published, **Enabled**, status **Valid** (not NoDKIMKeys).'
+                                ? 'Click **Refresh DKIM from Microsoft** - the portal lists Enabled/Valid for every accepted domain. Do not walk Defender per domain.'
                                 : null,
                             $emailAuthRequired
                                 ? 'Send a test email from this domain and confirm SPF, DKIM, and DMARC all pass (headers or MXToolbox).'
@@ -1382,7 +1382,8 @@ class ClientOnboardingService
                 'Optional. Huntress → Organizations → open customer → copy the organization ID.',
             ],
             'dropsuite_organization_id' => [
-                'Not shown in Dropsuite. Paste the short number only (YorPower is 6182, Finishing Design Services is 11223). An id like 360787-12 is the user id, not this field.',
+                'Not shown in Dropsuite. Use Admin → Clients → Dropsuite orgs (imports GET /users, then filter to live clients) or pick from the list on this card.',
+                'Paste the short number only (YorPower is 6182, Finishing Design Services is 11223). An id like 360787-12 is the user id, not this field.',
             ],
             'entra_license_tier' => [
                 'Entra directory tier for Free vs P1 assignment (not the user SKU list alone).',

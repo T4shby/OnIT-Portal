@@ -2,6 +2,7 @@
     @include('admin.partials.header', [
         'title' => 'Clients',
         'action' => '<div class="flex flex-wrap gap-2 justify-end">'
+            .'<a href="'.route('admin.clients.dropsuite-organizations').'" class="cta-btn-ghost text-sm px-5 py-3">Dropsuite orgs</a>'
             .'<a href="'.route('admin.clients.graph-reconsent').'" class="cta-btn-ghost text-sm px-5 py-3">Graph re-consent</a>'
             .'<a href="'.route('admin.clients.create').'" class="cta-btn text-sm px-6 py-3">Add Client</a>'
             .'</div>',

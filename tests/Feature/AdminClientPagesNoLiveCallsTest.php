@@ -88,6 +88,13 @@ class AdminClientPagesNoLiveCallsTest extends TestCase
             'error' => 'Quarantined: invalid credentials from warm cache',
         ], now()->addMinutes(5));
         Cache::put('superops.requester_count.'.$client->id, 3, now()->addMinutes(10));
+        Cache::put('entra.dkim_signing.'.$client->id, [
+            'available' => false,
+            'reason' => 'not_fetched',
+            'fetched_at' => null,
+            'configs' => [],
+            'by_domain' => [],
+        ], now()->addMinutes(15));
 
         $this->actingAs($admin)->get(route('admin.clients.edit', $client))
             ->assertOk()
@@ -103,6 +110,12 @@ class AdminClientPagesNoLiveCallsTest extends TestCase
 
         $graph = \Mockery::mock(\App\Services\EntraSync\MicrosoftGraphClient::class);
         $graph->shouldReceive('getSuperOpsScimProvisioningHealth')->once()->andReturn(['ok' => true]);
+        $graph->shouldReceive('isConfigured')->andReturn(true);
+        $graph->shouldReceive('listDkimSigningConfigs')->once()->andReturn([
+            'available' => false,
+            'reason' => 'dkim_signing_permission_missing',
+            'configs' => [],
+        ]);
         $this->app->instance(\App\Services\EntraSync\MicrosoftGraphClient::class, $graph);
 
         $sync = \Mockery::mock(\App\Services\SuperOps\SuperOpsUserSyncService::class);
@@ -112,7 +125,11 @@ class AdminClientPagesNoLiveCallsTest extends TestCase
             return 42;
         });
 
-        (new WarmClientOnboardingChecksJob($client->id))->handle(app(ClientOnboardingService::class), $sync);
+        (new WarmClientOnboardingChecksJob($client->id))->handle(
+            app(ClientOnboardingService::class),
+            $sync,
+            app(\App\Services\MailDns\DkimSigningStatusService::class),
+        );
 
         $this->assertSame(['ok' => true], Cache::get(ClientOnboardingService::scimHealthCacheKey($client->id)));
         $this->assertSame(42, app(\App\Services\SuperOps\SuperOpsUserSyncService::class)->cachedClientRequesterCount($client));

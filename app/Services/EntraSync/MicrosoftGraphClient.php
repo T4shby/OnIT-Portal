@@ -4060,4 +4060,197 @@ class MicrosoftGraphClient
             'reason' => null,
         ];
     }
+
+    /**
+     * Defender / Exchange DKIM signing for every accepted domain (Get-DkimSigningConfig).
+     * Fail closed: 401/403 means Exchange.ManageAsApp or the Exchange Administrator
+     * role on the portal app is missing - never throw.
+     *
+     * @return array{
+     *     available: bool,
+     *     reason: ?string,
+     *     configs: list<array{domain: string, enabled: bool, status: string, signing: bool}>
+     * }
+     */
+    public function listDkimSigningConfigs(string $tenantId): array
+    {
+        $empty = [
+            'available' => false,
+            'reason' => 'dkim_signing_unavailable',
+            'configs' => [],
+        ];
+
+        $graph = $this->tryDkimSigningConfigsFromGraph($tenantId);
+        if ($graph['available']) {
+            return $graph;
+        }
+
+        $exchange = $this->tryDkimSigningConfigsFromExchange($tenantId);
+        if ($exchange['available']) {
+            return $exchange;
+        }
+
+        if (($graph['reason'] ?? null) === 'dkim_signing_permission_missing'
+            || ($exchange['reason'] ?? null) === 'dkim_signing_permission_missing') {
+            return [
+                'available' => false,
+                'reason' => 'dkim_signing_permission_missing',
+                'configs' => [],
+            ];
+        }
+
+        return $exchange['reason'] ? $exchange : ($graph['reason'] ? $graph : $empty);
+    }
+
+    /**
+     * @return array{available: bool, reason: ?string, configs: list<array{domain: string, enabled: bool, status: string, signing: bool}>}
+     */
+    private function tryDkimSigningConfigsFromGraph(string $tenantId): array
+    {
+        try {
+            $response = $this->graphGet(
+                $tenantId,
+                'https://graph.microsoft.com/beta/admin/exchange/dkimSigningConfigs',
+            );
+        } catch (Throwable) {
+            return ['available' => false, 'reason' => 'dkim_signing_request_failed', 'configs' => []];
+        }
+
+        return $this->mapDkimSigningConfigsResponse($response, allowNotFound: true);
+    }
+
+    /**
+     * @return array{available: bool, reason: ?string, configs: list<array{domain: string, enabled: bool, status: string, signing: bool}>}
+     */
+    private function tryDkimSigningConfigsFromExchange(string $tenantId): array
+    {
+        $url = 'https://outlook.office365.com/adminapi/beta/'.$tenantId.'/DkimSigningConfig';
+
+        try {
+            $response = $this->exchangeRequest($tenantId)->get($url);
+            if ($this->shouldRefreshTokenOnResponse($response)) {
+                $response = $this->exchangeRequest($tenantId, refreshToken: true)->get($url);
+            }
+        } catch (Throwable) {
+            return ['available' => false, 'reason' => 'dkim_signing_request_failed', 'configs' => []];
+        }
+
+        return $this->mapDkimSigningConfigsResponse($response, allowNotFound: false);
+    }
+
+    /**
+     * @return array{available: bool, reason: ?string, configs: list<array{domain: string, enabled: bool, status: string, signing: bool}>}
+     */
+    private function mapDkimSigningConfigsResponse(Response $response, bool $allowNotFound): array
+    {
+        if (in_array($response->status(), [401, 403], true)) {
+            return ['available' => false, 'reason' => 'dkim_signing_permission_missing', 'configs' => []];
+        }
+
+        if ($allowNotFound && in_array($response->status(), [400, 404], true)) {
+            return ['available' => false, 'reason' => 'dkim_signing_graph_not_supported', 'configs' => []];
+        }
+
+        if ($response->failed()) {
+            return ['available' => false, 'reason' => 'dkim_signing_unavailable', 'configs' => []];
+        }
+
+        $payload = $response->json();
+        if (! is_array($payload)) {
+            return ['available' => false, 'reason' => 'dkim_signing_unavailable', 'configs' => []];
+        }
+
+        $rows = $payload['value'] ?? null;
+        if (! is_array($rows)) {
+            return ['available' => false, 'reason' => 'dkim_signing_unavailable', 'configs' => []];
+        }
+
+        $configs = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $mapped = $this->mapDkimSigningConfigRow($row);
+            if ($mapped !== null) {
+                $configs[] = $mapped;
+            }
+        }
+
+        return [
+            'available' => true,
+            'reason' => null,
+            'configs' => $configs,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{domain: string, enabled: bool, status: string, signing: bool}|null
+     */
+    private function mapDkimSigningConfigRow(array $row): ?array
+    {
+        $domain = strtolower(trim((string) (
+            $row['domain']
+            ?? $row['Domain']
+            ?? $row['identity']
+            ?? $row['Identity']
+            ?? $row['id']
+            ?? $row['Id']
+            ?? ''
+        )));
+        $domain = preg_replace('/\s+.*/', '', $domain) ?? $domain;
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            return null;
+        }
+
+        $enabled = filter_var($row['enabled'] ?? $row['Enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $status = trim((string) ($row['status'] ?? $row['Status'] ?? ''));
+        $statusNorm = strtolower($status);
+        $signing = $enabled && in_array($statusNorm, ['valid', 'enabled'], true);
+
+        return [
+            'domain' => $domain,
+            'enabled' => $enabled,
+            'status' => $status !== '' ? $status : ($enabled ? 'Unknown' : 'Disabled'),
+            'signing' => $signing,
+        ];
+    }
+
+    private function exchangeRequest(string $tenantId, bool $refreshToken = false): PendingRequest
+    {
+        return Http::acceptJson()
+            ->withToken($this->exchangeAccessToken($tenantId, $refreshToken))
+            ->timeout(20);
+    }
+
+    private function exchangeAccessToken(string $tenantId, bool $refresh = false): string
+    {
+        if ($refresh) {
+            Cache::forget('entra_exchange_token.'.$tenantId);
+        }
+
+        return Cache::remember(
+            'entra_exchange_token.'.$tenantId,
+            now()->addMinutes(50),
+            function () use ($tenantId) {
+                $response = Http::asForm()->timeout(30)->post(
+                    "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
+                    [
+                        'client_id' => config('services.entra_sync.client_id'),
+                        'client_secret' => config('services.entra_sync.client_secret'),
+                        'scope' => 'https://outlook.office365.com/.default',
+                        'grant_type' => 'client_credentials',
+                    ]
+                );
+
+                if ($response->failed()) {
+                    throw new RuntimeException(
+                        'Failed to obtain Exchange token for tenant '.$tenantId.': '.$this->shortGraphErrorBody($response->body())
+                    );
+                }
+
+                return (string) $response->json('access_token');
+            }
+        );
+    }
 }

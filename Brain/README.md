@@ -67,6 +67,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Client onboarding wizard | `ClientOnboardingService`, `OnboardingManual` (automated / remaining / recovery), `admin/clients` forms + wire/Apply SCIM |
 | Shared client visibility | `ClientVisibilityService` - org-wide vs own person across SuperOps / M365 / Huntress |
 | Huntress cases + staff board | `HuntressSecurityController`, `ClientHuntressSecurityController`, `HuntressIncidentService` |
+| Dropsuite org import | `DropsuiteOrganizationDirectory`, `DropsuiteOrganizationController`, `/admin/dropsuite-organizations` |
 | SuperOps API | `app/Services/SuperOps/SuperOpsApiClient.php`, `SuperOpsTicketService` createTicket contract - [SuperOpsIntegration.md](SuperOpsIntegration.md#createticket-contract-all-clients) |
 | Embedded support | `app/Http/Controllers/SupportController.php` |
 | SSO launch | `app/Http/Controllers/Integrations/SuperOpsLaunchController.php` |
@@ -91,6 +92,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | Defender DKIM: portal reads Enabled/Valid for every accepted domain (no per-domain Defender walk). Needs Exchange.ManageAsApp + Exchange Administrator on the portal app. Send-test tick stays manual. - [MailDomainDns.md](MailDomainDns.md) |
+| 2026-11-06 | Dropsuite organization ids: import GET /users then filter to live clients (Admin → Clients → Dropsuite orgs). Do not paste user ids like 360787-12. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-06 | Edit Client products: 2-up condensed cards (SuperOps / M365 / Huntress / Dropsuite). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-06 | Mail onboarding: M365 DKIM signing + test-email verification (DNS alone cannot auto-complete step 00). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-04 | Edit Client: Customer tools and checkers at top (tools + Mail DNS); Recent/Advanced collapsed; alignment fixes. - [MailDomainDns.md](MailDomainDns.md) |

@@ -284,6 +284,63 @@ class DropsuiteClientMetricsService
     }
 
     /**
+     * Reseller GET /users, grouped to organization_id + organization_name.
+     * Tokens are never included - this is safe for staff UI.
+     *
+     * @return list<array{organization_id: string, name: string, user_count: int}>
+     */
+    public function listResellerOrganizations(bool $fresh = false): array
+    {
+        $cacheKey = 'dropsuite.org_directory.v1';
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && $cached !== []) {
+            return $cached;
+        }
+
+        $byOrg = [];
+        foreach ($this->fetchAllUsers() as $user) {
+            $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
+            if ($oid === '') {
+                continue;
+            }
+
+            $name = trim((string) ($user['organization_name'] ?? $user['organisation_name'] ?? ''));
+            if ($name === '') {
+                $name = trim((string) ($user['company'] ?? $user['company_name'] ?? ''));
+            }
+
+            if (! isset($byOrg[$oid])) {
+                $byOrg[$oid] = [
+                    'organization_id' => $oid,
+                    'name' => $name !== '' ? $name : 'Organisation '.$oid,
+                    'user_count' => 0,
+                ];
+            }
+
+            $byOrg[$oid]['user_count']++;
+            if ($name !== '' && (
+                ! empty($user['admin'])
+                || str_starts_with($byOrg[$oid]['name'], 'Organisation ')
+            )) {
+                $byOrg[$oid]['name'] = $name;
+            }
+        }
+
+        $list = array_values($byOrg);
+        usort($list, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+        if ($list !== []) {
+            Cache::put($cacheKey, $list, now()->addMinutes(15));
+        }
+
+        return $list;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function fetchAllUsers(): array

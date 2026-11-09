@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `ee7456c` (3 Nov 2026 - mail DNS Phase C, IH alert hook, ColleagueDemo). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md).
+**GitHub / live:** see newest row in [ServerOpsLog.md](ServerOpsLog.md). Plesk PHP **8.4**. This tree adds Dropsuite org import and Defender DKIM auto-read (needs Exchange.ManageAsApp before the DKIM list is live).
 
 ## What already works
 
@@ -39,7 +39,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - **Pax8.** A saved company id is enough. There is no second "access enabled" tick.
 - **First pull.** Saving a client, or finishing Microsoft Accept, queues the first dashboard pull for every sold feed that has no snapshot yet.
 - **Auto-refresh.** The checker runs every minute. It queues a feed only once that feed is past its refresh age (about 54 minutes when no customer is online, about 2 minutes when one is). A failed SuperOps pull then waits at least 15 minutes, or the current refresh age if that is longer, before it is queued again.
-- **Dropsuite organisation id** is the short number from the API, not the user id shown in Dropsuite. YorPower is `6182`. Finishing Design Services is `11223`. An id like `360787-12` is a user id. SharePoint and sites often 404 on mailbox-only orgs. That is optional and is not a failed backup.
+- **Dropsuite organisation id** is the short number from reseller `GET /users`, not the user id shown in Dropsuite. Import at Admin → Clients → Dropsuite orgs (filter to live portal clients). YorPower is `6182`. Finishing Design Services is `11223`. An id like `360787-12` is a user id. SharePoint and sites often 404 on mailbox-only orgs. That is optional and is not a failed backup.
 - **SuperOps ticket statuses.** `Waiting on third party` is open, and it is not "waiting on you". `Still Issue`, and any later status whose name contains Still Issue, is open and waiting on the client (emailed, no reply after 24 hours).
 - **Entra portal sync** creates portal users for licensed member accounts, and keeps unlicensed shared mailboxes as rows that cannot sign in. A shared mailbox that still has a licence can sign in. The Active badge means the row is active, not that sign-in is allowed.
 - **Last month.** On the client home and Reports, This month and Last month are links once a prior month has been stored. Last month shows those stored service figures. The activity list stays recent work. The control stays hidden until that history exists.

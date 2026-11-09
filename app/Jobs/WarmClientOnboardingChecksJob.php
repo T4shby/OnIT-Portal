@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Client;
 use App\Services\ClientOnboardingService;
+use App\Services\MailDns\DkimSigningStatusService;
 use App\Services\SuperOps\SuperOpsUserSyncService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,8 +34,11 @@ class WarmClientOnboardingChecksJob implements ShouldQueue, ShouldBeUnique
         return (string) $this->clientId;
     }
 
-    public function handle(ClientOnboardingService $onboarding, SuperOpsUserSyncService $superOpsUsers): void
-    {
+    public function handle(
+        ClientOnboardingService $onboarding,
+        SuperOpsUserSyncService $superOpsUsers,
+        DkimSigningStatusService $dkimSigning,
+    ): void {
         $client = Client::query()->find($this->clientId);
         if ($client === null) {
             return;
@@ -51,5 +55,16 @@ class WarmClientOnboardingChecksJob implements ShouldQueue, ShouldBeUnique
 
         // countClientRequesters() catches its own API errors.
         $superOpsUsers->countClientRequesters($client);
+
+        try {
+            $client->load('domains');
+            $summary = $dkimSigning->summaryForClient($client, fresh: true);
+            $dkimSigning->syncChecklist($client, $summary);
+        } catch (\Throwable $e) {
+            Log::warning('Onboarding DKIM signing warm failed', [
+                'client_id' => $client->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

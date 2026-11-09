@@ -16,6 +16,7 @@ use App\Http\Controllers\ClientBackupsController;
 use App\Http\Controllers\ClientReportsController;
 use App\Http\Controllers\HuntressSecurityController;
 use App\Http\Controllers\Admin\ClientDropsuiteBackupController;
+use App\Http\Controllers\Admin\DropsuiteOrganizationController;
 use App\Http\Controllers\Admin\ClientHuntressSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Microsoft365DirectoryController;
@@ -173,6 +174,11 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.dropsuite.refresh');
             Route::get('graph-reconsent', [ClientController::class, 'graphReconsent'])
                 ->name('clients.graph-reconsent');
+            Route::get('dropsuite-organizations', [DropsuiteOrganizationController::class, 'index'])
+                ->name('clients.dropsuite-organizations');
+            Route::post('dropsuite-organizations', [DropsuiteOrganizationController::class, 'assign'])
+                ->middleware('throttle:30,1')
+                ->name('clients.dropsuite-organizations.assign');
             Route::resource('clients', ClientController::class)->except(['show']);
             Route::post('clients/{client}/domains', [ClientController::class, 'storeDomain'])
                 ->middleware('throttle:30,1')
@@ -180,6 +186,9 @@ Route::middleware('auth')->group(function () {
             Route::post('clients/{client}/domains/sync-entra', [ClientController::class, 'syncEntraDomains'])
                 ->middleware('throttle:10,1')
                 ->name('clients.domains.sync-entra');
+            Route::post('clients/{client}/dkim-signing/refresh', [ClientController::class, 'refreshDkimSigning'])
+                ->middleware('throttle:10,1')
+                ->name('clients.dkim-signing.refresh');
             Route::post('clients/{client}/domains/{domain}/check', [ClientController::class, 'checkDomain'])
                 ->middleware('throttle:30,1')
                 ->name('clients.domains.check');

@@ -21,7 +21,9 @@ use App\Services\ActivityLogService;
 use App\Services\ClientOnboardingService;
 use App\Services\EntraSync\EntraGroupSyncService;
 use App\Services\MailDns\ClientDomainService;
+use App\Services\MailDns\DkimSigningStatusService;
 use App\Services\MailDns\EntraMailDomainSyncService;
+use App\Services\Dropsuite\DropsuiteOrganizationDirectory;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +42,8 @@ class ClientController extends Controller
         private ClientHomeOverviewService $homeOverview,
         private ClientDomainService $domains,
         private EntraMailDomainSyncService $entraDomains,
+        private DropsuiteOrganizationDirectory $dropsuiteDirectory,
+        private DkimSigningStatusService $dkimSigning,
     ) {}
 
     public function index(Request $request): View
@@ -94,6 +98,7 @@ class ClientController extends Controller
         return view('admin.clients.create', [
             'client' => new Client,
             'fieldHelps' => $this->onboarding->fieldHelps(),
+            'dropsuiteOrganizations' => $this->dropsuiteOrganizationsForForms(),
         ]);
     }
 
@@ -126,7 +131,25 @@ class ClientController extends Controller
                 ->orderByDesc('checked_at')
                 ->limit(12)
                 ->get(),
+            'dropsuiteOrganizations' => $this->dropsuiteOrganizationsForForms(),
+            'dkimSigning' => $this->dkimSigningForEdit($client),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dkimSigningForEdit(Client $client): array
+    {
+        return $this->dkimSigning->cachedForClient($client);
+    }
+
+    /**
+     * @return list<array{organization_id: string, name: string, user_count: int}>
+     */
+    private function dropsuiteOrganizationsForForms(): array
+    {
+        return $this->dropsuiteDirectory->organizations();
     }
 
     public function syncEntraDomains(Client $client): RedirectResponse
@@ -140,6 +163,7 @@ class ClientController extends Controller
 
         // Prefer sync so the Edit page shows suggestions immediately after redirect.
         $result = $this->entraDomains->sync($client, importMissing: true, seedPrimaryIfEmpty: true);
+        $this->dkimSigning->syncChecklist($client, $this->dkimSigning->summaryForClient($client->fresh(), fresh: true));
         $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
         $this->activityLog->log('client.entra_mail_domains_synced', $client, clientId: $client->id, properties: [
             'seeded_primary' => $result['seeded_primary'],
@@ -189,10 +213,40 @@ class ClientController extends Controller
         abort_unless($domain->client_id === $client->id, 404);
 
         $this->domains->checkNow($domain, sync: true, userId: request()->user()?->id, source: 'manual');
+        $this->dkimSigning->syncChecklist($client, $this->dkimSigning->summaryForClient($client->fresh(), fresh: true));
         $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
 
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', 'DNS checked for '.$domain->domain.'.');
+    }
+
+    public function refreshDkimSigning(Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! filled($client->entra_tenant_id)) {
+            return redirect()->to(route('admin.clients.edit', $client).'#mail-domains')
+                ->with('error', 'Connect Microsoft first so Defender DKIM can be read.');
+        }
+
+        $summary = $this->dkimSigning->summaryForClient($client, fresh: true);
+        $this->dkimSigning->syncChecklist($client, $summary);
+        $this->onboarding->syncAutoCheckpointsFromClient($client->fresh());
+
+        $message = ($summary['available'] ?? false)
+            ? (
+                ($summary['portal_custom_signing'] ?? false)
+                    ? 'Microsoft reports DKIM signing Enabled and Valid for the portal mail domains.'
+                    : 'Microsoft DKIM list updated. One or more portal domains are not yet Enabled / Valid in Defender.'
+            )
+            : (
+                ($summary['reason'] ?? '') === 'dkim_signing_permission_missing'
+                    ? 'Microsoft blocked the DKIM read. Add Exchange.ManageAsApp, re-consent, and assign Exchange Administrator to the portal app in this tenant.'
+                    : 'Could not read Defender DKIM yet. Use Refresh after Graph / Exchange permissions are in place.'
+            );
+
+        return redirect()->to(route('admin.clients.edit', $client).'#mail-domains')
+            ->with(($summary['available'] ?? false) ? 'success' : 'error', $message);
     }
 
     public function exportDomains(Client $client): StreamedResponse|RedirectResponse
@@ -287,8 +341,10 @@ class ClientController extends Controller
             && ! Cache::has(ClientOnboardingService::scimHealthCacheKey($client->id));
         $requesterCountCold = filled($client->superops_account_id)
             && ! Cache::has('superops.requester_count.'.$client->id);
+        $dkimCold = filled($client->entra_tenant_id)
+            && ! Cache::has($this->dkimSigning->cacheKey($client->id));
 
-        if ($scimCold || $requesterCountCold) {
+        if ($scimCold || $requesterCountCold || $dkimCold) {
             WarmClientOnboardingChecksJob::dispatch($client->id);
         }
     }

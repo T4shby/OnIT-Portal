@@ -8,6 +8,7 @@ use App\Models\ClientDomain;
 use App\Models\User;
 use App\Services\MailDns\MailDnsHealthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ClientMailDomainTest extends TestCase
@@ -196,6 +197,7 @@ class ClientMailDomainTest extends TestCase
 
     public function test_edit_page_separates_mail_domain_actions_from_save_form(): void
     {
+        Http::fake();
         $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
         $client = Client::factory()->create([
             'name' => 'Form Layout Co',

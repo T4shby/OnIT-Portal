@@ -3,6 +3,7 @@
     $mailDomains = collect($mailDomains ?? []);
     $mailDnsHistory = collect($mailDnsHistory ?? []);
     $entraMailDomains = is_array($entraMailDomains ?? null) ? $entraMailDomains : null;
+    $dkimSigning = is_array($dkimSigning ?? null) ? $dkimSigning : [];
     $bandColor = fn (string $band) => match ($band) {
         'green' => 'text-emerald-400',
         'yellow' => 'text-amber-300',
@@ -45,6 +46,12 @@
                     @csrf
                     <button type="submit" class="cta-btn-ghost text-xs px-3 py-2 uppercase tracking-wide">
                         Import from Microsoft
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.clients.dkim-signing.refresh', $client) }}">
+                    @csrf
+                    <button type="submit" class="cta-btn-ghost text-xs px-3 py-2 uppercase tracking-wide">
+                        Refresh DKIM from Microsoft
                     </button>
                 </form>
             @endif
@@ -97,6 +104,9 @@
                         @foreach($coreKeys as $key)
                             <th class="py-2 pr-3">{{ strtoupper($key) }}</th>
                         @endforeach
+                        @if(filled($client->entra_tenant_id))
+                            <th class="py-2 pr-3">M365 DKIM</th>
+                        @endif
                         <th class="py-2 pr-3">Advisory</th>
                         <th class="py-2 pr-0"></th>
                     </tr>
@@ -151,6 +161,24 @@
                                     <div class="text-xs text-white/50">{{ $pending ? 'Waiting' : ($check['summary'] ?? '-') }}</div>
                                 </td>
                             @endforeach
+                            @if(filled($client->entra_tenant_id))
+                                @php
+                                    $dkimRow = is_array(($dkimSigning['by_domain'] ?? null))
+                                        ? ($dkimSigning['by_domain'][strtolower((string) $domain->domain)] ?? null)
+                                        : null;
+                                @endphp
+                                <td class="py-3 pr-3 text-xs">
+                                    @if(! ($dkimSigning['available'] ?? false))
+                                        <span class="text-white/40">Not read</span>
+                                    @elseif($dkimRow === null)
+                                        <span class="text-white/40">Not in Defender list</span>
+                                    @elseif($dkimRow['signing'])
+                                        <div class="text-emerald-300">Enabled / {{ $dkimRow['status'] }}</div>
+                                    @else
+                                        <div class="text-rose-300">{{ $dkimRow['enabled'] ? $dkimRow['status'] : 'Off' }}</div>
+                                    @endif
+                                </td>
+                            @endif
                             <td class="py-3 pr-3 text-xs text-white/55">
                                 @if($pending)
                                     <span class="text-sky-300">PENDING</span>
@@ -210,7 +238,11 @@
         $mailDomainsService = app(\App\Services\MailDns\ClientDomainService::class);
         $emailAuthRequired = $mailDomainsService->emailAuthVerificationRequired($client);
         $checklist = $client->onboarding_checklist ?? [];
-        $dkimSigningDone = (bool) ($checklist['mail_dkim_signing_enabled'] ?? false);
+        $dkimSigningStatus = is_array($dkimSigning ?? null) ? $dkimSigning : [];
+        $dkimFromMicrosoft = (bool) ($dkimSigningStatus['available'] ?? false);
+        $dkimSigningDone = $dkimFromMicrosoft
+            ? (bool) ($dkimSigningStatus['portal_custom_signing'] ?? false)
+            : (bool) ($checklist['mail_dkim_signing_enabled'] ?? false);
         $authTestDone = (bool) ($checklist['mail_auth_test_passed'] ?? false);
         $primaryDns = $mailDomains->firstWhere('is_primary', true) ?? $mailDomains->first();
         $primaryChecks = is_array(($primaryDns?->last_result['checks'] ?? null)) ? $primaryDns->last_result['checks'] : [];
@@ -248,8 +280,36 @@
                 <p class="text-xs leading-relaxed text-white/75 max-w-3xl">
                     DNS records can look correct while Microsoft 365 is still not signing mail
                     (Defender <strong class="text-white">NoDKIMKeys</strong> / headers <code class="text-white/90">dkim=none</code>).
-                    Tick both boxes after you verify in Defender and with a real send test.
+                    The portal reads Defender DKIM for every accepted domain in one call - you should not open that blade per domain.
+                    A real send test is still a tick.
                 </p>
+                @if($dkimFromMicrosoft)
+                    <div class="space-y-1 text-xs text-white/75">
+                        @forelse($dkimSigningStatus['configs'] ?? [] as $config)
+                            <div>
+                                <span class="font-mono text-white/85">{{ $config['domain'] }}</span>
+                                @if($config['signing'])
+                                    <span class="text-emerald-300"> - Enabled / {{ $config['status'] }}</span>
+                                @else
+                                    <span class="text-rose-300"> - {{ $config['enabled'] ? $config['status'] : 'Off' }}</span>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-white/45">Microsoft returned no DKIM configs for this tenant.</p>
+                        @endforelse
+                    </div>
+                @elseif(($dkimSigningStatus['reason'] ?? '') === 'not_fetched')
+                    <p class="text-xs text-white/55 max-w-3xl">
+                        Microsoft DKIM status loads in the background the first time, or click
+                        <strong class="text-white/80">Refresh DKIM from Microsoft</strong> to pull every accepted domain now.
+                    </p>
+                @elseif(($dkimSigningStatus['reason'] ?? '') === 'dkim_signing_permission_missing')
+                    <p class="text-xs text-amber-200/90 max-w-3xl">
+                        Microsoft blocked the automatic DKIM read. Add Office 365 Exchange Online
+                        <span class="font-mono">Exchange.ManageAsApp</span>, Grant in On IT, customer Graph re-consent,
+                        then assign <strong class="text-white">Exchange Administrator</strong> to the portal enterprise app in this tenant.
+                    </p>
+                @endif
                 <ul class="space-y-1.5 text-xs text-white/80">
                     <li>
                         <span class="{{ $emailAuthBand($bandOf('spf')) }}">{{ strtoupper($bandOf('spf')) }}</span>
@@ -265,21 +325,32 @@
                     </li>
                 </ul>
                 <div class="space-y-2 text-sm text-white/90">
-                    <input type="hidden" name="checkpoints[mail_dkim_signing_enabled]" value="0" form="onboarding-checklist-form">
-                    <label class="flex items-start gap-2">
-                        <input
-                            type="checkbox"
-                            name="checkpoints[mail_dkim_signing_enabled]"
-                            value="1"
-                            form="onboarding-checklist-form"
-                            class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
-                            @checked($dkimSigningDone)
-                        >
-                        <span>
-                            DKIM signing Enabled in Microsoft Defender for this domain
-                            (both CNAMEs published, status <strong class="text-white">Valid</strong> - not NoDKIMKeys).
-                        </span>
-                    </label>
+                    @if($dkimFromMicrosoft)
+                        <p class="text-sm {{ $dkimSigningDone ? 'text-emerald-300' : 'text-amber-200' }}">
+                            @if($dkimSigningDone)
+                                Microsoft reports DKIM signing Enabled / Valid for the portal mail domains.
+                            @else
+                                Microsoft reports DKIM signing is not Enabled / Valid on every portal mail domain yet.
+                                Toggle it in Defender if Off, then Refresh DKIM from Microsoft.
+                            @endif
+                        </p>
+                    @else
+                        <input type="hidden" name="checkpoints[mail_dkim_signing_enabled]" value="0" form="onboarding-checklist-form">
+                        <label class="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                name="checkpoints[mail_dkim_signing_enabled]"
+                                value="1"
+                                form="onboarding-checklist-form"
+                                class="mt-0.5 border-onit-border bg-onit-surface text-onit focus:ring-onit"
+                                @checked($dkimSigningDone)
+                            >
+                            <span>
+                                DKIM signing Enabled in Microsoft Defender for this domain
+                                (both CNAMEs published, status <strong class="text-white">Valid</strong> - not NoDKIMKeys).
+                            </span>
+                        </label>
+                    @endif
                     <input type="hidden" name="checkpoints[mail_auth_test_passed]" value="0" form="onboarding-checklist-form">
                     <label class="flex items-start gap-2">
                         <input

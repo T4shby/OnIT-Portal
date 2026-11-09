@@ -526,7 +526,9 @@ Contract: sub-reseller **REST API for Sub-reseller v1.00** (partner PDF).
 
 Cache key: `client:{client_id}:dropsuite-backup:v2`
 
-Client mapping: `clients.dropsuite_organization_id` (Admin → Clients). Value is the Dropsuite **organization_id** on backed-up accounts (`user.organization_id` in `GET /accounts`).
+Client mapping: `clients.dropsuite_organization_id` (Admin → Clients, or **Admin → Clients → Dropsuite orgs**). Value is the Dropsuite **organization_id** on backed-up accounts (`user.organization_id` in `GET /accounts` / reseller `GET /users`).
+
+**How to get the id:** Dropsuite's UI shows a user id (`360787-12`). That is not this field. Staff import uses reseller `GET /users`, which returns `organization_id` (short number) + `organization_name`. Open **Admin → Clients → Dropsuite orgs** (default filter: live portal matches), or pick from the list on the Edit Client Dropsuite card. Do not paste the on-screen user id.
 
 | Setting | Env | Default |
 |---------|-----|---------|
@@ -563,7 +565,7 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 | Sample probe | org `10879` Reid & Rose: 3 mailboxes; org `5979` On IT NFR: 23 mailboxes |
 | Client map | Client #1 On IT Technology Partners → `5979` (NFR). **YorPower → `6182`**. Other orgs: Admin → Clients |
 
-**Map only the short numeric `organization_id`.** Dropsuite does not show that number on screen. The id you can see is the user id, shaped like `177210-12` (YorPower) or `360787-12` (Finishing Design Services). Pasting `360787` or `177210-12` never matches and Integration Health stays Never loaded. YorPower's organization id is `6182`. Finishing Design Services is `11223`.
+**Map only the short numeric `organization_id`.** Dropsuite does not show that number on screen. The id you can see is the user id, shaped like `177210-12` (YorPower) or `360787-12` (Finishing Design Services). Pasting `360787` or `177210-12` never matches and Integration Health stays Never loaded. YorPower's organization id is `6182`. Finishing Design Services is `11223`. Staff page: `/admin/dropsuite-organizations` imports the full reseller user list, then filter Live portal matches / Unmapped / All. Tokens from `GET /users` never appear in the UI.
 
 **Dropsuite organizations seen under On IT reseller (map `dropsuite_organization_id`):**
 
@@ -600,6 +602,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 
 | Date | Change |
 |------|--------|
+| 2026-11-06 | Dropsuite org import: Admin → Clients → Dropsuite orgs pulls GET /users (id + name only), filters to live portal clients, Link maps `dropsuite_organization_id`. Edit Client can pick from the same list. |
 | 2026-10-19 | Sold product coverage: Export CSV, account-manager column, and super-admin filter by AM (or no AM). |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before the minute checker queues it again. Dropsuite SharePoint and sites 404s are optional and are not logged as failures. |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |

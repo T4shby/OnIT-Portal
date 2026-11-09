@@ -27,9 +27,9 @@ DNS alone no longer auto-completes step 00 on that path.
 
 **You do not need Add domain** for the primary - Create / Save client owns that. **Add domain** / custom DKIM selectors are Advanced only (extra brands, unusual DKIM selector names). Check DNS already tries M365 `selector1`/`selector2` and common gateways.
 
-### Later (backlog)
+**Defender DKIM is tenant-wide, not a per-domain portal walk.** Edit Client → **Refresh DKIM from Microsoft** (also runs on Import / Check DNS) lists every accepted domain from Exchange `Get-DkimSigningConfig` (`Enabled` + `Status`). Portal mail domains that are Enabled / Valid auto-set `mail_dkim_signing_enabled`. `*.onmicrosoft.com` is ignored for the tick. The send-test tick stays manual.
 
-Graph Exchange `GET /exchange/v1.0/dkimSigningConfigs/{domain}` (`Enabled`, `Status`) could auto-fill the Defender tick when App permission / TCM access is available - not required for the checklist gap fix.
+Needs Office 365 Exchange Online **Exchange.ManageAsApp** on **OnIT Portal for Portals**, Grant in On IT, customer Graph re-consent, and **Exchange Administrator** assigned to that enterprise app in the customer tenant. Until that is in place the old Defender tick remains. - [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md)
 
 ### Advisory records (plain English)
 
@@ -166,6 +166,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 | DNS checks | `App\Services\MailDns\MailDnsHealthService` |
 | Entra import / seed / cross-check | `App\Services\MailDns\EntraMailDomainSyncService` |
 | Graph domains + mailbox suffixes | `MicrosoftGraphClient::listTenantDomains`, `listMailDomainsFromUsers` |
+| Defender DKIM Enabled/Valid | `MicrosoftGraphClient::listDkimSigningConfigs`, `DkimSigningStatusService` |
 | After Connect | `SyncClientEntraMailDomainsJob` from `BootstrapClientEntraJob` |
 | Nightly DNS | `portal:recheck-client-domain-dns` |
 | Bulk backfill | `portal:sync-entra-mail-domains --empty-primary-only` |
@@ -179,6 +180,7 @@ Overall domain status = worst of MX, SPF, DKIM, DMARC.
 
 | Date | Note |
 |---|---|
+| 2026-11-09 | Auto-read Defender DKIM for every accepted domain (Exchange Get-DkimSigningConfig). Refresh DKIM from Microsoft; send-test tick stays manual. |
 | 2026-11-06 | Email auth verification panel collapsed by default; solid `bg-onit-ink` + higher-contrast status colours. |
 | 2026-11-06 | M365 email auth verification: DNS ≠ signing. Step 00 needs Defender DKIM Enabled + test email ticks (Rayner Smith gap). |
 | 2026-11-04 | UX aligned: core four columns primary; advisory collapsed; Add domain / DKIM under Advanced. Product framing = DNS tester for onboarding. |

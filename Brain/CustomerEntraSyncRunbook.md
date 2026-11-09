@@ -151,6 +151,17 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
 7. Click **Yes** on the confirmation popup
 
+### 0.2b Office 365 Exchange Online (Defender DKIM, not Graph)
+
+Defender DKIM Enabled/Valid is not on Microsoft Graph user APIs. To read every accepted domain in one call (`Get-DkimSigningConfig`):
+
+1. App registration **OnIT Portal for Portals** → API permissions → **APIs my organization uses** → **Office 365 Exchange Online** → Application → **Exchange.ManageAsApp** (or **Exchange.ManageAsAppV2** if that is the only row shown).
+2. **Grant admin consent for On IT**.
+3. Customer **Graph re-consent** once per tenant (same Accept links as other permission adds).
+4. In the **customer** tenant: Entra → Roles and admins → **Exchange Administrator** → Add assignment → the **OnIT Portal for Portals** enterprise app.
+
+Until step 4 exists, Edit Client keeps the manual Defender tick and shows that Microsoft blocked the DKIM read. This is **read-only** - the portal does not toggle DKIM on.
+
 ### 0.3 Verify success
 
 All **Application** rows must show:
@@ -417,6 +428,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-11-09 | Exchange.ManageAsApp + customer Exchange Administrator on the portal app so Edit Client can read Defender DKIM for every accepted domain. |
 | 2026-08-13 | SCIM 0-templates incident: Retry Graph recreate + Apply; troubleshooting rows for Failed step 07 / IH SuperOps SCIM |
 | 2026-08-10 | Staff **Graph re-consent** page under Clients (Accept links; no artisan required) |
 | 2026-08-10 | Graph **Application (14):** add `SecurityEvents.Read.All`, `AuditLog.Read.All`, `Reports.Read.All` for Secure Score + MFA on client home; existing customers **re-consent only** (§0.3a); `portal:graph-reconsent-urls` batch list |

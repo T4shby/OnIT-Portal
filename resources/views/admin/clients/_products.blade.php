@@ -30,6 +30,7 @@
                     'products' => $products,
                     'fieldHelps' => $fieldHelps ?? [],
                     'showEntra' => $showEntra,
+                    'dropsuiteOrganizations' => $dropsuiteOrganizations ?? [],
                 ])
             @endforeach
         </div>
@@ -53,6 +54,7 @@
                     'products' => $products,
                     'fieldHelps' => $fieldHelps ?? [],
                     'showEntra' => $showEntra,
+                    'dropsuiteOrganizations' => $dropsuiteOrganizations ?? [],
                 ])
             @empty
                 <p class="portal-body-muted text-xs sm:col-span-2">No licence vendors in the catalog yet.</p>
