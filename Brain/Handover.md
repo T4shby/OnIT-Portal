@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** see newest row in [ServerOpsLog.md](ServerOpsLog.md). Plesk PHP **8.4**. This tree adds Dropsuite org import and Defender DKIM auto-read (needs Exchange.ManageAsApp before the DKIM list is live).
+**GitHub / live:** `df43ed0` (9 Nov 2026 - Dropsuite org import + Defender DKIM auto-read). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md). DKIM list needs Exchange.ManageAsApp + Exchange Administrator on the portal app per customer.
 
 ## What already works
 

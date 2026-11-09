@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-09 ~14:22 UK - Deploy Dropsuite org import + Defender DKIM auto-read
+
+| | |
+|---|---|
+| Intent | Staff import Dropsuite organization_id from GET /users (filter to live clients). Auto-read Defender DKIM Enabled/Valid for every accepted domain instead of a per-domain walk. |
+| Operator | agent |
+| SHA before -> after | `0e02e6b` -> `df43ed0` |
+| Steps | Push `main`. SSH: bare fetch `origin main:main`, `git archive main`, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize. Reloaded `plesk-php84-fpm`. Removed `/tmp/deploy-df43ed0.sh`. Left local usecure skeleton uncommitted. |
+| Result | Live `.deployed-commit` `df43ed0`. FPM active. `/up` 200. New routes and `DkimSigningStatusService` on disk. |
+| Rollback / watch | Redeploy `0e02e6b`. Hard-refresh Admin → Clients → Dropsuite orgs, and Edit Client Mail domains. DKIM list stays empty until Exchange.ManageAsApp + customer Exchange Administrator on the portal app. Send-test tick still manual. |
+
 ### 2026-11-06 ~23:05 UK - Deploy 2-up condensed product cards
 
 | | |

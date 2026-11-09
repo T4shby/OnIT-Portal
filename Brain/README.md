@@ -92,6 +92,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | Deployed `df43ed0`: Dropsuite org import + Defender DKIM auto-read. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-09 | Defender DKIM: portal reads Enabled/Valid for every accepted domain (no per-domain Defender walk). Needs Exchange.ManageAsApp + Exchange Administrator on the portal app. Send-test tick stays manual. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-06 | Dropsuite organization ids: import GET /users then filter to live clients (Admin → Clients → Dropsuite orgs). Do not paste user ids like 360787-12. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-06 | Edit Client products: 2-up condensed cards (SuperOps / M365 / Huntress / Dropsuite). - [MailDomainDns.md](MailDomainDns.md) |
