@@ -39,9 +39,9 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 |---|---|
 | Intent | Ship verified security fixes from SECURITY_FINDINGS remediation; exclude local usecure skeleton |
 | Operator | agent (Cursor) |
-| SHA before -> after | `cd4d7aa` -> `09b9816` on GitHub (live still prior SHA until host deploy) |
-| Steps | Committed remediation only (no usecure). Pushed `main` `09b9816`. Follow-up CI fix for APP_KEY in phpunit/workflow. SSH `root@159.65.83.156:22` from this network: connection timed out (443/80 open; 22/2222/8443 closed). Live `/up` still 200 on current SHA. |
-| Result | Partial - GitHub `main` updated; production tree not updated (SSH unreachable). Need Plesk UI Pull+Deploy + post-deploy artisan from a host that can reach SSH, or reopen TCP/22. After archive, remove leftover deleted paths: `HANDOFF.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, `docs/SYSTEM_AUDIT.md`. |
+| SHA before -> after | `cd4d7aa` -> `5b4b50e` on GitHub (live still prior SHA until host deploy) |
+| Steps | Committed remediation only (no usecure). Pushed `main` `09b9816` then CI fix `5b4b50e` (APP_KEY in phpunit + workflow). SSH `root@159.65.83.156:22` from this network: connection timed out (443/80 open; 22/2222/8443 closed). Live `/up` still 200 on current SHA. |
+| Result | Partial - GitHub `main` at `5b4b50e`; production tree not updated (SSH unreachable). Need Plesk UI Pull+Deploy + post-deploy artisan from a host that can reach SSH, or reopen TCP/22. After archive, remove leftover deleted paths: `HANDOFF.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, `docs/SYSTEM_AUDIT.md`. |
 | Rollback / watch | Live unchanged until host deploy. After deploy: verify `.deployed-commit` = tip SHA; watch login, support ticket show, portal-links admin for AMs. |
 
 ### 2026-11-09 ~14:22 UK - Deploy Dropsuite org import + Defender DKIM auto-read
