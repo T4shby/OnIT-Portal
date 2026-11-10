@@ -33,16 +33,16 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
-### 2026-11-10 ~17:55 UK - Deploy security remediation (ticket authz, Symfony, CSP, CI)
+### 2026-11-10 ~18:49 UK - Deploy security remediation (ticket authz, Symfony, CSP, CI)
 
 | | |
 |---|---|
 | Intent | Ship verified security fixes from SECURITY_FINDINGS remediation; exclude local usecure skeleton |
 | Operator | agent (Cursor) |
-| SHA before -> after | `cd4d7aa` -> `5b4b50e` on GitHub (live still prior SHA until host deploy) |
-| Steps | Committed remediation only (no usecure). Pushed `main` `09b9816` then CI fix `5b4b50e` (APP_KEY in phpunit + workflow). SSH `root@159.65.83.156:22` from this network: connection timed out (443/80 open; 22/2222/8443 closed). Live `/up` still 200 on current SHA. |
-| Result | Partial - GitHub `main` at `5b4b50e`; production tree not updated (SSH unreachable). Need Plesk UI Pull+Deploy + post-deploy artisan from a host that can reach SSH, or reopen TCP/22. After archive, remove leftover deleted paths: `HANDOFF.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, `docs/SYSTEM_AUDIT.md`. |
-| Rollback / watch | Live unchanged until host deploy. After deploy: verify `.deployed-commit` = tip SHA; watch login, support ticket show, portal-links admin for AMs. |
+| SHA before -> after | `cd4d7aa` -> `2c08cd4` |
+| Steps | Earlier push blocked by SSH timeout (Israel VPN). After VPN off: fetch bare `main` to `2c08cd4`, `git archive`, composer (Symfony HTTP 7.4.23), migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize, reload `plesk-php84-fpm`. Removed leftover `HANDOFF.md` / `docs/*`. Left local usecure uncommitted. |
+| Result | Live `.deployed-commit` `2c08cd4`. `/up` 200. FPM active. `SECURITY_FINDINGS.md` on disk. |
+| Rollback / watch | Redeploy `cd4d7aa`. Watch login, support ticket show, portal-links admin for AMs. Laravel 11 major upgrade (SEC-001) still deferred pending explicit approval. |
 
 ### 2026-11-09 ~14:22 UK - Deploy Dropsuite org import + Defender DKIM auto-read
 
