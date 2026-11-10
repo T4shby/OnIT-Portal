@@ -52,7 +52,7 @@ MICROSOFT_REDIRECT_URI=https://app.onit.ltd/auth/microsoft/callback
    a. Update entra_object_id, name, last_login_at, encrypted microsoft_tokens; refresh **email** to Microsoft primary when free
    b. SuperOpsUserSyncService links requester by email (if API configured)
    c. SuperOpsSsoService establishes SSO session flag
-   d. Create Laravel session (database-backed, remember-me cookie via `remember_token`)
+   d. Create Laravel session (database-backed; remember-me is **not** issued - Entra SSO is the re-auth path)
    e. Log activity: `user.login` (IP from `ActivityLogService` - prefer forwarded client IP on Plesk; never skip the row because IP is localhost)
    f. Redirect to /dashboard (or /support if SUPEROPS_AUTO_OPEN_AFTER_LOGIN)
 9. If user NOT found OR inactive:
@@ -102,6 +102,9 @@ Auth callback route throttled to 6 attempts per minute per IP to prevent brute-f
 - Session fixation prevented by Laravel's session regeneration on login
 - Login CSRF prevented by the OAuth state cookie check (`App\Support\MicrosoftOAuthState`, 2026-09-29). There is no `MICROSOFT_OAUTH_STATELESS` switch any more - the check is always on. Confirmed on production 2026-09-29 15:34 UTC: a real sign-in wrote `user.login` and did not log `Microsoft OAuth state check failed`. Production `LOG_LEVEL` is `warning`, so the success info line is not in `laravel.log`.
 - Logout invalidates session and regenerates CSRF token
+- Admin-consent callback logs `client_id` / validity only - never the raw HMAC `state` query value
+- `SecurityHeaders` middleware sets CSP (`frame-ancestors 'none'`) plus HSTS in production
+- Trusted proxies: `TRUSTED_PROXIES` env (`*` default for Plesk; prefer explicit CIDRs when known)
 
 ## Local Development
 

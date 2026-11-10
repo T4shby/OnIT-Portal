@@ -24,7 +24,7 @@ per-client with strict multi-tenant isolation.
 - **Jobs:** `php artisan queue:work` via systemd timers on the production host
   (see `Brain/Deployment.md`); no Horizon, no Redis, no message broker
 - **Hosting:** Plesk on Ubuntu, deployed via a Plesk Git bare mirror (see
-  `docs/DEPLOYMENT.md`)
+  `Brain/Deployment.md` and `DEPLOYMENT_HANDOFF.md`)
 
 ## Directory map
 
@@ -44,9 +44,7 @@ per-client with strict multi-tenant isolation.
 - `Brain/` - the project's own knowledge base (product requirements,
   runbooks, per-integration setup guides, decisions log). **Read
   `Brain/README.md` first** for anything integration- or ops-related; it is
-  more detailed than this file for those topics. `docs/` (this audit's
-  output) covers architecture/security/deployment at a higher level.
-- `docs/` - audit and architecture documentation (this session's output).
+  more detailed than this file for those topics.
 
 ## Security rules - do not casually change these
 
@@ -86,7 +84,7 @@ per-client with strict multi-tenant isolation.
    short-lived cookie (`App\Support\MicrosoftOAuthState`), not the
    session. Do not remove that check, move the state back into the session,
    or reintroduce a switch to turn it off (the old `MICROSOFT_OAUTH_STATELESS`
-   workaround disabled it and allowed login CSRF). See `docs/SECURITY.md`.
+   workaround disabled it and allowed login CSRF). See `Brain/Authentication.md`.
 9. **Do not introduce Redis, a message broker, Kubernetes, or a
    microservice split** without an explicit decision recorded in
    `Brain/Decisions.md` - this app is intentionally a single Laravel
@@ -115,8 +113,7 @@ composer audit                   # PHP dependency vulnerabilities
 style differences across ~60 files that were never actually run through
 this preset. Do not blind-run `vendor/bin/pint` and commit the result - it
 would produce a large, unreviewed diff. If code style is to be enforced,
-add a `pint.json` matching the codebase's actual conventions first (see
-`docs/SYSTEM_AUDIT.md` → Code Quality Review).
+add a `pint.json` matching the codebase's actual conventions first.
 
 ## Testing conventions
 
@@ -153,10 +150,11 @@ Read `Brain/Handover.md` and `Brain/NEXT_TASK.md` before a new task. Implement o
 
 ## Further reading
 
-- `docs/ARCHITECTURE.md` - system architecture, request flow, integrations
-- `docs/SECURITY.md` - auth/authz model, secrets handling, trust boundaries
-- `docs/DEPLOYMENT.md` - exact production deployment steps and required env vars
-- `docs/SYSTEM_AUDIT.md` - this audit's full findings and verification results
 - `Brain/Handover.md` - start here in a new chat: what the app is, what is live, what is still waiting
 - `Brain/NEXT_TASK.md` - the one next product task; do not start it until asked
 - `Brain/README.md` - the project's own knowledge base index
+- `Brain/Architecture.md` - system architecture, request flow, integrations
+- `Brain/Authentication.md` - auth/authz model and sessions
+- `Brain/Deployment.md` - Plesk production deploy runbook
+- `DEPLOYMENT_HANDOFF.md` - generic deployer contract (env, workers, health)
+- `SECURITY_FINDINGS.md` - latest security audit findings (when present)

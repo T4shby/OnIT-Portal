@@ -112,6 +112,8 @@ Read these documents before changing application code. **Update Brain for every 
 | 2026-11-02 | Edit Client layout: form uses full width; setup guide sticky on the right (admin-split was reversed). - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-02 | Deployed `b263c4b`: Edit Client mail domain nested-form fix live. - [ServerOpsLog.md](ServerOpsLog.md), [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-02 | Edit Client mail domains: fixed nested forms so Import / Add domain work; Save client stores main domain; heal primary without DNS row. - [MailDomainDns.md](MailDomainDns.md) |
+| 2026-11-10 | Security remediation: ticket tenant account required (SEC-003), global portal links Super Admin only (SEC-004), no admin-consent state logging (SEC-006), support 404 oracle closed (SEC-015), Symfony HTTP 7.4.23, CSP + CI workflow, no remember-me on login. Laravel 11 EOL + host backup still open. - [SECURITY_FINDINGS.md](../SECURITY_FINDINGS.md), [Authentication.md](Authentication.md), [SuperOpsIntegration.md](SuperOpsIntegration.md) |
+| 2026-11-10 | Removed leftover audit handoff docs (`HANDOFF.md`, `docs/*`); canonical docs stay in Brain + `DEPLOYMENT_HANDOFF.md` / `SECURITY_FINDINGS.md`. |
 | 2026-11-02 | Deployed `e301dea`: Staff Admin SCIM speed fix + MFA Phase 1 inventory live. Reloaded PHP-FPM 8.4 + onit-portal timers (no Docker). - [ServerOpsLog.md](ServerOpsLog.md), [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
 | 2026-11-02 | Staff Admin no longer runs live Graph SCIM checks per client (was hanging on load). SCIM cache 30m; live check stays on Integration Health. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-10-27 | Passkey / SMS-voice MFA Phase 1: per-user methods inventory, SMS/voice flags, staff page + CSV. NEXT_TASK. - [PasskeyMfaMigration.md](PasskeyMfaMigration.md) |
@@ -137,7 +139,7 @@ Read these documents before changing application code. **Update Brain for every 
 | 2026-09-30 | usecure API rechecked: partner key exists (Settings > API or Support GraphQL). Portal still not built. Deployed the 29 Sep sign-in confirmation. - [UsecureIntegration.md](UsecureIntegration.md), [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-29 | Production Microsoft sign-in confirmed after the audit deploy (`user.login` 15:34 UTC, no OAuth state failure in the log). - [ServerOpsLog.md](ServerOpsLog.md), [Authentication.md](Authentication.md) |
 | 2026-09-29 | Eighth audit pass: sign-in OAuth state always verified via its own cookie, `MICROSOFT_OAUTH_STATELESS` removed (ADR-025); admin-consent links expire after 24h (`ADMIN_CONSENT_LINK_TTL_HOURS`); resubmitting Apply SCIM / Wire Client SSO / Retry while one is running is refused, not silently dropped. - [Decisions.md](Decisions.md), [Authentication.md](Authentication.md) |
-| 2026-09-29 | Deployed Claude's portal audit to live after duplicate-id check (0 collisions). - [ServerOpsLog.md](ServerOpsLog.md), [HANDOFF.md](../HANDOFF.md) |
+| 2026-09-29 | Deployed Claude's portal audit to live after duplicate-id check (0 collisions). - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-29 | CoPilot readiness on the same host: ended the pre-audit session and scheduled daily backups. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-28 | Align live Plesk with GitHub `main` (live was still `388a809`). - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-09-08 | Deployed activity feed badges/action copy + ticket confirmation 403 fix (`388a809`). - [ServerOpsLog.md](ServerOpsLog.md), [UIOverhaul.md](UIOverhaul.md), [SuperOpsIntegration.md](SuperOpsIntegration.md) |

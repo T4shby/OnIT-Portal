@@ -23,6 +23,7 @@ See [Pax8Integration.md](Pax8Integration.md) for Pax8 detail.
 
 - `/admin/portal-links` - link type selector, `required_role`, client scope
 - SuperOps types auto-set URL via `PortalLink::urlForType()`
+- **Global links** (`client_id` null, shown to every customer) - create/update/delete is **Super Admin only**. Account Managers may only manage links for clients they are assigned to.
 
 ## Default Dashboard Links (MVP)
 

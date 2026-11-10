@@ -368,7 +368,7 @@ Reason:
 Socialite's own state lives in the session. Sign-in failed in production with "session lost" (`InvalidStateException`), and the workaround (`MICROSOFT_OAUTH_STATELESS=true`) switched the state check off, which allowed login CSRF: a crafted callback link could sign a user into an attacker's portal account. A dedicated cookie survives the Microsoft redirect the same way the session cookie does (a top-level GET). It does not depend on the session row, the driver or concurrent session writes. This is the pattern Auth.js and most OAuth middleware use.
 
 Consequences:
-There is no switch to turn the check off. If sign-ins fail with `Microsoft OAuth state check failed` (`reason=missing_cookie`) at scale, roll back the code and investigate; do not reintroduce a stateless switch. `APP_URL` and `MICROSOFT_REDIRECT_URI` must share a host (`/auth/microsoft` bounces once to the redirect URI host). See `docs/SECURITY.md` and `docs/SYSTEM_AUDIT.md` (eighth pass).
+There is no switch to turn the check off. If sign-ins fail with `Microsoft OAuth state check failed` (`reason=missing_cookie`) at scale, roll back the code and investigate; do not reintroduce a stateless switch. `APP_URL` and `MICROSOFT_REDIRECT_URI` must share a host (`/auth/microsoft` bounces once to the redirect URI host). See [Authentication.md](Authentication.md).
 
 ---
 

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Retired feature (docs/SYSTEM_AUDIT.md, F9): staff-authored client opportunities
+     * Retired feature (2026-09-29): staff-authored client opportunities
      * were only ever read by their own admin CRUD pages - no customer-facing view
      * showed them - so the repo owner chose to retire rather than surface them.
      * down() recreates the table exactly as 0001_01_01_000001_create_portal_tables

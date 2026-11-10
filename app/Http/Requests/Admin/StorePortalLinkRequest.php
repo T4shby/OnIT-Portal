@@ -38,16 +38,25 @@ class StorePortalLinkRequest extends FormRequest
     }
 
     /**
-     * client_id is optional here (null = global link, which PortalLinkPolicy lets any
-     * staff member manage). When a client is given, require access to it so staff
-     * cannot create or move a link into a client they are not assigned to.
+     * null client_id = global link (every customer dashboard). Only Super Admins may
+     * create those. When a client is given, require access so staff cannot create or
+     * move a link into a client they are not assigned to.
      */
     public function withValidator($validator): void
     {
-        $validator->after(function () {
-            if (filled($this->input('client_id'))) {
-                $this->validateClientAccessForActor((int) $this->input('client_id'));
+        $validator->after(function ($validator): void {
+            if (! filled($this->input('client_id'))) {
+                if ($this->user()?->role !== UserRole::SuperAdmin) {
+                    $validator->errors()->add(
+                        'client_id',
+                        'Only a Super Admin can create or edit global portal links.',
+                    );
+                }
+
+                return;
             }
+
+            $this->validateClientAccessForActor((int) $this->input('client_id'));
         });
     }
 }

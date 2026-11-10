@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\UserRole;
 use App\Models\PortalLink;
 use App\Models\User;
 
@@ -23,7 +24,13 @@ class PortalLinkPolicy
             return false;
         }
 
-        return $link->client_id === null || $user->canAccessClient($link->client_id);
+        // Global (all-tenant) links are Super Admin only - Account Managers must not
+        // rewrite launch URLs that every customer dashboard includes.
+        if ($link->client_id === null) {
+            return $user->role === UserRole::SuperAdmin;
+        }
+
+        return $user->canAccessClient($link->client_id);
     }
 
     public function delete(User $user, PortalLink $link): bool

@@ -11,10 +11,10 @@ use Symfony\Component\HttpFoundation\Response;
  * Re-applies the account checks MicrosoftAuthController::callback() makes at sign-in
  * on every authenticated request.
  *
- * Sign-in issues a remember-me cookie (SessionGuard default: 400 days), so without
- * this a user deactivated by an admin or by Entra sync (left the customer / account
- * disabled in M365), or whose whole organisation was deactivated, kept full portal
- * access until that cookie expired.
+ * Login no longer issues a remember-me cookie, but older recallers may still exist
+ * until they expire. Without this middleware a user deactivated by an admin or by
+ * Entra sync (left the customer / account disabled in M365), or whose whole
+ * organisation was deactivated, kept full portal access until that cookie expired.
  */
 class EnsureAccountIsActive
 {

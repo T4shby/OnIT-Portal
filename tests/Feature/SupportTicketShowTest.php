@@ -46,6 +46,7 @@ class SupportTicketShowTest extends TestCase
                         'createdTime' => '2026-08-24T12:00:00.000',
                         'updatedTime' => '2026-08-24T12:00:00.000',
                         'requester' => ['userId' => 'req-1'],
+                        'client' => ['accountId' => 'acc-1'],
                     ],
                 ],
             ], 200);
@@ -149,11 +150,56 @@ class SupportTicketShowTest extends TestCase
 
         $this->actingAs($outsider)
             ->get(route('support.show', 'ticket-created-1'))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->actingAs($outsider)
             ->getJson(route('support.actions', 'ticket-created-1'))
-            ->assertForbidden();
+            ->assertNotFound();
+    }
+
+    public function test_same_requester_email_on_another_superops_account_is_denied(): void
+    {
+        config([
+            'services.superops.api_token' => 'api-test-token',
+            'services.superops.subdomain' => 'onitltd',
+            'services.superops.region' => 'us',
+        ]);
+
+        Http::fake(function ($request) {
+            $query = (string) ($request->data()['query'] ?? '');
+
+            if (str_contains($query, 'getTicketConversationList')) {
+                return Http::response(['data' => ['getTicketConversationList' => []]], 200);
+            }
+
+            return Http::response([
+                'data' => [
+                    'getTicket' => [
+                        'ticketId' => 'ticket-cross-tenant',
+                        'displayId' => '777',
+                        'subject' => 'Other customer ticket',
+                        'status' => 'Open',
+                        'priority' => null,
+                        'createdTime' => '2026-09-08T11:42:00.000',
+                        'updatedTime' => '2026-09-08T11:42:00.000',
+                        'requester' => ['email' => 'shared@example.com'],
+                        'client' => ['accountId' => 'acc-foreign'],
+                    ],
+                ],
+            ], 200);
+        });
+
+        $own = Client::factory()->create(['superops_account_id' => 'acc-home']);
+        $user = User::factory()->create([
+            'client_id' => $own->id,
+            'role' => UserRole::ClientRequester,
+            'email' => 'shared@example.com',
+            'superops_user_id' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('support.show', 'ticket-cross-tenant'))
+            ->assertNotFound();
     }
 
     public function test_show_forbids_unrelated_ticket_when_requester_does_not_match(): void
@@ -197,7 +243,7 @@ class SupportTicketShowTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('support.show', 'ticket-other-1'))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     /**
@@ -252,7 +298,7 @@ class SupportTicketShowTest extends TestCase
             ->assertOk()->assertSee('Older colleague ticket');
 
         $unassigned = User::factory()->create(['role' => UserRole::AccountManager, 'client_id' => null]);
-        $this->actingAs($unassigned)->get(route('support.show', 'ticket-old-1'))->assertForbidden();
+        $this->actingAs($unassigned)->get(route('support.show', 'ticket-old-1'))->assertNotFound();
     }
 
     public function test_requester_still_cannot_open_a_colleagues_ticket_by_id(): void
@@ -263,7 +309,7 @@ class SupportTicketShowTest extends TestCase
         $client = Client::factory()->create(['superops_account_id' => 'acc-1']);
         $requester = User::factory()->create(['client_id' => $client->id, 'role' => UserRole::ClientRequester, 'email' => 'me@example.com']);
 
-        $this->actingAs($requester)->get(route('support.show', 'ticket-old-1'))->assertForbidden();
+        $this->actingAs($requester)->get(route('support.show', 'ticket-old-1'))->assertNotFound();
     }
 
     /**
@@ -314,7 +360,7 @@ class SupportTicketShowTest extends TestCase
             ->createTicket($creator, 'New starter request: Pat Private', 'Salary and start date');
 
         $this->actingAs($creator)->get(route('support.show', 'ticket-portal-colleague'))->assertOk();
-        $this->actingAs($colleague)->get(route('support.show', 'ticket-portal-colleague'))->assertForbidden();
+        $this->actingAs($colleague)->get(route('support.show', 'ticket-portal-colleague'))->assertNotFound();
         $this->actingAs($clientAdmin)->get(route('support.show', 'ticket-portal-colleague'))->assertOk();
     }
 
@@ -329,7 +375,7 @@ class SupportTicketShowTest extends TestCase
         // Shape written before the creator was recorded: a bare account id.
         \Illuminate\Support\Facades\Cache::put('superops-ticket-account:ticket-legacy-1', 'acc-1', now()->addDay());
 
-        $this->actingAs($requester)->get(route('support.show', 'ticket-legacy-1'))->assertForbidden();
+        $this->actingAs($requester)->get(route('support.show', 'ticket-legacy-1'))->assertNotFound();
         $this->actingAs($clientAdmin)->get(route('support.show', 'ticket-legacy-1'))->assertOk();
     }
 }

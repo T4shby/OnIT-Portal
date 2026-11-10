@@ -12,7 +12,7 @@ return new class extends Migration
      * their own client (SuperOpsTicketService::userCanViewTicket()), and again
      * whenever a SuperOps webhook/account id needs mapping back to a Client. The
      * column had no index despite being a real, hot lookup key - see
-     * docs/SYSTEM_AUDIT.md "Third Audit Pass" for the evidence trail.
+     * Added during 2026-09 security/audit hardening (index for SuperOps account lookups).
      */
     public function up(): void
     {

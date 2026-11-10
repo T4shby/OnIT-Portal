@@ -160,12 +160,15 @@ Internal notes are `getTicketNoteList` and are **not** shown. Files stay behind 
 
 The customer timeline calls `GET /support/{ticketId}/actions` (same visibility as show) and renders those public replies as plain text. It does not load notes.
 
-`SupportController@show` used to 403 unless SuperOps `requester.userId` / email matched the portal user. Portal **Log a ticket** / **New starter** use `source: INTEGRATION`; SuperOps often stores a different requester (or none) even though the ticket is on the correct client. The ticket is in SuperOps; the confirmation page was Laravel `403 | FORBIDDEN`.
+Portal **Log a ticket** / **New starter** use `source: INTEGRATION`; SuperOps often stores a different requester (or none) even though the ticket is on the correct client. Unauthorized or missing tickets both return **404** (no existence oracle).
 
-View rules now:
+View rules (`SuperOpsTicketService::userCanViewTicket`):
 
-1. Requester userId (`userId` / `user_id` / `id`) or email still matches, or
-2. The ticket was created via the portal (cache `superops-ticket-account:{ticketId}` for 14 days) and the viewer belongs to that SuperOps account (client-facing user on that client, or a technician who can access the client)
+1. Resolve SuperOps account from ticket `client.accountId` or the 14-day portal cache `superops-ticket-account:{ticketId}` - **required** (fail closed if unknown).
+2. Client users: account must equal their client's `superops_account_id`, **and** either requester userId/email matches, or they are org-wide (Client Admin), or they created the ticket through this portal (remembered `user_id`).
+3. Staff: account maps to a client they `canAccessClient`.
+
+Requester match alone must never open a ticket on another SuperOps account (shared emails).
 
 Do **not** select extra Ticket fields on `getTicket` without a test - `description` already broke show for every client.
 
@@ -240,7 +243,7 @@ The browser already has a Microsoft session from the portal. SuperOps starts **S
 | **Error 1027** | Entra `email` claim missing - see [SuperOpsRequesterSsoSetup.md](SuperOpsRequesterSsoSetup.md) §2.4 |
 | **Error 1028** on Entra Test SSO | Ignore - use portal or `/#/requester/login` flow (SP-initiated) |
 | New starter / Log a ticket fails for any client | Check createTicket contract: `source` INTEGRATION, `requestType` set; logs should include SuperOps `clientError` - [createTicket contract](#createticket-contract-all-clients) |
-| Ticket created but **403 Forbidden** on `/support/{id}` | INTEGRATION requester often does not match the portal user; show allows the creating org via `superops-ticket-account` cache - [ticket detail](#ticket-detail-getticket) |
+| Ticket created but **404** on `/support/{id}` for the creator | INTEGRATION requester often does not match; creator should still pass via `superops-ticket-account` cache - [ticket detail](#ticket-detail-getticket) |
 | Ticket created but **Ticket not found** on `/support/{id}` | Do not select `description` on `getTicket` - [ticket detail](#ticket-detail-getticket) |
 | **Login with Email** on requester login | Client SSO is not enabled for that SuperOps client |
 | **Access denied** on `/#/client-home` | SAML OK - fix SuperOps requester provisioning / permissions |

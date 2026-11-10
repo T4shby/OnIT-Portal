@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-10 ~17:50 UK - Deploy security remediation (ticket authz, Symfony, CSP, CI)
+
+| | |
+|---|---|
+| Intent | Ship verified security fixes from SECURITY_FINDINGS remediation; exclude local usecure skeleton |
+| Operator | agent (Cursor) |
+| SHA before -> after | `cd4d7aa` -> (pending push/deploy) |
+| Steps | Commit remediation only (no usecure). Push `main`. SSH fetch bare mirror + `git archive` + composer/migrate/optimize. Append result below when complete. |
+| Result | in progress |
+| Rollback / watch | Redeploy prior SHA from bare mirror; watch login, support ticket show, portal-links admin for AMs |
+
 ### 2026-11-09 ~14:22 UK - Deploy Dropsuite org import + Defender DKIM auto-read
 
 | | |
@@ -434,7 +445,7 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 | | |
 |---|---|
-| Intent | GitHub `main` had eight audit passes that were not on the live tree (`7383d00`). Deploy them after the pre-deploy checks in `HANDOFF.md`. |
+| Intent | GitHub `main` had eight audit passes that were not on the live tree (`7383d00`). Deploy them after the usual production checks in [Deployment.md](Deployment.md) / [Handover.md](Handover.md). |
 | Operator | agent |
 | SHA before -> after | `7383d00` -> the commit that adds this row |
 | Steps | Duplicate external-id check: 0 groups on `superops_account_id`, `huntress_organization_id`, `dropsuite_organization_id`, `pax8_company_id`, `entra_tenant_id`. `MICROSOFT_OAUTH_STATELESS` unset. Retired tables had 3 seed rows each on client On IT Technology Partners (Notice 1-3, sample recommendations, sample opportunities). `git push origin main`. Archive `main` into the live path. Post-deploy artisan block including `migrate --force` (drops those three tables, adds the SuperOps account index). `optimize` caches the new `config/queue.php`. Not `cache:clear`. |

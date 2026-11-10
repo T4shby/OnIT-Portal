@@ -119,13 +119,8 @@ class SuperOpsTicketService
 
     public function userCanViewTicket(array $ticket, User $user): bool
     {
-        if ($this->ticketBelongsToUser($ticket, $user)) {
-            return true;
-        }
-
         $ticketId = (string) ($ticket['ticketId'] ?? '');
-        // `client` is now selected by getTicket(); previously it never was, so this
-        // was always '' and only the 14-day "remembered" portal-created path worked.
+        // Prefer SuperOps `client.accountId`; fall back to the 14-day portal-created cache.
         $ticketAccount = $this->ticketAccountId($ticket);
         $rememberedEntry = $ticketId !== '' ? $this->rememberedTicket($ticketId) : null;
         $remembered = $rememberedEntry['account'] ?? '';
@@ -135,23 +130,32 @@ class SuperOpsTicketService
         }
         $accountId = $ticketAccount !== '' ? $ticketAccount : $remembered;
 
+        // Fail closed without a SuperOps account: requester email/userId alone must not
+        // grant cross-tenant ticket access when the same identity exists on another account.
         if ($accountId === '') {
             return false;
         }
 
         if ($user->canUseClientSupport() && filled($user->client?->superops_account_id)) {
+            if ((string) $user->client->superops_account_id !== $accountId) {
+                return false;
+            }
+
+            if ($this->ticketBelongsToUser($ticket, $user)) {
+                return true;
+            }
+
             // Org-wide viewers (client admins) may open any ticket on their SuperOps
             // account. Personal viewers only get the "created through this portal"
             // fallback (for when SuperOps did not record them as requester) on tickets
             // *they* created - not a colleague's, e.g. a new-starter request.
             $orgWide = app(\App\Services\Portal\ClientVisibilityService::class)
                 ->canViewOrganisationWide($user, $user->client);
-            $createdByViewer = ($rememberedEntry['user_id'] ?? null) === $user->id;
-            $candidate = $orgWide ? $accountId : ($createdByViewer ? $remembered : '');
-
-            if ($candidate !== '' && (string) $user->client->superops_account_id === $candidate) {
+            if ($orgWide) {
                 return true;
             }
+
+            return ($rememberedEntry['user_id'] ?? null) === $user->id;
         }
 
         if ($user->isTeamMember()) {

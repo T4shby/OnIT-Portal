@@ -36,7 +36,7 @@ Migration: `2026_10_19_120000_add_client_mail_domains.php`.
 
 Client-scoped CMS tables with `is_active`, ordering, and scheduling fields on notices.
 
-**Retired 2026-09-29:** dropped by the `2026_09_29_1200*_drop_*` migrations, along with their models, admin CRUD pages and the admin dashboard's "Active Notices" tile. No customer-facing view ever read them, so the repo owner chose to retire them rather than build one (F9 in `docs/SYSTEM_AUDIT.md`).
+**Retired 2026-09-29:** dropped by the `2026_09_29_1200*_drop_*` migrations, along with their models, admin CRUD pages and the admin dashboard's "Active Notices" tile. No customer-facing view ever read them, so the repo owner chose to retire them rather than build one (retired staff-only notices/recommendations/opportunities feature, 2026-09-29).
 
 ### pivot table `client_user`
 

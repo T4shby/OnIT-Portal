@@ -320,7 +320,6 @@ After deploy:
 |---|---|
 | `AGENTS.md` | Agent/engineering rules |
 | `Brain/Deployment.md` | Full production runbook (Plesk-specific) |
-| `docs/DEPLOYMENT.md` | Condensed audit deployment notes |
 | `Brain/Handover.md` | Product/ops status for humans |
 | `.env.example` | Placeholder env schema |
 

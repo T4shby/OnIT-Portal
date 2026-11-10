@@ -31,6 +31,11 @@ class User extends Authenticatable
         'superops_synced_at',
     ];
 
+    protected $hidden = [
+        'microsoft_tokens',
+        'remember_token',
+    ];
+
     protected function casts(): array
     {
         return [

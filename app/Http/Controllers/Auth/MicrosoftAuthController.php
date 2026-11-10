@@ -215,7 +215,8 @@ class MicrosoftAuthController extends Controller
         $this->superOpsSync->syncUser($user);
         $this->superOpsSso->establishSsoSession($user);
 
-        Auth::login($user, true);
+        // No long-lived remember-me cookie - Entra SSO re-auth is the session source.
+        Auth::login($user, false);
         $request->session()->regenerate();
 
         $this->activityLog->log('user.login', $user);
@@ -238,15 +239,17 @@ class MicrosoftAuthController extends Controller
 
     private function handleAdminConsentReturn(Request $request): RedirectResponse|View
     {
-        Log::info('Microsoft admin consent completed', [
-            ...$this->oauthDiagnostics($request),
-            'tenant' => $request->query('tenant'),
-            'state' => $request->query('state'),
-        ]);
-
         $consentState = AdminConsentState::inspect(
             is_string($request->query('state')) ? $request->query('state') : null
         );
+
+        // Never log raw admin-consent `state` (HMAC capability token). client_id only.
+        Log::info('Microsoft admin consent completed', [
+            ...$this->oauthDiagnostics($request),
+            'tenant' => $request->query('tenant'),
+            'client_id' => $consentState['client_id'],
+            'state_valid' => $consentState['client_id'] !== null,
+        ]);
         $client = $consentState['client_id'] !== null ? Client::find($consentState['client_id']) : null;
         $tenantFromConsent = is_string($request->query('tenant'))
             ? strtolower(trim($request->query('tenant')))

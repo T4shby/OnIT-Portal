@@ -25,8 +25,17 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureAccountIsActive::class,
         ]);
 
+        // TRUSTED_PROXIES=* (default) for single-box Plesk. Prefer comma-separated
+        // proxy CIDRs/IPs in production when the upstream address is known.
+        $trustedProxies = env('TRUSTED_PROXIES', '*');
+        if (is_string($trustedProxies) && $trustedProxies !== '' && $trustedProxies !== '*') {
+            $trustedProxies = array_values(array_filter(array_map('trim', explode(',', $trustedProxies))));
+        } else {
+            $trustedProxies = '*';
+        }
+
         $middleware->trustProxies(
-            at: '*',
+            at: $trustedProxies === [] ? '*' : $trustedProxies,
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_HOST
                 | Request::HEADER_X_FORWARDED_PORT

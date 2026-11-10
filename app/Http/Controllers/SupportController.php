@@ -58,8 +58,9 @@ class SupportController extends Controller
             return redirect()->route('support.index')->with('error', 'Ticket not found.');
         }
 
+        // Same 404 for missing and forbidden - avoid ticket-id existence oracle.
         if (! $ticket || ! $this->tickets->userCanViewTicket($ticket, $request->user())) {
-            abort(403);
+            abort(404);
         }
 
         $ticket['conversations'] = $this->labelledConversations($ticket);
@@ -86,7 +87,7 @@ class SupportController extends Controller
         }
 
         if (! $ticket || ! $this->tickets->userCanViewTicket($ticket, $request->user())) {
-            abort(403);
+            abort(404);
         }
 
         $actions = [];

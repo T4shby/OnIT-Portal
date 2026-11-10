@@ -49,9 +49,26 @@ class ClientContentCrossTenantTest extends TestCase
         $this->assertDatabaseMissing('portal_links', ['name' => 'Sneaky']);
     }
 
-    public function test_account_manager_can_still_create_global_portal_link(): void
+    public function test_account_manager_cannot_create_global_portal_link(): void
     {
         $this->actingAs($this->manager)
+            ->post(route('admin.portal-links.store'), [
+                'name' => 'Global help',
+                'link_type' => 'external',
+                'url' => 'https://example.com/help',
+                'client_id' => '',
+                'display_order' => 0,
+            ])
+            ->assertSessionHasErrors('client_id');
+
+        $this->assertDatabaseMissing('portal_links', ['name' => 'Global help']);
+    }
+
+    public function test_super_admin_can_create_global_portal_link(): void
+    {
+        $super = User::factory()->create(['role' => UserRole::SuperAdmin, 'client_id' => null]);
+
+        $this->actingAs($super)
             ->post(route('admin.portal-links.store'), [
                 'name' => 'Global help',
                 'link_type' => 'external',
