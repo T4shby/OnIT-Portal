@@ -23,6 +23,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Prepare testing env
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
       - name: Composer security audit
         run: composer audit --no-interaction
         continue-on-error: true
