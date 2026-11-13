@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-13 ~17:00 UK - Fix stuck menus and SuperOps rate-limit loop
+
+| | |
+|---|---|
+| Intent | Sign out and the Entra Dry run / Sync now buttons were stuck visible with spinners. Production log showed SuperOps `rate_limit_exceeded` and asset-summary errors from retrying failed device lookups. |
+| Operator | agent |
+| SHA before -> after | `0a85cbc` -> `3c37758` |
+| Steps | Read-only tail of `storage/logs/laravel.log` earlier the same afternoon (no cache clear, no live edits). Then push `main`, bare mirror `fetch origin main:main`, `git archive main` into the live tree, `composer install --no-dev`, `migrate --force` (nothing), `route:clear`, `config:clear`, `view:clear`, `PortalLinkSeeder`, `optimize`, chown storage, reload `plesk-php84-fpm`. No `cache:clear`. |
+| Result | Live `.deployed-commit` is `3c37758`. `/up` 200. Usecure client still absent. Menu blade on disk contains `x-if="userOpen"`. |
+| Rollback / watch | Redeploy `0a85cbc` with the same archive steps. After a hard refresh, Sign out stays closed until the avatar is clicked, and Dry run / Sync now show one label each. SuperOps device lookups that fail wait an hour and stop the rest of that refresh on a rate limit. Microsoft Graph `$batch` timeouts from earlier today (directory and Entra, clients 10 and 12) are separate and were not changed. |
+
 ### 2026-11-13 ~15:00 UK - Deploy setup guide corrections
 
 | | |

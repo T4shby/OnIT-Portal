@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `e79559d` (13 Nov 2026 - setup guide: SuperOps client first, Huntress `/org/` id, Dropsuite short id, Client Admin after Sync now, wider guide). Includes the colleague services pass from `1297822`. Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md). Device age and the workstation standard fill in on the next SuperOps refresh. DKIM list needs Exchange.ManageAsApp + Exchange Administrator on the portal app per customer.
+**GitHub / live:** `3c37758` (13 Nov 2026 - sign-out menu and Entra sync buttons no longer stay open; SuperOps device lookups back off for an hour after a failure). Includes the setup guide at `e79559d` and the colleague services pass from `1297822`. Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md). Device age and the workstation standard fill in on the next SuperOps refresh, slower while SuperOps is rate-limited. DKIM list needs Exchange.ManageAsApp + Exchange Administrator on the portal app per customer.
 
 ## What already works
 
