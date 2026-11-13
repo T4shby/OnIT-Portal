@@ -94,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | Setup guide: SuperOps client first, Huntress id is the `/org/` number, Dropsuite short id is not a UUID, Client Admin role after Sync now, wider guide column. - [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-11-13 | Deployed `1297822`. Colleague services pass is on https://app.onit.ltd. Device figures wait for the next SuperOps refresh (cache v7). - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-13 | Colleague services pass: longer ticket timeline, device age and workstation standard, customer patching hidden, licence list-price total, Huntress ITDR split, MFA and SharePoint tiles, new-starter security groups. - [ClientAdminDashboard.md](ClientAdminDashboard.md), [Decisions.md](Decisions.md) |
 | 2026-11-13 | Deployed `552d51f`. Production `GDAP_ENABLED=true` and partner tenant set to the onit.ltd directory. Technician group id still empty, so assignment cannot finish. - [ServerOpsLog.md](ServerOpsLog.md), [Gdap.md](Gdap.md) |

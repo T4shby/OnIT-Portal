@@ -405,7 +405,7 @@ Service: `App\Services\Huntress\HuntressClientMetricsService`
 
 Cache key: `client:{client_id}:huntress-security:v1`
 
-Per-client link: `clients.huntress_organization_id` (Admin → Clients). Organisation ID is from Huntress → Organizations.
+Per-client link: `clients.huntress_organization_id` (Admin → Clients). The Organization ID is the number after `/org/` in the Huntress address bar. Do not paste the Organization Key or the Account Key (those are for the agent installer).
 
 | Setting | Env | Default |
 |---------|-----|---------|
@@ -620,6 +620,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 |------|--------|
 | 2026-11-06 | Dropsuite org import: Admin → Clients → Dropsuite orgs pulls GET /users (id + name only), filters to live portal clients, Link maps `dropsuite_organization_id`. Edit Client can pick from the same list. |
 | 2026-10-19 | Sold product coverage: Export CSV, account-manager column, and super-admin filter by AM (or no AM). |
+| 2026-11-13 | Huntress organization id in the setup guide is the number after `/org/`, not the Organization Key or Account Key. |
 | 2026-11-13 | Device age and workstation standard on Support and Devices. Patching hidden from customers. Huntress ITDR split. M365 list-price total, MFA tile, SharePoint storage. New starter security groups. |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before the minute checker queues it again. Dropsuite SharePoint and sites 404s are optional and are not logged as failures. |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |

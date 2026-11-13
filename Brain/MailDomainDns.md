@@ -51,7 +51,7 @@ Needs Office 365 Exchange Online **Exchange.ManageAsApp** on **OnIT Portal for P
 
 **Bug fixed:** Import / Add / Check were nested `<form>` tags inside Save client. Browsers ignore nested forms, so Add domain and Import looked broken. Mail domains now sit in a separate card under Save. Opening Edit also heals rows that have `primary_domain` but no `client_domains` row.
 
-**Layout (2026-11-02 / rebalanced 2026-11-04):** Edit Client `admin-split` is work column + sticky setup guide on the right. Guide is ~28-38rem so step titles stay readable; form grids cap at `max-w-3xl` so paste fields do not stretch across ultra-wide leftover space. Guide chrome (how-to, Graph tools when tenant already linked) collapses behind `<details>` so only the open step detail is on screen. Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
+**Layout (2026-11-02 / rebalanced 2026-11-04 / widened 2026-11-13):** Edit Client `admin-split` is work column + sticky setup guide on the right. From the `xl` breakpoint the form stops at 40rem and the guide takes the rest of the row, with step text at body size. Guide chrome (how-to, Graph tools when tenant already linked) collapses behind `<details>` so only the open step detail is on screen. Identity (name + main domain) sits in a two-column grid with Save at the top of that card.
 
 **Edit Client page order (2026-11-04):** Top full-width **Customer tools and checkers** (M365 / MFA / Huntress / Dropsuite / Entra sync + Mail DNS checker). Then **Identity and products** + sticky **Client setup guide**.
 

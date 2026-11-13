@@ -633,4 +633,29 @@ class ClientOnboardingServiceTest extends TestCase
         $this->assertTrue($client->onboarding_checklist['superops_scim_configured']);
         $this->assertTrue($client->onboarding_checklist['superops_scim_provisioning']);
     }
+
+    public function test_guide_covers_superops_first_huntress_id_and_client_admin_role(): void
+    {
+        $client = Client::factory()->create([
+            'name' => 'Guide Check Ltd',
+            'product_entitlements' => [
+                'huntress' => ['entitled' => true],
+                'dropsuite' => ['entitled' => true],
+            ],
+        ]);
+
+        $steps = collect(app(ClientOnboardingService::class)->steps($client));
+        $text = function (string $key) use ($steps): string {
+            return implode(' ', $steps->firstWhere('key', $key)['instructions']);
+        };
+
+        $this->assertStringContainsString('Add client', $text('superops_linked'));
+        $this->assertStringContainsString('before the portal Account ID', $text('superops_linked'));
+        $this->assertStringContainsString('Organization Key', $text('huntress_linked'));
+        $this->assertStringContainsString('/org/', $text('huntress_linked'));
+        $this->assertStringContainsString('not a UUID', $text('dropsuite_linked'));
+        $this->assertStringContainsString('Client Admin', $text('portal_sync_configured'));
+        $this->assertStringContainsString('Set the IT lead to Client Admin', $text('portal_sync_run'));
+        $this->assertStringContainsString('Client Billing Admin', $text('portal_sync_run'));
+    }
 }

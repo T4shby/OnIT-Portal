@@ -10,11 +10,12 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 ## Start here
 
-1. Sign in to https://app.onit.ltd as an On IT technician.
-2. Go to **Admin → Clients → Add Client**.
-3. Enter the **company name** and the **main domain** (both required). Optional SuperOps/Pax8 fields if you already have them.
-4. Click **Create client**.
-5. The **Edit Client** page opens. Work the **Client setup Guide** on the **right** (includes mail domain DNS health - [MailDomainDns.md](MailDomainDns.md)).
+1. Create the customer in **SuperOps** first. **Clients** → **Add client** if the company is not already there. Open it and copy the number after `/client/`.
+2. Sign in to https://app.onit.ltd as an On IT technician.
+3. Go to **Admin → Clients → Add Client**.
+4. Enter the **company name** (same as SuperOps) and the **main domain** (both required). Paste the **SuperOps Account ID**. Pax8 can wait.
+5. Click **Create client**.
+6. The **Edit Client** page opens. Work the **Client setup Guide** on the **right** (includes mail domain DNS health - [MailDomainDns.md](MailDomainDns.md)). After Sync now, set the customer IT lead to **Client Admin**.
 
 | Button | Where | What it saves |
 |---|---|---|
@@ -49,7 +50,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | # | Step | Remaining for you (if not auto-Done) | Done when |
 |---|---|---|---|
 | 00 | Confirm mail domain + DNS | Main domain on create; Check DNS; for M365 use **Refresh DKIM from Microsoft** (all accepted domains) plus one send test | No red **core** DNS + (M365) signing Valid + test pass - or tick with note to defer |
-| 01 | Link SuperOps client | SuperOps Account ID → portal left → Save | Account ID saved (auto) |
+| 01 | Link SuperOps client | SuperOps client must already exist. Account ID (number after `/client/`) → portal left → Save | Account ID saved (auto) |
 | 02 | Link Pax8 (or skip) | Skip, or Pax8 UUID + access → Save | Pax8 off or UUID saved (auto) |
 | 03 | Connect Microsoft tenant | **Connect Microsoft tenant** once | Tenant ID + group ID saved |
 | 04 | Accept Portal Graph | Same Connect button (GDAP Accept) | Consent + bootstrap, or first sync later |
@@ -58,7 +59,7 @@ Manual Azure Overview → Licence paste is legacy fallback only if Graph permiss
 | 07 | Apply SCIM tokens + start | Paste tokens on step form → Apply | **Done only** when name.familyName←extensionAttribute1 **and** portal Sync was queued (group ID required). Credentials-only = still Pending |
 | 08 | SuperOps Microsoft login (Client SSO) | SuperOps 2 URLs → Wire → SuperOps Step 3 | Client SSO enabled |
 | 09 | Turn on portal sync | Tick Entra sync enabled → Save client | Dry run / Sync now buttons |
-| 10 | Run Dry run then Sync now | Dry run → Sync now → Last synced | Last synced / tick if lagging |
+| 10 | Run Dry run then Sync now | Dry run → Sync now → Last synced. Then **Admin → Users** → Edit the IT lead → **Role** = **Client Admin**. Sync creates everyone as Client Requester. | Last synced / tick if lagging, and the IT lead is Client Admin |
 | 11 | Test as a customer user | Private window customer login + SuperOps tile | Smoke test tick |
 | 12 | Hand off to the customer | Sign-in URL message only | Hand-off tick |
 
@@ -111,6 +112,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-11-13 | Start in SuperOps. Step 01 requires that client. Step 10 sets the IT lead to Client Admin after Sync now. Huntress id is the `/org/` number, not the installer key. |
 | 2026-11-13 | Production GDAP flag is on. Group object id still empty. - [Gdap.md](Gdap.md) |
 | 2026-11-12 | GDAP strip above the guide (not a new step number). Connect blocked only when GDAP_ENABLED=true and the relationship is not ready. - [Gdap.md](Gdap.md) |
 | 2026-08-13 | Retry Graph setup recreates broken SCIM apps (0 templates); Apply SCIM only remaining SuperOps paste; no Azure UI |

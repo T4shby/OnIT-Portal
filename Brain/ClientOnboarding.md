@@ -84,13 +84,13 @@ Mail domains / DNS: [MailDomainDns.md](MailDomainDns.md).
 | 07 | SCIM tokens into Provisioning + mappings + start | On IT technician (customer Entra / GDAP) |
 | 08 | SuperOps Microsoft login (Client SSO) - auto shell; SuperOps URL hand-off + wire | On IT technician (SuperOps + customer Entra / GDAP) |
 | 09 | Turn on portal sync | On IT technician (portal / SuperOps) |
-| 10 | Run Dry run then Sync now | On IT technician (portal / SuperOps) |
+| 10 | Run Dry run then Sync now, then set the IT lead to Client Admin | On IT technician (portal / SuperOps) |
 | 11 | Test as a customer user | On IT technician (portal / SuperOps) |
 | 12 | Hand off to the customer | On IT technician (portal / SuperOps) |
 
 Deployment resets existing step 08 completions because they represented the retired Global SSO Accept, not a working customer Client SSO configuration.
 
-**Before step 00:** **Admin → Clients → Add Client** → name + main domain → **Create client**.
+**Before step 00:** Create the customer in **SuperOps** first (Clients → Add client if missing). Copy the number after `/client/`. Then **Admin → Clients → Add Client** → same name + main domain → paste that Account ID → **Create client**.
 
 **Steps 03-04 (preferred):** one orange **Connect Microsoft tenant** at the top of the setup guide - private browser / GDAP → Accept once. After Accept the portal **waits and retries Graph**, then bootstraps (progress saved after each stage): `entra_tenant_id`, Free/P1, portal group, SuperOps SCIM + Client SSO Entra apps. **Retry Graph setup** (same button, no second Accept) also re-runs bootstrap - if the SCIM app is broken (Graph reports zero provisioning templates), the portal **deletes and recreates** that Entra app automatically; you only **Apply SCIM** again with SuperOps tokens. **Reload Edit Client** after Connect - do not Save from a form that still shows Free when Graph already wrote P1.
 
@@ -351,6 +351,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | Setup guide: create the SuperOps client first, Huntress id is the number after `/org/` (not the Organization Key or Account Key), Dropsuite id is the short number not a UUID, and step 10 sets the IT lead to Client Admin. The guide column takes the spare width beside a 40rem form. Steps 04 and 08 unchanged. |
 | 2026-11-13 | Production GDAP flag is on. Group object id still empty. - [Gdap.md](Gdap.md) |
 | 2026-11-12 | GDAP strip gates Connect when GDAP_ENABLED=true. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
 | 2026-10-19 | Step **00** Confirm mail domain + DNS; Add Client requires name + main domain; hand-off warns on red DNS - [MailDomainDns.md](MailDomainDns.md) |

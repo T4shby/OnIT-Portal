@@ -210,10 +210,11 @@
 
     /*
      * Identity form + sticky setup guide.
-     * Guide needs ~28-38rem; form column may scroll horizontally for long IDs.
+     * The form stops growing at 40rem. The guide takes the rest of the row
+     * so step text is a reading column, not a 38rem sidebar.
      */
     .admin-split {
-        @apply grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(30rem,38rem)] xl:gap-10;
+        @apply grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,40rem)_minmax(32rem,1fr)] xl:gap-10;
     }
 
     .admin-split > * {
@@ -680,7 +681,7 @@
     }
 
     .onboarding-manual__notes {
-        @apply space-y-3 text-sm leading-relaxed text-white/90;
+        @apply space-y-3 text-base leading-relaxed text-white/90;
     }
 
     .onboarding-manual__notes li {
@@ -733,7 +734,7 @@
     }
 
     .onboarding-manual__step {
-        @apply relative border-b border-white/[0.08] py-4 pl-14 pr-3 text-sm leading-relaxed text-white/90 last:border-b-0;
+        @apply relative border-b border-white/[0.08] py-4 pl-14 pr-4 text-base leading-relaxed text-white/90 last:border-b-0;
         counter-increment: onboarding-step;
     }
 

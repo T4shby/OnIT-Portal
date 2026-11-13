@@ -16,9 +16,11 @@
             <summary>How this guide works</summary>
             <div class="onboarding-panel__help-body">
                 <p>
-                    Open one step at a time. Step <strong class="text-white/80">00</strong> is mail domain + DNS
+                    Create the customer in SuperOps first, then work this list. Open one step at a time.
+                    Step <strong class="text-white/80">00</strong> is mail domain + DNS
                     (Save client for main domain, then Mail domains on the left for Import / extras).
                     SCIM (07) and Client SSO (08) action forms live inside those steps.
+                    After Sync now, set the customer IT lead to Client Admin.
                 </p>
                 <p>
                     <strong class="text-white/80">Save client</strong> stores name, main domain, products, and Entra IDs.

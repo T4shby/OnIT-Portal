@@ -219,16 +219,16 @@ class ClientOnboardingService
                     ],
                 notes: $superopsLinked
                     ? ['Nothing left unless the wrong SuperOps client is linked - then use recovery.']
-                    : ['Remaining: copy Account ID from SuperOps and paste on the left → **Save client**.'],
+                    : ['Create the customer in SuperOps before you paste an ID. Then copy the Account ID onto the left and **Save client**.'],
                 sections: $superopsLinked
                     ? []
                     : [
                         OnboardingManual::section(
-                            'Remaining: save SuperOps Account ID',
+                            'Remaining: create the SuperOps client, then save the Account ID',
                             $superOpsUrl.' → Clients · then portal left column',
                             [
-                                'SuperOps MSP → **Clients** → open **'.$client->name.'** (create first if missing).',
-                                'Browser URL after `/client/` → long number = **SuperOps Account ID**.',
+                                'SuperOps MSP → **Clients**. If **'.$client->name.'** is not in the list, **Add client** with that same company name. Do this before the portal Account ID.',
+                                'Open that SuperOps client. The long number after `/client/` in the address bar is the **SuperOps Account ID**. Not a ticket id and not an invoice id.',
                                 'This portal left → **SuperOps Account ID** → paste → orange **Save client**.',
                             ],
                         ),
@@ -326,8 +326,10 @@ class ClientOnboardingService
                             'Remaining: map Huntress org',
                             'Huntress partner console · portal Products',
                             [
-                                'Huntress → open customer organisation → numeric org id in the URL.',
-                                'Portal left → Products → ensure Huntress sold → **Organization ID** → Save client.',
+                                'Huntress → **Organizations** → open this customer.',
+                                'Copy the number after `/org/` in the address bar. Example: `/org/123456/` means Organization ID **123456**.',
+                                'Do not paste the **Organization Key** or the **Account Key**. Those are for the Huntress agent installer, and the security feed will not load.',
+                                'Portal left → Products → Huntress sold on → **Organization ID** → **Save client**.',
                             ],
                         ),
                     ],
@@ -336,7 +338,7 @@ class ClientOnboardingService
                         'Wrong org or API error',
                         'Huntress console · Integration Health',
                         [
-                            'Confirm org id matches this customer.',
+                            'Confirm the id is the number after /org/ for this customer, not the Organization Key or the Account Key.',
                             'Fix API keys on On IT if Integration Health says platform down.',
                         ],
                     ),
@@ -367,7 +369,7 @@ class ClientOnboardingService
                             'Remaining: map Dropsuite org',
                             'Dropsuite sub-reseller · portal Products',
                             [
-                                'Dropsuite does not show this number. Paste the short organization number (Finishing Design Services is 11223, YorPower is 6182).',
+                                'Dropsuite does not show this number, and it is not a UUID. Paste the short organization number (Finishing Design Services is 11223, YorPower is 6182).',
                                 'Do not paste the user id that looks like 360787-12.',
                                 'Portal left → Products → ensure Dropsuite sold → **Organization ID** → Save client.',
                             ],
@@ -633,8 +635,8 @@ class ClientOnboardingService
                     ],
                 notes: array_values(array_filter([
                     $syncConfigured
-                        ? 'Nothing left - open recovery only if Dry run / Sync now buttons are missing.'
-                        : 'Remaining: confirm IDs on the left → tick **Entra sync enabled** → **Save client**.',
+                        ? 'Nothing left on the tick itself. After Sync now, change the customer IT lead from Client Requester to Client Admin. Sync never does that.'
+                        : 'Remaining: confirm IDs on the left → tick **Entra sync enabled** → **Save client**. After Sync now, set the IT lead to Client Admin.',
                     $syncEnabledGlobally
                         ? null
                         : 'Platform sync flag is off in config - if buttons stay missing after save, message Tom.',
@@ -688,23 +690,37 @@ class ClientOnboardingService
                         'Apply SCIM (07) queues a background Sync only when name mappings **and** Entra group ID are in place - re-run Apply if step 07 is still Pending.',
                     ],
                 notes: $portalSyncRunComplete
-                    ? ['Already complete - open recovery only if SuperOps names / Azure membership look wrong.']
-                    : ['Remaining: left **Dry run sync** → then **Sync now** → wait a few minutes → confirm **Last synced**.'],
+                    ? ['Sync has run. If the IT lead is still Client Requester, use the role steps below.']
+                    : ['Remaining: left **Dry run sync** → then **Sync now** → wait a few minutes → confirm **Last synced**. Then set the IT lead to Client Admin.'],
                 warnings: $scimScopeWarnings,
-                sections: $portalSyncRunComplete
-                    ? []
-                    : [
+                sections: array_merge(
+                    $portalSyncRunComplete
+                        ? []
+                        : [
+                            OnboardingManual::section(
+                                'Remaining: Dry run then Sync now',
+                                'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left buttons)',
+                                [
+                                    'Click **Dry run sync** → read top banner (Created / Updated / SuperOps lines).',
+                                    'If correct, click **Sync now** (background). Wait a few minutes → refresh → **Last synced** has a time.',
+                                    '**Admin → Users** → **'.$client->name.'** lists the people Sync created. They arrive as Client Requester.',
+                                    'If Last synced lags after a successful Sync now, tick **Mark this step complete**.',
+                                ],
+                            ),
+                        ],
+                    [
                         OnboardingManual::section(
-                            'Remaining: Dry run then Sync now',
-                            'https://app.onit.ltd → Admin → Clients → Edit '.$client->name.' (left buttons)',
+                            'Set the IT lead to Client Admin',
+                            'https://app.onit.ltd → Admin → Users → '.$client->name.' → Edit',
                             [
-                                'Click **Dry run sync** → read top banner (Created / Updated / SuperOps lines).',
-                                'If correct, click **Sync now** (background). Wait a few minutes → refresh → **Last synced** has a time.',
-                                'Optional: **Admin → Users** for this client shows licensed people.',
-                                'If Last synced lags after a successful Sync now, tick **Mark this step complete**.',
+                                'Sync creates every licensed person as **Client Requester**. That role only sees their own tickets, cases, and backup.',
+                                '**Admin → Users** → open **'.$client->name.'** → **Edit** the customer IT lead.',
+                                'Set **Role** to **Client Admin** → **Update**. Leave everyone else as Client Requester unless they also need the whole company.',
+                                '**Client Billing Admin** is invoices only. It does not open the company-wide dashboard.',
                             ],
                         ),
                     ],
+                ),
                 recovery: [
                     OnboardingManual::section(
                         'Dry run / Sync banner is red',
@@ -758,6 +774,7 @@ class ClientOnboardingService
                             'Private/incognito → https://app.onit.ltd/login · then SuperOps tile',
                             [
                                 'Private window → https://app.onit.ltd/login → **Sign in with Microsoft**.',
+                                'Use the customer IT lead you set to **Client Admin**. A Client Requester only proves their own tickets.',
                                 'Use a **customer work email** that exists under **Admin → Users** for this client (not @onit.ltd).',
                                 'Dashboard loads → click **SuperOps** tile → requester portal (not technician chooser).',
                                 'Tick **Mark this step complete** (not **Save client**).',
@@ -1373,16 +1390,16 @@ class ClientOnboardingService
 
         return [
             'superops_account_id' => [
-                'SuperOps → Clients → open customer → copy the number after /client/.',
+                'Create the customer in SuperOps first if they are not there. Then copy the number after /client/.',
             ],
             'pax8_company_id' => [
                 'Optional. Pax8 → Companies → copy company UUID.',
             ],
             'huntress_organization_id' => [
-                'Optional. Huntress → Organizations → open customer → copy the organization ID.',
+                'Number after /org/ in the Huntress address bar (/org/123456/). Not the Organization Key and not the Account Key.',
             ],
             'dropsuite_organization_id' => [
-                'Not shown in Dropsuite. Use Admin → Clients → Dropsuite orgs (imports GET /users, then filter to live clients) or pick from the list on this card.',
+                'Not shown in Dropsuite, and not a UUID. Use Admin → Clients → Dropsuite orgs (imports GET /users, then filter to live clients) or pick from the list on this card.',
                 'Paste the short number only (YorPower is 6182, Finishing Design Services is 11223). An id like 360787-12 is the user id, not this field.',
             ],
             'entra_license_tier' => [
