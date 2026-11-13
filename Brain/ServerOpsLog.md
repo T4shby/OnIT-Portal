@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-13 ~15:00 UK - Deploy setup guide corrections
+
+| | |
+|---|---|
+| Intent | Put the setup-guide corrections on https://app.onit.ltd: create the SuperOps client first, Huntress id is the number after `/org/`, Dropsuite short id is not a UUID, Client Admin role after Sync now, wider guide column. Leave the local usecure skeleton uncommitted. |
+| Operator | agent (Cursor) |
+| SHA before -> after | `e6e88a1` -> `e79559d` |
+| Steps | Push `main`. SSH: bare fetch `origin main:main`, `git archive main`, chown, composer (nothing to install), migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize, chown `storage` and `bootstrap/cache`, reload `plesk-php84-fpm`. Did not `cache:clear`. Did not enable usecure. |
+| Result | Guide archive landed `e79559d`. `/up` 200. FPM active. New CSS `public/build/assets/app-DHzgk2-d.css` on disk. This diary row is committed after that archive and then archived itself, so the stamp moves to this docs commit. The guide behaviour stays `e79559d`. |
+| Rollback / watch | Redeploy `e6e88a1` the same way, then route/config/view clear and optimize. Hard-refresh Edit Client. Check Add Client (SuperOps first), the Huntress step (number after `/org/`, not the installer key), Dropsuite (short number, not a UUID), and step 10 (set the IT lead to Client Admin). The guide column should be the wide one. |
+
 ### 2026-11-13 ~14:40 UK - Deploy colleague services pass
 
 | | |
