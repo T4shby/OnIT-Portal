@@ -94,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | Sign out and the Entra sync buttons no longer stay open with a spinner. SuperOps rate-limit backoff for device specs. `Awaiting Approval` is an open ticket. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-13 | Deployed `e79559d`. Setup guide corrections are on https://app.onit.ltd. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-13 | Setup guide: SuperOps client first, Huntress id is the `/org/` number, Dropsuite short id is not a UUID, Client Admin role after Sync now, wider guide column. - [ClientOnboarding.md](ClientOnboarding.md), [TechnicianTenantOnboarding.md](TechnicianTenantOnboarding.md) |
 | 2026-11-13 | Deployed `1297822`. Colleague services pass is on https://app.onit.ltd. Device figures wait for the next SuperOps refresh (cache v7). - [ServerOpsLog.md](ServerOpsLog.md) |

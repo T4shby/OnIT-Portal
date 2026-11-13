@@ -30,6 +30,7 @@ class SuperOpsClientMetricsService
         'Waiting on Vendor',
         'Waiting on third party',
         'Still Issue',
+        'Awaiting Approval',
     ];
 
     /**
@@ -1362,6 +1363,11 @@ class SuperOpsClientMetricsService
                 continue;
             }
 
+            $failedAt = $this->parseTimestamp(isset($existing['failed_at']) ? (string) $existing['failed_at'] : null);
+            if ($failedAt !== null && $failedAt->gte(now()->subHour())) {
+                continue;
+            }
+
             try {
                 $summary = $this->api->query(<<<'GQL'
                     query getAssetSummary($input: AssetIdentifierInput!) {
@@ -1378,6 +1384,12 @@ class SuperOpsClientMetricsService
                     'asset_id' => $assetId,
                     'error' => $e->getMessage(),
                 ]);
+                $hardware[$assetId] = [
+                    'failed_at' => now()->toIso8601String(),
+                ];
+                if (str_contains(strtolower($e->getMessage()), 'rate_limit')) {
+                    break;
+                }
 
                 continue;
             }
@@ -1392,6 +1404,10 @@ class SuperOpsClientMetricsService
                         'asset_id' => $assetId,
                         'error' => $e->getMessage(),
                     ]);
+                    if (str_contains(strtolower($e->getMessage()), 'rate_limit')) {
+                        $hardware[$assetId] = $mapped;
+                        break;
+                    }
                 }
             }
 

@@ -91,7 +91,7 @@
                     <div class="flex items-center gap-3 shrink-0">
                         <span class="hidden md:inline portal-body-muted text-xs truncate max-w-[10rem]">{{ auth()->user()->name }}</span>
 
-                        <div class="relative">
+                        <div class="relative" @click.outside="userOpen = false">
                             <button type="button"
                                     @click="userOpen = !userOpen; menuOpen = false"
                                     class="portal-avatar"
@@ -99,7 +99,8 @@
                                     :aria-expanded="userOpen">
                                 {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
                             </button>
-                            <div x-show="userOpen" @click.away="userOpen = false" x-cloak class="portal-user-menu">
+                            <template x-if="userOpen">
+                            <div class="portal-user-menu">
                                 <div class="border-b border-white/10 px-4 py-3 md:hidden">
                                     <p class="portal-card-title text-sm truncate">{{ auth()->user()->name }}</p>
                                     @if(auth()->user()->client)
@@ -111,6 +112,7 @@
                                     <button type="submit" class="block w-full px-4 py-3 text-left text-sm font-light text-white/80 hover:text-onit touch-target">Sign out</button>
                                 </form>
                             </div>
+                            </template>
                         </div>
                     </div>
                 </div>
