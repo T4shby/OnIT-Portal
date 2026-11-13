@@ -94,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | Colleague services pass: longer ticket timeline, device age and workstation standard, customer patching hidden, licence list-price total, Huntress ITDR split, MFA and SharePoint tiles, new-starter security groups. Not deployed. - [ClientAdminDashboard.md](ClientAdminDashboard.md), [Decisions.md](Decisions.md) |
 | 2026-11-13 | Deployed `552d51f`. Production `GDAP_ENABLED=true` and partner tenant set to the onit.ltd directory. Technician group id still empty, so assignment cannot finish. - [ServerOpsLog.md](ServerOpsLog.md), [Gdap.md](Gdap.md) |
 | 2026-11-12 | GDAP lifecycle: nightly audit, create/assign/auto-extend, Edit Client strip blocks Connect until the relationship is active and the technician group is assigned. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
 | 2026-11-09 | Deployed `df43ed0`: Dropsuite org import + Defender DKIM auto-read. - [ServerOpsLog.md](ServerOpsLog.md) |

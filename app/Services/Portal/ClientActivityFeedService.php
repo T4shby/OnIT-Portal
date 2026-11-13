@@ -31,8 +31,8 @@ class ClientActivityFeedService
         $so = $this->superOps->summaryForClient($client, false, $viewer);
         if ($so->hasData() || $so->openTicketsTable !== [] || $so->closedTicketsTable !== []) {
             $tickets = array_merge(
-                array_slice($so->closedTicketsTable, 0, 8),
-                array_slice($so->openTicketsTable, 0, 12),
+                array_slice($so->closedTicketsTable, 0, 20),
+                array_slice($so->openTicketsTable, 0, 25),
             );
             foreach ($tickets as $ticket) {
                 if (! is_array($ticket)) {
@@ -64,7 +64,7 @@ class ClientActivityFeedService
 
         if ($this->huntressIncidents->isAvailableForClient($client)) {
             $list = $this->huntressIncidents->listForClient($client, null, $viewer);
-            foreach (array_slice($list->incidents, 0, 12) as $incident) {
+            foreach (array_slice($list->incidents, 0, 20) as $incident) {
                 $when = $incident->updatedAt
                     ?? $incident->closedAt
                     ?? $incident->sentAt;

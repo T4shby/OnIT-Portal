@@ -14,8 +14,8 @@
 
     @if(! empty($ticket['conversations']))
       <div class="mt-8">
-        <p class="portal-label mb-4">What we have done</p>
-        <ol class="space-y-4">
+        <p class="portal-label mb-4">Timeline</p>
+        <ol class="border-l border-white/15 ml-2">
           @foreach($ticket['conversations'] as $entry)
             @php
               try {
@@ -25,16 +25,23 @@
               } catch (\Throwable) {
                 $when = null;
               }
+              $files = (int) ($entry['attachments'] ?? 0);
             @endphp
-            <li class="border border-white/10 px-4 py-3">
-              <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <p class="text-sm font-semibold text-white">{{ $entry['title'] ?? 'Update' }}</p>
-                @if($when)
-                  <p class="text-xs portal-body-muted">{{ $when }} UK</p>
+            <li class="relative pl-6 pb-6 last:pb-0">
+              <span class="absolute -left-[5px] top-1.5 h-2.5 w-2.5 bg-onit" aria-hidden="true"></span>
+              <div class="border border-white/10 px-4 py-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <p class="text-sm font-semibold text-white">{{ $entry['title'] ?? 'Update' }}</p>
+                  @if($when)
+                    <p class="text-xs portal-body-muted">{{ $when }} UK</p>
+                  @endif
+                </div>
+                <div class="portal-ticket-body portal-body-muted mt-2 text-sm leading-relaxed [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1.5 [&_strong]:text-white/90">
+                  {!! \App\Support\SuperOpsHtml::sanitize((string) ($entry['content'] ?? '')) !!}
+                </div>
+                @if($files > 0)
+                  <p class="text-xs portal-body-muted mt-2">{{ $files }} {{ $files === 1 ? 'file stays' : 'files stay' }} in the full service desk.</p>
                 @endif
-              </div>
-              <div class="portal-ticket-body portal-body-muted mt-2 text-sm leading-relaxed [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1.5 [&_strong]:text-white/90">
-                {!! \App\Support\SuperOpsHtml::sanitize((string) ($entry['content'] ?? '')) !!}
               </div>
             </li>
           @endforeach

@@ -4027,6 +4027,130 @@ class MicrosoftGraphClient
      *
      * @return array{registered_pct: ?float, capable_pct: ?float, total_users: ?int, available: bool, reason: ?string}
      */
+    /**
+     * SharePoint site storage from the Graph usage report.
+     * Used bytes are summed across sites. Allocated bytes are the site quotas
+     * in that report, which can differ from the tenant's purchased pool.
+     * Never throws: a missing Reports.Read.All permission is a soft miss.
+     *
+     * @return array{available: bool, reason: ?string, used_bytes: ?int, allocated_bytes: ?int, site_count: int}
+     */
+    public function getSharePointStorageSummary(string $tenantId): array
+    {
+        $empty = [
+            'available' => false,
+            'reason' => 'sharepoint_storage_unavailable',
+            'used_bytes' => null,
+            'allocated_bytes' => null,
+            'site_count' => 0,
+        ];
+
+        try {
+            $response = Http::withToken($this->accessToken($tenantId))
+                ->withHeaders(['Accept' => 'text/csv'])
+                ->timeout(30)
+                ->get("https://graph.microsoft.com/v1.0/reports/getSharePointSiteUsageDetail(period='D7')");
+
+            if ($this->shouldRefreshTokenOnResponse($response)) {
+                $response = Http::withToken($this->accessToken($tenantId, refresh: true))
+                    ->withHeaders(['Accept' => 'text/csv'])
+                    ->timeout(30)
+                    ->get("https://graph.microsoft.com/v1.0/reports/getSharePointSiteUsageDetail(period='D7')");
+            }
+        } catch (Throwable) {
+            return $empty;
+        }
+
+        if (in_array($response->status(), [401, 403], true)) {
+            $empty['reason'] = 'sharepoint_storage_permission_missing';
+
+            return $empty;
+        }
+
+        if ($response->failed()) {
+            return $empty;
+        }
+
+        $parsed = $this->parseSharePointUsageCsv($response->body());
+        if ($parsed['site_count'] === 0 && $parsed['used_bytes'] === null) {
+            return $empty;
+        }
+
+        return [
+            'available' => true,
+            'reason' => null,
+            'used_bytes' => $parsed['used_bytes'],
+            'allocated_bytes' => $parsed['allocated_bytes'],
+            'site_count' => $parsed['site_count'],
+        ];
+    }
+
+    /**
+     * @return array{used_bytes: ?int, allocated_bytes: ?int, site_count: int}
+     */
+    private function parseSharePointUsageCsv(string $csv): array
+    {
+        $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv) ?? $csv;
+        $lines = preg_split('/\r\n|\n|\r/', trim($csv)) ?: [];
+        if ($lines === [] || ! isset($lines[0])) {
+            return ['used_bytes' => null, 'allocated_bytes' => null, 'site_count' => 0];
+        }
+
+        $header = str_getcsv($lines[0]);
+        $usedIndex = null;
+        $allocatedIndex = null;
+        $deletedIndex = null;
+        foreach ($header as $index => $column) {
+            $label = strtolower(trim((string) $column));
+            if (str_contains($label, 'storage used')) {
+                $usedIndex = $index;
+            } elseif (str_contains($label, 'storage allocated')) {
+                $allocatedIndex = $index;
+            } elseif ($label === 'is deleted') {
+                $deletedIndex = $index;
+            }
+        }
+
+        if ($usedIndex === null) {
+            return ['used_bytes' => null, 'allocated_bytes' => null, 'site_count' => 0];
+        }
+
+        $used = 0;
+        $allocated = 0;
+        $hasAllocated = false;
+        $sites = 0;
+
+        foreach (array_slice($lines, 1) as $line) {
+            if (trim($line) === '') {
+                continue;
+            }
+
+            $cells = str_getcsv($line);
+            if ($deletedIndex !== null && strtolower((string) ($cells[$deletedIndex] ?? '')) === 'true') {
+                continue;
+            }
+
+            $usedValue = $cells[$usedIndex] ?? null;
+            if (! is_numeric($usedValue)) {
+                continue;
+            }
+
+            $used += (int) $usedValue;
+            $sites++;
+
+            if ($allocatedIndex !== null && is_numeric($cells[$allocatedIndex] ?? null)) {
+                $allocated += (int) $cells[$allocatedIndex];
+                $hasAllocated = true;
+            }
+        }
+
+        return [
+            'used_bytes' => $sites > 0 ? $used : null,
+            'allocated_bytes' => $hasAllocated ? $allocated : null,
+            'site_count' => $sites,
+        ];
+    }
+
     public function getMfaRegistrationSummary(string $tenantId): array
     {
         $details = $this->listMfaUserRegistrationDetails($tenantId);

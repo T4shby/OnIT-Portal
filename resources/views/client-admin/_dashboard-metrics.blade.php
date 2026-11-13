@@ -88,7 +88,7 @@
                 <div class="org-card org-card-pad" x-data="{ range: '7' }">
                     <p class="org-label" style="margin:0 0 8px">Ticket activity</p>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-                        @foreach(['7' => '7d', '14' => '14d', '30' => '30d', 'all' => 'All'] as $key => $label)
+                        @foreach(['7' => '7d', '14' => '14d', '30' => '30d', '90' => '90d', 'all' => 'All'] as $key => $label)
                             <button type="button"
                                     @click="range = '{{ $key }}'"
                                     :class="range === '{{ $key }}' ? 'org-range-btn is-on' : 'org-range-btn'"
@@ -97,7 +97,7 @@
                             </button>
                         @endforeach
                     </div>
-                    @foreach(['7', '14', '30', 'all'] as $key)
+                    @foreach(['7', '14', '30', '90', 'all'] as $key)
                         <div x-show="range === '{{ $key }}'" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                             <div>
                                 <p class="org-muted" style="margin:0 0 4px;font-size:11px">Logged</p>
@@ -195,23 +195,28 @@
                         @include('client-admin._device-name-pager', ['names' => $restart['names'] ?? []])
                     </div>
 
-                    <div class="org-card org-card-pad">
-                        <p class="org-label" style="margin:0">Patching</p>
-                        <div class="org-stack">
-                            <div class="org-metric">
-                                <span class="org-metric-l">Fully patched</span>
-                                <span class="org-metric-v">{{ number_format((int) ($patch['fully'] ?? 0)) }}</span>
-                            </div>
-                            <div class="org-metric">
-                                <span class="org-metric-l">Need patches</span>
-                                <span class="org-metric-v">{{ number_format((int) ($patch['not_fully'] ?? 0)) }}</span>
-                            </div>
-                            <div class="org-metric">
-                                <span class="org-metric-l">Unknown</span>
-                                <span class="org-metric-v">{{ number_format((int) ($patch['unknown'] ?? 0)) }}</span>
+                    @if($viewerIsTechnician)
+                        <div class="org-card org-card-pad">
+                            <p class="org-label" style="margin:0">Patching</p>
+                            <p class="org-muted" style="margin:8px 0 0;font-size:12px;line-height:1.4">
+                                Staff only. SuperOps often leaves patch status blank, so this is hidden from the customer.
+                            </p>
+                            <div class="org-stack">
+                                <div class="org-metric">
+                                    <span class="org-metric-l">Fully patched</span>
+                                    <span class="org-metric-v">{{ number_format((int) ($patch['fully'] ?? 0)) }}</span>
+                                </div>
+                                <div class="org-metric">
+                                    <span class="org-metric-l">Need patches</span>
+                                    <span class="org-metric-v">{{ number_format((int) ($patch['not_fully'] ?? 0)) }}</span>
+                                </div>
+                                <div class="org-metric">
+                                    <span class="org-metric-l">Not reported</span>
+                                    <span class="org-metric-v">{{ number_format((int) ($patch['unknown'] ?? 0)) }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
 
                 <div class="org-support-grid">
@@ -239,7 +244,30 @@
 
                     <div class="org-card org-card-pad">
                         <p class="org-label" style="margin:0 0 8px">Device age</p>
-                        <p class="org-muted" style="margin:0 0 10px;font-size:12px">From SuperOps purchase date where recorded</p>
+                        <p class="org-muted" style="margin:0 0 10px;font-size:12px;line-height:1.4">
+                            Purchase date when SuperOps has one. Otherwise a 3-year warranty estimate, then the Windows install date, then the CPU generation. Later signals are indicators, not a factory date.
+                        </p>
+                        @php
+                            $ageSources = is_array($age['sources'] ?? null) ? $age['sources'] : [];
+                            $ageSourceLabels = [
+                                'purchase' => 'purchase date',
+                                'warranty' => 'warranty estimate',
+                                'os_install' => 'Windows install',
+                                'cpu' => 'CPU generation',
+                            ];
+                        @endphp
+                        @php
+                            $ageSourceBits = [];
+                            foreach ($ageSourceLabels as $sourceKey => $sourceLabel) {
+                                $sourceCount = (int) ($ageSources[$sourceKey] ?? 0);
+                                if ($sourceCount > 0) {
+                                    $ageSourceBits[] = number_format($sourceCount).' from '.$sourceLabel;
+                                }
+                            }
+                        @endphp
+                        @if($ageSourceBits !== [])
+                            <p class="org-muted" style="margin:0 0 10px;font-size:11px;line-height:1.4">{{ implode(' · ', $ageSourceBits) }}</p>
+                        @endif
                         <div class="org-stack" style="margin-top:0">
                             <div class="org-metric">
                                 <span class="org-metric-l">Under 3 years</span>
@@ -259,6 +287,40 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                @php
+                    $standard = $insights['standard'] ?? ['checked' => 0, 'meets' => 0, 'below' => 0, 'pending' => 0, 'names' => []];
+                @endphp
+                <div class="org-card org-card-pad" style="margin-top:1rem">
+                    <p class="org-label" style="margin:0 0 8px">Workstation standard</p>
+                    <p class="org-muted" style="margin:0 0 10px;font-size:12px;line-height:1.45">
+                        Core i5 or Ryzen 5 class, and 16 GB RAM. Graphics adapters are not in the SuperOps summary, so they are not part of this check.
+                        @if($viewerIsTechnician)
+                            Devices below the standard are a replacement conversation.
+                        @endif
+                    </p>
+                    <div class="org-stack" style="margin-top:0">
+                        <div class="org-metric">
+                            <span class="org-metric-l">Checked</span>
+                            <span class="org-metric-v">{{ number_format((int) ($standard['checked'] ?? 0)) }}</span>
+                        </div>
+                        <div class="org-metric">
+                            <span class="org-metric-l">Meets standard</span>
+                            <span class="org-metric-v">{{ number_format((int) ($standard['meets'] ?? 0)) }}</span>
+                        </div>
+                        <div class="org-metric">
+                            <span class="org-metric-l">Below standard</span>
+                            <span class="org-metric-v">{{ number_format((int) ($standard['below'] ?? 0)) }}</span>
+                        </div>
+                        @if((int) ($standard['pending'] ?? 0) > 0)
+                            <div class="org-metric">
+                                <span class="org-metric-l">Still collecting specs</span>
+                                <span class="org-metric-v">{{ number_format((int) $standard['pending']) }}</span>
+                            </div>
+                        @endif
+                    </div>
+                    @include('client-admin._device-name-pager', ['names' => $standard['names'] ?? []])
                 </div>
             </section>
         @endif

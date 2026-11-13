@@ -23,6 +23,12 @@ class M365InsightsSummary
         public readonly ?float $mfaRegisteredPct = null,
         public readonly ?int $mfaUserSample = null,
         public readonly ?string $securityMetricsNote = null,
+        public readonly int $licenceMonthlyPence = 0,
+        public readonly int $licenceAnnualPence = 0,
+        public readonly int $licenceUnpricedCount = 0,
+        public readonly ?int $sharePointUsedBytes = null,
+        public readonly ?int $sharePointAllocatedBytes = null,
+        public readonly ?int $sharePointSiteCount = null,
     ) {}
 
     public function hasData(): bool

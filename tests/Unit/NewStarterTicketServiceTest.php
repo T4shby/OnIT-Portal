@@ -30,6 +30,7 @@ class NewStarterTicketServiceTest extends TestCase
             'starter_email' => 'alex@acme.com',
             'equipment_access' => "Laptop\nand M365",
             'notes' => 'Needs VPN',
+            'security_group_names' => ['Finance', 'VPN users'],
         ]);
 
         $this->assertStringContainsString('<p><strong>New starter request</strong>', $html);
@@ -39,5 +40,6 @@ class NewStarterTicketServiceTest extends TestCase
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('Laptop<br>'."\n".'and M365', $html);
         $this->assertStringContainsString('<strong>Additional notes</strong>', $html);
+        $this->assertStringContainsString('Finance, VPN users', $html);
     }
 }

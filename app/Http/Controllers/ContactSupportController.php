@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreNewStarterRequest;
 use App\Services\ActivityLogService;
+use App\Services\EntraSync\EntraSecurityGroupDirectory;
 use App\Services\Support\NewStarterTicketService;
 use App\Services\SuperOps\SuperOpsTicketService;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,7 @@ class ContactSupportController extends Controller
     public function __construct(
         private SuperOpsTicketService $tickets,
         private NewStarterTicketService $newStarters,
+        private EntraSecurityGroupDirectory $securityGroups,
         private ActivityLogService $activityLog,
     ) {}
 
@@ -53,6 +55,7 @@ class ContactSupportController extends Controller
         return view('contact-support.new-starter', [
             'user' => $user,
             'contact' => config('onit_support'),
+            'securityGroups' => $this->securityGroups->optionsForClient($user->client),
         ]);
     }
 
@@ -63,7 +66,10 @@ class ContactSupportController extends Controller
         abort_unless($user->can('contact-support'), 403);
 
         try {
-            $ticket = $this->newStarters->submit($user, $request->validated());
+            $data = $request->validated();
+            $selected = is_array($data['security_groups'] ?? null) ? $data['security_groups'] : [];
+            $data['security_group_names'] = $this->securityGroups->namesForIds($user->client, $selected);
+            $ticket = $this->newStarters->submit($user, $data);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('New starter ticket failed', [
                 'client_id' => $user->client_id,

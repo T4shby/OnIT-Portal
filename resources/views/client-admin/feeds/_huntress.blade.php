@@ -50,7 +50,22 @@
                     <span class="org-metric-v">{{ number_format($isolated) }}</span>
                 </div>
             @endif
+            @if($h->itdrKnown)
+                <div class="org-metric">
+                    <span class="org-metric-l">ITDR identities</span>
+                    <span class="org-metric-v">{{ number_format((int) ($h->itdrIdentityCount ?? 0)) }}</span>
+                </div>
+            @endif
         </div>
+        @if($h->edrWithoutItdr())
+            <p class="org-muted" style="margin:12px 0 0;font-size:11px;line-height:1.4">
+                @if($viewerIsTechnician)
+                    Selling opportunity: endpoint protection is on and identity threat detection is not.
+                @else
+                    Identity threat detection is not on this plan.
+                @endif
+            </p>
+        @endif
         @if($canOpenCases)
             <a href="{{ route('security.huntress.index') }}" class="org-link" style="margin-top:14px">View cases →</a>
         @endif

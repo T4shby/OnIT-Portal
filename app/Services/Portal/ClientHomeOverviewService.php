@@ -319,7 +319,7 @@ class ClientHomeOverviewService
      */
     private function activityFor(Client $client, User $user): array
     {
-        $rows = $this->activity->recentFor($client, $user, 20);
+        $rows = $this->activity->recentFor($client, $user, 40);
         if ($rows === []) {
             return $this->emptyActivity('Nothing new to show right now.');
         }

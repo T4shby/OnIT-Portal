@@ -210,6 +210,15 @@ class HuntressClientMetricsService
             : $payload;
 
         $edr = is_array($org['edr'] ?? null) ? $org['edr'] : [];
+        $itdr = is_array($org['itdr'] ?? null) ? $org['itdr'] : [];
+        $itdrKnown = array_key_exists('itdr', $org) || array_key_exists('billable_identity_count', $org);
+        $identityCount = $this->nullableInt(
+            $itdr['billable_identity_count']
+                ?? $itdr['identities_count']
+                ?? $itdr['identity_count']
+                ?? $org['billable_identity_count']
+                ?? null
+        );
 
         return [
             'agents_total' => $this->nullableInt(
@@ -235,6 +244,8 @@ class HuntressClientMetricsService
                     ?? $org['isolated_agents_count']
                     ?? null
             ),
+            'itdr_known' => $itdrKnown,
+            'itdr_identity_count' => $itdrKnown ? ($identityCount ?? 0) : null,
         ];
     }
 
@@ -276,6 +287,10 @@ class HuntressClientMetricsService
             lastRefreshedAt: $lastRefreshedAt,
             isStale: $isStale,
             refreshInProgress: $refreshInProgress || Cache::has('huntress_security.refresh_queued.'.$clientId),
+            itdrIdentityCount: isset($payload['itdr_identity_count']) && is_numeric($payload['itdr_identity_count'])
+                ? (int) $payload['itdr_identity_count']
+                : null,
+            itdrKnown: (bool) ($payload['itdr_known'] ?? false),
         );
     }
 

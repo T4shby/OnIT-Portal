@@ -20,7 +20,9 @@ class NewStarterTicketService
      *     manager_name?: string|null,
      *     starter_email?: string|null,
      *     equipment_access?: string|null,
-     *     notes?: string|null
+     *     notes?: string|null,
+     *     security_groups?: list<string>,
+     *     security_group_names?: list<string>
      * }  $data
      * @return array<string, mixed>
      */
@@ -52,6 +54,7 @@ class NewStarterTicketService
             $this->row('Department / team', $this->dash($data['department'] ?? null)),
             $this->row('Line manager', $this->dash($data['manager_name'] ?? null)),
             $this->row('Email to create (if known)', $this->dash($data['starter_email'] ?? null)),
+            $this->row('Security groups', $this->securityGroups($data)),
         ];
 
         return implode('', [
@@ -70,6 +73,31 @@ class NewStarterTicketService
     private function block(string $label, ?string $value): string
     {
         return '<p><strong>'.e($label).'</strong><br>'.nl2br(e($this->dash($value)), false).'</p>';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function securityGroups(array $data): string
+    {
+        $names = [];
+        foreach ($data['security_group_names'] ?? [] as $name) {
+            $name = trim((string) $name);
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        if ($names !== []) {
+            return implode(', ', $names);
+        }
+
+        $requested = array_filter((array) ($data['security_groups'] ?? []), static fn ($id): bool => trim((string) $id) !== '');
+        if ($requested !== []) {
+            return 'Selected on the form, but Microsoft could not confirm the names. Ask the requester which groups they ticked.';
+        }
+
+        return '-';
     }
 
     private function dash(?string $value): string

@@ -199,6 +199,7 @@ class M365InsightsService
 
             $secure = $this->graph->getSecureScoreSummary((string) $client->entra_tenant_id);
             $mfa = $this->graph->getMfaRegistrationSummary((string) $client->entra_tenant_id);
+            $sharePoint = $this->graph->getSharePointStorageSummary((string) $client->entra_tenant_id);
 
             $securityNotes = array_values(array_filter([
                 ! ($secure['available'] ?? false) ? ($secure['reason'] ?? null) : null,
@@ -218,6 +219,9 @@ class M365InsightsService
                 'mfa_registered_pct' => ($mfa['available'] ?? false) ? $mfa['registered_pct'] : null,
                 'mfa_user_sample' => ($mfa['available'] ?? false) ? $mfa['total_users'] : null,
                 'security_metrics_note' => $securityNotes !== [] ? implode(',', $securityNotes) : null,
+                'sharepoint_used_bytes' => ($sharePoint['available'] ?? false) ? $sharePoint['used_bytes'] : null,
+                'sharepoint_allocated_bytes' => ($sharePoint['available'] ?? false) ? $sharePoint['allocated_bytes'] : null,
+                'sharepoint_site_count' => ($sharePoint['available'] ?? false) ? $sharePoint['site_count'] : null,
                 'last_refreshed_at' => now()->toIso8601String(),
             ];
 
@@ -277,6 +281,11 @@ class M365InsightsService
             ));
         }
 
+        $pricedFrom = is_array($payload['all_skus'] ?? null) && $payload['all_skus'] !== []
+            ? $payload['all_skus']
+            : (is_array($payload['top_skus'] ?? null) ? $payload['top_skus'] : []);
+        $investment = app(MicrosoftLicenseListPrices::class)->summarise($pricedFrom);
+
         return new M365InsightsSummary(
             licensedUserCount: isset($payload['licensed_user_count']) ? (int) $payload['licensed_user_count'] : null,
             totalSeatsPurchased: isset($payload['total_seats_purchased']) ? (int) $payload['total_seats_purchased'] : null,
@@ -316,6 +325,18 @@ class M365InsightsService
                 : null,
             securityMetricsNote: isset($payload['security_metrics_note'])
                 ? (string) $payload['security_metrics_note']
+                : null,
+            licenceMonthlyPence: $investment['monthly_pence'],
+            licenceAnnualPence: $investment['annual_pence'],
+            licenceUnpricedCount: $investment['unpriced'],
+            sharePointUsedBytes: isset($payload['sharepoint_used_bytes']) && is_numeric($payload['sharepoint_used_bytes'])
+                ? (int) $payload['sharepoint_used_bytes']
+                : null,
+            sharePointAllocatedBytes: isset($payload['sharepoint_allocated_bytes']) && is_numeric($payload['sharepoint_allocated_bytes'])
+                ? (int) $payload['sharepoint_allocated_bytes']
+                : null,
+            sharePointSiteCount: isset($payload['sharepoint_site_count']) && is_numeric($payload['sharepoint_site_count'])
+                ? (int) $payload['sharepoint_site_count']
                 : null,
         );
     }

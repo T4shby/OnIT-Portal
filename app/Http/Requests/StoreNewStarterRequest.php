@@ -26,6 +26,8 @@ class StoreNewStarterRequest extends FormRequest
             'starter_email' => ['nullable', 'email', 'max:255'],
             'equipment_access' => ['nullable', 'string', 'max:5000'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'security_groups' => ['nullable', 'array', 'max:30'],
+            'security_groups.*' => ['string', 'uuid'],
         ];
     }
 

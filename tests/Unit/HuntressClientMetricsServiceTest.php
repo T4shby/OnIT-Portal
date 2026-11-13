@@ -83,6 +83,8 @@ class HuntressClientMetricsServiceTest extends TestCase
         $this->assertSame(2, $summary->openIncidents);
         $this->assertSame(1, $summary->resolvedIncidents);
         $this->assertSame(1, $summary->edrIsolatedAgents);
+        $this->assertFalse($summary->itdrKnown);
+        $this->assertFalse($summary->edrWithoutItdr());
         $this->assertFalse($summary->isStale);
         $this->assertNotNull($summary->lastRefreshedAt);
 
@@ -90,6 +92,33 @@ class HuntressClientMetricsServiceTest extends TestCase
             return $request->url() === 'https://api.huntress.io/v1/organizations/org-42'
                 && $request->hasHeader('Authorization');
         });
+    }
+
+    public function test_edr_without_itdr_is_a_known_gap_not_a_missing_field(): void
+    {
+        $service = app(HuntressClientMetricsService::class);
+
+        $gap = $service->mapOrganizationPayload([
+            'organization' => [
+                'edr' => ['agents_count' => 10],
+                'itdr' => ['billable_identity_count' => 0],
+            ],
+        ]);
+        $this->assertTrue($gap['itdr_known']);
+        $this->assertSame(0, $gap['itdr_identity_count']);
+
+        $covered = $service->mapOrganizationPayload([
+            'billable_identity_count' => 14,
+            'agents_count' => 10,
+        ]);
+        $this->assertTrue($covered['itdr_known']);
+        $this->assertSame(14, $covered['itdr_identity_count']);
+
+        $unknown = $service->mapOrganizationPayload([
+            'edr' => ['agents_count' => 10],
+        ]);
+        $this->assertFalse($unknown['itdr_known']);
+        $this->assertNull($unknown['itdr_identity_count']);
     }
 
     public function test_unavailable_when_organization_id_missing(): void

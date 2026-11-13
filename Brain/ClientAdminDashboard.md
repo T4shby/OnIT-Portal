@@ -222,13 +222,19 @@ PHP is not multi-threaded inside one worker. Parallelism = **multiple queue work
 
 Service: `App\Services\SuperOps\SuperOpsClientMetricsService`
 
-Cache key: `client:{client_id}:superops-dashboard:v6`
+Cache key: `client:{client_id}:superops-dashboard:v7`
 
-Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, purchase age), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (30 days), and ticket logged/closed ranges.
+Dashboard payload includes: asset totals with online/offline split, **device insights** (offline 30d, restart-from-uptime, patch, Windows edition, device age, workstation standard), open ticket count with priority breakdown, open-ticket table (top 20), recently closed (top 10), ticket categories, resolution SLA % (calendar month), and ticket logged/closed ranges including 90 days.
 
-Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate`. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`) and `updatedTime` for the glance activity sort.
+Asset list fields: `assetId name status platform lastCommunicatedTime lastReportedTime sysUptime patchStatus purchasedDate warrantyExpiryDate`. Each refresh also calls `getAssetSummary` for up to 12 workstations that are missing or older than 14 days, and stores CPU name plus RAM on `device_hardware`. Windows install date is read from `getAssetSoftwareList` only when purchase date and warranty expiry are both empty. Ticket list also selects leaf `category` (JSON decoded in PHP, same as `requester`) and `updatedTime` for the glance activity sort.
 
-Restart heuristic: `sysUptime` contains **2+ days**. Device name lists paginate at 5 per page. Offline 30+ days uses last communicated/reported time. RAM/disk per-device pull is parked - no placeholder card.
+Device age order: recorded purchase date, then warranty expiry minus 3 years (or 1 year if that backdate is still in the future), then Windows install date, then CPU generation. The UI says which source was used. CPU generation and a reimage are indicators, not a factory date.
+
+Workstation standard: Core i5 / Ryzen 5 class (i3, Pentium, Celeron, Ryzen 3 fail; 15.5 GB and above counts as 16 GB) and servers are excluded. Graphics adapters are not in the SuperOps summary, so they are not a pass/fail. Names below the standard are the replacement list.
+
+Restart heuristic: `sysUptime` contains **2+ days**. Device name lists paginate at 5 per page. Offline 30+ days uses last communicated/reported time.
+
+**Patching is staff-only.** Customers do not see the patch card. SuperOps `patchStatus` is often blank, so a customer-facing "unknown" count was misleading. Staff still see fully patched / need patches / not reported.
 
 | Setting | Source | Default |
 |---------|--------|---------|
@@ -417,6 +423,10 @@ Refresh: `GET /v1/organizations/{id}` maps:
 | `agents_unresponsive` | `edr.unresponsive_agents_count` |
 | `open_incidents` | `open_incident_reports_count` |
 | `edr_isolated_agents` | `edr.isolated_agents_count` |
+| `itdr_identity_count` | `itdr.billable_identity_count`, then flat `billable_identity_count` |
+| `itdr_known` | true only when `itdr` or `billable_identity_count` is present |
+
+ITDR is its own tile on Security. Staff see a selling line only when EDR agents are above zero and the ITDR count is zero. A payload with no ITDR field does not raise that line (the snapshot has not reported it yet). Customers see "not on this plan" in that same case, without the selling wording.
 
 Client Admin tile **Security (Huntress):** active cases hero + resolved count + agents / unresponsive / isolated. Amber when active or isolated &gt; 0. **View cases** opens the org-scoped case list.
 
@@ -470,11 +480,17 @@ MSP staff view client directory at `/admin/clients/{client}/microsoft-365` (unch
 Service: `App\Services\M365\M365InsightsService`  
 SKU labels / free-seat rules: `App\Services\M365\MicrosoftLicenseSkuNames`
 
-**UI:** Client Admin organisation overview (`/client-admin`) - hero card “Microsoft 365” % and section “Microsoft 365 licence insight”.
+**UI:** Microsoft 365 directory page shows licence utilisation, a list-price investment total, expandable MFA registration, and SharePoint storage. The home tile stays the utilisation summary.
 
-Cache key: `client:{client_id}:m365-insights:v3` (v3 = exclude preview/IW pools + disambiguate duplicate names; older v1/v2 ignored)
+Cache key: `client:{client_id}:m365-insights:v4`. New fields (SharePoint bytes, and the price total which is calculated when the page is read) do not need a new key. A snapshot from before this change has no SharePoint tile until the next insights refresh.
 
 Source: Microsoft Graph `/subscribedSkus` (enabled user SKUs only). Licensed user count reuses `M365DirectorySnapshot` when present, otherwise counts tenants users with assigned licences.
+
+**Licence investment:** `MicrosoftLicenseListPrices` times purchased paid seats by a UK list-price guide (ex VAT, annual commitment, dated `2025-04`). The page says it is not the invoice. Free/trial SKUs are skipped. A paid part number with no guide price is counted as unpriced and left out of the total.
+
+**MFA tile:** registered percent and sample already on the insights payload. The tile expands to registered vs not registered and links to MFA methods.
+
+**SharePoint storage:** `GET /reports/getSharePointSiteUsageDetail(period='D7')`, summed. Soft-fail if Reports.Read.All is missing, same as Secure Score. Allocated is the sum of site quotas, not the tenant's purchased pool.
 
 ### Seat totals + overall utilisation %
 
@@ -604,6 +620,7 @@ PHPUnit mocks Graph, SuperOps, and Huntress - no live API calls. To verify in st
 |------|--------|
 | 2026-11-06 | Dropsuite org import: Admin → Clients → Dropsuite orgs pulls GET /users (id + name only), filters to live portal clients, Link maps `dropsuite_organization_id`. Edit Client can pick from the same list. |
 | 2026-10-19 | Sold product coverage: Export CSV, account-manager column, and super-admin filter by AM (or no AM). |
+| 2026-11-13 | Device age and workstation standard on Support and Devices. Patching hidden from customers. Huntress ITDR split. M365 list-price total, MFA tile, SharePoint storage. New starter security groups. |
 | 2026-10-14 | A failed SuperOps pull waits at least 15 minutes before the minute checker queues it again. Dropsuite SharePoint and sites 404s are optional and are not logged as failures. |
 | 2026-10-09 | SuperOps `Waiting on third party` counts as open (someone outside the ticket). `Still Issue`, and a later status whose name contains Still Issue, count as open and waiting on the client. |
 | 2026-10-02 | Product prewarm looks every minute and queues a feed as soon as that feed is past its refresh age. It no longer waits an hour after a sweep that skipped a still-fresh client. |

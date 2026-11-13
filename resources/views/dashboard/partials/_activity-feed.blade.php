@@ -108,6 +108,7 @@
             <select class="activity-size" x-model.number="pageSize" @change="shown = pageSize" aria-label="How many to show">
                 <option value="5">5</option>
                 <option value="10">10</option>
+                <option value="25">25</option>
             </select>
         </label>
     </div>
@@ -174,7 +175,7 @@
                 return this.filtered.length;
             },
             get canShowMore() {
-                return this.filteredCount > this.shown && this.shown < 10;
+                return this.filteredCount > this.shown && this.shown < 40;
             },
             get summary() {
                 const labels = { today: 'today', week: 'this working week', month: 'this working month' };
@@ -208,7 +209,7 @@
             },
             showMore() {
                 const start = this.shown;
-                this.shown = Math.min(10, this.filteredCount);
+                this.shown = Math.min(40, this.shown + this.pageSize, this.filteredCount);
                 this.$nextTick(() => {
                     const row = this.$refs.list.querySelector('[data-index="' + start + '"]');
                     if (row) {

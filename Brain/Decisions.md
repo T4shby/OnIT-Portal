@@ -399,3 +399,27 @@ Connect Microsoft (portal app consent) and GDAP (technician sign-in) are differe
 
 Consequences:
 One-time setup in the On IT tenant is required before the flag is turned on: `DelegatedAdminRelationship.ReadWrite.All`, service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`, and the technician security group. Customer-tenant Entra sync tokens stay as they are. A Graph failure keeps a previous block and does not invent a pass. See [Gdap.md](Gdap.md).
+
+---
+
+## ADR-028
+
+Date: 2026-11-13
+
+Decision:
+Support and Microsoft screens grow from data the portal already pulls, with these limits:
+
+- Ticket timelines show the public thread (who wrote it, and that files stay in SuperOps). The home activity list can show up to 40 rows. Internal notes stay unloaded.
+- Device age uses purchase date, then a 3-year warranty estimate (1 year if a 3-year backdate would be in the future), then the Windows install date, then CPU generation. The later signals are labelled as indicators.
+- The workstation standard is Core i5 / Ryzen 5 class and 16 GB RAM. SuperOps does not report a graphics adapter, so a missing GPU is not a failure. Hardware is sampled a few devices per refresh and merged into the snapshot.
+- Patch status stays on the staff Support and Devices view only. Customers do not see it, because SuperOps often leaves `patchStatus` blank.
+- Licence investment is a maintained Microsoft UK list-price guide (ex VAT, annual commitment), times purchased seats. It is not the invoice. Unpriced part numbers are left out of the total.
+- Huntress ITDR is a separate count from EDR. A selling line is shown to staff only when the payload says ITDR identities are zero and EDR agents are above zero. A missing ITDR field is "not refreshed yet", not an opportunity.
+- SharePoint storage is the sum of the Graph site-usage report. Allocated is the sum of site quotas, which can differ from the tenant pool.
+- The new starter form lists static security groups (not Microsoft 365 groups, not dynamic groups). The ticket stores the display names.
+
+Reason:
+The 13 Nov colleague notes asked for these selling and support views. Inventing a factory date, a patch percentage, or an invoice total would be worse than a labelled estimate.
+
+Consequences:
+SuperOps dashboard cache is `superops-dashboard:v7`. The first refresh after deploy rebuilds device figures. Pax8 billed prices, when they exist, should replace the list-price guide. See [ClientAdminDashboard.md](ClientAdminDashboard.md) and [ContactSupport.md](ContactSupport.md).

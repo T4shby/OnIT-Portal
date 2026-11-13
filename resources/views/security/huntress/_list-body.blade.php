@@ -64,8 +64,18 @@
 </div>
 
 {{-- Metric tiles --}}
+@if($s->hasData() && $s->edrWithoutItdr())
+    <x-alert :type="$viewerIsTechnician ? 'warning' : 'info'" class="mb-6">
+        @if($viewerIsTechnician)
+            Selling opportunity: EDR is on for this organisation and ITDR is not. Identity threat detection is a separate Huntress product.
+        @else
+            Endpoint protection is on. Identity threat detection is not included on this plan.
+        @endif
+    </x-alert>
+@endif
+
 @if($s->hasData())
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4 mb-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 mb-10">
         @include('security.huntress._metric-tile', [
             'label' => 'Active cases',
             'value' => $open,
@@ -81,7 +91,7 @@
             'icon' => '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
         ])
         @include('security.huntress._metric-tile', [
-            'label' => 'Agents',
+            'label' => 'EDR agents',
             'value' => $agents,
             'tone' => 'neutral',
             'hint' => 'Endpoints with Huntress',
@@ -101,6 +111,15 @@
             'hint' => 'Network isolation active',
             'icon' => '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>',
         ])
+        @if($s->itdrKnown)
+            @include('security.huntress._metric-tile', [
+                'label' => 'ITDR',
+                'value' => (int) ($s->itdrIdentityCount ?? 0),
+                'tone' => $s->edrWithoutItdr() ? 'attention' : 'good',
+                'hint' => $s->edrWithoutItdr() ? 'Identity protection is not enabled' : 'Identities covered by ITDR',
+                'icon' => '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>',
+            ])
+        @endif
     </div>
 @elseif($s->refreshInProgress || $list->refreshInProgress)
     <x-card class="mb-8">

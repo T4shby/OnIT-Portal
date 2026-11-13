@@ -46,7 +46,7 @@ class ClientFirstFeedPullTest extends TestCase
         $client = Client::factory()->create(['name' => 'Finishing Design']);
         $id = $client->id;
 
-        cache()->put("client:{$id}:superops-dashboard:v6", ['last_refreshed_at' => now()->toIso8601String()], now()->addHour());
+        cache()->put("client:{$id}:superops-dashboard:v7", ['last_refreshed_at' => now()->toIso8601String()], now()->addHour());
         cache()->put("client:{$id}:m365-insights:v4", ['last_refreshed_at' => now()->toIso8601String()], now()->addHour());
         cache()->put('m365_directory.meta.'.$id, ['refreshed_at' => now()->toIso8601String()], now()->addHour());
         cache()->put("client:{$id}:huntress-security:v1", ['last_refreshed_at' => now()->toIso8601String()], now()->addHour());

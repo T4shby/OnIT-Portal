@@ -17,10 +17,23 @@ class HuntressClientSecuritySummary
         public readonly ?Carbon $lastRefreshedAt,
         public readonly bool $isStale,
         public readonly bool $refreshInProgress,
+        public readonly ?int $itdrIdentityCount = null,
+        public readonly bool $itdrKnown = false,
     ) {}
 
     public function hasData(): bool
     {
         return $this->available && $this->lastRefreshedAt !== null;
+    }
+
+    /**
+     * EDR is deployed and Huntress reported no ITDR identities.
+     * Unknown (the ITDR block was not in the payload) is not an opportunity.
+     */
+    public function edrWithoutItdr(): bool
+    {
+        return $this->itdrKnown
+            && ($this->itdrIdentityCount ?? 0) === 0
+            && ($this->agentsTotal ?? 0) > 0;
     }
 }

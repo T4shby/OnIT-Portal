@@ -62,8 +62,8 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                     'priority' => 'Low',
                                     'status' => 'Closed',
                                     'createdTime' => now()->subDays(40)->toIso8601String(),
-                                    // Current calendar month (London) for MTD assertions.
-                                    'resolutionTime' => now()->timezone('Europe/London')->startOfMonth()->addDay()->toIso8601String(),
+                                    // Inside 7 days and this calendar month (London).
+                                    'resolutionTime' => $this->recentCloseThisMonth()->toIso8601String(),
                                     'resolutionViolated' => false,
                                 ],
                                 [
@@ -73,8 +73,8 @@ class SuperOpsClientMetricsServiceTest extends TestCase
                                     'priority' => 'Low',
                                     'status' => 'Closed (no response)',
                                     'createdTime' => now()->subDays(50)->toIso8601String(),
-                                    // Previous calendar month for prev_month assertions.
-                                    'resolutionTime' => now()->timezone('Europe/London')->subMonthNoOverflow()->startOfMonth()->addDays(10)->toIso8601String(),
+                                    // Previous calendar month, inside 30 days, outside 14 days.
+                                    'resolutionTime' => $this->previousMonthCloseInsideThirtyDays()->toIso8601String(),
                                     'resolutionViolated' => true,
                                 ],
                                 [
@@ -192,7 +192,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $clientA = Client::factory()->create(['superops_account_id' => '111']);
         $clientB = Client::factory()->create(['superops_account_id' => '222']);
 
-        Cache::put("client:{$clientA->id}:superops-dashboard:v6", [
+        Cache::put("client:{$clientA->id}:superops-dashboard:v7", [
             'assets_total' => 10,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -200,7 +200,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
             'last_refreshed_at' => now()->toIso8601String(),
         ], now()->addHour());
 
-        Cache::put("client:{$clientB->id}:superops-dashboard:v6", [
+        Cache::put("client:{$clientB->id}:superops-dashboard:v7", [
             'assets_total' => 99,
             'open_tickets_total' => 99,
             'tickets_created' => ['7' => 99, '14' => 99, '30' => 99, 'all' => 99],
@@ -221,7 +221,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -253,7 +253,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
     {
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'last_refreshed_at' => now()->subMinutes(5)->toIso8601String(),
@@ -268,7 +268,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $result = Cache::get('superops_dashboard.last_result.'.$client->id);
         $this->assertIsArray($result);
         $this->assertFalse($result['success']);
-        $this->assertSame(14, Cache::get("client:{$client->id}:superops-dashboard:v6")['assets_total']);
+        $this->assertSame(14, Cache::get("client:{$client->id}:superops-dashboard:v7")['assets_total']);
     }
 
     public function test_page_view_serves_cache_without_requeueing_when_stale(): void
@@ -277,7 +277,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
 
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -301,7 +301,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -312,7 +312,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $this->assertTrue($service->needsBackgroundRefresh($client));
         $this->assertFalse($service->summaryForClient($client)->isStale);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 14,
             'open_tickets_total' => 6,
             'tickets_created' => ['7' => 3, '14' => 7, '30' => 12, 'all' => 184],
@@ -328,7 +328,7 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $service = app(SuperOpsClientMetricsService::class);
         $client = Client::factory()->create(['superops_account_id' => '111']);
 
-        Cache::put("client:{$client->id}:superops-dashboard:v6", [
+        Cache::put("client:{$client->id}:superops-dashboard:v7", [
             'assets_total' => 1,
             'open_tickets_total' => 1,
             'tickets_created' => ['7' => 1, '14' => 1, '30' => 1, 'all' => 1],
@@ -481,5 +481,29 @@ class SuperOpsClientMetricsServiceTest extends TestCase
         $marks = $service->summaryForClient($client, viewer: $mark);
         $this->assertSame(0, $marks->openTicketsTotal);
         $this->assertSame([], $marks->openTicketsTable);
+    }
+
+    private function recentCloseThisMonth(): \Carbon\Carbon
+    {
+        $london = now()->timezone('Europe/London');
+        $recent = $london->copy()->subDay();
+
+        return $recent->month === $london->month
+            ? $recent
+            : $london->copy()->startOfDay()->addHours(8);
+    }
+
+    private function previousMonthCloseInsideThirtyDays(): \Carbon\Carbon
+    {
+        $london = now()->timezone('Europe/London');
+        $candidate = $london->copy()->subDays(20);
+        $earliest = now()->subDays(29)->startOfDay();
+        $latest = now()->subDays(15)->endOfDay();
+
+        if ($candidate->month !== $london->month && $candidate->gte($earliest) && $candidate->lte($latest)) {
+            return $candidate;
+        }
+
+        return $london->copy()->subMonthNoOverflow()->endOfMonth()->subDays(2)->setTime(12, 0);
     }
 }

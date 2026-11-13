@@ -61,7 +61,8 @@ Numbers only from existing feeds. **Never invent MTD.** Prefer omit optional pos
 | **Last month compare** | `client_metric_daily_snapshots` + `portal:capture-metric-snapshots` @ 02:15 | Until a prior-month row exists, **hide** the Last month control. When it exists, This month and Last month are links. Last month prefers live previous-calendar-month SuperOps closed/SLA when available (beats legacy 30d snapshots). Activity list stays recent work. |
 | **Secure Score / MFA %** | Graph `security/secureScores` + `reports/authenticationMethods/userRegistrationDetails` on M365 insights refresh (`m365-insights:v4`) | Soft-fail if permission missing; licence refresh still succeeds |
 | **Avg first response** | - | **Not shipped** - SuperOps query still uses resolution SLA only (adding unproven GraphQL fields risks bad refresh) |
-| **Device patch / need updates** | SuperOps `patchStatus` on asset list (Support & Devices) | Restart uses 2+ day `sysUptime` with paginated names; RAM/disk not shown |
+| **Device patch / need updates** | SuperOps `patchStatus` on asset list | **Staff only** on Support and Devices. Hidden from customers. |
+| **Device age / workstation standard** | Purchase date, warranty expiry, Windows install, CPU, RAM from `getAssetSummary` | Standard is i5-class and 16 GB. GPU is not reported. Cache `superops-dashboard:v7` |
 | **Restore retention days** | - | **Not shipped** - not in Dropsuite summary payload |
 
 ### Not sold vs unprotected (client-facing)
@@ -80,7 +81,7 @@ Glance and Reports share `ClientActivityFeedService` + `ClientActivityCopy`.
 
 **Layout:** one full-width row per ticket or case (time, subject, action, badge). On a narrow screen the subject and action stack. Click the row to open that action underneath it. The services strip on the home page stays inside the same column as the cards above it.
 
-**Range:** Today, This working week (Monday-Friday, London), This working month (weekdays in the current month). Starts at 5 rows. The Show control can raise that to 10, which is the maximum on screen. **Show more** reveals the next rows up to 10 and scrolls to them.
+**Range:** Today, This working week (Monday-Friday, London), This working month (weekdays in the current month). Starts at 5 rows. The Show control can raise that to 10 or 25. **Show more** reveals the next page, up to 40 rows, and scrolls to them. Support and Devices ticket activity also has a 90-day range. The ticket page is a timeline of public replies, with the author name and a note when files stay in SuperOps.
 
 **Detail:** support loads the public replies (`GET /support/{ticketId}/actions`). A security case shows its summary and each fix. Internal notes are not loaded.
 

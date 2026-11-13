@@ -199,6 +199,8 @@ class SuperOpsTicketService
                         content
                         time
                         type
+                        user
+                        attachments { fileName }
                     }
                 }
             GQL, ['input' => ['ticketId' => $ticketId]]);
@@ -227,10 +229,19 @@ class SuperOpsTicketService
                 continue;
             }
 
+            $user = $this->normalizeJsonObject($row['user'] ?? null);
+            $author = trim((string) ($user['name'] ?? ''));
+            if ($author === '') {
+                $author = trim((string) ($user['email'] ?? ''));
+            }
+
+            $attachments = $row['attachments'] ?? [];
             $rows[] = [
                 'at' => is_string($row['time'] ?? null) && $row['time'] !== '' ? $row['time'] : null,
                 'type' => strtoupper(trim((string) ($row['type'] ?? ''))),
                 'content' => $content,
+                'author' => $author !== '' ? $author : null,
+                'attachments' => is_array($attachments) ? count($attachments) : 0,
             ];
         }
 

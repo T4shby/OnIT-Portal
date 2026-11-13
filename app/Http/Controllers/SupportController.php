@@ -130,7 +130,12 @@ class SupportController extends Controller
         $rows = is_array($ticket['conversations'] ?? null) ? $ticket['conversations'] : [];
 
         return array_map(function (array $row) use ($copy): array {
-            $row['title'] = $copy->conversation((string) ($row['type'] ?? ''));
+            $title = $copy->conversation((string) ($row['type'] ?? ''));
+            $author = trim((string) ($row['author'] ?? ''));
+            if ($author !== '') {
+                $title .= ' · '.$author;
+            }
+            $row['title'] = $title;
 
             return $row;
         }, $rows);

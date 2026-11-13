@@ -53,6 +53,34 @@
                 'value' => old('starter_email'),
                 'fullWidth' => true,
             ])
+            <div class="admin-form-span-full mb-4" x-data="{ q: '' }">
+                <p class="portal-label mb-2">Security groups</p>
+                <p class="portal-body-muted text-xs mb-3">
+                    Tick the groups this person should join. The Service Desk ticket lists the names so an engineer can add them in Microsoft.
+                </p>
+                @if(($securityGroups ?? []) === [])
+                    <p class="portal-body-muted text-sm">Security groups are not available from Microsoft right now. Name them in additional notes.</p>
+                @else
+                    <input type="search" x-model="q" placeholder="Filter groups" class="admin-input mb-2" aria-label="Filter security groups">
+                    <div class="max-h-52 overflow-y-auto border border-white/10">
+                        @foreach($securityGroups as $group)
+                            <label class="flex items-center gap-2 px-3 py-2 text-sm text-white/85 border-b border-white/5 last:border-b-0"
+                                   x-show="q === '' || {{ \Illuminate\Support\Js::from(mb_strtolower($group['name'])) }}.includes(q.toLowerCase())">
+                                <input type="checkbox" name="security_groups[]" value="{{ $group['id'] }}"
+                                       @checked(in_array($group['id'], (array) old('security_groups', []), true))
+                                       class="border-onit-border bg-onit-surface text-onit focus:ring-onit">
+                                <span>{{ $group['name'] }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+                @error('security_groups')
+                    <p class="text-red-300 text-xs mt-2">{{ $message }}</p>
+                @enderror
+                @error('security_groups.*')
+                    <p class="text-red-300 text-xs mt-2">{{ $message }}</p>
+                @enderror
+            </div>
             @include('admin.partials.form-field', [
                 'label' => 'Equipment / access needed',
                 'name' => 'equipment_access',

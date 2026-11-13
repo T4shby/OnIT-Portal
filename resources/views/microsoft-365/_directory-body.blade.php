@@ -47,6 +47,8 @@
     @include('microsoft-365._licences')
 @endif
 
+@include('microsoft-365._posture-tiles')
+
 <div
     id="m365-directory-live"
     data-should-poll="{{ $shouldPoll ? '1' : '0' }}"

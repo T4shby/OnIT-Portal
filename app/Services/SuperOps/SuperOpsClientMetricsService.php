@@ -77,7 +77,10 @@ class SuperOpsClientMetricsService
 
     private const RESTART_AFTER_DAYS = 2;
 
-    public function __construct(private SuperOpsApiClient $api) {}
+    public function __construct(
+        private SuperOpsApiClient $api,
+        private DeviceEstateAssessor $devices,
+    ) {}
 
     public function isAvailable(): bool
     {
@@ -389,13 +392,16 @@ class SuperOpsClientMetricsService
 
         try {
             $tickets = $this->listClientTickets($accountId);
-            $assetHealth = $this->summariseClientAssetHealth($accountId);
+            $previous = Cache::get($this->cacheKey($client->id));
+            $previousHardware = is_array($previous['device_hardware'] ?? null) ? $previous['device_hardware'] : [];
+            $assetHealth = $this->summariseClientAssetHealth($accountId, $previousHardware);
 
             $payload = [
                 'assets_total' => $assetHealth['total'],
                 'assets_online' => $assetHealth['online'],
                 'assets_offline' => $assetHealth['offline'],
                 'device_insights' => $assetHealth['insights'],
+                'device_hardware' => $assetHealth['hardware'],
                 'open_tickets_total' => $this->countOpenTickets($tickets),
                 'waiting_on_client_total' => $this->countWaitingOnClient($tickets),
                 'open_tickets_by_priority' => $this->openTicketsByPriority($tickets),
@@ -438,9 +444,10 @@ class SuperOpsClientMetricsService
     }
 
     /**
-     * @return array{total: ?int, online: ?int, offline: ?int, insights: array<string, mixed>}
+     * @param  array<string, mixed>  $previousHardware
+     * @return array{total: ?int, online: ?int, offline: ?int, insights: array<string, mixed>, hardware: array<string, mixed>}
      */
-    private function summariseClientAssetHealth(string $accountId): array
+    private function summariseClientAssetHealth(string $accountId, array $previousHardware = []): array
     {
         $emptyInsights = $this->emptyDeviceInsights();
 
@@ -466,6 +473,7 @@ class SuperOpsClientMetricsService
                                 sysUptime
                                 patchStatus
                                 purchasedDate
+                                warrantyExpiryDate
                             }
                             listInfo { totalCount hasMore }
                         }
@@ -481,7 +489,7 @@ class SuperOpsClientMetricsService
                 if ($page === 1 && isset($pageData['getAssetList']['listInfo']['totalCount'])) {
                     $total = (int) $pageData['getAssetList']['listInfo']['totalCount'];
                     if ($total === 0) {
-                        return ['total' => 0, 'online' => 0, 'offline' => 0, 'insights' => $emptyInsights];
+                        return ['total' => 0, 'online' => 0, 'offline' => 0, 'insights' => $emptyInsights, 'hardware' => []];
                     }
                 }
 
@@ -504,11 +512,14 @@ class SuperOpsClientMetricsService
                 $total = $online + $offline;
             }
 
+            $hardware = $this->collectHardwareSamples($assets, $previousHardware);
+
             return [
                 'total' => $total,
                 'online' => $online,
                 'offline' => $offline,
-                'insights' => $this->deviceInsightsFromAssets($assets),
+                'insights' => $this->deviceInsightsFromAssets($assets, $hardware),
+                'hardware' => $hardware,
             ];
         } catch (Throwable $e) {
             Log::warning('SuperOps dashboard asset health unavailable', [
@@ -516,7 +527,7 @@ class SuperOpsClientMetricsService
                 'error' => $e->getMessage(),
             ]);
 
-            return ['total' => null, 'online' => null, 'offline' => null, 'insights' => $emptyInsights];
+            return ['total' => null, 'online' => null, 'offline' => null, 'insights' => $emptyInsights, 'hardware' => $previousHardware];
         }
     }
 
@@ -903,6 +914,7 @@ class SuperOpsClientMetricsService
             '7' => $this->countCreatedSince($tickets, 7),
             '14' => $this->countCreatedSince($tickets, 14),
             '30' => $this->countCreatedSince($tickets, 30),
+            '90' => $this->countCreatedSince($tickets, 90),
             'all' => count($tickets),
         ];
     }
@@ -917,6 +929,7 @@ class SuperOpsClientMetricsService
             '7' => $this->countClosedSince($tickets, 7),
             '14' => $this->countClosedSince($tickets, 14),
             '30' => $this->countClosedSince($tickets, 30),
+            '90' => $this->countClosedSince($tickets, 90),
             // Calendar months (Europe/London) - used by glance "this month" / last-month compare.
             'mtd' => $this->countClosedInWindow($tickets, 'mtd'),
             'prev_month' => $this->countClosedInWindow($tickets, 'prev_month'),
@@ -1179,6 +1192,7 @@ class SuperOpsClientMetricsService
             '7' => null,
             '14' => null,
             '30' => null,
+            '90' => null,
             'mtd' => null,
             'prev_month' => null,
             'all' => null,
@@ -1195,19 +1209,28 @@ class SuperOpsClientMetricsService
             'needs_restart' => ['count' => 0, 'names' => []],
             'patch' => ['fully' => 0, 'not_fully' => 0, 'unknown' => 0],
             'edition' => ['home' => 0, 'pro' => 0, 'server' => 0, 'other' => 0],
-            'age' => ['under_3' => 0, '3_to_5' => 0, 'over_5' => 0, 'unknown' => 0],
+            'age' => [
+                'under_3' => 0,
+                '3_to_5' => 0,
+                'over_5' => 0,
+                'unknown' => 0,
+                'sources' => ['purchase' => 0, 'warranty' => 0, 'os_install' => 0, 'cpu' => 0],
+            ],
+            'standard' => ['checked' => 0, 'meets' => 0, 'below' => 0, 'pending' => 0, 'names' => []],
         ];
     }
 
     /**
      * @param  list<array<string, mixed>>  $assets
+     * @param  array<string, mixed>  $hardware
      * @return array<string, mixed>
      */
-    private function deviceInsightsFromAssets(array $assets): array
+    private function deviceInsightsFromAssets(array $assets, array $hardware = []): array
     {
         $insights = $this->emptyDeviceInsights();
         $offlineNames = [];
         $restartNames = [];
+        $belowNames = [];
         $cutoff = now()->subDays(30);
 
         foreach ($assets as $asset) {
@@ -1247,25 +1270,247 @@ class SuperOpsClientMetricsService
                 $insights['edition']['other']++;
             }
 
-            $purchased = $this->parseTimestamp($asset['purchasedDate'] ?? null);
-            if ($purchased === null || $purchased->isFuture()) {
-                $insights['age']['unknown']++;
-            } else {
-                $years = $purchased->diffInYears(now());
-                if ($years < 3) {
-                    $insights['age']['under_3']++;
-                } elseif ($years < 5) {
-                    $insights['age']['3_to_5']++;
+            $assetId = (string) ($asset['assetId'] ?? '');
+            $sample = is_array($hardware[$assetId] ?? null) ? $hardware[$assetId] : [];
+            $cpuName = trim((string) ($sample['cpu_name'] ?? ''));
+            $ramGb = isset($sample['ram_gb']) && is_numeric($sample['ram_gb']) ? (float) $sample['ram_gb'] : null;
+            $estimate = $this->devices->estimateDate(
+                isset($asset['purchasedDate']) ? (string) $asset['purchasedDate'] : null,
+                isset($asset['warrantyExpiryDate']) ? (string) $asset['warrantyExpiryDate'] : null,
+                isset($sample['os_installed_at']) ? (string) $sample['os_installed_at'] : null,
+                $cpuName !== '' ? $cpuName : null,
+            );
+            $band = $this->devices->ageBand($estimate['at']);
+            $insights['age'][$band]++;
+            if (isset($insights['age']['sources'][$estimate['source']])) {
+                $insights['age']['sources'][$estimate['source']]++;
+            }
+
+            if ($this->isWorkstation($asset)) {
+                if (($sample['checked_at'] ?? null) === null || ($sample['skipped'] ?? false) === true) {
+                    $insights['standard']['pending']++;
                 } else {
-                    $insights['age']['over_5']++;
+                    $assessment = $this->devices->assessWorkstation($cpuName !== '' ? $cpuName : null, $ramGb);
+                    if ($assessment['cpu'] !== null || $assessment['ram'] !== null) {
+                        $insights['standard']['checked']++;
+                    }
+                    if ($assessment['meets']) {
+                        $insights['standard']['meets']++;
+                    }
+                    if ($assessment['below']) {
+                        $insights['standard']['below']++;
+                        $gap = $this->devices->gapLabel($assessment, $cpuName, $ramGb);
+                        $belowNames[] = $gap !== '' ? $name.' - '.$gap : $name;
+                    }
                 }
             }
         }
 
         $insights['offline_30d']['names'] = array_values(array_slice($offlineNames, 0, self::DEVICE_NAME_LIMIT));
         $insights['needs_restart']['names'] = array_values(array_slice($restartNames, 0, self::DEVICE_NAME_LIMIT));
+        $insights['standard']['names'] = array_values(array_slice($belowNames, 0, self::DEVICE_NAME_LIMIT));
 
         return $insights;
+    }
+
+    private function isWorkstation(array $asset): bool
+    {
+        $platform = strtolower((string) ($asset['platform'] ?? ''));
+        $class = $this->normalizeJsonObject($asset['assetClass'] ?? null);
+        $className = strtolower((string) ($class['name'] ?? ''));
+
+        if (str_contains($platform, 'server') || str_contains($className, 'server')) {
+            return false;
+        }
+
+        return $platform !== '' || $className !== '';
+    }
+
+    /**
+     * A few hardware summaries per refresh, merged with the previous snapshot,
+     * so a large estate is filled in across pulls instead of one long job.
+     *
+     * @param  list<array<string, mixed>>  $assets
+     * @param  array<string, mixed>  $previous
+     * @return array<string, mixed>
+     */
+    private function collectHardwareSamples(array $assets, array $previous): array
+    {
+        $hardware = [];
+        foreach ($previous as $assetId => $row) {
+            if (is_string($assetId) && is_array($row)) {
+                $hardware[$assetId] = $row;
+            }
+        }
+
+        $calls = 0;
+        $freshBefore = now()->subDays(14);
+
+        foreach ($assets as $asset) {
+            if ($calls >= 12) {
+                break;
+            }
+
+            $assetId = (string) ($asset['assetId'] ?? '');
+            if ($assetId === '' || ! $this->isWorkstation($asset)) {
+                continue;
+            }
+
+            $existing = is_array($hardware[$assetId] ?? null) ? $hardware[$assetId] : null;
+            $checkedAt = $this->parseTimestamp(isset($existing['checked_at']) ? (string) $existing['checked_at'] : null);
+            if ($existing !== null && $checkedAt !== null && $checkedAt->gte($freshBefore)) {
+                continue;
+            }
+
+            try {
+                $summary = $this->api->query(<<<'GQL'
+                    query getAssetSummary($input: AssetIdentifierInput!) {
+                        getAssetSummary(input: $input) {
+                            cpu { cpuName }
+                            memory { totalMemory }
+                        }
+                    }
+                GQL, ['input' => ['assetId' => $assetId]]);
+                $calls++;
+                $mapped = $this->mapHardwareSummary($summary['getAssetSummary'] ?? []);
+            } catch (Throwable $e) {
+                Log::warning('SuperOps asset summary unavailable', [
+                    'asset_id' => $assetId,
+                    'error' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+
+            $needsInstall = ! filled($asset['purchasedDate'] ?? null) && ! filled($asset['warrantyExpiryDate'] ?? null);
+            if ($needsInstall && $calls < 12) {
+                try {
+                    $mapped['os_installed_at'] = $this->windowsInstallDate($assetId);
+                    $calls++;
+                } catch (Throwable $e) {
+                    Log::warning('SuperOps asset software list unavailable', [
+                        'asset_id' => $assetId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $hardware[$assetId] = $mapped;
+        }
+
+        if (count($hardware) > 500) {
+            $hardware = array_slice($hardware, -500, null, true);
+        }
+
+        return $hardware;
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     * @return array{cpu_name: string, ram_gb: ?float, os_installed_at: ?string, checked_at: string}
+     */
+    private function mapHardwareSummary(array $summary): array
+    {
+        $cpu = $summary['cpu'] ?? [];
+        if (is_array($cpu) && array_is_list($cpu)) {
+            $cpu = $cpu[0] ?? [];
+        }
+
+        return [
+            'cpu_name' => trim((string) (is_array($cpu) ? ($cpu['cpuName'] ?? '') : '')),
+            'ram_gb' => $this->memoryGb(is_array($summary['memory'] ?? null) ? ($summary['memory']['totalMemory'] ?? null) : null),
+            'os_installed_at' => null,
+            'checked_at' => now()->toIso8601String(),
+        ];
+    }
+
+    private function memoryGb(mixed $total): ?float
+    {
+        if (is_numeric($total)) {
+            return round(((float) $total) / 1073741824, 2);
+        }
+
+        if (! is_array($total)) {
+            return null;
+        }
+
+        if (isset($total['actualValue']) && is_numeric($total['actualValue'])) {
+            return round(((float) $total['actualValue']) / 1073741824, 2);
+        }
+
+        if (! isset($total['value']) || ! is_numeric($total['value'])) {
+            return null;
+        }
+
+        $value = (float) $total['value'];
+
+        return match (strtoupper((string) ($total['unit'] ?? 'GB'))) {
+            'TB' => round($value * 1024, 2),
+            'MB' => round($value / 1024, 2),
+            'KB' => round($value / 1048576, 2),
+            default => round($value, 2),
+        };
+    }
+
+    private function windowsInstallDate(string $assetId): ?string
+    {
+        $data = $this->api->query(<<<'GQL'
+            query getAssetSoftwareList($input: AssetDetailsListInput!) {
+                getAssetSoftwareList(input: $input) {
+                    assetSoftwares { installedDate software }
+                }
+            }
+        GQL, ['input' => ['assetId' => $assetId, 'listInfo' => ['page' => 1, 'pageSize' => 50]]]);
+
+        $rows = $data['getAssetSoftwareList']['assetSoftwares'] ?? [];
+        if (! is_array($rows)) {
+            return null;
+        }
+
+        $earliest = null;
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $name = $this->softwareName($row['software'] ?? null);
+            if (! preg_match('/microsoft windows|\bwindows\s*(10|11)\b/i', $name)) {
+                continue;
+            }
+
+            if (preg_match('/defender|installer|media|sdk|driver|update|security/i', $name)) {
+                continue;
+            }
+
+            $installed = $this->parseTimestamp(isset($row['installedDate']) ? (string) $row['installedDate'] : null);
+            if ($installed === null) {
+                continue;
+            }
+
+            if ($earliest === null || $installed->lt($earliest)) {
+                $earliest = $installed;
+            }
+        }
+
+        return $earliest?->toIso8601String();
+    }
+
+    private function softwareName(mixed $software): string
+    {
+        if (is_string($software) && $software !== '') {
+            $decoded = json_decode($software, true);
+            if (is_array($decoded)) {
+                $software = $decoded;
+            } else {
+                return $software;
+            }
+        }
+
+        if (! is_array($software)) {
+            return '';
+        }
+
+        return trim((string) ($software['name'] ?? ''));
     }
 
     private function uptimeDays(?string $uptime): ?int
@@ -1283,8 +1528,8 @@ class SuperOpsClientMetricsService
 
     public function cacheKey(int $clientId): string
     {
-        // v6: calendar-month closed/SLA (mtd + prev_month) for glance this/last month.
-        return "client:{$clientId}:superops-dashboard:v6";
+        // v7: warranty / OS install / CPU age, workstation standard, 90-day ticket counts.
+        return "client:{$clientId}:superops-dashboard:v7";
     }
 
     /**
