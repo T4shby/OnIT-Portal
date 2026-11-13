@@ -6,7 +6,7 @@
 
 **MSP operating rule:** On IT technicians perform all customer-tenant setup and consent through delegated / GDAP access. Customers receive no onboarding tasks or Accept links.
 
-GDAP itself is checked by the portal when `GDAP_ENABLED=true`. The portal can create the request and assign the technician security group. It cannot approve the request. That one Microsoft page is the exception, and only when On IT has no Global Admin path into the tenant. The portal does not email it. See [Gdap.md](Gdap.md). The flag ships off.
+GDAP itself is checked by the portal when `GDAP_ENABLED=true`. Production has that flag on (2026-11-13). The portal can create the request and assign the technician security group. It cannot approve the request. That one Microsoft page is the exception, and only when On IT has no Global Admin path into the tenant. The portal does not email it. See [Gdap.md](Gdap.md).
 
 ```
 Customer M365 tenant

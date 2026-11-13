@@ -94,7 +94,8 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
-| 2026-11-12 | GDAP lifecycle (flag off): nightly audit, create/assign/auto-extend, Edit Client strip blocks Connect until the relationship is active and the technician group is assigned. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
+| 2026-11-13 | Deployed `552d51f`. Production `GDAP_ENABLED=true` and partner tenant set to the onit.ltd directory. Technician group id still empty, so assignment cannot finish. - [ServerOpsLog.md](ServerOpsLog.md), [Gdap.md](Gdap.md) |
+| 2026-11-12 | GDAP lifecycle: nightly audit, create/assign/auto-extend, Edit Client strip blocks Connect until the relationship is active and the technician group is assigned. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
 | 2026-11-09 | Deployed `df43ed0`: Dropsuite org import + Defender DKIM auto-read. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-09 | Defender DKIM: portal reads Enabled/Valid for every accepted domain (no per-domain Defender walk). Needs Exchange.ManageAsApp + Exchange Administrator on the portal app. Send-test tick stays manual. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-06 | Dropsuite organization ids: import GET /users then filter to live clients (Admin → Clients → Dropsuite orgs). Do not paste user ids like 360787-12. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -31,7 +31,7 @@ Every step in the app shows **Where** (exact product + menu path) then numbered 
 
 **Automation-first:** each step shows what Connect / portal already did (**Already done automatically**). Remaining work stays short. Long Azure click-paths sit under **Only if something failed** (opens when Apply/Wire fails). Status turns Done from saved IDs, successful Apply/Wire, or manual tick where still required.
 
-**GDAP strip (not a numbered step).** When GDAP automation is on, the top of this guide shows GDAP status and **Check GDAP now**. Connect Microsoft and Re-consent stay blocked until the relationship is active and the technician security group is assigned. Steps 04 and 08 do not move. While the flag is off, ignore the strip - it is not shown. Detail: [Gdap.md](Gdap.md).
+**GDAP strip (not a numbered step).** Production has the flag on (2026-11-13). The top of this guide shows GDAP status and **Check GDAP now**. Connect Microsoft and Re-consent stay blocked until the relationship is active and the technician security group is assigned. Steps 04 and 08 do not move. The group object id is still empty on the server, so assignment cannot finish. Detail: [Gdap.md](Gdap.md).
 
 **Before steps 03-04 - Connect Microsoft (preferred):**
 
@@ -111,6 +111,7 @@ Use these only when the live step is blocked or broken:
 
 | Date | Change |
 |------|--------|
+| 2026-11-13 | Production GDAP flag is on. Group object id still empty. - [Gdap.md](Gdap.md) |
 | 2026-11-12 | GDAP strip above the guide (not a new step number). Connect blocked only when GDAP_ENABLED=true and the relationship is not ready. - [Gdap.md](Gdap.md) |
 | 2026-08-13 | Retry Graph setup recreates broken SCIM apps (0 templates); Apply SCIM only remaining SuperOps paste; no Azure UI |
 | 2026-08-07 | Step 07 Done only when name mappings + Sync queued; SuperOps bulk outside Entra → Do not ignore warning |

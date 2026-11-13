@@ -34,7 +34,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 6. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
 7. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
 8. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
-9. **GDAP lifecycle** - built, flag off until the On IT tenant app is consented. Then it audits every portal client, requests missing relationships, assigns the technician group, and blocks Connect until that is active. - [Gdap.md](Gdap.md).
+9. **GDAP lifecycle** - live as of 2026-11-13 (`552d51f`). Flag and partner tenant are set. Technician group id is still empty, and the On IT Graph permission may still be missing. It audits every portal client, requests missing relationships, assigns the technician group, and blocks Connect until that is active. - [Gdap.md](Gdap.md).
 
 ## Later / optional
 

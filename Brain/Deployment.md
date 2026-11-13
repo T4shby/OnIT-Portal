@@ -170,7 +170,7 @@ GDAP_TECHNICIAN_GROUP_ID=
 
 See [EntraGroupSync.md](EntraGroupSync.md) for optional keys (`ENTRA_SYNC_CLIENT_ID`, provision-on-demand interval, etc.).
 
-GDAP (`GDAP_ENABLED`, partner tenant id, technician group) is documented in [Gdap.md](Gdap.md). Leave it false on deploy until that one-time On IT tenant consent is done. `portal:audit-gdap` runs at 04:40 and no-ops while the flag is false.
+GDAP (`GDAP_ENABLED`, partner tenant id, technician group) is documented in [Gdap.md](Gdap.md). A fresh install stays false until the On IT tenant consent is done. Production was set true on 2026-11-13; see [ServerOpsLog.md](ServerOpsLog.md). `portal:audit-gdap` runs at 04:40 and no-ops while the flag is false.
 
 ### 7. Run Migrations and Seeders
 

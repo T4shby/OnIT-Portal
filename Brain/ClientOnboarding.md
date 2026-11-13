@@ -37,7 +37,7 @@ Every step is performed by **On IT MSP technicians on the customer’s behalf**.
 | **Microsoft Entra / M365** | **This portal only** - Connect Microsoft, **Retry Graph setup**, Apply SCIM (Graph writes Entra), Wire Client SSO (Graph writes Entra), Sync now | **Only if something failed** recovery in the checklist (rare); never delete/recreate SCIM apps in Azure UI - **Retry Graph setup** auto-resets broken SCIM shells |
 | **SuperOps** | MSP console | Generate SCIM tokens (step 05), copy Entity ID + ACS **from** SuperOps, paste Login URL + cert **into** SuperOps Step 3 - portal cannot do these (no SuperOps API) |
 
-**GDAP** is the partner admin relationship that lets a technician sign into the customer tenant. Connect Microsoft is a different grant: it lets the portal app call Graph. When `GDAP_ENABLED=true`, a strip above this guide blocks Connect and Re-consent until GDAP is active and the technician security group is assigned. Steps 04 and 08 stay on those numbers. The flag ships off, so nothing is gated until the On IT tenant app is set up. Full behaviour: [Gdap.md](Gdap.md).
+**GDAP** is the partner admin relationship that lets a technician sign into the customer tenant. Connect Microsoft is a different grant: it lets the portal app call Graph. Production has `GDAP_ENABLED=true` (2026-11-13). A strip above this guide blocks Connect and Re-consent until GDAP is active and the technician security group is assigned. Steps 04 and 08 stay on those numbers. The group object id is still empty on the server, so assignment cannot finish. Full behaviour: [Gdap.md](Gdap.md).
 
 After GDAP is in place, M365 changes run through Graph from the portal.
 
@@ -351,6 +351,7 @@ Tested by: __________  Date: __________
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | Production GDAP flag is on. Group object id still empty. - [Gdap.md](Gdap.md) |
 | 2026-11-12 | GDAP strip gates Connect when GDAP_ENABLED=true. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
 | 2026-10-19 | Step **00** Confirm mail domain + DNS; Add Client requires name + main domain; hand-off warns on red DNS - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-08-13 | M365/Entra automation in portal only; SuperOps console for SCIM tokens + SSO paste |

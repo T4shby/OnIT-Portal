@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-13 ~11:00 UK - Deploy GDAP lifecycle and turn it on for testing
+
+| | |
+|---|---|
+| Intent | Ship the GDAP audit so Edit Client and Integration Health can be tested on app.onit.ltd. Leave the local usecure skeleton uncommitted. |
+| Operator | agent (Cursor) |
+| SHA before -> after | `2c08cd4` -> `552d51f` |
+| Steps | Push `main`. SSH: bare fetch `origin main:main`, `git archive main` into the live path, chown, composer (nothing to install), migrate `2026_11_12_120000_add_gdap_snapshot_to_clients`, route/config/view clear, PortalLinkSeeder, optimize, chown `storage` and `bootstrap/cache`, reload `plesk-php84-fpm`. Set `GDAP_ENABLED=true`. `MICROSOFT_TENANT_ID` is not a GUID, so `GDAP_PARTNER_TENANT_ID` was set to the directory that publishes `onit.ltd` OpenID metadata. `GDAP_TECHNICIAN_GROUP_ID` was not present. `config:clear` then `optimize` again so the cached config sees the new keys. Did not run `portal:audit-gdap` and did not `cache:clear`. |
+| Result | Live `.deployed-commit` `552d51f`. `/up` 200. FPM active. Route `admin.clients.gdap.refresh` registered. Migration ran. Cached config: enabled, partner tenant, client id, and client secret set. Technician group id empty. |
+| Rollback / watch | Redeploy `2c08cd4` and set `GDAP_ENABLED=false`, then `config:clear` and `optimize`. Hard-refresh Edit Client. Check GDAP now calls Microsoft for that one client. The 04:40 job will try every client with a tenant or domain. Assignment cannot finish until `GDAP_TECHNICIAN_GROUP_ID` is the On IT security group object id. If Graph returns a permission error, admin-consent `DelegatedAdminRelationship.ReadWrite.All` in the On IT tenant and provision service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`. |
+
 ### 2026-11-10 ~18:49 UK - Deploy security remediation (ticket authz, Symfony, CSP, CI)
 
 | | |

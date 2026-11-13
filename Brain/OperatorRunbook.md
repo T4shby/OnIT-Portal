@@ -70,7 +70,7 @@ SUPEROPS_SSO_ENABLED=true
 
 Global requester SSO is retired. Roll out Client SSO customer by customer.
 
-GDAP into that customer has to be active before step 3. When `GDAP_ENABLED=true` the portal requests it and blocks Connect until the technician group is assigned. Setup: [Gdap.md](Gdap.md). The flag ships off.
+GDAP into that customer has to be active before step 3. Production has `GDAP_ENABLED=true` (2026-11-13). The portal requests the relationship and blocks Connect until the technician group is assigned. The group object id is still empty on the server, so assignment cannot finish. Setup: [Gdap.md](Gdap.md).
 
 1. SuperOps → Requester Login → SSO Protected → disable **Global SSO** (if still on).
 2. **Client SSO → + Configuration** → select the customer → generate Entity ID + Consumer Service URL.

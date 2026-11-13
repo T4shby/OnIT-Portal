@@ -6,7 +6,7 @@ Connect Microsoft (checklist steps 03 and 04) is a different grant. It lets the 
 
 Steps **04** (Portal Graph Accept) and **08** (SuperOps Client SSO) stay on those numbers. GDAP is a strip above the setup guide, not a new numbered step.
 
-The flag ships **off**. Nothing calls Microsoft, and Connect Microsoft is not gated, until `GDAP_ENABLED=true` and the partner-tenant app is configured. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
+The code default is **off**. Production was turned on 2026-11-13 (`552d51f`) so the strip can be tested. The partner tenant is the directory that publishes `onit.ltd`. `GDAP_TECHNICIAN_GROUP_ID` is still empty, so the audit cannot assign technicians. Connect is gated once the partner app is configured and the snapshot is not ready. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
 
 ## What Microsoft allows
 
@@ -89,7 +89,7 @@ Integration Health (staff) shows a GDAP block: off, not configured, or counts pl
 
 ## One-time setup in the On IT tenant
 
-Do this before `GDAP_ENABLED=true`. Leave the flag false on deploy until these are done.
+Do this before `GDAP_ENABLED=true` on a new install. Production already has the flag and partner tenant (2026-11-13). Still missing there: the Graph permission, the service principal below, and `GDAP_TECHNICIAN_GROUP_ID`.
 
 1. Confirm the app registration is the portal app in the **On IT** tenant (the same app as `ENTRA_SYNC_CLIENT_ID` / `MICROSOFT_CLIENT_ID`, unless you set a dedicated GDAP app).
 2. Add application permission **DelegatedAdminRelationship.ReadWrite.All** and grant admin consent **in the On IT tenant**. Do not re-consent this permission into customer tenants.
@@ -143,4 +143,5 @@ The portal does not email customers. The strip shows the approval link to techni
 
 | Date | Change |
 |---|---|
-| 2026-11-12 | Full lifecycle: nightly audit, create, lock for approval, assign technician group, auto-extend, Edit Client strip, Connect gate, Integration Health. Flag off until the On IT tenant app is consented. |
+| 2026-11-13 | Production flag on. Partner tenant set from the onit.ltd directory. Technician group id still empty. |
+| 2026-11-12 | Full lifecycle: nightly audit, create, lock for approval, assign technician group, auto-extend, Edit Client strip, Connect gate, Integration Health. Code default stays off until the On IT tenant app is consented. |
