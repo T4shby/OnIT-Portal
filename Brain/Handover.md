@@ -23,7 +23,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 
 ## How it runs
 
-- PHP 8.3 on Plesk, Ubuntu host `159.65.83.156`
+- PHP 8.4 on Plesk, Ubuntu host `159.65.83.156`
 - Live tree `/var/www/vhosts/onit.ltd/app.onit.ltd` (no `.git`)
 - Bare mirror `/var/www/vhosts/onit.ltd/git/laravel_af3fd1`, branch `main`
 - Deploy: push `main`, fetch the bare mirror, `git archive main` (not `origin/main`), then migrate, route/config/view clear, `PortalLinkSeeder`, `optimize`. Do not `cache:clear` on a routine deploy
@@ -31,7 +31,7 @@ Technicians do every customer-tenant setup themselves with GDAP. Customers are n
 - Two queue workers, queues `high` then `default`
 - Docs for the exact steps: [Deployment.md](Deployment.md). Diary: [ServerOpsLog.md](ServerOpsLog.md)
 
-**GitHub / live:** `df43ed0` (9 Nov 2026 - Dropsuite org import + Defender DKIM auto-read). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md). DKIM list needs Exchange.ManageAsApp + Exchange Administrator on the portal app per customer.
+**GitHub / live:** `1297822` (13 Nov 2026 - colleague services pass: ticket timeline, device age and workstation standard, staff-only patching, licence list price, Huntress ITDR, MFA and SharePoint tiles, new-starter security groups). Plesk PHP **8.4**. Newest row in [ServerOpsLog.md](ServerOpsLog.md). Device age and the workstation standard fill in on the next SuperOps refresh. DKIM list needs Exchange.ManageAsApp + Exchange Administrator on the portal app per customer.
 
 ## What already works
 

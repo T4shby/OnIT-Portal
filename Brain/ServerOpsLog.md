@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-13 ~14:40 UK - Deploy colleague services pass
+
+| | |
+|---|---|
+| Intent | Put the colleague meeting checks on https://app.onit.ltd: ticket timeline, device age and workstation standard, customer patching hidden, licence list-price total, Huntress ITDR, MFA and SharePoint tiles, new-starter security groups. Leave the local usecure skeleton uncommitted. |
+| Operator | agent (Cursor) |
+| SHA before -> after | `cf16b68` -> `1297822` |
+| Steps | Feature commit was already on `origin/main`. A first SSH session was killed before it printed anything (the script never reached the server). Second SSH: bare fetch `origin main:main`, `git archive main` into the live path, chown, composer (nothing to install), migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize, chown `storage` and `bootstrap/cache`, reload `plesk-php84-fpm`. Did not `cache:clear`. Did not enable usecure. Removed `/tmp/deploy-1297822.sh`. The script then exited 127 on a trailing carriage return after `DONE`. |
+| Result | Feature archive landed `1297822`. `/up` 200. FPM active. `DeviceEstateAssessor.php` on disk. The on-disk stamp before that archive was `cf16b68` (the GDAP diary commit), not the `552d51f` named in the 11:00 row. This diary row is committed after that archive and then archived itself, so the stamp moves to this docs commit. App behaviour stays the colleague services pass. |
+| Rollback / watch | Redeploy `cf16b68` the same way (archive `main` at that SHA, then route/config/view clear and optimize). Hard-refresh. Check Support & Devices (age, workstation standard, patching visible to staff only), a ticket timeline, Microsoft 365 licences / MFA / SharePoint, Security ITDR, and New starter security groups. Device figures stay on the old snapshot until the next SuperOps refresh rebuilds cache key v7. Licence totals are UK list price ex VAT, not the invoice. GPU is not in the SuperOps asset summary, so it is not part of the pass/fail. |
+
 ### 2026-11-13 ~11:00 UK - Deploy GDAP lifecycle and turn it on for testing
 
 | | |
