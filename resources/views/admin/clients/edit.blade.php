@@ -134,6 +134,7 @@
                 'onboardingSteps' => $onboardingSteps,
                 'onboardingProgress' => $onboardingProgress,
                 'adminConsentUrl' => $adminConsentUrl,
+                'gdap' => $gdap ?? ['enabled' => false, 'blocks_connect' => false],
             ])
         </div>
     </div>

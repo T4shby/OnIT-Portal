@@ -203,6 +203,9 @@ Route::middleware('auth')->group(function () {
                 ->name('clients.onboarding.update');
             Route::post('clients/{client}/bootstrap-entra', [ClientController::class, 'bootstrapEntra'])
                 ->name('clients.bootstrap-entra');
+            Route::post('clients/{client}/gdap', [ClientController::class, 'refreshGdap'])
+                ->middleware('throttle:6,1')
+                ->name('clients.gdap.refresh');
             Route::post('clients/{client}/apply-scim', [ClientController::class, 'applyScim'])
                 ->middleware('throttle:10,1')
                 ->name('clients.apply-scim');

@@ -85,7 +85,12 @@
                 @endif
 
                 @if($showGraphAccept)
-                    @if(! empty($adminConsentUrl))
+                    @if($gdap['blocks_connect'] ?? false)
+                        <p class="onboarding-guide__note mb-4 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm leading-relaxed text-amber-50">
+                            The Accept link stays hidden until GDAP is active and the technician security group is assigned.
+                            Use <strong class="text-white">Check GDAP now</strong> at the top of this guide.
+                        </p>
+                    @elseif(! empty($adminConsentUrl))
                         <div class="onboarding-guide__extra mb-4">
                             <p class="portal-label mb-2">Start here</p>
                             @if(! filled($client->entra_tenant_id))

@@ -58,10 +58,12 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. **Mail Phase C + IH alert hook** are **live** (`ee7456c`). Enable alerts only after Teams webhook (or alert email) is set in production `.env`. Demo script: [ColleagueDemo.md](ColleagueDemo.md).
 6. MFA inventory is on Staff Admin **and** Client Admin (Services → MFA methods). Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
+7. **GDAP automation** is in the repo and stays off. Do the one-time On IT tenant setup (Graph permission, Partner Customer Delegated Administration service principal, technician security group, `GDAP_PARTNER_TENANT_ID`), then set `GDAP_ENABLED=true`. Until then Connect Microsoft is not gated. Steps: [Gdap.md](Gdap.md).
 
 ## Do not do these
 
 - Do not commit or deploy the local usecure skeleton that may be sitting uncommitted in a working tree. It is not on `main`. Shipping it would add a column and screens before a key exists.
+- Do not set `GDAP_ENABLED=true` until the On IT tenant setup in [Gdap.md](Gdap.md) is done. While it is false, Connect Microsoft is not gated.
 - Do not enable usecure on production.
 - Do not `cache:clear` on a routine deploy. It wipes dashboard snapshots.
 - Do not verify `superops.ai` on a customer tenant.

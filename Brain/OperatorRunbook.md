@@ -68,7 +68,9 @@ SUPEROPS_SSO_ENABLED=true
 
 ## Phase A - SuperOps requester Client SSO rollout
 
-Global requester SSO is retired. Roll out Client SSO customer by customer:
+Global requester SSO is retired. Roll out Client SSO customer by customer.
+
+GDAP into that customer has to be active before step 3. When `GDAP_ENABLED=true` the portal requests it and blocks Connect until the technician group is assigned. Setup: [Gdap.md](Gdap.md). The flag ships off.
 
 1. SuperOps → Requester Login → SSO Protected → disable **Global SSO** (if still on).
 2. **Client SSO → + Configuration** → select the customer → generate Entity ID + Consumer Service URL.

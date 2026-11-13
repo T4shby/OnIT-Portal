@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UpdateClientOnboardingRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Jobs\ApplyClientSsoSamlJob;
 use App\Jobs\ApplySuperOpsScimJob;
+use App\Jobs\AuditGdapRelationshipsJob;
 use App\Jobs\BootstrapClientEntraJob;
 use App\Jobs\RepairSuperOpsScimExportJob;
 use App\Jobs\SyncEntraClientJob;
@@ -24,6 +25,7 @@ use App\Services\MailDns\ClientDomainService;
 use App\Services\MailDns\DkimSigningStatusService;
 use App\Services\MailDns\EntraMailDomainSyncService;
 use App\Services\Dropsuite\DropsuiteOrganizationDirectory;
+use App\Services\Gdap\GdapSnapshotPresenter;
 use App\Services\Portal\ClientHomeOverviewService;
 use App\Services\Portal\ClientProductService;
 use Illuminate\Http\RedirectResponse;
@@ -133,6 +135,7 @@ class ClientController extends Controller
                 ->get(),
             'dropsuiteOrganizations' => $this->dropsuiteOrganizationsForForms(),
             'dkimSigning' => $this->dkimSigningForEdit($client),
+            'gdap' => app(GdapSnapshotPresenter::class)->forClient($client),
         ];
     }
 
@@ -387,6 +390,7 @@ class ClientController extends Controller
         $this->activityLog->log('client.created', $client, clientId: $client->id);
 
         app(\App\Services\Portal\DashboardFeedRegistry::class)->queueMissingSnapshots($client);
+        $this->queueGdapAudit($client);
 
         return redirect()->route('admin.clients.edit', $client)
             ->with('success', 'Client created. Start with step 01 on the right.');
@@ -452,6 +456,7 @@ class ClientController extends Controller
 
         // First snapshot for every sold feed. The hourly idle prewarm is only for later refreshes.
         app(\App\Services\Portal\DashboardFeedRegistry::class)->queueMissingSnapshots($client);
+        $this->queueGdapAudit($client);
 
         $message = 'Client updated successfully.';
 
@@ -681,6 +686,32 @@ class ClientController extends Controller
                 .'You can leave this page - refresh to check the banner below for the Login URL and certificate. '
                 .'This avoids the previous timeout when Graph is slow.'
             );
+    }
+
+    public function refreshGdap(Client $client): RedirectResponse
+    {
+        $this->authorize('update', $client);
+
+        if (! config('services.gdap.enabled')) {
+            return redirect()
+                ->route('admin.clients.edit', $client)
+                ->with('error', 'GDAP audit is off (GDAP_ENABLED=false).');
+        }
+
+        $this->queueGdapAudit($client);
+
+        return redirect()
+            ->route('admin.clients.edit', $client)
+            ->with('success', 'GDAP check queued. Refresh in a minute if the strip has not updated.');
+    }
+
+    private function queueGdapAudit(Client $client): void
+    {
+        if (! config('services.gdap.enabled') || ! $client->is_active) {
+            return;
+        }
+
+        AuditGdapRelationshipsJob::dispatch($client->id);
     }
 
     /**

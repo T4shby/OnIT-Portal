@@ -17,6 +17,7 @@ Read these documents before changing application code. **Update Brain for every 
 | [ColleagueDemo.md](ColleagueDemo.md) | **Colleague walkthrough** - what to show on live (IH, mail DNS, MFA, Client Admin) |
 | [NEXT_TASK.md](NEXT_TASK.md) | The one next product task. Do not start it until asked |
 | [MailDomainDns.md](MailDomainDns.md) | **Mail domains + DNS health** - create requires main domain; MX/SPF/DKIM/DMARC; Phases A-C |
+| [Gdap.md](Gdap.md) | **GDAP lifecycle** - partner admin relationship, nightly audit, Connect gate. Flag off until the On IT tenant app is consented |
 | [PasskeyMfaMigration.md](PasskeyMfaMigration.md) | **Passkey / SMS-voice MFA retirement** - per-user methods, SMS risk, staff CSV; Microsoft Feb 2027 |
 | [ProjectVision.md](ProjectVision.md) | Strategic goals and product positioning |
 | [ProductRequirements.md](ProductRequirements.md) | MVP scope, user stories, functional requirements |
@@ -65,6 +66,7 @@ Read these documents before changing application code. **Update Brain for every 
 | Entra ID Free SuperOps app assign | `entra_superops_app_id` (Application client ID) + `Application.Read.All` + `AppRoleAssignment.ReadWrite.All` |
 | SuperOps requester display names | `EntraSyncDisplayName::formatSuperOpsFamilyName()` → `extensionAttribute1`; SCIM **name.familyName** Direct - [SuperOpsEntraSync.md#requester-display-names](SuperOpsEntraSync.md#requester-display-names) |
 | Client onboarding wizard | `ClientOnboardingService`, `OnboardingManual` (automated / remaining / recovery), `admin/clients` forms + wire/Apply SCIM |
+| GDAP lifecycle | `app/Services/Gdap/*`, `portal:audit-gdap`, Edit Client strip - [Gdap.md](Gdap.md) |
 | Shared client visibility | `ClientVisibilityService` - org-wide vs own person across SuperOps / M365 / Huntress |
 | Huntress cases + staff board | `HuntressSecurityController`, `ClientHuntressSecurityController`, `HuntressIncidentService` |
 | Dropsuite org import | `DropsuiteOrganizationDirectory`, `DropsuiteOrganizationController`, `/admin/dropsuite-organizations` |
@@ -92,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-12 | GDAP lifecycle (flag off): nightly audit, create/assign/auto-extend, Edit Client strip blocks Connect until the relationship is active and the technician group is assigned. Steps 04 and 08 unchanged. - [Gdap.md](Gdap.md) |
 | 2026-11-09 | Deployed `df43ed0`: Dropsuite org import + Defender DKIM auto-read. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-09 | Defender DKIM: portal reads Enabled/Valid for every accepted domain (no per-domain Defender walk). Needs Exchange.ManageAsApp + Exchange Administrator on the portal app. Send-test tick stays manual. - [MailDomainDns.md](MailDomainDns.md) |
 | 2026-11-06 | Dropsuite organization ids: import GET /users then filter to live clients (Admin → Clients → Dropsuite orgs). Do not paste user ids like 360787-12. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |

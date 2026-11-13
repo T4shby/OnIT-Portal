@@ -142,6 +142,19 @@ return [
         'web_max_execution_seconds' => max(60, (int) env('ENTRA_SYNC_WEB_MAX_EXECUTION_SECONDS', 300)),
     ],
 
+    // Partner-tenant GDAP audit. Off until the On IT tenant app is consented.
+    // See Brain/Gdap.md. Tokens are taken in GDAP_PARTNER_TENANT_ID, not the customer.
+    'gdap' => [
+        'enabled' => filter_var(env('GDAP_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'partner_tenant_id' => env('GDAP_PARTNER_TENANT_ID'),
+        'client_id' => env('GDAP_CLIENT_ID', env('ENTRA_SYNC_CLIENT_ID', env('MICROSOFT_CLIENT_ID'))),
+        'client_secret' => env('GDAP_CLIENT_SECRET', env('ENTRA_SYNC_CLIENT_SECRET', env('MICROSOFT_CLIENT_SECRET'))),
+        'technician_group_id' => env('GDAP_TECHNICIAN_GROUP_ID'),
+        'duration' => 'P730D',
+        'auto_extend_duration' => 'P180D',
+        'expiring_within_days' => 30,
+    ],
+
     'm365_insights' => [
         'insights_cache_minutes' => (float) env('M365_INSIGHTS_CACHE_MINUTES', 5),
         // Prewarm requeue (default 2.5m cadence).

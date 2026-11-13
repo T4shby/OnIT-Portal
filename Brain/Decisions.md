@@ -384,3 +384,18 @@ On IT Portal is the main onboarding guide. Six customers need mail readiness che
 
 Consequences:
 Pax8 deeper is deferred until this programme is done. DomainEmailChange (user SMTP cutover) stays separate. Portal reports DNS only; it does not change registrar records.
+
+---
+
+## ADR-027
+
+Date: 2026-11-12
+
+Decision:
+GDAP for portal clients is audited from the On IT partner tenant with Microsoft Graph `tenantRelationships`. The nightly job creates a missing or dead relationship, locks it for approval, assigns `GDAP_TECHNICIAN_GROUP_ID` once it is active, and turns on 180-day auto-extend. The standing role set omits Global Administrator so auto-extend is allowed. Connect Microsoft and Re-consent are blocked only when `GDAP_ENABLED=true`, the partner app is configured, and the snapshot says the relationship is not ready. Steps 04 and 08 are not renumbered. The flag ships false.
+
+Reason:
+Connect Microsoft (portal app consent) and GDAP (technician sign-in) are different grants. The checklist assumed GDAP and never checked it. Microsoft will not let a partner approve its own GDAP request, so the approval link is shown to staff and is not emailed.
+
+Consequences:
+One-time setup in the On IT tenant is required before the flag is turned on: `DelegatedAdminRelationship.ReadWrite.All`, service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`, and the technician security group. Customer-tenant Entra sync tokens stay as they are. A Graph failure keeps a previous block and does not invent a pass. See [Gdap.md](Gdap.md).

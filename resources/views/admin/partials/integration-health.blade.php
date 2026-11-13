@@ -234,6 +234,43 @@
         </div>
     @endif
 
+    @php($gdap = $integrationHealth['gdap'] ?? null)
+    @if(is_array($gdap))
+        <div class="admin-table-wrap mb-6 sm:mb-8">
+            <div class="border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4">
+                <h2 class="admin-section-title mb-0">GDAP</h2>
+                <p class="text-xs text-white/50 mt-1 leading-snug">
+                    Partner admin relationship for technician sign-in. Checked nightly. This page reads the last result.
+                </p>
+            </div>
+            <div class="px-4 sm:px-6 py-4 text-sm font-light leading-relaxed text-white/70">
+                @if(! ($gdap['enabled'] ?? false))
+                    <p>GDAP audit is off (GDAP_ENABLED=false). Connect Microsoft is not gated.</p>
+                @elseif(! ($gdap['configured'] ?? false))
+                    <p class="text-amber-100">{{ $gdap['headline'] }}</p>
+                @elseif(($gdap['problem_count'] ?? 0) === 0)
+                    <p class="text-emerald-200">GDAP is active for {{ $gdap['ready_count'] ?? 0 }} checked client(s).</p>
+                @else
+                    <p class="text-amber-100">{{ $gdap['headline'] }}</p>
+                    <ul class="mt-3 space-y-2">
+                        @foreach($gdap['problems'] as $problem)
+                            <li>
+                                <a href="{{ route('admin.clients.edit', $problem['client_id']) }}" class="text-white underline">{{ $problem['client_name'] }}</a>
+                                <span class="text-white/50">· {{ $problem['status_label'] }}</span>
+                                @if(filled($problem['summary'] ?? null))
+                                    <span class="block text-xs text-white/50">{{ $problem['summary'] }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                        @if(($gdap['problem_count'] ?? 0) > count($gdap['problems']))
+                            <li class="text-xs text-white/50">+ {{ $gdap['problem_count'] - count($gdap['problems']) }} more on Edit Client.</li>
+                        @endif
+                    </ul>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div class="admin-table-wrap mb-6 sm:mb-8">
         <div class="border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>

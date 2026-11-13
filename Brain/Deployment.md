@@ -161,9 +161,16 @@ BILLING_PORTAL_URL=https://your-billing-url
 ENTRA_SYNC_ENABLED=true
 ENTRA_SYNC_MAINTAIN_SUPEROPS_GROUP=true
 ENTRA_SYNC_SUPEROPS_NAME_EXTENSION_ATTRIBUTE=1
+
+# GDAP stays off until Brain/Gdap.md one-time setup is done in the On IT tenant.
+GDAP_ENABLED=false
+GDAP_PARTNER_TENANT_ID=
+GDAP_TECHNICIAN_GROUP_ID=
 ```
 
 See [EntraGroupSync.md](EntraGroupSync.md) for optional keys (`ENTRA_SYNC_CLIENT_ID`, provision-on-demand interval, etc.).
+
+GDAP (`GDAP_ENABLED`, partner tenant id, technician group) is documented in [Gdap.md](Gdap.md). Leave it false on deploy until that one-time On IT tenant consent is done. `portal:audit-gdap` runs at 04:40 and no-ops while the flag is false.
 
 ### 7. Run Migrations and Seeders
 

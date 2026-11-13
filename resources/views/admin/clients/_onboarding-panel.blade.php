@@ -34,9 +34,20 @@
             </div>
         @endif
 
+        @if(($gdap['enabled'] ?? false) === true)
+            @include('admin.clients._gdap-strip', ['client' => $client, 'gdap' => $gdap])
+        @endif
+
         @if(! empty($adminConsentUrl))
             <div class="mt-4 space-y-2">
-                @if(! filled($client->entra_tenant_id))
+                @if(($gdap['blocks_connect'] ?? false) && ! filled($client->entra_tenant_id))
+                    <button type="button" disabled class="cta-btn inline-flex w-full cursor-not-allowed items-center justify-center px-4 py-2.5 text-center text-sm opacity-50">
+                        Connect Microsoft tenant
+                    </button>
+                    <p class="text-xs leading-relaxed text-amber-50">
+                        Connect stays blocked until GDAP is active and the technician security group is assigned.
+                    </p>
+                @elseif(! filled($client->entra_tenant_id))
                     <a
                         href="{{ $adminConsentUrl }}"
                         target="_blank"
@@ -74,16 +85,22 @@
                                     (Azure lag after Accept - not a second Microsoft login).
                                 </p>
                             @endif
-                            <a
-                                href="{{ $adminConsentUrl }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="cta-btn-ghost inline-flex w-full items-center justify-center px-4 py-2.5 text-center text-sm"
-                            >Re-consent Graph permissions</a>
-                            <p>
-                                Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong>.
-                                Use after On IT adds Application permissions. Does not redo SCIM or Client SSO.
-                            </p>
+                            @if($gdap['blocks_connect'] ?? false)
+                                <p class="text-xs leading-relaxed text-amber-50">
+                                    Re-consent stays blocked until GDAP is active and the technician security group is assigned.
+                                </p>
+                            @else
+                                <a
+                                    href="{{ $adminConsentUrl }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="cta-btn-ghost inline-flex w-full items-center justify-center px-4 py-2.5 text-center text-sm"
+                                >Re-consent Graph permissions</a>
+                                <p>
+                                    Private browser · GDAP into <strong class="text-white/80">{{ $client->name }}</strong>.
+                                    Use after On IT adds Application permissions. Does not redo SCIM or Client SSO.
+                                </p>
+                            @endif
                         </div>
                     </details>
                 @endif
@@ -122,7 +139,8 @@
         @include('admin.clients._onboarding-steps', [
             'client' => $client,
             'onboardingSteps' => $onboardingSteps,
-            'adminConsentUrl' => $adminConsentUrl,
+            'adminConsentUrl' => ($gdap['blocks_connect'] ?? false) ? null : $adminConsentUrl,
+            'gdap' => $gdap ?? ['enabled' => false, 'blocks_connect' => false],
             'showCheckboxes' => $hasManualCheckboxes,
         ])
     </div>

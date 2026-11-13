@@ -29,6 +29,7 @@ class Client extends Model
         'entra_sync_enabled',
         'entra_synced_at',
         'onboarding_checklist',
+        'gdap_snapshot',
         'product_entitlements',
         'is_active',
     ];
@@ -42,6 +43,7 @@ class Client extends Model
             'entra_sync_enabled' => 'boolean',
             'entra_synced_at' => 'datetime',
             'onboarding_checklist' => 'array',
+            'gdap_snapshot' => 'array',
             'product_entitlements' => 'array',
         ];
     }

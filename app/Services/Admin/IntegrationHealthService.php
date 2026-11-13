@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Services\EntraSync\MicrosoftGraphClient;
+use App\Services\Gdap\GdapSnapshotPresenter;
 use App\Services\MailDns\ClientDomainService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -117,6 +118,10 @@ class IntegrationHealthService
             $coldCount,
             $accessibleClientIds,
         );
+        $gdap = app(GdapSnapshotPresenter::class)->portfolio($clients);
+        if (filled($gdap['headline'] ?? null)) {
+            array_unshift($notices, $gdap['headline']);
+        }
 
         return [
             'queue' => $queue,
@@ -129,6 +134,7 @@ class IntegrationHealthService
             'due_count' => $dueCount,
             'cold_count' => $coldCount,
             'cleared_orphans' => $clearedOrphans,
+            'gdap' => $gdap,
         ];
     }
 

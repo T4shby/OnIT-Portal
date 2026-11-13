@@ -4,7 +4,7 @@
 
 ### clients
 
-`id`, `name`, `slug`, `primary_domain` (required on create; main mail domain), `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** - Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** - Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `product_entitlements` (JSON: entitled flags per catalog key - services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
+`id`, `name`, `slug`, `primary_domain` (required on create; main mail domain), `superops_account_id`, `superops_sso_enabled`, `pax8_company_id`, `pax8_sso_enabled`, `dropsuite_organization_id`, `huntress_organization_id`, `entra_tenant_id`, `entra_group_id`, `entra_superops_app_id` (customer SCIM **Application (client) ID** - Entra ID Free assignment), `entra_superops_sso_app_id` (customer Client SSO **Application (client) ID** - Entra ID Free requester login assignment), `entra_sync_enabled`, `entra_synced_at`, `onboarding_checklist` (JSON), `gdap_snapshot` (JSON, last GDAP audit: status, blocks_connect, approval link, relationship id - staff only, see [Gdap.md](Gdap.md)), `product_entitlements` (JSON: entitled flags per catalog key - services `superops`/`m365`/`huntress`/`dropsuite` + licence vendors e.g. `pax8`; planned `usecure` when shipped), `is_active`, timestamps
 
 **Planned (not migrated):** `usecure_company_id` - see [UsecureIntegration.md](UsecureIntegration.md).
 
@@ -81,6 +81,7 @@ Command: `portal:capture-metric-snapshots` (scheduled **02:15** daily).
 - `2026_08_06_120000_add_product_entitlements_to_clients.php`
 - `2026_08_10_120000_create_client_metric_daily_snapshots_table.php`
 - `2026_10_19_120000_add_client_mail_domains.php`
+- `2026_11_12_120000_add_gdap_snapshot_to_clients.php`
 
 ## Tenant Rules
 

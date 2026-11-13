@@ -17,7 +17,7 @@ Status as of **2026-08-21**. Shipped work is live product; backlog is ordered by
 | Product entitlements | Sold vs mapped; tiles / prewarm / IH honour entitlements |
 | Technician Integration Health | Live pipeline, cold (Never loaded), stuck/due/aging; adaptive idle vs hot; **reads current feed `cacheKey()` only** |
 | Staff Admin dashboard | Clients / users stats (notices tile retired 2026-09-29, F9) + **Sold product coverage** KPI matrix with AM filter and CSV export |
-| Onboarding | Technician checklist / GDAP; Client SSO per customer tenant (not Global SSO experiment) |
+| Onboarding | Technician checklist; GDAP lifecycle built and flag-gated ([Gdap.md](Gdap.md)); Client SSO per customer tenant (not Global SSO experiment) |
 | Client home / Reports | Glance + Reports on **`main`**; Last month switches the home and Reports to the stored end-of-month figures - [UIOverhaul.md](UIOverhaul.md) |
 | Client portal mobile | Bottom tab nav, slide-up menu, ticket cards, glance scroll strips - [UIOverhaul.md](UIOverhaul.md) |
 | Deploy | GitHub → Plesk archive; production branch **`main`** - [Deployment.md](Deployment.md) |
@@ -34,6 +34,7 @@ Ops KPI for sold service feeds: **cold cells → 0**. Prewarm still queues **col
 6. **Performance budget** - queue round-robin fairness if partner count grows past current prewarm model.
 7. **UI pipeline metrics** - activity, MTD threats, last-month compare, Secure Score/MFA soft-fail, sold-coverage CSV/AM filter are shipped. Still open: avg first response, patch posture, restore retention - [UIOverhaul.md](UIOverhaul.md).
 8. **Optional SuperOps calendar-month ticket history** - not required for last-month compare; that view uses the nightly snapshots.
+9. **GDAP lifecycle** - built, flag off until the On IT tenant app is consented. Then it audits every portal client, requests missing relationships, assigns the technician group, and blocks Connect until that is active. - [Gdap.md](Gdap.md).
 
 ## Later / optional
 

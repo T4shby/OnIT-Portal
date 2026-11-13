@@ -6,6 +6,8 @@
 
 **MSP operating rule:** On IT technicians perform all customer-tenant setup and consent through delegated / GDAP access. Customers receive no onboarding tasks or Accept links.
 
+GDAP itself is checked by the portal when `GDAP_ENABLED=true`. The portal can create the request and assign the technician security group. It cannot approve the request. That one Microsoft page is the exception, and only when On IT has no Global Admin path into the tenant. The portal does not email it. See [Gdap.md](Gdap.md). The flag ships off.
+
 ```
 Customer M365 tenant
         │
@@ -153,7 +155,7 @@ Login matches **`entra_object_id` first** (stable), then email. On success it ma
 
 | Date | Change |
 |---|---|
-| 2026-10-14 | Email-align skip means two SuperOps requesters share the address. Clear it from the wrong requester. YorPower is the live case. |
+| 2026-11-12 | GDAP approval is the one Microsoft page the portal cannot complete. Flag off until [Gdap.md](Gdap.md) setup. |
 | 2026-08-13 | 0-templates SCIM create bug: template instantiate + Retry Graph recreate; never Azure UI delete for Sync 1 |
 | 2026-08-13 | SCIM job missing troubleshooting + repair command; Sync 2 provision-on-demand for users without `superops_user_id` |
 | 2026-08-11 | SuperOps email align + Graph aliases + object-id portal upsert on domain change |

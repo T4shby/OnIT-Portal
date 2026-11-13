@@ -70,6 +70,11 @@ Schedule::command('portal:recheck-client-domain-dns')
     ->dailyAt('04:10')
     ->withoutOverlapping(120);
 
+// Partner-tenant GDAP audit. The command no-ops while GDAP_ENABLED is false.
+Schedule::command('portal:audit-gdap')
+    ->dailyAt('04:40')
+    ->withoutOverlapping(120);
+
 // Optional Teams/email when Integration Health stays warning/critical.
 Schedule::command('portal:notify-integration-health')
     ->everyFifteenMinutes()

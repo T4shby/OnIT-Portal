@@ -29,6 +29,7 @@ app/
   Enums/PortalLinkType.php, UserRole.php
   Http/Controllers/Auth, Support, Integrations, Admin
   Services/SuperOps/
+  Services/Gdap/     partner-tenant GDAP audit (Brain/Gdap.md)
   Models/
 Brain/          ← source of truth
 ```
