@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~13:50 UK - Read GDAP client names (no changes)
+
+| | |
+|---|---|
+| Intent | Name the client with no Microsoft tenant, and the eight waiting on approval. |
+| Operator | agent (Cursor) |
+| SHA before -> after | n/a (read only) |
+| Steps | SSH. Read `gdap_snapshot` status, client id, and name for active clients in `needs_tenant`, `approval_pending`, and `unassigned`. |
+| Result | `needs_tenant`: On IT Technology Partners (id 1). `approval_pending`: Actio Recruitment, Bravado Builders, Bray Interiors, Find, Finishing Design Services, MXVI, Premier Fleet Solutions, Reid & Rose Bookkeeping & Accounting. `unassigned`: 3R Systems, Ductec, JustLife, Rayner Smith, Urbana Town Planning, YorPower. |
+| Rollback / watch | Nothing to undo. |
+
 ### 2026-11-16 ~13:40 UK - Set GDAP technician group and drop a rejected role
 
 | | |
