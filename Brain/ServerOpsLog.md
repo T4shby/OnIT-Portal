@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~14:15 UK - Clients key wording
+
+| | |
+|---|---|
+| Intent | Replace the Clients list key. The licence line read like a design note. |
+| Operator | agent |
+| SHA before -> after | `e915af2` -> `f5a1646` |
+| Steps | Pushed `f5a1646`. SSH: vhost fetch, `git archive main` into the live path, chown, composer install --no-dev, migrate --force, route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload plesk-php84-fpm. No cache:clear. |
+| Result | Live `.deployed-commit` `f5a1646`. `/up` 200. |
+| Rollback / watch | Redeploy `e915af2`. Hard-refresh Admin Clients. The key should say what we sell, where they buy licences, and GDAP in place / not set up / not checked. |
+
 ### 2026-11-16 ~14:05 UK - Clients columns and Integration Health speed
 
 | | |
