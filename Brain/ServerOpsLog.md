@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~14:40 UK - Timing settings no longer stuck open
+
+| | |
+|---|---|
+| Intent | Integration Health opened with Refresh timing in front of the page, and Close did nothing. |
+| Operator | agent |
+| SHA before -> after | `f5a1646` -> `9311374` |
+| Steps | Pushed `9311374`. SSH: vhost fetch, `git archive main` into the live path, chown, composer install --no-dev, migrate --force, route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload plesk-php84-fpm. No cache:clear. |
+| Result | Live `.deployed-commit` `9311374`. `/up` 200. Timing panel is a closed dialog (`id="ih-timing"`). |
+| Rollback / watch | Redeploy `f5a1646`. Hard-refresh Integration Health. The page should show the health view. Timing settings opens only from the button. Close, the dimmed area, and Escape dismiss it. |
+
 ### 2026-11-16 ~14:15 UK - Clients key wording
 
 | | |
