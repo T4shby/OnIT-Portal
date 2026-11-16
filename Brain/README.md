@@ -94,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Clients list key uses staff wording: what we sell, where they buy licences, GDAP in place / not set up / not checked. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | Clients list shows SuperOps, M365, Huntress and Dropsuite by name, Licence in its own column (Pax8, more vendors later), and a GDAP tick, cross, or question mark. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | Integration Health no longer calls Microsoft before the page renders. The timing drawer stays closed unless Timing settings is opened. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | GDAP standing roles omit Privileged Authentication Administrator. Microsoft returns 400 when that role is on the create. Group id is set in production. - [Gdap.md](Gdap.md) |

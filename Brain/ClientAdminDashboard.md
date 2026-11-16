@@ -278,7 +278,7 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 Status codes: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.  
 Labels differ by kind (e.g. vendor: “Not assigned” / “Assigned” instead of “Not sold” / “Live”).
 
-**Admin UX:** Clients list has three columns. **Products** = named pills SuperOps, M365, Huntress, Dropsuite. **Licence** = its own column (Pax8 today, dashed border). **GDAP** = green tick when the relationship is active (including expiring), red cross when it is not set up (no relationship, awaiting approval, no security group, missing roles), yellow ? when it cannot be checked (not checked, check failed, no tenant, GDAP off). **Colours (solid fill):** green = live/assigned · yellow = setup/link needed · red = platform error · greyed out = not sold/not assigned. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
+**Admin UX:** Clients list columns are **Products** (what we sell: SuperOps, M365, Huntress, Dropsuite), **Licence** (where they buy Microsoft licences; dashed border; Pax8 now), and **GDAP** (tick = in place, including expiring; cross = not set up; ? = not checked). **Colours:** green = live · yellow = needs setup · red = error · grey = not sold. The on-page key uses those words. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
 
 **Adding a future licence vendor:** (1) key in `KEYS`, (2) catalog entry `kind => licence_vendor` with a `list_label`, (3) `isMapped` / `isPlatformReady`, (4) blade `products/_newvendor.blade.php`. The Licence column lists every catalog vendor. No clients-list change is required.
 
