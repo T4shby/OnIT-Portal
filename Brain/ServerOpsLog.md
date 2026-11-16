@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~14:05 UK - Clients columns and Integration Health speed
+
+| | |
+|---|---|
+| Intent | Clients list should name SuperOps, M365, Huntress and Dropsuite, keep Licence separate (Pax8 now), and show a GDAP tick, cross, or question mark. Integration Health was waiting on Microsoft before it could render, and opened the timing drawer. |
+| Operator | agent |
+| SHA before -> after | `8f9d9f7` -> `e915af2` |
+| Steps | Pushed `e915af2`. SSH: vhost fetch, `git archive main` into `/var/www/vhosts/onit.ltd/app.onit.ltd`, chown, composer install --no-dev, migrate --force, route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload plesk-php84-fpm. No cache:clear. usecure skeleton left uncommitted. |
+| Result | Live `.deployed-commit` `e915af2`. `/up` 200. Clients index has Licence and GDAP columns. Integration Health passes `liveScimHealth: false`. |
+| Rollback / watch | Redeploy `8f9d9f7`. Hard-refresh Admin Clients and Integration Health. Clients should show named product pills, a Licence column, and GDAP marks. Integration Health should open on the health view, not the timing drawer. |
+
 ### 2026-11-16 ~13:50 UK - Read GDAP client names (no changes)
 
 | | |
