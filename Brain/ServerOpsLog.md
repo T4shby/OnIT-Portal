@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~13:10 UK - Fix Integration Health 500
+
+| | |
+|---|---|
+| Intent | Integration Health returned 500. The GDAP block used `@php(...)` with `??`, so Blade left that section uncompiled and PHP died on `endif`. |
+| Operator | agent (Cursor) |
+| SHA before -> after | `92c6b8c` -> `a2d74bc` |
+| Steps | Commit `a2d74bc`. Push `main`. SSH bare fetch, `git archive`, composer, migrate (nothing), route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload `plesk-php84-fpm`. No `.env` change. No `cache:clear`. |
+| Result | Live `.deployed-commit` `a2d74bc`. `/up` 200. GDAP flag still on. Compiled views rebuilt. |
+| Rollback / watch | Redeploy `92c6b8c`. Hard-refresh Admin Integration Health. The GDAP section should list the check-failed clients. |
+
 ### 2026-11-16 ~12:55 UK - Read GDAP audit results (no changes)
 
 | | |
