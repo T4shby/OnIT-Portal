@@ -41,7 +41,7 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 | Operator | agent (Cursor) |
 | SHA before -> after | `a2d74bc` -> this commit |
 | Steps | Set `GDAP_TECHNICIAN_GROUP_ID` on the server `.env` (security-enabled group, not mail-enabled). `config:clear` and `optimize`. No `cache:clear`. Confirmed the portal token includes `DelegatedAdminRelationship.ReadWrite.All` and relationship list returns 200. Create with all nine standing roles returned 400. Privileged Authentication Administrator alone returned 400. The other eight roles with `P730D` and `P180D` returned 201. Deleted 11 draft probe relationships (status `created`, names `On IT scan *` or `On IT {id} {date}-3`) with `If-Match`. Removed that role from `GdapRoleSet`. |
-| Result | Group id is in the cached config. Probe drafts deleted. Role fix ships in this commit. Audit result is the next entry after deploy. |
+| Result | Live `.deployed-commit` `8f9d9f7`. `/up` 200. Group id set. Audit: 8 `approval_pending` (created), 6 `unassigned` (group assignment sent), 1 `needs_tenant`, 0 failed. |
 | Rollback / watch | Remove `GDAP_TECHNICIAN_GROUP_ID`, `config:clear`, `optimize`. Redeploy the previous SHA to put the rejected role back. Draft probes must stay deleted so the audit does not lock a one-role request. |
 
 ### 2026-11-16 ~13:10 UK - Fix Integration Health 500
