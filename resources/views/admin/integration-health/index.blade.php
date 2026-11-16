@@ -1,5 +1,5 @@
 @php
-    $forceSettingsOpen = $errors->any() || session()->has('success');
+    $forceSettingsOpen = $errors->any();
 @endphp
 
 <x-admin-layout>
@@ -41,6 +41,10 @@
                     @endforeach
                 </ul>
             </x-alert>
+        @endif
+
+        @if(session('success'))
+            <x-alert type="success" class="mb-8">{{ session('success') }}</x-alert>
         @endif
 
         <div class="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">

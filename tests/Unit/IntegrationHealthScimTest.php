@@ -112,6 +112,26 @@ class IntegrationHealthScimTest extends TestCase
         $this->assertSame('Not checked', $scim['status_label']);
     }
 
+    public function test_default_overview_does_not_call_graph_when_scim_cache_is_empty(): void
+    {
+        Client::factory()->create([
+            'is_active' => true,
+            'entra_sync_enabled' => true,
+            'entra_tenant_id' => '11111111-1111-1111-1111-111111111111',
+            'entra_superops_app_id' => '22222222-2222-2222-2222-222222222222',
+            'superops_account_id' => 'acc-page',
+        ]);
+
+        $graph = \Mockery::mock(\App\Services\EntraSync\MicrosoftGraphClient::class);
+        $graph->shouldReceive('getSuperOpsScimProvisioningHealth')->never();
+        $this->app->instance(\App\Services\EntraSync\MicrosoftGraphClient::class, $graph);
+
+        $scim = collect(app(IntegrationHealthService::class)->overview()['clients'][0]['integrations'])
+            ->firstWhere('key', 'superops_scim');
+
+        $this->assertSame('Not checked', $scim['status_label']);
+    }
+
     public function test_mail_dns_notices_do_not_leak_out_of_scope_client_names(): void
     {
         Client::factory()->create([

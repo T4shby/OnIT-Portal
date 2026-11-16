@@ -67,9 +67,11 @@ class IntegrationHealthService
      * @param  list<int>|null  $accessibleClientIds  null = all clients (console / internal callers);
      *                                                   an empty list means the viewer may see no clients
      *                                                   (e.g. an account manager with no assignments) - never "all".
-     * @param  bool  $liveScimHealth  When false (Staff Admin dashboard), reuse cached SCIM Graph
-     *                                results only - never call Microsoft mid-request. Live Graph
-     *                                stays on the Integration Health page.
+     * @param  bool  $liveScimHealth  Reuse cached SCIM Graph results. The default is false so
+     *                                Staff Admin, Integration Health, and the 5-second poll never
+     *                                call Microsoft before HTML is returned. Pass true only for an
+     *                                explicit one-off refresh. Apply SCIM, repair, and onboarding
+     *                                warm the cache.
      * @return array{
      *     queue: array<string, mixed>,
      *     pipeline: array<string, mixed>,
@@ -82,7 +84,7 @@ class IntegrationHealthService
      *     cleared_orphans: int,
      * }
      */
-    public function overview(?array $accessibleClientIds = null, bool $liveScimHealth = true): array
+    public function overview(?array $accessibleClientIds = null, bool $liveScimHealth = false): array
     {
         $clearedOrphans = 0;
 
@@ -783,7 +785,7 @@ class IntegrationHealthService
     /**
      * @return array<string, mixed>
      */
-    public function clientRow(Client $client, int &$clearedOrphans = 0, bool $liveScimHealth = true): array
+    public function clientRow(Client $client, int &$clearedOrphans = 0, bool $liveScimHealth = false): array
     {
         $products = app(\App\Services\Portal\ClientProductService::class);
 
@@ -888,7 +890,7 @@ class IntegrationHealthService
      *
      * @return array<string, mixed>
      */
-    private function superOpsScimExport(Client $client, bool $liveScimHealth = true): array
+    private function superOpsScimExport(Client $client, bool $liveScimHealth = false): array
     {
         $key = 'superops_scim';
         $label = 'SuperOps SCIM export';
@@ -911,14 +913,13 @@ class IntegrationHealthService
 
         if (! is_array($health)) {
             if (! $liveScimHealth) {
-                // Staff Admin must stay fast - do not fan out Graph to every tenant here.
                 return $this->scimHealthCell(
                     key: $key,
                     label: $label,
                     status: 'ok',
                     statusLabel: 'Not checked',
-                    whatItIsDoing: 'SCIM status not cached. Open Integration Health for a live Microsoft check.',
-                    whatNext: 'Open Integration Health (or wait for a prior check) to refresh SCIM export status.',
+                    whatItIsDoing: 'SCIM status is not cached yet.',
+                    whatNext: 'Apply SCIM or a SCIM repair stores this. The health page reads that cache and does not call Microsoft.',
                     blockers: [],
                     error: null,
                 );
@@ -928,7 +929,6 @@ class IntegrationHealthService
                 (string) $client->entra_tenant_id,
                 (string) $client->entra_superops_app_id,
             );
-            // 30m (was 5m) so Integration Health live polling does not re-hit Graph often.
             Cache::put($cacheKey, $health, now()->addMinutes(30));
         }
 

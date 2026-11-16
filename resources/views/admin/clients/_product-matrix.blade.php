@@ -1,8 +1,11 @@
-{{-- Fixed-size chips: green live · yellow setup · red error · grey not sold. Vendor chips same size, dashed. --}}
+{{-- Named status pills. $group is services (default) or vendors. --}}
 @php
     $products = app(\App\Services\Portal\ClientProductService::class);
-    $services = $products->serviceMatrixForClient($client);
-    $vendors = $products->licenceVendorMatrixForClient($client);
+    $group = $group ?? 'services';
+    $cells = $group === 'vendors'
+        ? $products->licenceVendorMatrixForClient($client)
+        : $products->serviceMatrixForClient($client);
+    $vendor = $group === 'vendors';
     $chipState = function (string $colour): string {
         return match ($colour) {
             'green' => 'product-chip--live',
@@ -12,21 +15,13 @@
         };
     };
 @endphp
-<div class="product-chip-row">
-    @foreach($services as $cell)
+<div class="product-pill-row">
+    @forelse($cells as $cell)
         <span
-            class="product-chip {{ $chipState($cell['colour']) }}"
+            class="product-pill {{ $vendor ? 'product-chip--vendor' : '' }} {{ $chipState($cell['colour']) }}"
             title="{{ $cell['label'] }}: {{ $cell['status_label'] }}"
-        >{{ $cell['short'] }}</span>
-    @endforeach
-
-    @if($vendors !== [])
-        <span class="product-chip-sep" aria-hidden="true" title="Licence vendor">·</span>
-        @foreach($vendors as $cell)
-            <span
-                class="product-chip product-chip--vendor {{ $chipState($cell['colour']) }}"
-                title="{{ $cell['label'] }} (licence vendor): {{ $cell['status_label'] }}"
-            >{{ $cell['short'] }}</span>
-        @endforeach
-    @endif
+        >{{ $cell['list_label'] }}</span>
+    @empty
+        <span class="text-white/30">-</span>
+    @endforelse
 </div>

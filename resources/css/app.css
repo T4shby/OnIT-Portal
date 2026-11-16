@@ -477,6 +477,24 @@
         @apply mx-0.5 shrink-0 select-none text-[10px] font-light text-white/25;
     }
 
+    .product-pill-row {
+        @apply flex max-w-[22rem] flex-wrap items-center gap-1;
+    }
+
+    .product-pill {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        height: 1.5rem;
+        padding: 0 0.45rem;
+        border-width: 1px;
+        border-style: solid;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
     .admin-input {
         @apply w-full border border-onit-border bg-onit-surface px-3 py-2 text-sm font-light text-white placeholder:text-white/40 focus:border-onit focus:ring-onit;
     }

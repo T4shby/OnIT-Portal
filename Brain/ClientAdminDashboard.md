@@ -54,7 +54,7 @@ All **Dashboard glance** integrations implement `App\Contracts\DashboardFeed` an
 
 **SuperOps SCIM column (2026-08-13):** When SuperOps is sold and Entra sync is on, **SuperOps SCIM** sits next to **Devices & tickets**. It reports Entra **Sync 1** (provisioning job + export to requesters) - cached Graph health ~30m - separate from SuperOps GraphQL dashboard refresh. **Export stopped** / **Setup needed** count as **Failed** in portfolio KPIs and surface in **Needs attention** + notices.
 
-**Staff Admin speed (2026-11-02):** `/admin` sold-coverage + pipeline summary calls `overview(..., liveScimHealth: false)` so it never fans out live Graph SCIM checks across every tenant (that made Staff Admin hang for minutes). Live SCIM Graph runs only on **Integration Health**. Without a cache entry, dashboard SCIM shows **Not checked** (not Failed). Mail-domain IH notices are scoped to the viewer’s clients (account managers never see other tenant names there).
+**Staff Admin and Integration Health speed:** `/admin` and `/admin/integration-health` (including the 5-second poll) call `overview(..., liveScimHealth: false)`. A cold `scim.health.*` cache used to call Microsoft once per client before HTML was returned, which hung both pages. Apply SCIM, SCIM repair, and onboarding warm that cache. Without a cache entry, SCIM shows **Not checked** (not Failed). The timing drawer stays closed on load, including after a successful save. Mail-domain IH notices are scoped to the viewer's clients (account managers never see other tenant names there).
 
 **Optional push alerts (2026-11-03):** `portal:notify-integration-health` every 15 minutes. When severity stays `warning`/`critical` for `INTEGRATION_HEALTH_ALERT_SUSTAINED_MINUTES` (default 15), send once to Teams webhook and/or email, then cooldown (`INTEGRATION_HEALTH_ALERT_COOLDOWN_MINUTES`, default 180). Off until `INTEGRATION_HEALTH_ALERTS_ENABLED=true` plus a channel. In-app IH remains the primary surface (ADR-023).
 
@@ -278,9 +278,9 @@ Policy: `App\Services\Portal\ClientProductService`. Storage: `clients.product_en
 Status codes: `not_sold` · `setup_needed` · `live` · `platform_down` · `error`.  
 Labels differ by kind (e.g. vendor: “Not assigned” / “Assigned” instead of “Not sold” / “Live”).
 
-**Admin UX:** Clients list = one row of equal-size chips `S M H D · P` (dashed = licence vendor). **Colours (solid fill):** green = live/assigned · yellow = setup/link needed · red = platform error · greyed out = not sold/not assigned. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
+**Admin UX:** Clients list has three columns. **Products** = named pills SuperOps, M365, Huntress, Dropsuite. **Licence** = its own column (Pax8 today, dashed border). **GDAP** = green tick when the relationship is active (including expiring), red cross when it is not set up (no relationship, awaiting approval, no security group, missing roles), yellow ? when it cannot be checked (not checked, check failed, no tenant, GDAP off). **Colours (solid fill):** green = live/assigned · yellow = setup/link needed · red = platform error · greyed out = not sold/not assigned. Client edit = **Portal products** + **Licence vendor**. Form fields in `resources/views/admin/clients/products/_*.blade.php`.
 
-**Adding a future licence vendor:** (1) key in `KEYS`, (2) catalog entry `kind => licence_vendor`, (3) `isMapped` / `isPlatformReady`, (4) blade `products/_newvendor.blade.php`.
+**Adding a future licence vendor:** (1) key in `KEYS`, (2) catalog entry `kind => licence_vendor` with a `list_label`, (3) `isMapped` / `isPlatformReady`, (4) blade `products/_newvendor.blade.php`. The Licence column lists every catalog vendor. No clients-list change is required.
 
 **Single rule:** tiles, gates, prewarm, Integration Health use `isEntitled` / `isMapped` / `shouldRefresh` for **services**. Vendors never prewarm dashboard feeds.
 

@@ -38,8 +38,8 @@ class DashboardController extends Controller
         // null = unscoped (super admin: every client, plus client-less queue rows).
         $healthScope = $user->can('manage-all-clients') ? null : $clientIds;
 
-        // Skip live SCIM Graph fan-out - that made Staff Admin take minutes when many
-        // tenants needed a fresh Microsoft check. Integration Health still does live SCIM.
+        // Skip live SCIM Graph fan-out. A cold cache used to call Microsoft once per
+        // client before the page could render. Integration Health reads the same cache.
         $overview = $this->integrationHealth->overview(
             $healthScope,
             liveScimHealth: false,

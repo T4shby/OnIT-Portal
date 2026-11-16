@@ -60,6 +60,7 @@ class ClientProductService
      * @return array<string, array{
      *   kind: string,
      *   label: string,
+     *   list_label: string,
      *   short: string,
      *   mapping_hint: string,
      *   toggle_label: string,
@@ -72,6 +73,7 @@ class ClientProductService
             self::KEY_SUPEROPS => [
                 'kind' => self::KIND_SERVICE,
                 'label' => 'Devices & tickets (SuperOps)',
+                'list_label' => 'SuperOps',
                 'short' => 'S',
                 'mapping_hint' => 'Paste SuperOps Account ID from the MSP console for this client.',
                 'toggle_label' => 'Sold to this client',
@@ -80,6 +82,7 @@ class ClientProductService
             self::KEY_M365 => [
                 'kind' => self::KIND_SERVICE,
                 'label' => 'Microsoft 365',
+                'list_label' => 'M365',
                 'short' => 'M',
                 'mapping_hint' => 'Portal directory and licence insight when Entra tenant is linked (fields below / Connect).',
                 'toggle_label' => 'Sold to this client',
@@ -88,6 +91,7 @@ class ClientProductService
             self::KEY_HUNTRESS => [
                 'kind' => self::KIND_SERVICE,
                 'label' => 'Security (Huntress)',
+                'list_label' => 'Huntress',
                 'short' => 'H',
                 'mapping_hint' => 'Paste Huntress organization ID (numeric org id from Huntress URL).',
                 'toggle_label' => 'Sold to this client',
@@ -96,6 +100,7 @@ class ClientProductService
             self::KEY_DROPSUITE => [
                 'kind' => self::KIND_SERVICE,
                 'label' => 'Backups (Dropsuite)',
+                'list_label' => 'Dropsuite',
                 'short' => 'D',
                 'mapping_hint' => 'Short number, not shown in Dropsuite. YorPower is 6182. Do not paste a user id like 360787-12.',
                 'toggle_label' => 'Sold to this client',
@@ -105,6 +110,7 @@ class ClientProductService
             self::KEY_PAX8 => [
                 'kind' => self::KIND_LICENCE_VENDOR,
                 'label' => 'Pax8',
+                'list_label' => 'Pax8',
                 'short' => 'P',
                 'mapping_hint' => 'Assign when this client’s Microsoft / cloud licences are purchased via Pax8. Paste company ID and enable portal access.',
                 'toggle_label' => 'Licences via this vendor',
@@ -352,7 +358,7 @@ class ClientProductService
     /**
      * Matrix for Admin → Clients list chips.
      *
-     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
+     * @return list<array{key: string, short: string, label: string, list_label: string, status: string, colour: string, status_label: string, kind: string}>
      */
     public function matrixForClient(Client $client): array
     {
@@ -368,6 +374,7 @@ class ClientProductService
                 'key' => $key,
                 'short' => $catalog[$key]['short'],
                 'label' => $catalog[$key]['label'],
+                'list_label' => $catalog[$key]['list_label'] ?? $catalog[$key]['label'],
                 'kind' => $catalog[$key]['kind'],
                 'status' => $status,
                 'colour' => $this->statusColour($status),
@@ -379,7 +386,7 @@ class ClientProductService
     }
 
     /**
-     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
+     * @return list<array{key: string, short: string, label: string, list_label: string, status: string, colour: string, status_label: string, kind: string}>
      */
     public function serviceMatrixForClient(Client $client): array
     {
@@ -390,7 +397,7 @@ class ClientProductService
     }
 
     /**
-     * @return list<array{key: string, short: string, label: string, status: string, colour: string, status_label: string, kind: string}>
+     * @return list<array{key: string, short: string, label: string, list_label: string, status: string, colour: string, status_label: string, kind: string}>
      */
     public function licenceVendorMatrixForClient(Client $client): array
     {

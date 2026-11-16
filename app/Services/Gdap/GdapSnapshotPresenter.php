@@ -87,6 +87,36 @@ class GdapSnapshotPresenter
     }
 
     /**
+     * Clients-list mark. Reads the stored snapshot only.
+     *
+     * done = the relationship is active. missing = it is not set up yet.
+     * unknown = the check cannot say either way.
+     *
+     * @return array{mark: string, title: string}
+     */
+    public function listMark(Client $client): array
+    {
+        $view = $this->forClient($client);
+        $status = (string) $view['status'];
+
+        $mark = match ($status) {
+            'ready', 'expiring' => 'done',
+            'missing', 'approval_pending', 'unassigned', 'incomplete' => 'missing',
+            default => 'unknown',
+        };
+
+        $title = (string) $view['status_label'];
+        if (filled($view['summary'] ?? null)) {
+            $title .= ' - '.$view['summary'];
+        }
+
+        return [
+            'mark' => $mark,
+            'title' => $title,
+        ];
+    }
+
+    /**
      * @param  Collection<int, Client>  $clients
      * @return array<string, mixed>
      */

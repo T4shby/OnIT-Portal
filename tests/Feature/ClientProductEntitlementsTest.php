@@ -151,14 +151,36 @@ class ClientProductEntitlementsTest extends TestCase
                 'superops' => ['entitled' => true],
             ],
             'superops_account_id' => 'abc',
+            'gdap_snapshot' => ['status' => 'ready'],
         ]);
 
         config(['services.superops.api_token' => 't', 'services.superops.subdomain' => 'x']);
+
+        config(['services.gdap.enabled' => true]);
+
+        Client::factory()->create([
+            'name' => 'Waiting Gdap Ltd',
+            'gdap_snapshot' => ['status' => 'approval_pending'],
+        ]);
+        Client::factory()->create([
+            'name' => 'Unknown Gdap Ltd',
+            'gdap_snapshot' => ['status' => 'needs_tenant'],
+        ]);
 
         $this->actingAs($staff)
             ->get(route('admin.clients.index'))
             ->assertOk()
             ->assertSee('Products')
-            ->assertSee('Chipco Ltd');
+            ->assertSee('Licence')
+            ->assertSee('GDAP')
+            ->assertSee('SuperOps')
+            ->assertSee('M365')
+            ->assertSee('Huntress')
+            ->assertSee('Dropsuite')
+            ->assertSee('Pax8')
+            ->assertSee('Chipco Ltd')
+            ->assertSee('GDAP done', false)
+            ->assertSee('GDAP not set up', false)
+            ->assertSee('GDAP cannot be checked', false);
     }
 }

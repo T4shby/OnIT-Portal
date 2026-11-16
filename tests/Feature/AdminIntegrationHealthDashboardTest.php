@@ -102,6 +102,8 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
 
         $response->assertOk();
+        $response->assertSee('settingsOpen: false', false);
+        $response->assertSee('Auto-refresh timing saved', false);
         $response->assertSee('Fast 4m', false);
         $response->assertSee('Idle business 55m', false);
         $response->assertSee('Idle outside 75m', false);

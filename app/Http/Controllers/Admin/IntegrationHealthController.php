@@ -104,8 +104,11 @@ class IntegrationHealthController extends Controller
         $user = $request->user();
 
         // null = unscoped (super admin: every client, plus client-less queue rows).
+        // Cached SCIM only. A live Graph check per client blocked the first paint
+        // and the 5-second poll whenever scim.health.* was cold.
         return $this->integrationHealth->overview(
             $user->can('manage-all-clients') ? null : $user->accessibleClientIds(),
+            liveScimHealth: false,
         );
     }
 }

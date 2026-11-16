@@ -14,22 +14,21 @@
             <div class="min-w-0 space-y-3">
                 <div>
                     <p class="portal-label mb-2">Products</p>
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/55">
-                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">S</span> SuperOps</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">M</span> Microsoft 365</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">H</span> Huntress</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="product-chip product-chip--muted">D</span> Dropsuite</span>
-                    </div>
+                    <p class="text-xs text-white/55 leading-relaxed">SuperOps, M365, Huntress, Dropsuite. Named pills in the Products column.</p>
                 </div>
                 <div>
-                    <p class="portal-label mb-2">Licence vendor</p>
+                    <p class="portal-label mb-2">Licence</p>
                     <p class="text-xs text-white/55 leading-relaxed">
-                        After the
-                        <span class="product-chip-sep">·</span>
-                        separator.
-                        <span class="product-chip product-chip--vendor product-chip--muted">P</span>
-                        = Pax8 (dashed border). Where they buy cloud licences - not an On IT product.
+                        Its own column. Pax8 today (dashed border). Another licence vendor shows here when it is added. Not an On IT product.
                     </p>
+                </div>
+                <div>
+                    <p class="portal-label mb-2">GDAP</p>
+                    <div class="flex flex-col gap-1.5 text-xs text-white/55">
+                        <span class="inline-flex items-center gap-2"><span class="product-chip product-chip--live">✓</span> Done</span>
+                        <span class="inline-flex items-center gap-2"><span class="product-chip product-chip--error">×</span> Not set up</span>
+                        <span class="inline-flex items-center gap-2"><span class="product-chip product-chip--setup">?</span> Cannot be checked</span>
+                    </div>
                 </div>
             </div>
                 <div class="shrink-0 space-y-2 border-t border-white/10 pt-3 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
@@ -56,7 +55,7 @@
         </div>
         <p class="mt-4 border-t border-white/10 pt-3 text-xs text-white/50 leading-relaxed max-w-4xl">
             <strong class="text-white/70 font-medium">Client home differs by sold products.</strong>
-            Grey <span class="product-chip product-chip--muted">H</span> (Huntress not sold) → support-led dashboard
+            Grey Huntress (not sold) → support-led dashboard
             (tickets + SLA as hero stats - not empty “Threats stopped”).
             Open <strong class="text-white/65 font-medium">Edit</strong> on a client for the full “What the client sees at home” panel.
         </p>
@@ -67,7 +66,9 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th class="min-w-[9.5rem]">Products</th>
+                    <th>Products</th>
+                    <th>Licence</th>
+                    <th>GDAP</th>
                     <th>Users</th>
                     <th>Setup</th>
                     <th>Entra sync</th>
@@ -79,7 +80,9 @@
                 @forelse($clients as $client)
                     <tr>
                         <td>{{ $client->name }}</td>
-                        <td class="align-middle">@include('admin.clients._product-matrix', ['client' => $client])</td>
+                        <td class="align-middle">@include('admin.clients._product-matrix', ['client' => $client, 'group' => 'services'])</td>
+                        <td class="align-middle">@include('admin.clients._product-matrix', ['client' => $client, 'group' => 'vendors'])</td>
+                        <td class="align-middle">@include('admin.clients._gdap-mark', ['client' => $client])</td>
                         <td>{{ $client->users_count }}</td>
                         <td>
                             @php $progress = app(\App\Services\ClientOnboardingService::class)->progress($client, live: false); @endphp
@@ -105,7 +108,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
+                    <tr><td colspan="9" class="px-6 py-12"><x-empty-state title="No clients" /></td></tr>
                 @endforelse
             </tbody>
         </table>

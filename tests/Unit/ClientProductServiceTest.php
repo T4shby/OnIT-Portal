@@ -75,6 +75,16 @@ class ClientProductServiceTest extends TestCase
         $this->assertArrayHasKey('pax8', $svc->licenceVendorCatalog());
         $this->assertArrayNotHasKey('pax8', $svc->serviceCatalog());
 
+        $client = Client::factory()->create();
+        $this->assertSame(
+            ['SuperOps', 'M365', 'Huntress', 'Dropsuite'],
+            array_column($svc->serviceMatrixForClient($client), 'list_label'),
+        );
+        $this->assertSame(
+            ['Pax8'],
+            array_column($svc->licenceVendorMatrixForClient($client), 'list_label'),
+        );
+
         $client = Client::factory()->create([
             'product_entitlements' => ['pax8' => ['entitled' => false]],
         ]);
