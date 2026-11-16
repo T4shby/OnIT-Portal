@@ -15,31 +15,14 @@
     ];
 @endphp
 
-{{-- Side drawer (stays below sticky admin nav z-30 when closed; open uses z-40) --}}
-<div
-        x-show="settingsOpen"
-        x-cloak
-        class="fixed inset-0 z-40"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="freshness-drawer-title"
-    >
-        <div
-            class="absolute inset-0 bg-black/60"
-            x-on:click="settingsOpen = false"
-            aria-hidden="true"
-        ></div>
-
-        <div
-            class="absolute inset-y-0 right-0 flex h-[100dvh] w-full max-w-[20rem] flex-col border-l border-onit-border bg-onit-ink sm:max-w-[22rem]"
-            x-on:click.stop
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="translate-x-full"
-            x-transition:enter-end="translate-x-0"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="translate-x-0"
-            x-transition:leave-end="translate-x-full"
-        >
+{{-- Closed until Timing settings is clicked. Close, the dimmed area, and Escape dismiss it. --}}
+<dialog
+    id="ih-timing"
+    class="ih-timing-dialog"
+    aria-labelledby="freshness-drawer-title"
+    onclick="if (event.target === this) this.close()"
+>
+        <div class="absolute inset-y-0 right-0 flex h-[100dvh] w-full max-w-[20rem] flex-col border-l border-onit-border bg-onit-ink sm:max-w-[22rem]">
             <div class="flex shrink-0 items-start justify-between gap-4 border-b border-onit-border px-6 py-5">
                 <div class="min-w-0">
                     <p id="freshness-drawer-title" class="font-condensed text-sm font-bold uppercase tracking-[0.1em] text-white">
@@ -52,7 +35,7 @@
                 <button
                     type="button"
                     class="touch-target flex h-9 w-9 shrink-0 items-center justify-center text-white/50 hover:text-white"
-                    x-on:click="settingsOpen = false"
+                    onclick="this.closest('dialog').close()"
                     aria-label="Close settings"
                 >
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -137,4 +120,4 @@
                 @endif
             </form>
         </div>
-    </div>
+</dialog>

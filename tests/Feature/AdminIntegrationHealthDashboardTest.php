@@ -40,6 +40,8 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
 
         $response->assertOk();
+        $response->assertSee('id="ih-timing"', false);
+        $response->assertDontSee('<dialog id="ih-timing" open', false);
         $response->assertSee('Integration Health', false);
         $response->assertSee('What is going on', false);
         $response->assertSee('Action list', false);
@@ -102,7 +104,8 @@ class AdminIntegrationHealthDashboardTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.integration-health.index'));
 
         $response->assertOk();
-        $response->assertSee('settingsOpen: false', false);
+        $response->assertSee('id="ih-timing"', false);
+        $response->assertDontSee('<dialog id="ih-timing" open', false);
         $response->assertSee('Auto-refresh timing saved', false);
         $response->assertSee('Fast 4m', false);
         $response->assertSee('Idle business 55m', false);

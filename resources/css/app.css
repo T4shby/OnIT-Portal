@@ -477,6 +477,26 @@
         @apply mx-0.5 shrink-0 select-none text-[10px] font-light text-white/25;
     }
 
+    /* Timing dialog: hidden until showModal(). Top layer, so Close is always clickable. */
+    .ih-timing-dialog[open] {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        overflow: visible;
+    }
+
+    .ih-timing-dialog::backdrop {
+        background: rgb(0 0 0 / 0.6);
+    }
+
     .product-pill-row {
         @apply flex max-w-[22rem] flex-wrap items-center gap-1;
     }

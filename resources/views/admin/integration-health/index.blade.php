@@ -1,22 +1,5 @@
-@php
-    $forceSettingsOpen = $errors->any();
-@endphp
-
 <x-admin-layout>
-    <div
-        class="w-full max-w-full"
-        x-data="{
-            settingsOpen: {{ $forceSettingsOpen ? 'true' : 'false' }},
-            init() {
-                const lock = (open) => {
-                    document.body.style.overflow = open ? 'hidden' : '';
-                };
-                this.$watch('settingsOpen', lock);
-                lock(this.settingsOpen);
-            }
-        }"
-        x-on:keydown.escape.window="settingsOpen = false"
-    >
+    <div class="w-full max-w-full">
         {{-- Quiet header (no white plate title) --}}
         <div class="mb-8 flex flex-col gap-5 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
             <div class="min-w-0">
