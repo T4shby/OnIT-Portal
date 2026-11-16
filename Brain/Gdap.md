@@ -6,7 +6,7 @@ Connect Microsoft (checklist steps 03 and 04) is a different grant. It lets the 
 
 Steps **04** (Portal Graph Accept) and **08** (SuperOps Client SSO) stay on those numbers. GDAP is a strip above the setup guide, not a new numbered step.
 
-The code default is **off**. Production was turned on 2026-11-13 (`552d51f`) so the strip can be tested. The partner tenant is the directory that publishes `onit.ltd`. `GDAP_TECHNICIAN_GROUP_ID` is still empty, so the audit cannot assign technicians. Connect is gated once the partner app is configured and the snapshot is not ready. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
+The code default is **off**. Production was turned on 2026-11-13 so the strip can be tested. The partner tenant is the directory that publishes `onit.ltd`. `GDAP_TECHNICIAN_GROUP_ID` is still empty. The 04:40 run on 2026-11-16 listed nothing: 14 active clients are `error` (`Access to the resource is restricted`) and 1 is `needs_tenant`. No relationships were created, and Connect stays allowed on that error. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
 
 ## What Microsoft allows
 
@@ -89,24 +89,67 @@ Integration Health (staff) shows a GDAP block: off, not configured, or counts pl
 
 ## One-time setup in the On IT tenant
 
-Do this before `GDAP_ENABLED=true` on a new install. Production already has the flag and partner tenant (2026-11-13). Still missing there: the Graph permission, the service principal below, and `GDAP_TECHNICIAN_GROUP_ID`.
+Do this before `GDAP_ENABLED=true` on a new install. Production already has the flag and partner tenant (2026-11-13). The 2026-11-16 audit still cannot list relationships (`Access to the resource is restricted`). Still missing: the Graph permission, the service principal below, and `GDAP_TECHNICIAN_GROUP_ID`.
 
-1. Confirm the app registration is the portal app in the **On IT** tenant (the same app as `ENTRA_SYNC_CLIENT_ID` / `MICROSOFT_CLIENT_ID`, unless you set a dedicated GDAP app).
-2. Add application permission **DelegatedAdminRelationship.ReadWrite.All** and grant admin consent **in the On IT tenant**. Do not re-consent this permission into customer tenants.
-3. Provision the service principal Microsoft requires for app-only GDAP calls: appId `2832473f-ec63-45fb-976f-5d45a7d4bb91` (Partner Customer Delegated Administration). As an Application Administrator in the On IT tenant:
+Sign in as `@onit.ltd` in a normal browser window. The directory name must be **On IT Technology Partners LTD**. A private window that was used to sign into a customer is the wrong tenant. Do not re-consent this permission into customer tenants. Customer Connect Microsoft stays as it is.
 
-```http
-POST https://graph.microsoft.com/v1.0/servicePrincipals
-Content-Type: application/json
+### 1. Permission on OnIT Portal for Portals
 
+Same app as [CustomerEntraSyncRunbook.md](CustomerEntraSyncRunbook.md) Step 0.
+
+1. Open [https://portal.azure.com](https://portal.azure.com).
+2. Search **Microsoft Entra ID** and open it.
+3. Left menu **App registrations**.
+4. Open **OnIT Portal for Portals**.
+5. Left menu **API permissions**.
+6. **+ Add a permission**.
+7. **Microsoft Graph**.
+8. **Application permissions** (the right-hand tab, not Delegated).
+9. Search `DelegatedAdminRelationship`.
+10. Tick **DelegatedAdminRelationship.ReadWrite.All**.
+11. **Add permissions**.
+12. **Grant admin consent for On IT Technology Partners LTD**, then **Yes**.
+
+The new row must show a green tick, **Granted for On IT Technology Partners LTD**. Status **Not granted** means the Grant button was skipped.
+
+### 2. Microsoft service principal
+
+This is a Microsoft app, not a new app registration. App id `2832473f-ec63-45fb-976f-5d45a7d4bb91`, display name **Partner Customer Delegated Administration**.
+
+1. Open [Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer) and sign in with the same `@onit.ltd` Global Admin.
+2. If it asks to consent Graph Explorer, accept. That consent is for Graph Explorer only.
+3. Method **GET**, URL:
+
+```
+https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId eq '2832473f-ec63-45fb-976f-5d45a7d4bb91'&$select=id,displayName,appId
+```
+
+4. **Run query**. A row inside `value` means it already exists. Stop.
+5. An empty `value` array means create it. Method **POST**, URL `https://graph.microsoft.com/v1.0/servicePrincipals`, request body:
+
+```json
 { "appId": "2832473f-ec63-45fb-976f-5d45a7d4bb91" }
 ```
 
-A 409 means it already exists. That is fine.
+6. A 403 means Graph Explorer still lacks permission. Open **Modify permissions**, consent **Application.ReadWrite.All**, then run the POST again.
+7. **201** means created. **409** means it already existed. Both are success.
 
-4. Create a security group in the On IT tenant, put technicians in it, and set `GDAP_TECHNICIAN_GROUP_ID` to its object id. One group can cover every customer. The audit assigns that group to the standing roles on each active relationship.
-5. Set `GDAP_PARTNER_TENANT_ID` to the On IT tenant id (a GUID).
-6. `GDAP_ENABLED=true`, then `php artisan config:clear` (or the usual deploy `optimize`). Run `php artisan portal:audit-gdap` once and watch Integration Health.
+Check in Entra: **Enterprise applications**, search **Partner Customer Delegated Administration**. Application ID `2832473f-ec63-45fb-976f-5d45a7d4bb91`.
+
+### 3. Technician security group object id
+
+One security group in the On IT tenant. The Global Admin security group is fine. The Global Administrator **role** is not.
+
+1. [https://entra.microsoft.com](https://entra.microsoft.com), same directory.
+2. **Groups** → **All groups**.
+3. Open the security group. Group type must be **Security**.
+4. On **Overview**, copy **Object ID**.
+
+If the page title is **Global Administrator** under **Roles and administrators**, that id is the role. Go back to **Groups** and open the group assigned to that role.
+
+Paste the object id into the server `.env` as `GDAP_TECHNICIAN_GROUP_ID`, then `php artisan config:clear` and `php artisan optimize`. Do that the same day as steps 1 and 2. The 04:40 job will start creating requests once Graph answers, and it cannot attach technicians until this id is set.
+
+`GDAP_PARTNER_TENANT_ID` and `GDAP_ENABLED=true` are already set in production.
 
 Tokens for this feature are taken **in the On IT tenant**. Customer-tenant Entra sync tokens are unchanged.
 
@@ -143,5 +186,8 @@ The portal does not email customers. The strip shows the approval link to techni
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Integration Health 500: `@php(...)` with `??` left the GDAP block uncompiled. Use an `@php` / `@endphp` block. |
+| 2026-11-16 | One-time setup is click-by-click: permission, Partner Customer Delegated Administration service principal, security group object id. Do not re-consent customers. |
+| 2026-11-16 | 04:40 audit: 14 active clients error `Access to the resource is restricted`, 1 `needs_tenant`. No relationships created. Group id still empty. |
 | 2026-11-13 | Production flag on. Partner tenant set from the onit.ltd directory. Technician group id still empty. |
 | 2026-11-12 | Full lifecycle: nightly audit, create, lock for approval, assign technician group, auto-extend, Edit Client strip, Connect gate, Integration Health. Code default stays off until the On IT tenant app is consented. |

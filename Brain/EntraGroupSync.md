@@ -109,6 +109,7 @@ Do this in **On IT Technology Partners LTD** (not the customer tenant).
    - `SecurityEvents.Read.All` (Secure Score on client Dashboard)
    - `AuditLog.Read.All` (MFA registration report)
    - `Reports.Read.All` (MFA registration report)
+   - `DelegatedAdminRelationship.ReadWrite.All` (GDAP in the On IT tenant only). Do not re-consent customers for this one. Clicks: [Gdap.md](Gdap.md).
 4. **Add permissions** → **Grant admin consent for On IT Technology Partners LTD**
 
 ### Expected result
@@ -314,6 +315,7 @@ php artisan portal:sync-entra-users --client=4 --dry-run --inline
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Portal app permission list includes `DelegatedAdminRelationship.ReadWrite.All`. On IT tenant only, no customer re-consent. - [Gdap.md](Gdap.md) |
 | 2026-08-11 | SuperOps API email align after Sync; object-id upsert; async result (not flash); `ENTRA_SYNC_SUPEROPS_EMAIL_ALIGN` |
 | 2026-07-14 | Added separate per-customer Client SSO Application ID and Entra Free direct requester-login assignment |
 | 2026-06-25 | Sync now: per-user SCIM provision-on-demand + loading UI; banner text clarifies provision **requested** vs completed |

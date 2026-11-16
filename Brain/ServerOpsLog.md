@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-16 ~12:55 UK - Read GDAP audit results (no changes)
+
+| | |
+|---|---|
+| Intent | See whether the 04:40 GDAP job has created relationships, before explaining remaining setup. |
+| Operator | agent (Cursor) |
+| SHA before -> after | n/a (read only) |
+| Steps | SSH. PHP bootstrap on the live app. Counted `gdap_snapshot` status for active clients, distinct error text, `client.gdap_%` activity, queued and failed `AuditGdapRelationshipsJob`. Printed whether the flag and technician group id are set. No writes. |
+| Result | Flag on. Technician group id empty. Last check `2026-11-16T04:40:28+00:00`. 14 active clients `error` with `Access to the resource is restricted.` 1 active client `needs_tenant`. No `client.gdap_%` activity. Failed jobs 0, queued 0. No relationships were created. |
+| Rollback / watch | Nothing to undo. Next 04:40 will keep failing the same way until the On IT app has `DelegatedAdminRelationship.ReadWrite.All` and service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`, and until `GDAP_TECHNICIAN_GROUP_ID` is set. |
+
 ### 2026-11-13 ~17:00 UK - Fix stuck menus and SuperOps rate-limit loop
 
 | | |

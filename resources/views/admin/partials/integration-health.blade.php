@@ -234,7 +234,9 @@
         </div>
     @endif
 
-    @php($gdap = $integrationHealth['gdap'] ?? null)
+    @php
+        $gdap = $integrationHealth['gdap'] ?? null;
+    @endphp
     @if(is_array($gdap))
         <div class="admin-table-wrap mb-6 sm:mb-8">
             <div class="border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4">

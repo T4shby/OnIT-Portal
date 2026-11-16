@@ -146,6 +146,7 @@ You should already see **Delegated** permissions for login: `email`, `openid`, `
 | `AuditLog` | **AuditLog.Read.All** | MFA registration coverage (auth methods report) |
 | `Reports.Read` | **Reports.Read.All** | MFA registration coverage (auth methods report) |
 | `Domain.Read` | **Domain.Read.All** (recommended Phase B) | List Entra **verified domains** for mail-domain import. Without it, portal still infers domains from user mailbox / UPN suffixes via `User.Read.All`. |
+| `DelegatedAdminRelationship` | **DelegatedAdminRelationship.ReadWrite.All** | GDAP audit from the On IT tenant. Grant here only. Do not re-consent customers for this row. Clicks: [Gdap.md](Gdap.md). |
 
 5. Click **Add permissions** at the bottom of the panel
 6. Back on the main page, click **Grant admin consent for On IT Technology Partners LTD**
@@ -428,6 +429,7 @@ Existing SuperOps requesters: leave them; SCIM matches by email. Run **Sync now*
 
 | Date | Change |
 |------|--------|
+| 2026-11-16 | Step 0 lists `DelegatedAdminRelationship.ReadWrite.All` for GDAP. Grant in the On IT tenant only. - [Gdap.md](Gdap.md) |
 | 2026-11-09 | Exchange.ManageAsApp + customer Exchange Administrator on the portal app so Edit Client can read Defender DKIM for every accepted domain. |
 | 2026-08-13 | SCIM 0-templates incident: Retry Graph recreate + Apply; troubleshooting rows for Failed step 07 / IH SuperOps SCIM |
 | 2026-08-10 | Staff **Graph re-consent** page under Clients (Accept links; no artisan required) |

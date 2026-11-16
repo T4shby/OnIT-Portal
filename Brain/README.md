@@ -94,6 +94,9 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Integration Health 500 fixed. The GDAP block used `@php(...)` with `??`, which Blade left uncompiled. - [Gdap.md](Gdap.md) |
+| 2026-11-16 | GDAP one-time setup clicks: permission on OnIT Portal for Portals, service principal, security group object id. On IT tenant only. - [Gdap.md](Gdap.md) |
+| 2026-11-16 | GDAP 04:40 audit cannot list relationships yet (`Access to the resource is restricted` on 14 active clients). No requests created. Group id still empty. - [Gdap.md](Gdap.md), [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-13 | Deployed `3c37758`. Sign-out menu and sync buttons are on https://app.onit.ltd. Hard-refresh once. - [ServerOpsLog.md](ServerOpsLog.md) |
 | 2026-11-13 | Sign out and the Entra sync buttons no longer stay open with a spinner. SuperOps rate-limit backoff for device specs. `Awaiting Approval` is an open ticket. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-13 | Deployed `e79559d`. Setup guide corrections are on https://app.onit.ltd. - [ServerOpsLog.md](ServerOpsLog.md) |

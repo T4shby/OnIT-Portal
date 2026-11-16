@@ -95,6 +95,14 @@ class GdapOnboardingGateTest extends TestCase
         $this->assertSame(1, $overview['gdap']['problem_count']);
         $this->assertSame('Waiting Co', $overview['gdap']['problems'][0]['client_name']);
         $this->assertStringContainsString('awaiting approval', (string) $overview['gdap']['headline']);
+
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.integration-health.index'))
+            ->assertOk()
+            ->assertSee('Waiting Co')
+            ->assertSee('Awaiting approval');
     }
 
     public function test_check_now_queues_an_audit_for_that_client(): void

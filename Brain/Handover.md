@@ -58,7 +58,7 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. **Mail Phase C + IH alert hook** are **live** (`ee7456c`). Enable alerts only after Teams webhook (or alert email) is set in production `.env`. Demo script: [ColleagueDemo.md](ColleagueDemo.md).
 6. MFA inventory is on Staff Admin **and** Client Admin (Services → MFA methods). Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
-7. **GDAP** is live (`552d51f`, 2026-11-13). The flag is on and the partner tenant is the onit.ltd directory. `GDAP_TECHNICIAN_GROUP_ID` is still empty, so a request can be created but technicians cannot be assigned. Paste that group's object id into the server `.env`, then `config:clear` and `optimize`. Graph permission and the Partner Customer Delegated Administration service principal are still required or Check GDAP now fails. Steps: [Gdap.md](Gdap.md).
+7. **GDAP** is live and the 04:40 job is running. On 2026-11-16 it failed for all 14 Microsoft clients with `Access to the resource is restricted`. Nothing was created. Still required in the On IT tenant: admin consent for `DelegatedAdminRelationship.ReadWrite.All`, service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`, and `GDAP_TECHNICIAN_GROUP_ID`. Steps: [Gdap.md](Gdap.md).
 
 ## Do not do these
 
