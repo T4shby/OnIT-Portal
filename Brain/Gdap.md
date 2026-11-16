@@ -6,7 +6,7 @@ Connect Microsoft (checklist steps 03 and 04) is a different grant. It lets the 
 
 Steps **04** (Portal Graph Accept) and **08** (SuperOps Client SSO) stay on those numbers. GDAP is a strip above the setup guide, not a new numbered step.
 
-The code default is **off**. Production was turned on 2026-11-13 so the strip can be tested. The partner tenant is the directory that publishes `onit.ltd`. `GDAP_TECHNICIAN_GROUP_ID` is still empty. The 04:40 run on 2026-11-16 listed nothing: 14 active clients are `error` (`Access to the resource is restricted`) and 1 is `needs_tenant`. No relationships were created, and Connect stays allowed on that error. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
+The code default is **off**. Production was turned on 2026-11-13. The partner tenant is the onit.ltd directory, and `GDAP_TECHNICIAN_GROUP_ID` was set on 2026-11-16. See [one-time setup](#one-time-setup-in-the-on-it-tenant).
 
 ## What Microsoft allows
 
@@ -45,11 +45,12 @@ Defined in `App\Services\Gdap\GdapRoleSet`. One relationship, duration `P730D`, 
 | User Administrator | `fe930be7-5e62-47db-91af-98c3a49a38b1` |
 | Groups Administrator | `fdd7a751-b60b-444a-984c-02652fe8fa1c` |
 | Security Administrator | `194ae4cb-b126-40b2-bd5b-6091b380977d` |
-| Privileged Authentication Administrator | `7be44c8a-adaf-4e2a-84d6-ab2649eac61a` |
 | Helpdesk Administrator | `729827e3-9c14-49f7-bb1b-9608f156bbb8` |
 | Service Support Administrator | `f023fd81-a637-4b56-95fd-791ac0226033` |
 
 Roles on an approved relationship cannot be added later. If an active relationship is missing any of these, the audit creates a **second** request for the full set (unless one is already waiting on approval).
+
+Microsoft rejects **Privileged Authentication Administrator** (`7be44c8a-adaf-4e2a-84d6-ab2649eac61a`) on create with `400 badRequest`. It is not in the standing set. The other eight roles, `P730D`, and `P180D` auto-extend are accepted together.
 
 ## When Connect Microsoft is blocked
 
@@ -89,7 +90,7 @@ Integration Health (staff) shows a GDAP block: off, not configured, or counts pl
 
 ## One-time setup in the On IT tenant
 
-Do this before `GDAP_ENABLED=true` on a new install. Production already has the flag and partner tenant (2026-11-13). The 2026-11-16 audit still cannot list relationships (`Access to the resource is restricted`). Still missing: the Graph permission, the service principal below, and `GDAP_TECHNICIAN_GROUP_ID`.
+Do this before `GDAP_ENABLED=true` on a new install. Production has the flag, the partner tenant, the Graph permission, the service principal, and `GDAP_TECHNICIAN_GROUP_ID` (2026-11-16).
 
 Sign in as `@onit.ltd` in a normal browser window. The directory name must be **On IT Technology Partners LTD**. A private window that was used to sign into a customer is the wrong tenant. Do not re-consent this permission into customer tenants. Customer Connect Microsoft stays as it is.
 
@@ -131,8 +132,8 @@ https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId eq '2832473f-ec
 { "appId": "2832473f-ec63-45fb-976f-5d45a7d4bb91" }
 ```
 
-6. A 403 means Graph Explorer still lacks permission. Open **Modify permissions**, consent **Application.ReadWrite.All**, then run the POST again.
-7. **201** means created. **409** means it already existed. Both are success.
+6. A 403 `Authorization_RequestDenied` ("Insufficient privileges") on the GET or the POST means Graph Explorer itself has not been consented. The portal app permission does not cover this tab. Open **Modify permissions**, consent **Application.ReadWrite.All**, then run the GET again.
+7. **201** means created. **409** `Request_MultipleObjectsWithSameKeyValue` ("service principal name https://api.partnercustomeradministration.microsoft.com is already in use") means it already existed. Both are success. Do not create it again.
 
 Check in Entra: **Enterprise applications**, search **Partner Customer Delegated Administration**. Application ID `2832473f-ec63-45fb-976f-5d45a7d4bb91`.
 
@@ -186,6 +187,7 @@ The portal does not email customers. The strip shows the approval link to techni
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Dropped Privileged Authentication Administrator. Graph create returns 400 when that role is included. The other eight roles with P730D and P180D succeed. Technician group id is set in production. |
 | 2026-11-16 | Integration Health 500: `@php(...)` with `??` left the GDAP block uncompiled. Use an `@php` / `@endphp` block. |
 | 2026-11-16 | One-time setup is click-by-click: permission, Partner Customer Delegated Administration service principal, security group object id. Do not re-consent customers. |
 | 2026-11-16 | 04:40 audit: 14 active clients error `Access to the resource is restricted`, 1 `needs_tenant`. No relationships created. Group id still empty. |

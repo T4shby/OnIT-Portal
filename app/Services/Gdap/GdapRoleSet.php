@@ -26,7 +26,6 @@ class GdapRoleSet
         'fe930be7-5e62-47db-91af-98c3a49a38b1' => 'User Administrator',
         'fdd7a751-b60b-444a-984c-02652fe8fa1c' => 'Groups Administrator',
         '194ae4cb-b126-40b2-bd5b-6091b380977d' => 'Security Administrator',
-        '7be44c8a-adaf-4e2a-84d6-ab2649eac61a' => 'Privileged Authentication Administrator',
         '729827e3-9c14-49f7-bb1b-9608f156bbb8' => 'Helpdesk Administrator',
         'f023fd81-a637-4b56-95fd-791ac0226033' => 'Service Support Administrator',
     ];

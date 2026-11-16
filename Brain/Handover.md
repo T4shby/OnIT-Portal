@@ -58,12 +58,12 @@ Checked 14 October 2026. The queue was empty and `failed_jobs` was empty. A 3R S
 4. **CoPilot Ready secrets,** if not already done. Rotate both Microsoft app secrets and save them on `https://copilotready.onit.ltd/microsoft`. Noted in [ServerOpsLog.md](ServerOpsLog.md).
 5. **Mail Phase C + IH alert hook** are **live** (`ee7456c`). Enable alerts only after Teams webhook (or alert email) is set in production `.env`. Demo script: [ColleagueDemo.md](ColleagueDemo.md).
 6. MFA inventory is on Staff Admin **and** Client Admin (Services → MFA methods). Ask when you want Phase 2 (stored findings / campaigns) - [PasskeyMfaMigration.md](PasskeyMfaMigration.md).
-7. **GDAP** is live and the 04:40 job is running. On 2026-11-16 it failed for all 14 Microsoft clients with `Access to the resource is restricted`. Nothing was created. Still required in the On IT tenant: admin consent for `DelegatedAdminRelationship.ReadWrite.All`, service principal `2832473f-ec63-45fb-976f-5d45a7d4bb91`, and `GDAP_TECHNICIAN_GROUP_ID`. Steps: [Gdap.md](Gdap.md).
+7. **GDAP** is live. The On IT app permission, the partner service principal, and `GDAP_TECHNICIAN_GROUP_ID` are set. Microsoft rejects Privileged Authentication Administrator on create, so that role is not requested. Approval links show on Edit Client after the audit. Steps: [Gdap.md](Gdap.md).
 
 ## Do not do these
 
 - Do not commit or deploy the local usecure skeleton that may be sitting uncommitted in a working tree. It is not on `main`. Shipping it would add a column and screens before a key exists.
-- Do not turn `GDAP_ENABLED` off to "hide" the strip. It is already true in production. Do not run `portal:audit-gdap` for every client until `GDAP_TECHNICIAN_GROUP_ID` is set. The 04:40 schedule will still try. Connect is gated when the partner app is configured and the snapshot is not ready.
+- Do not turn `GDAP_ENABLED` off to "hide" the strip. It is already true in production. Connect is gated when the snapshot says the relationship is not ready.
 - Do not enable usecure on production.
 - Do not `cache:clear` on a routine deploy. It wipes dashboard snapshots.
 - Do not verify `superops.ai` on a customer tenant.
