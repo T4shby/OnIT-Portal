@@ -581,7 +581,7 @@ Background: `RefreshDropsuiteBackupJob` on **`high`**, adaptive requeue, Integra
 | Sample probe | org `10879` Reid & Rose: 3 mailboxes; org `5979` On IT NFR: 23 mailboxes |
 | Client map | Client #1 On IT Technology Partners → `5979` (NFR). **YorPower → `6182`**. Other orgs: Admin → Clients |
 
-**Map only the short numeric `organization_id`.** Dropsuite does not show that number on screen. The id you can see is the user id, shaped like `177210-12` (YorPower) or `360787-12` (Finishing Design Services). Pasting `360787` or `177210-12` never matches and Integration Health stays Never loaded. YorPower's organization id is `6182`. Finishing Design Services is `11223`. Staff page: `/admin/dropsuite-organizations` imports the full reseller user list, then filter Live portal matches / Unmapped / All. Tokens from `GET /users` never appear in the UI.
+**Map only the short numeric `organization_id`.** Dropsuite does not show that number on screen. The id you can see is the user id, shaped like `177210-12` (YorPower) or `360787-12` (Finishing Design Services). Pasting `360787` or `177210-12` never matches and Integration Health stays Never loaded. YorPower's organization id is `6182`. Finishing Design Services is `11223`. Staff page: `/admin/dropsuite-organizations` imports the reseller organisation list, then filter Live portal matches / Unmapped / All. The Users column is the mailbox total from `GET /accounts` for that organisation. `GET /users` is only the reseller login, usually one row per organisation, so it is not the count. Tokens from `GET /users` never appear in the UI.
 
 **Dropsuite organizations seen under On IT reseller (map `dropsuite_organization_id`):**
 

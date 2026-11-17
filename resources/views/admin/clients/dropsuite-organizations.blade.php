@@ -51,7 +51,7 @@
                     <tr>
                         <td class="font-medium text-white">{{ $row['name'] }}</td>
                         <td class="font-mono text-xs text-white/70">{{ $row['organization_id'] }}</td>
-                        <td class="text-white/60">{{ $row['user_count'] }}</td>
+                        <td class="text-white/60">{{ $row['user_count'] === null ? '-' : $row['user_count'] }}</td>
                         <td>
                             @if($row['mapped_client'])
                                 <a href="{{ route('admin.clients.edit', $row['mapped_client']) }}" class="text-emerald-300 hover:text-white">

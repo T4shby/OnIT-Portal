@@ -30,7 +30,7 @@ class DropsuiteOrganizationDirectory
     }
 
     /**
-     * @return list<array{organization_id: string, name: string, user_count: int}>
+     * @return list<array{organization_id: string, name: string, user_count: ?int}>
      */
     public function organizations(bool $fresh = false): array
     {
@@ -49,7 +49,7 @@ class DropsuiteOrganizationDirectory
      * @return list<array{
      *     organization_id: string,
      *     name: string,
-     *     user_count: int,
+     *     user_count: ?int,
      *     mapped_client: ?Client,
      *     suggested_client: ?Client,
      *     match: string
@@ -85,7 +85,7 @@ class DropsuiteOrganizationDirectory
             $rows[] = [
                 'organization_id' => $oid,
                 'name' => (string) $org['name'],
-                'user_count' => (int) $org['user_count'],
+                'user_count' => isset($org['user_count']) ? $org['user_count'] : null,
                 'mapped_client' => $mapped instanceof Client ? $mapped : null,
                 'suggested_client' => $suggested instanceof Client ? $suggested : null,
                 'match' => $match,

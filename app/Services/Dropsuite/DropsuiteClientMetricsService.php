@@ -287,11 +287,11 @@ class DropsuiteClientMetricsService
      * Reseller GET /users, grouped to organization_id + organization_name.
      * Tokens are never included - this is safe for staff UI.
      *
-     * @return list<array{organization_id: string, name: string, user_count: int}>
+     * @return list<array{organization_id: string, name: string, user_count: ?int}>
      */
     public function listResellerOrganizations(bool $fresh = false): array
     {
-        $cacheKey = 'dropsuite.org_directory.v1';
+        $cacheKey = 'dropsuite.org_directory.v2';
         if ($fresh) {
             Cache::forget($cacheKey);
         }
@@ -302,6 +302,8 @@ class DropsuiteClientMetricsService
         }
 
         $byOrg = [];
+        $tokens = [];
+        $adminSeen = [];
         foreach ($this->fetchAllUsers() as $user) {
             $oid = (string) ($user['organization_id'] ?? $user['organisation_id'] ?? '');
             if ($oid === '') {
@@ -317,16 +319,31 @@ class DropsuiteClientMetricsService
                 $byOrg[$oid] = [
                     'organization_id' => $oid,
                     'name' => $name !== '' ? $name : 'Organisation '.$oid,
-                    'user_count' => 0,
+                    'user_count' => null,
                 ];
             }
 
-            $byOrg[$oid]['user_count']++;
             if ($name !== '' && (
                 ! empty($user['admin'])
                 || str_starts_with($byOrg[$oid]['name'], 'Organisation ')
             )) {
                 $byOrg[$oid]['name'] = $name;
+            }
+
+            $token = trim((string) ($user['authentication_token'] ?? ''));
+            if ($token !== '' && (! isset($tokens[$oid]) || (! empty($user['admin']) && ! isset($adminSeen[$oid])))) {
+                $tokens[$oid] = $token;
+                if (! empty($user['admin'])) {
+                    $adminSeen[$oid] = true;
+                }
+            }
+        }
+
+        // GET /users is one reseller login per organisation, usually 1.
+        // Mailbox totals come from GET /accounts for that organisation.
+        foreach ($this->mailboxCounts($tokens) as $oid => $count) {
+            if (isset($byOrg[$oid])) {
+                $byOrg[$oid]['user_count'] = $count;
             }
         }
 
@@ -338,6 +355,66 @@ class DropsuiteClientMetricsService
         }
 
         return $list;
+    }
+
+    /**
+     * Mailbox totals keyed by organisation id. Null when that organisation's accounts call failed.
+     *
+     * @param  array<string, string>  $tokenByOrgId
+     * @return array<string, ?int>
+     */
+    private function mailboxCounts(array $tokenByOrgId): array
+    {
+        if ($tokenByOrgId === []) {
+            return [];
+        }
+
+        try {
+            $payloads = $this->api->getMany('accounts', $tokenByOrgId, ['page' => 1, 'per_page' => 1]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
+
+        $counts = [];
+        foreach ($tokenByOrgId as $oid => $token) {
+            $payload = $payloads[(string) $oid] ?? null;
+            if (! is_array($payload)) {
+                $counts[(string) $oid] = null;
+                continue;
+            }
+            $counts[(string) $oid] = $this->mailboxTotal($payload, (string) $oid, $token);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function mailboxTotal(array $payload, string $organizationId, string $accessToken): ?int
+    {
+        $pagination = is_array($payload['pagination'] ?? null) ? $payload['pagination'] : [];
+        foreach (['total_entries', 'total_count', 'count'] as $key) {
+            if (isset($pagination[$key]) && is_numeric($pagination[$key])) {
+                return (int) $pagination[$key];
+            }
+        }
+
+        $totalPages = (int) ($pagination['total_pages'] ?? 0);
+        $rows = $this->extractListRows($payload);
+        if ($totalPages <= 1) {
+            return count($rows);
+        }
+
+        try {
+            return count($this->fetchAccountsForOrganization($organizationId, $accessToken));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /**

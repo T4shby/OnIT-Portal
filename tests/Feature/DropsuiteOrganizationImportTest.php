@@ -36,7 +36,7 @@ class DropsuiteOrganizationImportTest extends TestCase
         $yor = collect($orgs)->firstWhere('organization_id', '6182');
         $this->assertNotNull($yor);
         $this->assertSame('YorPower', $yor['name']);
-        $this->assertSame(2, $yor['user_count']);
+        $this->assertSame(48, $yor['user_count']);
         $this->assertSame(['organization_id', 'name', 'user_count'], array_keys($yor));
         $this->assertContains('9999', array_column($orgs, 'organization_id'));
     }
@@ -170,6 +170,16 @@ class DropsuiteOrganizationImportTest extends TestCase
     private function fakeUsers(): void
     {
         Http::fake([
+            'https://dropsuite.uk/api/accounts*' => function ($request) {
+                $token = $request->header('X-Access-Token');
+                $token = is_array($token) ? (string) ($token[0] ?? '') : (string) $token;
+                $count = str_contains($token, 'PARKED') ? 5 : 48;
+
+                return Http::response([
+                    'result_set' => [['email' => 'one@example.com']],
+                    'pagination' => ['current_page' => 1, 'total_pages' => 1, 'total_entries' => $count],
+                ], 200);
+            },
             'https://dropsuite.uk/api/users*' => Http::response([
                 'result_set' => [
                     [

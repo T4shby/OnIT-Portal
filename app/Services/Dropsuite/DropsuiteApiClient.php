@@ -2,7 +2,9 @@
 
 namespace App\Services\Dropsuite;
 
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -75,6 +77,57 @@ class DropsuiteApiClient
         }
 
         return $payload;
+    }
+
+    /**
+     * Same GET, one request per access token, in parallel.
+     * A failed call is null for that key. Tokens are not logged.
+     *
+     * @param  array<string, string>  $accessTokenByKey
+     * @param  array<string, mixed>  $query
+     * @return array<string, array<string, mixed>|null>
+     */
+    public function getMany(
+        string $path,
+        array $accessTokenByKey,
+        array $query = [],
+        int $timeoutSeconds = 20,
+    ): array {
+        if (! $this->isConfigured() || $accessTokenByKey === []) {
+            return [];
+        }
+
+        $url = $this->url($path);
+        $reseller = $this->resellerToken();
+
+        $responses = Http::pool(function (Pool $pool) use ($accessTokenByKey, $url, $query, $timeoutSeconds, $reseller) {
+            foreach ($accessTokenByKey as $key => $accessToken) {
+                $token = $this->normalizeToken($accessToken);
+                $pool->as((string) $key)
+                    ->withHeaders([
+                        'Authorization' => 'Token '.$token,
+                        'X-Access-Token' => $token,
+                        'X-Reseller-Token' => $reseller,
+                        'Accept' => 'application/json',
+                        'User-Agent' => 'OnIT-Portal/1.0',
+                    ])
+                    ->timeout($timeoutSeconds)
+                    ->get($url, $query);
+            }
+        });
+
+        $out = [];
+        foreach ($accessTokenByKey as $key => $accessToken) {
+            $response = $responses[(string) $key] ?? null;
+            if (! $response instanceof Response || $response->failed()) {
+                $out[(string) $key] = null;
+                continue;
+            }
+            $payload = $response->json();
+            $out[(string) $key] = is_array($payload) ? $payload : null;
+        }
+
+        return $out;
     }
 
     private function apiUrl(): string
