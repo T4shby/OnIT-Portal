@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-17 ~15:50 UK - Dropsuite waiting list deploy did not reach the server
+
+| | |
+|---|---|
+| Intent | Show Dropsuite sold-but-unlinked clients only, in one short line. |
+| Operator | agent |
+| SHA before -> after | live unchanged. GitHub `main` is `e337b52`. |
+| Steps | Pushed `e337b52`. Two SSH attempts to `root@159.65.83.156` port 22 timed out before fetch or archive. No artisan commands ran. |
+| Result | Failed. Live site was not updated. |
+| Rollback / watch | Nothing to undo on the server. When SSH is back, deploy `e337b52` with the usual archive and post-deploy block. Hard-refresh Dropsuite orgs. Clients without Dropsuite sold should be gone from the waiting list. |
+
 ### 2026-11-16 ~14:40 UK - Timing settings no longer stuck open
 
 | | |
