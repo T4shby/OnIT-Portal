@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-17 ~16:07 UK - Deploy Dropsuite list and mailbox counts
+
+| | |
+|---|---|
+| Intent | Put the sold-only Dropsuite waiting list and the mailbox user counts on the live site. Earlier SSH attempts failed while the VPN was on. |
+| Operator | agent |
+| SHA before -> after | `9311374` -> `47953e7` |
+| Steps | SSH: vhost fetch, `git archive main` into the live path, chown, composer install --no-dev, migrate --force, route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload plesk-php84-fpm. No cache:clear. |
+| Result | Live `.deployed-commit` `47953e7`. `/up` 200. |
+| Rollback / watch | Redeploy `9311374`. Hard-refresh Dropsuite orgs. Users should be mailbox totals. The waiting line should only list clients with Dropsuite sold and no organisation id. |
+
 ### 2026-11-17 ~16:10 UK - Dropsuite mailbox counts not deployed
 
 | | |
