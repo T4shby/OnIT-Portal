@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-17 ~16:10 UK - Dropsuite mailbox counts not deployed
+
+| | |
+|---|---|
+| Intent | Users column should be mailbox totals from GET /accounts, and the earlier sold-only waiting list should go live with it. |
+| Operator | agent |
+| SHA before -> after | live unchanged. GitHub `main` is `601fdb6`. |
+| Steps | Pushed `601fdb6`. SSH to `root@159.65.83.156` port 22 timed out during banner exchange. No fetch, archive, or artisan. |
+| Result | Failed. Live Dropsuite orgs page still counts GET /users rows. |
+| Rollback / watch | Nothing changed on the server. When SSH works, deploy `601fdb6`. Hard-refresh Dropsuite orgs, or use Refresh from Dropsuite. Users should be mailbox totals, not 1. |
+
 ### 2026-11-17 ~15:50 UK - Dropsuite waiting list deploy did not reach the server
 
 | | |
