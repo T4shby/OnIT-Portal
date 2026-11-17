@@ -94,6 +94,7 @@ Read these documents before changing application code. **Update Brain for every 
 
 | Date | Change |
 |---|---|
+| 2026-11-17 | Dropsuite orgs waiting list is only clients with Dropsuite sold and no organisation id. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | Integration Health timing settings stays closed. Close, the dimmed area, and Escape dismiss it. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | Clients list key uses staff wording: what we sell, where they buy licences, GDAP in place / not set up / not checked. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |
 | 2026-11-16 | Clients list shows SuperOps, M365, Huntress and Dropsuite by name, Licence in its own column (Pax8, more vendors later), and a GDAP tick, cross, or question mark. - [ClientAdminDashboard.md](ClientAdminDashboard.md) |

@@ -76,7 +76,7 @@
                                     <input type="hidden" name="filter" value="{{ $filter }}">
                                     <input type="hidden" name="q" value="{{ $search }}">
                                     <select name="client_id" class="admin-input text-sm max-w-[14rem]" required>
-                                        <option value="">Live client</option>
+                                        <option value="">Client</option>
                                         @foreach($assignableClients as $client)
                                             <option value="{{ $client->id }}" @selected($row['suggested_client']?->id === $client->id)>
                                                 {{ $client->name }}
@@ -102,21 +102,14 @@
         </table>
     </div>
 
-    <section class="border border-white/10 bg-white/[0.02] p-5">
-        <p class="portal-label mb-2">Live portal clients with no Dropsuite id</p>
-        <p class="portal-body-muted text-xs mb-4 leading-relaxed">
-            These clients are active in the portal but not mapped yet. Link them from the table above, or they are not in Dropsuite.
-        </p>
-        @if($unmappedLiveClients->isEmpty())
-            <p class="text-sm text-white/50">Every live client you can see already has an organization_id, or none are live.</p>
-        @else
-            <ul class="space-y-1 text-sm">
+    @if($unmappedLiveClients->isNotEmpty())
+        <section class="border border-white/10 bg-white/[0.02] px-5 py-4">
+            <p class="portal-label mb-2">Dropsuite sold, not linked</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 @foreach($unmappedLiveClients as $client)
-                    <li>
-                        <a href="{{ route('admin.clients.edit', $client) }}" class="text-white hover:text-onit">{{ $client->name }}</a>
-                    </li>
+                    <a href="{{ route('admin.clients.edit', $client) }}" class="text-white hover:text-onit">{{ $client->name }}</a>
                 @endforeach
-            </ul>
-        @endif
-    </section>
+            </div>
+        </section>
+    @endif
 </x-admin-layout>

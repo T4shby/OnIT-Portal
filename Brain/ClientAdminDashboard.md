@@ -544,7 +544,7 @@ Cache key: `client:{client_id}:dropsuite-backup:v2`
 
 Client mapping: `clients.dropsuite_organization_id` (Admin → Clients, or **Admin → Clients → Dropsuite orgs**). Value is the Dropsuite **organization_id** on backed-up accounts (`user.organization_id` in `GET /accounts` / reseller `GET /users`).
 
-**How to get the id:** Dropsuite's UI shows a user id (`360787-12`). That is not this field. Staff import uses reseller `GET /users`, which returns `organization_id` (short number) + `organization_name`. Open **Admin → Clients → Dropsuite orgs** (default filter: live portal matches), or pick from the list on the Edit Client Dropsuite card. Do not paste the on-screen user id.
+**How to get the id:** Dropsuite's UI shows a user id (`360787-12`). That is not this field. Staff import uses reseller `GET /users`, which returns `organization_id` (short number) + `organization_name`. Open **Admin → Clients → Dropsuite orgs** (default filter: live portal matches), or pick from the list on the Edit Client Dropsuite card. Do not paste the on-screen user id. The line under the table, **Dropsuite sold, not linked**, lists only clients with Dropsuite ticked and no organisation id. Clients who were not sold Dropsuite are not listed and are not in the link menu.
 
 | Setting | Env | Default |
 |---------|-----|---------|

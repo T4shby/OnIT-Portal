@@ -122,6 +122,38 @@ class DropsuiteOrganizationImportTest extends TestCase
         $this->assertNull($theirs->fresh()->dropsuite_organization_id);
     }
 
+    public function test_waiting_list_is_only_clients_sold_dropsuite_without_an_id(): void
+    {
+        $this->fakeUsers();
+        $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
+        Client::factory()->create([
+            'name' => 'Sold Backup Co',
+            'is_active' => true,
+            'dropsuite_organization_id' => null,
+            'product_entitlements' => ['dropsuite' => ['entitled' => true]],
+        ]);
+        Client::factory()->create([
+            'name' => 'Not Sold Co',
+            'is_active' => true,
+            'dropsuite_organization_id' => null,
+            'product_entitlements' => ['dropsuite' => ['entitled' => false]],
+        ]);
+        Client::factory()->create([
+            'name' => 'Already Linked Co',
+            'is_active' => true,
+            'dropsuite_organization_id' => '11223',
+            'product_entitlements' => ['dropsuite' => ['entitled' => true]],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.dropsuite-organizations'))
+            ->assertOk()
+            ->assertSee('Dropsuite sold, not linked', false)
+            ->assertSee('Sold Backup Co', false)
+            ->assertDontSee('Not Sold Co', false)
+            ->assertDontSee('Already Linked Co', false);
+    }
+
     public function test_client_admin_cannot_open_import_page(): void
     {
         $client = Client::factory()->create();

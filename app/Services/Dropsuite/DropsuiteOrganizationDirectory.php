@@ -4,6 +4,7 @@ namespace App\Services\Dropsuite;
 
 use App\Models\Client;
 use App\Models\User;
+use App\Services\Portal\ClientProductService;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,7 +19,10 @@ class DropsuiteOrganizationDirectory
 
     public const FILTER_ALL = 'all';
 
-    public function __construct(private DropsuiteClientMetricsService $metrics) {}
+    public function __construct(
+        private DropsuiteClientMetricsService $metrics,
+        private ClientProductService $products,
+    ) {}
 
     public function isConfigured(): bool
     {
@@ -92,25 +96,25 @@ class DropsuiteOrganizationDirectory
     }
 
     /**
-     * Live portal clients the viewer can see that still have no Dropsuite organization_id.
+     * Clients with Dropsuite sold who still have no organisation id.
      *
      * @return Collection<int, Client>
      */
     public function unmappedLiveClients(User $viewer): Collection
     {
         return $this->accessibleClients($viewer)
-            ->filter(fn (Client $client): bool => $client->is_active && blank($client->dropsuite_organization_id))
+            ->filter(fn (Client $client): bool => $this->needsDropsuiteSetup($client))
             ->values();
     }
 
     /**
+     * Same set as the waiting list: sold, active, and not linked yet.
+     *
      * @return Collection<int, Client>
      */
     public function assignableClients(User $viewer): Collection
     {
-        return $this->accessibleClients($viewer)
-            ->filter(fn (Client $client): bool => $client->is_active)
-            ->values();
+        return $this->unmappedLiveClients($viewer);
     }
 
     /**
@@ -127,10 +131,7 @@ class DropsuiteOrganizationDirectory
         $best = null;
         $bestScore = 0;
         foreach ($clients as $client) {
-            if (! $client->is_active) {
-                continue;
-            }
-            if (filled($client->dropsuite_organization_id)) {
+            if (! $this->needsDropsuiteSetup($client)) {
                 continue;
             }
 
@@ -176,6 +177,13 @@ class DropsuiteOrganizationDirectory
         }
 
         return 0;
+    }
+
+    private function needsDropsuiteSetup(Client $client): bool
+    {
+        return $client->is_active
+            && blank($client->dropsuite_organization_id)
+            && $this->products->isEntitled($client, ClientProductService::KEY_DROPSUITE);
     }
 
     /**
