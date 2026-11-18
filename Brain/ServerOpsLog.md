@@ -33,6 +33,17 @@ Agents must append here whenever they work on the server - see `.cursor/rules/se
 
 ## Log
 
+### 2026-11-18 ~00:50 UK - Dropsuite orgs defaults to everything
+
+| | |
+|---|---|
+| Intent | Open Dropsuite organisations on Everything from Dropsuite. |
+| Operator | agent |
+| SHA before -> after | `47953e7` -> `9aeb13e` |
+| Steps | Pushed `9aeb13e`. SSH: vhost fetch, `git archive main` into the live path, chown, composer install --no-dev, migrate --force, route/config/view clear, PortalLinkSeeder, optimize, chown storage and bootstrap/cache, reload plesk-php84-fpm. No cache:clear. |
+| Result | Live `.deployed-commit` `9aeb13e`. `/up` 200. |
+| Rollback / watch | Redeploy `47953e7`. Hard-refresh Dropsuite orgs with no filter in the address bar. Show should be Everything from Dropsuite. |
+
 ### 2026-11-17 ~16:07 UK - Deploy Dropsuite list and mailbox counts
 
 | | |
