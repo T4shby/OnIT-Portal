@@ -18,9 +18,9 @@
             <div class="min-w-[12rem]">
                 <label class="portal-label mb-1 block" for="dropsuite-filter">Show</label>
                 <select id="dropsuite-filter" name="filter" class="admin-input">
+                    <option value="all" @selected($filter === 'all')>Everything from Dropsuite</option>
                     <option value="live" @selected($filter === 'live')>Live portal matches</option>
                     <option value="unmapped" @selected($filter === 'unmapped')>Unmapped Dropsuite orgs</option>
-                    <option value="all" @selected($filter === 'all')>Everything from Dropsuite</option>
                 </select>
             </div>
             <div class="min-w-[14rem] flex-1">

@@ -26,13 +26,13 @@ class DropsuiteOrganizationController extends Controller
     {
         $this->authorize('viewAny', Client::class);
 
-        $filter = (string) $request->query('filter', DropsuiteOrganizationDirectory::FILTER_LIVE);
+        $filter = (string) $request->query('filter', DropsuiteOrganizationDirectory::FILTER_ALL);
         if (! in_array($filter, [
             DropsuiteOrganizationDirectory::FILTER_LIVE,
             DropsuiteOrganizationDirectory::FILTER_UNMAPPED,
             DropsuiteOrganizationDirectory::FILTER_ALL,
         ], true)) {
-            $filter = DropsuiteOrganizationDirectory::FILTER_LIVE;
+            $filter = DropsuiteOrganizationDirectory::FILTER_ALL;
         }
 
         $fresh = $request->boolean('refresh');
@@ -106,7 +106,7 @@ class DropsuiteOrganizationController extends Controller
 
         return redirect()
             ->route('admin.clients.dropsuite-organizations', [
-                'filter' => $request->input('filter', DropsuiteOrganizationDirectory::FILTER_LIVE),
+                'filter' => $request->input('filter', DropsuiteOrganizationDirectory::FILTER_ALL),
                 'q' => $request->input('q'),
             ])
             ->with('success', $client->name.' mapped to Dropsuite organisation '.$organizationId.'.');

@@ -53,7 +53,13 @@ class DropsuiteOrganizationImportTest extends TestCase
             ->assertOk()
             ->assertSee('YorPower')
             ->assertSee('6182')
-            ->assertDontSee('SECRET-USER-TOKEN')
+            ->assertSee('Parked Org')
+            ->assertSee('value="all" selected', false)
+            ->assertDontSee('SECRET-USER-TOKEN');
+
+        $this->actingAs($admin)
+            ->get(route('admin.clients.dropsuite-organizations', ['filter' => 'live']))
+            ->assertOk()
             ->assertDontSee('Parked Org');
     }
 

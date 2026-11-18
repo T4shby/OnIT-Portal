@@ -55,7 +55,7 @@ class DropsuiteOrganizationDirectory
      *     match: string
      * }>
      */
-    public function catalog(User $viewer, string $filter = self::FILTER_LIVE, bool $fresh = false): array
+    public function catalog(User $viewer, string $filter = self::FILTER_ALL, bool $fresh = false): array
     {
         $orgs = $this->metrics->listResellerOrganizations($fresh);
         $clients = $this->accessibleClients($viewer);
